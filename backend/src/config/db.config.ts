@@ -1,4 +1,9 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+
+// Charge les variables d'environnement (.env) pour TOUS les chemins
+// d'accès à la base (serveur comme scripts de seed).
+dotenv.config();
 
 /**
  * Établit la connexion à MongoDB.
@@ -7,7 +12,9 @@ import mongoose from 'mongoose';
 export const connectDB = async (): Promise<void> => {
   const uri = process.env.MONGO_URI;
   if (!uri) {
-    throw new Error('MONGO_URI est manquant dans le fichier .env');
+    throw new Error(
+      'MONGO_URI est manquant. Copiez ".env.example" en ".env" et renseignez MONGO_URI (puis relancez).'
+    );
   }
   try {
     await mongoose.connect(uri);
