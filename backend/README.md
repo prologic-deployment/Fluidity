@@ -28,3 +28,17 @@ npm run build && npm start   # production
 | POST | `/api/auth/forgot-password` | Génération token + email async |
 | POST | `/api/auth/reset-password` | Réinitialisation du mot de passe |
 | GET  | `/api/auth/me` | Profil (auth requise) |
+
+## Endpoints (Section 2 & 3)
+| Méthode | Route | Description |
+|--------|-------|-------------|
+| POST | `/api/demandes` | Création d'une demande (statut "Ouverte") |
+| GET  | `/api/demandes` | Liste des demandes du tenant |
+| GET  | `/api/demandes/:id` | Détail d'une demande |
+| PATCH| `/api/demandes/:id` | Mise à jour d'une demande |
+| DELETE | `/api/demandes/:id` | Suppression d'une demande |
+| POST | `/api/changements` | Création d'un changement (statut "Soumis") |
+| GET  | `/api/changements` | Liste des changements du tenant |
+| GET  | `/api/changements/:id` | Détail d'un changement |
+| PATCH| `/api/changements/:id` | Mise à jour d'un changement |
+| DELETE | `/api/changements/:id` | Suppression d'un changement |

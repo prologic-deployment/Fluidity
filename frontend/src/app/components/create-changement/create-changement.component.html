@@ -1,0 +1,199 @@
+<div class="min-h-screen bg-slate-100">
+  <header class="bg-white shadow">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a routerLink="/changements" class="text-blue-600 text-sm hover:underline">&larr; Retour</a>
+      <h1 class="text-xl font-bold text-slate-800">Nouveau Changement</h1>
+      <span></span>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-6">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+
+      <p *ngIf="error" class="text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-2 text-sm">{{ error }}</p>
+
+      <!-- Section 1 : Informations générales -->
+      <section class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">Informations générales</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Identifiant client</label>
+            <input formControlName="clientId" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="text-red-500 text-xs mt-1">Champ requis.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Objet du changement</label>
+            <input formControlName="objetChangement" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p *ngIf="form.get('objetChangement')?.invalid && form.get('objetChangement')?.touched" class="text-red-500 text-xs mt-1">Champ requis.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Service / Environnement</label>
+            <input formControlName="serviceEnvironnement" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Type de changement</label>
+            <select formControlName="typeChangement"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option *ngFor="let t of typesChangement" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Catégorie</label>
+            <select formControlName="categorie" (change)="onCategorieChange()"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="" disabled>Sélectionner...</option>
+              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Sous-catégorie</label>
+            <select formControlName="sousCategorie"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              <option value="" disabled>Sélectionner...</option>
+              <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Fenêtre d'intervention</label>
+            <input formControlName="fenetreIntervention" type="datetime-local"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <p *ngIf="form.get('fenetreIntervention')?.invalid && form.get('fenetreIntervention')?.touched" class="text-red-500 text-xs mt-1">Champ requis.</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Prérequis nécessaires</label>
+            <input formControlName="prerequisNecessaires" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Description détaillée</label>
+          <textarea formControlName="descriptionDetaillee" rows="4"
+            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Décrivez le changement (minimum 10 caractères)"></textarea>
+          <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="text-red-500 text-xs mt-1">Description requise (min. 10 caractères).</p>
+        </div>
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Plan de retour arrière</label>
+          <textarea formControlName="planRetourArriere" rows="3"
+            class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          <p *ngIf="form.get('planRetourArriere')?.invalid && form.get('planRetourArriere')?.touched" class="text-red-500 text-xs mt-1">Champ requis.</p>
+        </div>
+      </section>
+
+      <!-- Section 2 : Spécifications générales -->
+      <section class="bg-white shadow rounded-lg p-6" formGroupName="general">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">Spécifications — Général</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Ressources concernées</label>
+            <input formControlName="ressourcesConcernees" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Environnement</label>
+            <input formControlName="environnement" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Commentaire</label>
+            <textarea formControlName="commentaire" rows="2"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3 : Serveur -->
+      <section class="bg-white shadow rounded-lg p-6" formGroupName="serveur">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">Spécifications — Serveur</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Système d'exploitation</label>
+            <input formControlName="os" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Cœurs CPU</label>
+            <input formControlName="cpuCores" type="number" min="0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">RAM (Go)</label>
+            <input formControlName="ramGo" type="number" min="0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Disque NVMe (Go)</label>
+            <input formControlName="disqueNvmeGo" type="number" min="0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Disque SAS (Go)</label>
+            <input formControlName="disqueSasGo" type="number" min="0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4 : Réseau -->
+      <section class="bg-white shadow rounded-lg p-6" formGroupName="reseau">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">Spécifications — Réseau</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">VLAN</label>
+            <input formControlName="vlan" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Adresse IP</label>
+            <input formControlName="adresseIp" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Masque de sous-réseau</label>
+            <input formControlName="masqueSousReseau" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Passerelle</label>
+            <input formControlName="passerelle" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5 : Sauvegarde -->
+      <section class="bg-white shadow rounded-lg p-6" formGroupName="backup">
+        <h2 class="text-lg font-semibold text-slate-800 mb-4">Spécifications — Sauvegarde</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Espace backup sup. (Go)</label>
+            <input formControlName="espaceBackupSupplementaireGo" type="number" min="0"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Rétention souhaitée</label>
+            <input formControlName="retentionSouhaitee" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700 mb-1">Licences nécessaires</label>
+            <input formControlName="licencesNecessaires" type="text"
+              class="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </section>
+
+      <div class="flex justify-end space-x-3">
+        <button type="button" routerLink="/changements"
+          class="px-4 py-2 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50">Annuler</button>
+        <button type="submit" [disabled]="loading"
+          class="px-4 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+          {{ loading ? 'Envoi...' : 'Soumettre le changement' }}
+        </button>
+      </div>
+    </form>
+  </main>
+</div>

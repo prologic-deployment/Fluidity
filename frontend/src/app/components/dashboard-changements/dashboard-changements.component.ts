@@ -1,23 +1,24 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { DemandeService } from '../../services/demande.service';
-import { Demande } from '../../models/demande.model';
+import { ChangementService } from '../../services/changement.service';
+import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-dashboard-demandes',
+  selector: 'app-dashboard-changements',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  templateUrl: './dashboard-demandes.component.html',
+  templateUrl: './dashboard-changements.component.html',
 })
-export class DashboardDemandesComponent implements OnInit {
-  demandes: Demande[] = [];
+export class DashboardChangementsComponent implements OnInit {
+  changements: Changement[] = [];
   loading = false;
   error: string | null = null;
+  active = 'changements';
 
   constructor(
-    private demandeService: DemandeService,
+    private changementService: ChangementService,
     private auth: AuthService,
     private router: Router
   ) {}
@@ -29,24 +30,15 @@ export class DashboardDemandesComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.demandeService.getAll().subscribe({
+    this.changementService.getAll().subscribe({
       next: (data) => {
-        this.demandes = data;
+        this.changements = data;
         this.loading = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des demandes.';
+        this.error = err.error?.message || 'Erreur de chargement des changements.';
         this.loading = false;
       },
-    });
-  }
-
-  deleteDemande(id: string | undefined): void {
-    if (!id) return;
-    if (!confirm('Confirmer la suppression de cette demande ?')) return;
-    this.demandeService.delete(id).subscribe({
-      next: () => this.load(),
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
     });
   }
 
@@ -55,31 +47,39 @@ export class DashboardDemandesComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  /** Retourne la classe Tailwind selon le statut. */
+  deleteChangement(id: string | undefined): void {
+    if (!id) return;
+    if (!confirm('Confirmer la suppression de ce changement ?')) return;
+    this.changementService.delete(id).subscribe({
+      next: () => this.load(),
+      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+    });
+  }
+
   statutClass(statut?: string): string {
     switch (statut) {
-      case 'Ouverte':
+      case 'Soumis':
         return 'bg-blue-100 text-blue-700';
-      case 'En cours d\'analyse':
+      case 'En revue':
         return 'bg-indigo-100 text-indigo-700';
-      case 'En cours de traitement':
-        return 'bg-amber-100 text-amber-700';
-      case 'Résolue':
+      case 'Approuvé':
         return 'bg-green-100 text-green-700';
-      case 'Fermée':
-        return 'bg-slate-200 text-slate-600';
-      case 'Rejetée':
+      case 'Rejeté':
         return 'bg-red-100 text-red-700';
+      case 'En cours':
+        return 'bg-amber-100 text-amber-700';
+      case 'Clôturé':
+        return 'bg-slate-200 text-slate-600';
       default:
         return 'bg-slate-100 text-slate-600';
     }
   }
 
-  prioriteClass(priorite?: string): string {
-    switch (priorite) {
-      case 'Urgente':
+  typeClass(type?: string): string {
+    switch (type) {
+      case 'Urgent':
         return 'bg-red-100 text-red-700';
-      case 'Élevée':
+      case 'Majeur':
         return 'bg-orange-100 text-orange-700';
       default:
         return 'bg-slate-100 text-slate-600';

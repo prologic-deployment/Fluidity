@@ -1,20 +1,19 @@
 <div class="min-h-screen bg-slate-100">
-  <!-- Barre supérieure -->
   <header class="bg-white shadow">
     <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
       <div class="flex items-center space-x-4">
         <h1 class="text-xl font-bold text-slate-800">Fluidity</h1>
         <nav class="flex space-x-1">
           <a routerLink="/demandes"
-            class="px-3 py-1 rounded-md text-sm bg-blue-50 text-blue-700 font-medium">Demandes</a>
+            class="px-3 py-1 rounded-md text-sm text-slate-600 hover:bg-slate-100">Demandes</a>
           <a routerLink="/changements"
-            class="px-3 py-1 rounded-md text-sm text-slate-600 hover:bg-slate-100">Changements</a>
+            class="px-3 py-1 rounded-md text-sm bg-blue-50 text-blue-700 font-medium">Changements</a>
         </nav>
       </div>
       <div class="flex items-center space-x-3">
-        <a routerLink="/demandes/nouvelle"
+        <a routerLink="/changements/nouveau"
           class="bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-          + Nouvelle demande
+          + Nouveau changement
         </a>
         <button (click)="logout()" class="text-sm text-slate-500 hover:text-slate-800">Déconnexion</button>
       </div>
@@ -22,46 +21,46 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-4 py-6">
-    <p *ngIf="error" class="mb-4 text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-2">{{ error }}</p>
-    <p *ngIf="loading" class="text-slate-500">Chargement des demandes...</p>
+    <h2 class="text-lg font-semibold text-slate-800 mb-4">Changements d'infrastructure</h2>
 
-    <div *ngIf="!loading && demandes.length === 0" class="text-center text-slate-500 py-12">
-      Aucune demande pour le moment.
+    <p *ngIf="error" class="mb-4 text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-2">{{ error }}</p>
+    <p *ngIf="loading" class="text-slate-500">Chargement des changements...</p>
+
+    <div *ngIf="!loading && changements.length === 0" class="text-center text-slate-500 py-12">
+      Aucun changement pour le moment.
     </div>
 
-    <div *ngIf="!loading && demandes.length > 0" class="bg-white shadow rounded-lg overflow-hidden">
+    <div *ngIf="!loading && changements.length > 0" class="bg-white shadow rounded-lg overflow-hidden">
       <table class="min-w-full divide-y divide-slate-200 text-sm">
         <thead class="bg-slate-50">
           <tr class="text-left text-slate-500 uppercase text-xs tracking-wider">
             <th class="px-4 py-3">Objet</th>
             <th class="px-4 py-3">Catégorie</th>
-            <th class="px-4 py-3">Environnement</th>
-            <th class="px-4 py-3">Priorité</th>
+            <th class="px-4 py-3">Type</th>
+            <th class="px-4 py-3">Fenêtre d'intervention</th>
             <th class="px-4 py-3">Statut</th>
             <th class="px-4 py-3">Date</th>
             <th class="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
-          <tr *ngFor="let d of demandes" class="hover:bg-slate-50">
-            <td class="px-4 py-3 font-medium text-slate-800">{{ d.objet }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ d.categorie }} / {{ d.sousCategorie }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ d.serviceEnvironnement }}</td>
+          <tr *ngFor="let c of changements" class="hover:bg-slate-50">
+            <td class="px-4 py-3 font-medium text-slate-800">{{ c.objetChangement }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ c.categorie }} / {{ c.sousCategorie }}</td>
             <td class="px-4 py-3">
-              <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + prioriteClass(d.prioriteSouhaitee)">
-                {{ d.prioriteSouhaitee }}
+              <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + typeClass(c.typeChangement)">
+                {{ c.typeChangement }}
               </span>
             </td>
+            <td class="px-4 py-3 text-slate-600">{{ c.fenetreIntervention | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td class="px-4 py-3">
-              <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + statutClass(d.statut)">
-                {{ d.statut }}
+              <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + statutClass(c.statut)">
+                {{ c.statut }}
               </span>
             </td>
-            <td class="px-4 py-3 text-slate-500">
-              {{ d.createdAt | date: 'dd/MM/yyyy' }}
-            </td>
+            <td class="px-4 py-3 text-slate-500">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="px-4 py-3 text-right">
-              <button (click)="deleteDemande(d._id)"
+              <button (click)="deleteChangement(c._id)"
                 class="text-red-600 hover:underline text-xs">Supprimer</button>
             </td>
           </tr>
