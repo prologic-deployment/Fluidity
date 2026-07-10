@@ -63,5 +63,5 @@ UtilisateurSchema.methods.comparePassword = function (
 export const Utilisateur = mongoose.model<IUtilisateur>(
   'Utilisateur',
   UtilisateurSchema,
-  'users' // Collection explicite : correspond à "db.users"
+  'utilisateurs' // Collection explicite : db.utilisateurs (cohérent avec le modèle d'origine)
 );

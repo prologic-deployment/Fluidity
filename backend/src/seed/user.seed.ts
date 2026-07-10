@@ -40,5 +40,5 @@ export const seedUsers = async (): Promise<void> => {
     await new Utilisateur(u).save();
   }
 
-  console.log(`[Seed] ${demoUsers.length} utilisateurs de démonstration créés dans db.users.`);
+  console.log(`[Seed] ${demoUsers.length} utilisateurs de démonstration créés dans db.utilisateurs.`);
 };

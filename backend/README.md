@@ -43,7 +43,7 @@ npm run build && npm start   # production
 | PATCH| `/api/changements/:id` | Mise à jour d'un changement |
 | DELETE | `/api/changements/:id` | Suppression d'un changement |
 
-## Données de démonstration (Seed `db.users`)
+## Données de démonstration (Seed `db.utilisateurs`)
 
 Le serveur **crée automatiquement les utilisateurs de démo au 1er lancement**
 (collection vide). Pour forcer un seed manuel :
@@ -62,4 +62,4 @@ Utilisateurs créés (mot de passe commun : `Password123!`) :
 | `responsable@fluidity.dev` | RESPONSABLE_TECHNIQUE | tenant-001 |
 | `client2@fluidity.dev` | CLIENT | tenant-002 |
 
-Le seed est **idempotent** : il ne fait rien si la collection `db.users` contient déjà des documents.
+Le seed est **idempotent** : il ne fait rien si la collection `db.utilisateurs` contient déjà des documents.
