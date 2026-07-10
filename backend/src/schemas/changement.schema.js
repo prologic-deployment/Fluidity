@@ -1,4 +1,4 @@
-import { z } from 'zod';
+const { z } = require('zod');
 
 /**
  * Nombre optionnel : convertit "" / null / undefined en `undefined`
@@ -9,7 +9,7 @@ const optionalNumber = z.preprocess(
   z.coerce.number().optional()
 );
 
-export const createChangementSchema = z.object({
+const createChangementSchema = z.object({
   clientId: z.string().min(1, 'clientId requis'),
   objetChangement: z.string().min(1, 'Objet du changement requis'),
   descriptionDetaillee: z.string().min(1, 'Description détaillée requise'),
@@ -57,7 +57,7 @@ export const createChangementSchema = z.object({
     .optional(),
 });
 
-export const updateChangementSchema = z
+const updateChangementSchema = z
   .object({
     objetChangement: z.string().min(1).optional(),
     descriptionDetaillee: z.string().min(1).optional(),
@@ -67,3 +67,5 @@ export const updateChangementSchema = z
     specifications: z.record(z.any()).optional(),
   })
   .partial();
+
+module.exports = { createChangementSchema, updateChangementSchema };

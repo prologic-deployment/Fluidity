@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
-import { connectDB } from '../config/db.config';
-import { seedUsers } from './user.seed';
+const mongoose = require('mongoose');
+const { connectDB } = require('../config/db.config');
+const { seedUsers } = require('./user.seed');
 
 /**
  * Script autonome de seed : se connecte, insère les utilisateurs de

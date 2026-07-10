@@ -1,25 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-
-/**
- * Charge utile décodée depuis le JWT.
- */
-interface JwtPayload {
-  tenantId: string;
-  userId: string;
-  role: string;
-}
+const jwt = require('jsonwebtoken');
 
 /**
  * Middleware d'authentification.
  * Vérifie le JWT présent dans l'en-tête "Authorization: Bearer <token>",
  * puis injecte req.tenantId, req.userId et req.userRole.
  */
-export const authMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+const authMiddleware = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -34,7 +20,7 @@ export const authMiddleware = (
       return;
     }
 
-    const decoded = jwt.verify(token, secret) as JwtPayload;
+    const decoded = jwt.verify(token, secret);
     req.tenantId = decoded.tenantId;
     req.userId = decoded.userId;
     req.userRole = decoded.role;
@@ -44,3 +30,5 @@ export const authMiddleware = (
     res.status(401).json({ message: 'Token invalide ou expiré' });
   }
 };
+
+module.exports = { authMiddleware };

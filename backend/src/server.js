@@ -1,6 +1,6 @@
-import app from './app';
-import { connectDB } from './config/db.config';
-import { seedUsers } from './seed/user.seed';
+const app = require('./app');
+const { connectDB } = require('./config/db.config');
+const { seedUsers } = require('./seed/user.seed');
 
 const PORT = process.env.PORT || 3000;
 

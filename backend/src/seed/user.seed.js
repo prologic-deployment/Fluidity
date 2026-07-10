@@ -1,17 +1,10 @@
-import { Utilisateur, Role } from '../models/user.model';
-
-export interface SeedUser {
-  tenantId: string;
-  email: string;
-  password: string;
-  role: Role;
-}
+const { Utilisateur } = require('../models/user.model');
 
 /**
  * Utilisateurs de démonstration (multi-tenant).
  * Mots de passe par défaut (à changer en production) : Password123!
  */
-export const demoUsers: SeedUser[] = [
+const demoUsers = [
   { tenantId: 'tenant-001', email: 'admin@fluidity.dev', password: 'Password123!', role: 'ADMIN' },
   { tenantId: 'tenant-001', email: 'client@fluidity.dev', password: 'Password123!', role: 'CLIENT' },
   { tenantId: 'tenant-001', email: 'support@fluidity.dev', password: 'Password123!', role: 'SUPPORT_N1' },
@@ -29,7 +22,7 @@ export const demoUsers: SeedUser[] = [
  * Insère les utilisateurs de démonstration UNIQUEMENT si la collection
  * est vide (idempotent). Les mots de passe sont hashés via le hook pre-save.
  */
-export const seedUsers = async (): Promise<void> => {
+const seedUsers = async () => {
   const count = await Utilisateur.countDocuments();
   if (count > 0) {
     console.log(`[Seed] ${count} utilisateur(s) existant(s) — seed ignoré.`);
@@ -42,3 +35,5 @@ export const seedUsers = async (): Promise<void> => {
 
   console.log(`[Seed] ${demoUsers.length} utilisateurs de démonstration créés dans db.utilisateurs.`);
 };
+
+module.exports = { demoUsers, seedUsers };

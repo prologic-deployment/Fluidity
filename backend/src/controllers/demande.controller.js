@@ -1,6 +1,5 @@
-import { Request, Response } from 'express';
-import { Demande, StatutDemande } from '../models/demande.model';
-import { sendSupportEmail } from '../services/email.service';
+const { Demande } = require('../models/demande.model');
+const { sendSupportEmail } = require('../services/email.service');
 
 /**
  * Création d'une demande.
@@ -8,7 +7,7 @@ import { sendSupportEmail } from '../services/email.service';
  * - statut initialisé à "Ouverte"
  * - Email asynchrone au Support N1
  */
-export const createDemande = async (req: Request, res: Response): Promise<void> => {
+const createDemande = async (req, res) => {
   try {
     if (!req.tenantId) {
       res.status(401).json({ message: 'Tenant non identifié' });
@@ -18,7 +17,7 @@ export const createDemande = async (req: Request, res: Response): Promise<void> 
     const demande = new Demande({
       ...req.body,
       tenantId: req.tenantId,
-      statut: 'Ouverte' as StatutDemande,
+      statut: 'Ouverte',
     });
     await demande.save();
 
@@ -37,26 +36,26 @@ export const createDemande = async (req: Request, res: Response): Promise<void> 
 
     res.status(201).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Liste des demandes du tenant (tri décroissant par date).
  */
-export const getAllDemandes = async (req: Request, res: Response): Promise<void> => {
+const getAllDemandes = async (req, res) => {
   try {
     const demandes = await Demande.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
     res.status(200).json(demandes);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Détail d'une demande (isolée par tenant).
  */
-export const getDemandeById = async (req: Request, res: Response): Promise<void> => {
+const getDemandeById = async (req, res) => {
   try {
     const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!demande) {
@@ -65,14 +64,14 @@ export const getDemandeById = async (req: Request, res: Response): Promise<void>
     }
     res.status(200).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Mise à jour d'une demande (isolée par tenant).
  */
-export const updateDemande = async (req: Request, res: Response): Promise<void> => {
+const updateDemande = async (req, res) => {
   try {
     const demande = await Demande.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.tenantId },
@@ -85,14 +84,14 @@ export const updateDemande = async (req: Request, res: Response): Promise<void> 
     }
     res.status(200).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Suppression d'une demande (isolée par tenant).
  */
-export const deleteDemande = async (req: Request, res: Response): Promise<void> => {
+const deleteDemande = async (req, res) => {
   try {
     const demande = await Demande.findOneAndDelete({
       _id: req.params.id,
@@ -104,6 +103,14 @@ export const deleteDemande = async (req: Request, res: Response): Promise<void> 
     }
     res.status(200).json({ message: 'Demande supprimée avec succès' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
+};
+
+module.exports = {
+  createDemande,
+  getAllDemandes,
+  getDemandeById,
+  updateDemande,
+  deleteDemande,
 };

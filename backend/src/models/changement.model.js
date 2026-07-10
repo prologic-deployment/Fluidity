@@ -1,61 +1,10 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
-
-export type StatutChangement =
-  | 'Soumis'
-  | 'En revue'
-  | 'Approuvé'
-  | 'Rejeté'
-  | 'En cours'
-  | 'Clôturé';
-
-export interface ISpecifications {
-  general?: {
-    ressourcesConcernees?: string;
-    environnement?: string;
-    commentaire?: string;
-  };
-  serveur?: {
-    os?: string;
-    cpuCores?: number;
-    ramGo?: number;
-    disqueNvmeGo?: number;
-    disqueSasGo?: number;
-  };
-  reseau?: {
-    vlan?: string;
-    adresseIp?: string;
-    masqueSousReseau?: string;
-    passerelle?: string;
-  };
-  backup?: {
-    espaceBackupSupplementaireGo?: number;
-    retentionSouhaitee?: string;
-    licencesNecessaires?: string;
-  };
-}
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
 /**
- * Interface du document Changement (infrastructure change).
+ * TypeChangement: 'Normal' | 'Majeur' | 'Urgent'
+ * StatutChangement: 'Soumis' | 'En revue' | 'Approuvé' | 'Rejeté' | 'En cours' | 'Clôturé'
  */
-export interface IChangement extends Document {
-  tenantId: string;
-  clientId: string;
-  objetChangement: string;
-  descriptionDetaillee: string;
-  serviceEnvironnement: string;
-  categorie: string;
-  sousCategorie: string;
-  fenetreIntervention: Date;
-  prerequisNecessaires?: string;
-  planRetourArriere: string;
-  typeChangement: TypeChangement;
-  statut: StatutChangement;
-  specifications: ISpecifications;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const SpecificationsSchema = new Schema(
   {
@@ -86,7 +35,7 @@ const SpecificationsSchema = new Schema(
   { _id: false }
 );
 
-const ChangementSchema = new Schema<IChangement>(
+const ChangementSchema = new Schema(
   {
     tenantId: { type: String, required: true },
     clientId: { type: String, required: true },
@@ -111,7 +60,6 @@ const ChangementSchema = new Schema<IChangement>(
 
 ChangementSchema.index({ tenantId: 1, createdAt: -1 });
 
-export const Changement = mongoose.model<IChangement>(
-  'Changement',
-  ChangementSchema
-);
+const Changement = mongoose.model('Changement', ChangementSchema);
+
+module.exports = { Changement };

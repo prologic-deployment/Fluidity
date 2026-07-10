@@ -1,18 +1,18 @@
 # Fluidity - Backend (Module Auth & Core)
 
-Backend Node.js / Express / TypeScript du portail **Fluidity** (SaaS Multi-Tenant).
+Backend Node.js / Express / JavaScript (ESM-free, CommonJS) du portail **Fluidity** (SaaS Multi-Tenant).
 
 ## Stack
 - Node.js 18+, Express.js, Mongoose
 - jsonwebtoken, bcryptjs, nodemailer, zod, uuid
-- TypeScript (mode strict)
+- JavaScript pur (CommonJS, pas de build step)
 
 ## Démarrage
 ```bash
 cp .env.example .env   # puis renseigner les valeurs
 npm install
-npm run dev            # développement (ts-node-dev)
-npm run build && npm start   # production
+npm run dev            # développement (nodemon, auto-reload)
+npm start              # production (node src/server.js)
 ```
 
 ## Règles d'architecture

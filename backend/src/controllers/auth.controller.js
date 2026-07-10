@@ -1,13 +1,12 @@
-import { Request, Response } from 'express';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
-import { Utilisateur } from '../models/user.model';
-import { sendResetPasswordEmail } from '../services/email.service';
+const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
+const { Utilisateur } = require('../models/user.model');
+const { sendResetPasswordEmail } = require('../services/email.service');
 
 /**
  * Inscription d'un nouvel utilisateur (attribution du tenantId).
  */
-export const register = async (req: Request, res: Response): Promise<void> => {
+const register = async (req, res) => {
   try {
     const { tenantId, email, password, role } = req.body;
 
@@ -27,7 +26,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({ message: 'Utilisateur créé avec succès', userId: user._id });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
@@ -35,7 +34,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
  * Connexion : vérifie les identifiants et renvoie un JWT contenant
  * tenantId + userId + role.
  */
-export const login = async (req: Request, res: Response): Promise<void> => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -51,8 +50,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const secret = process.env.JWT_SECRET as jwt.Secret;
-    const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
+    const secret = process.env.JWT_SECRET;
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign(
       { tenantId: user.tenantId, userId: user._id, role: user.role },
       secret,
@@ -66,7 +65,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       role: user.role,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
@@ -74,7 +73,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  * Mot de passe oublié : génère un token UUID (valable 1h) et envoie
  * un email de réinitialisation de façon asynchrone.
  */
-export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -82,7 +81,7 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     // Réponse neutre pour ne pas révéler l'existence de l'email
     if (!user) {
       res.status(200).json({
-        message: 'Si l\'email existe, un lien de réinitialisation a été envoyé',
+        message: "Si l'email existe, un lien de réinitialisation a été envoyé",
       });
       return;
     }
@@ -96,17 +95,17 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     sendResetPasswordEmail(email, token).catch(console.error);
 
     res.status(200).json({
-      message: 'Si l\'email existe, un lien de réinitialisation a été envoyé',
+      message: "Si l'email existe, un lien de réinitialisation a été envoyé",
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Réinitialisation effective du mot de passe à partir d'un token valide.
  */
-export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
@@ -126,14 +125,14 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 
     res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Renvoie le profil de l'utilisateur authentifié (sans données sensibles).
  */
-export const me = async (req: Request, res: Response): Promise<void> => {
+const me = async (req, res) => {
   try {
     const user = await Utilisateur.findOne({
       _id: req.userId,
@@ -146,6 +145,8 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     }
     res.status(200).json(user);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
+
+module.exports = { register, login, forgotPassword, resetPassword, me };

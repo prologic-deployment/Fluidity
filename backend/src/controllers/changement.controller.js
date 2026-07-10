@@ -1,6 +1,5 @@
-import { Request, Response } from 'express';
-import { Changement, StatutChangement } from '../models/changement.model';
-import { sendSupportEmail } from '../services/email.service';
+const { Changement } = require('../models/changement.model');
+const { sendSupportEmail } = require('../services/email.service');
 
 /**
  * Création d'un changement.
@@ -8,7 +7,7 @@ import { sendSupportEmail } from '../services/email.service';
  * - statut initialisé à "Soumis"
  * - Email asynchrone au Responsable Technique
  */
-export const createChangement = async (req: Request, res: Response): Promise<void> => {
+const createChangement = async (req, res) => {
   try {
     if (!req.tenantId) {
       res.status(401).json({ message: 'Tenant non identifié' });
@@ -18,7 +17,7 @@ export const createChangement = async (req: Request, res: Response): Promise<voi
     const changement = new Changement({
       ...req.body,
       tenantId: req.tenantId,
-      statut: 'Soumis' as StatutChangement,
+      statut: 'Soumis',
     });
     await changement.save();
 
@@ -37,26 +36,26 @@ export const createChangement = async (req: Request, res: Response): Promise<voi
 
     res.status(201).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Liste des changements du tenant.
  */
-export const getAllChangements = async (req: Request, res: Response): Promise<void> => {
+const getAllChangements = async (req, res) => {
   try {
     const changements = await Changement.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
     res.status(200).json(changements);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Détail d'un changement (isolé par tenant).
  */
-export const getChangementById = async (req: Request, res: Response): Promise<void> => {
+const getChangementById = async (req, res) => {
   try {
     const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!changement) {
@@ -65,14 +64,14 @@ export const getChangementById = async (req: Request, res: Response): Promise<vo
     }
     res.status(200).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Mise à jour d'un changement (isolé par tenant).
  */
-export const updateChangement = async (req: Request, res: Response): Promise<void> => {
+const updateChangement = async (req, res) => {
   try {
     const changement = await Changement.findOneAndUpdate(
       { _id: req.params.id, tenantId: req.tenantId },
@@ -85,14 +84,14 @@ export const updateChangement = async (req: Request, res: Response): Promise<voi
     }
     res.status(200).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
  * Suppression d'un changement (isolé par tenant).
  */
-export const deleteChangement = async (req: Request, res: Response): Promise<void> => {
+const deleteChangement = async (req, res) => {
   try {
     const changement = await Changement.findOneAndDelete({
       _id: req.params.id,
@@ -104,6 +103,14 @@ export const deleteChangement = async (req: Request, res: Response): Promise<voi
     }
     res.status(200).json({ message: 'Changement supprimé avec succès' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: (err as Error).message });
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
+};
+
+module.exports = {
+  createChangement,
+  getAllChangements,
+  getChangementById,
+  updateChangement,
+  deleteChangement,
 };

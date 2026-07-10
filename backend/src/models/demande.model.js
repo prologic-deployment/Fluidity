@@ -1,38 +1,13 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export type PrioriteDemande = 'Standard' | 'Élevée' | 'Urgente';
-
-export type StatutDemande =
-  | 'Ouverte'
-  | 'En cours d\'analyse'
-  | 'En cours de traitement'
-  | 'Résolue'
-  | 'Fermée'
-  | 'Rejetée';
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
 /**
- * Interface du document Demande (service request).
+ * PrioriteDemande: 'Standard' | 'Élevée' | 'Urgente'
+ * StatutDemande: 'Ouverte' | 'En cours d'analyse' | 'En cours de traitement'
+ *                | 'Résolue' | 'Fermée' | 'Rejetée'
  */
-export interface IDemande extends Document {
-  tenantId: string;
-  clientId: string;
-  objet: string;
-  typeDemande: string;
-  serviceEnvironnement: string;
-  categorie: string;
-  sousCategorie: string;
-  descriptionDetaillee: string;
-  prioriteSouhaitee: PrioriteDemande;
-  dateSouhaiteeRealisation?: Date;
-  informationsComplementaires?: string;
-  contrat: string;
-  piecesJointes: string[];
-  statut: StatutDemande;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
-const DemandeSchema = new Schema<IDemande>(
+const DemandeSchema = new Schema(
   {
     tenantId: { type: String, required: true },
     clientId: { type: String, required: true },
@@ -59,4 +34,6 @@ const DemandeSchema = new Schema<IDemande>(
 // Index pour isoler les requêtes par tenant
 DemandeSchema.index({ tenantId: 1, createdAt: -1 });
 
-export const Demande = mongoose.model<IDemande>('Demande', DemandeSchema);
+const Demande = mongoose.model('Demande', DemandeSchema);
+
+module.exports = { Demande };

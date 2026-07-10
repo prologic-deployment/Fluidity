@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 
 // Charge les variables d'environnement (.env) pour TOUS les chemins
 // d'accès à la base (serveur comme scripts de seed).
@@ -9,7 +9,7 @@ dotenv.config();
  * Établit la connexion à MongoDB.
  * @throws Error si MONGO_URI est absent du fichier .env
  */
-export const connectDB = async (): Promise<void> => {
+const connectDB = async () => {
   const uri = process.env.MONGO_URI;
   if (!uri) {
     throw new Error(
@@ -24,3 +24,5 @@ export const connectDB = async (): Promise<void> => {
     process.exit(1);
   }
 };
+
+module.exports = { connectDB };

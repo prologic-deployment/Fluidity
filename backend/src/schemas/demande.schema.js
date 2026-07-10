@@ -1,12 +1,12 @@
-import { z } from 'zod';
+const { z } = require('zod');
 
-export const prioriteEnum = z.enum(['Standard', 'Élevée', 'Urgente']);
+const prioriteEnum = z.enum(['Standard', 'Élevée', 'Urgente']);
 
 /**
  * Schéma de validation (Zod) pour la création d'une demande.
  * Note : tenantId est injecté côté contrôleur, jamais fourni par le client.
  */
-export const createDemandeSchema = z.object({
+const createDemandeSchema = z.object({
   clientId: z.string().min(1, 'clientId requis'),
   objet: z.string().min(1, 'Objet requis'),
   typeDemande: z.string().min(1, 'Type de demande requis'),
@@ -24,7 +24,7 @@ export const createDemandeSchema = z.object({
 /**
  * Schéma de mise à jour (partiel).
  */
-export const updateDemandeSchema = z
+const updateDemandeSchema = z
   .object({
     objet: z.string().min(1).optional(),
     prioriteSouhaitee: prioriteEnum.optional(),
@@ -32,3 +32,5 @@ export const updateDemandeSchema = z
     informationsComplementaires: z.string().optional(),
   })
   .partial();
+
+module.exports = { prioriteEnum, createDemandeSchema, updateDemandeSchema };

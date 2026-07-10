@@ -1,19 +1,13 @@
-import { Router } from 'express';
-import {
-  register,
-  login,
-  forgotPassword,
-  resetPassword,
-  me,
-} from '../controllers/auth.controller';
-import { authMiddleware } from '../middlewares/auth.middleware';
-import { validate } from '../middlewares/validate.middleware';
-import {
+const { Router } = require('express');
+const { register, login, forgotPassword, resetPassword, me } = require('../controllers/auth.controller');
+const { authMiddleware } = require('../middlewares/auth.middleware');
+const { validate } = require('../middlewares/validate.middleware');
+const {
   registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} from '../schemas/auth.schema';
+} = require('../schemas/auth.schema');
 
 const router = Router();
 
@@ -23,4 +17,4 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 router.get('/me', authMiddleware, me);
 
-export default router;
+module.exports = router;

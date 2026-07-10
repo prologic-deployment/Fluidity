@@ -2,13 +2,11 @@
   "name": "fluidity-backend",
   "version": "1.0.0",
   "description": "Fluidity - Portail de gestion des services Cloud (SaaS Multi-Tenant) - Backend",
-  "main": "dist/server.js",
+  "main": "src/server.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "typecheck": "tsc --noEmit",
-    "seed": "ts-node src/seed/run.ts"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed": "node src/seed/run.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -22,15 +20,6 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.2",
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17",
-    "@types/jsonwebtoken": "^9.0.2",
-    "@types/node": "^20.5.0",
-    "@types/nodemailer": "^6.4.9",
-    "@types/uuid": "^9.0.2",
-    "ts-node-dev": "^2.0.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "nodemon": "^3.0.1"
   }
 }

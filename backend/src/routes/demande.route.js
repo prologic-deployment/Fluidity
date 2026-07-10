@@ -1,14 +1,14 @@
-import { Router } from 'express';
-import { authMiddleware } from '../middlewares/auth.middleware';
-import { validate } from '../middlewares/validate.middleware';
-import {
+const { Router } = require('express');
+const { authMiddleware } = require('../middlewares/auth.middleware');
+const { validate } = require('../middlewares/validate.middleware');
+const {
   createDemande,
   getAllDemandes,
   getDemandeById,
   updateDemande,
   deleteDemande,
-} from '../controllers/demande.controller';
-import { createDemandeSchema, updateDemandeSchema } from '../schemas/demande.schema';
+} = require('../controllers/demande.controller');
+const { createDemandeSchema, updateDemandeSchema } = require('../schemas/demande.schema');
 
 const router = Router();
 
@@ -21,4 +21,4 @@ router.get('/:id', getDemandeById);
 router.patch('/:id', validate(updateDemandeSchema), updateDemande);
 router.delete('/:id', deleteDemande);
 
-export default router;
+module.exports = router;

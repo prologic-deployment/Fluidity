@@ -1,11 +1,11 @@
-import nodemailer, { Transporter } from 'nodemailer';
+const nodemailer = require('nodemailer');
 
-let transporter: Transporter | null = null;
+let transporter = null;
 
 /**
  * Renvoie (et met en cache) le transporteur Nodemailer configuré via SMTP.
  */
-const getTransporter = (): Transporter => {
+const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -24,11 +24,7 @@ const getTransporter = (): Transporter => {
  * Envoi générique d'un email. Les erreurs sont simplement journalisées
  * (opération non bloquante vis-à-vis de l'appelant).
  */
-export const sendEmail = async (
-  to: string,
-  subject: string,
-  html: string
-): Promise<void> => {
+const sendEmail = async (to, subject, html) => {
   try {
     await getTransporter().sendMail({
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
@@ -37,7 +33,7 @@ export const sendEmail = async (
       html,
     });
   } catch (err) {
-    console.error('[Fluidity] Erreur lors de l\'envoi de l\'email :', err);
+    console.error("[Fluidity] Erreur lors de l'envoi de l'email :", err);
   }
 };
 
@@ -45,10 +41,7 @@ export const sendEmail = async (
  * Email de réinitialisation de mot de passe (asynchrone, non bloquant).
  * Lien : http://localhost:4200/reset-password?token=...
  */
-export const sendResetPasswordEmail = async (
-  email: string,
-  token: string
-): Promise<void> => {
+const sendResetPasswordEmail = async (email, token) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
   const link = `${frontendUrl}/reset-password?token=${token}`;
   const html = `
@@ -66,9 +59,8 @@ export const sendResetPasswordEmail = async (
 /**
  * Notification asynchrone à l'équipe Support N1 (helpdesk).
  */
-export const sendSupportEmail = async (
-  subject: string,
-  html: string
-): Promise<void> => {
+const sendSupportEmail = async (subject, html) => {
   await sendEmail('helpdesk@company.com', subject, html);
 };
+
+module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail };
