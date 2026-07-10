@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { Utilisateur } from '../models/user.model';
 import { sendResetPasswordEmail } from '../services/email.service';
@@ -51,11 +51,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const secret = process.env.JWT_SECRET as string;
+    const secret = process.env.JWT_SECRET as jwt.Secret;
+    const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
     const token = jwt.sign(
       { tenantId: user.tenantId, userId: user._id, role: user.role },
       secret,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn }
     );
 
     res.status(200).json({

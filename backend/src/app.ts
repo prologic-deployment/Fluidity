@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route';
+import demandeRoutes from './routes/demande.route';
 
 dotenv.config();
 
@@ -15,5 +16,6 @@ app.get('/health', (_req, res) => res.status(200).json({ status: 'OK' }));
 
 // Routes principales
 app.use('/api/auth', authRoutes);
+app.use('/api/demandes', demandeRoutes);
 
 export default app;
