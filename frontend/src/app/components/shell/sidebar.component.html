@@ -1,0 +1,80 @@
+<aside class="flex h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-[#0b0a1f] via-[#131233] to-[#0b0a1f] text-slate-100">
+  <!-- Brand -->
+  <div class="flex items-center gap-2.5 px-5 py-5">
+    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-lg shadow-indigo-900/40">
+      F
+    </div>
+    <div>
+      <p class="text-sm font-semibold tracking-tight text-white">Fluidity</p>
+      <p class="text-[11px] text-slate-400">Cloud Services Portal</p>
+    </div>
+  </div>
+
+  <div class="mx-4 h-px bg-white/10"></div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 overflow-y-auto px-3 py-2">
+    <div *ngFor="let group of groups">
+      <p class="side-group-label">{{ group.label }}</p>
+
+      <!-- Group with sub-items (multi-level) -->
+      <ng-container *ngIf="group.children as children">
+        <button *ngIf="children.length" type="button" (click)="toggle(group)"
+          class="side-link w-full justify-between">
+          <span class="flex items-center gap-2.5">
+            <svg *ngIf="group.icon === 'grid'" class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+            <svg *ngIf="group.icon === 'file'" class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <path d="M14 2v6h6"></path>
+            </svg>
+            {{ group.label }}
+          </span>
+          <svg class="side-toggle-icon" [class.side-toggle-icon-open]="group.open"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+
+        <div class="overflow-hidden transition-all duration-200"
+          [style.maxHeight]="group.open ? (children.length * 40 + 8) + 'px' : '0px'">
+          <div class="pt-1 pb-2 space-y-0.5">
+            <a *ngFor="let child of children" [routerLink]="child.path"
+              routerLinkActive="side-sublink-active" [routerLinkActiveOptions]="{ exact: true }"
+              class="side-sublink">
+              <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>
+              {{ child.label }}
+            </a>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </nav>
+
+  <div class="mx-4 h-px bg-white/10"></div>
+
+  <!-- User card -->
+  <div class="p-4">
+    <div class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
+      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white">
+        {{ initials() }}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs font-medium text-white">{{ user?.role || 'Utilisateur' }}</p>
+        <p class="truncate text-[11px] text-slate-400">{{ user?.tenantId }}</p>
+      </div>
+      <button (click)="logout()" title="Déconnexion"
+        class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+</aside>

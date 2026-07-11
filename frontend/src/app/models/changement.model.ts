@@ -47,6 +47,7 @@ export interface Changement {
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
+  contrat: string;
   statut?: StatutChangement;
   specifications?: Specifications;
   createdAt?: string;
@@ -54,6 +55,14 @@ export interface Changement {
 }
 
 export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
+
+export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = [
+  'Production',
+  'Pré-production',
+  'Test / QA',
+  'Développement',
+  'Sandbox',
+];
 
 export const CATEGORIES_CHANGEMENT: string[] = [
   'Réseau',

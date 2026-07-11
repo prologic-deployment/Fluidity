@@ -1,40 +1,27 @@
-<div class="min-h-screen bg-muted/30">
-  <!-- Barre supérieure -->
-  <header class="border-b border-border bg-card">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex items-center space-x-6">
-        <div class="flex items-center gap-2">
-          <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">F</div>
-          <h1 class="text-lg font-semibold tracking-tight">Fluidity</h1>
-        </div>
-        <nav class="flex space-x-1">
-          <a routerLink="/demandes" class="nav-link-active">Demandes</a>
-          <a routerLink="/changements" class="nav-link">Changements</a>
-        </nav>
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">Demandes de service</h1>
+        <p class="text-sm text-muted-foreground">Suivi des demandes soumises par les clients du tenant.</p>
       </div>
-      <div class="flex items-center space-x-3">
-        <a routerLink="/demandes/nouvelle" class="btn-primary">+ Nouvelle demande</a>
-        <button (click)="logout()" class="btn-ghost">Déconnexion</button>
-      </div>
+      <a routerLink="/demandes/nouvelle" class="btn-primary transition-transform hover:scale-[1.03]">
+        + Nouvelle demande
+      </a>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-8">
-    <div class="mb-6">
-      <h2 class="text-xl font-semibold tracking-tight">Demandes de service</h2>
-      <p class="text-sm text-muted-foreground">Suivi des demandes soumises par les clients du tenant.</p>
-    </div>
-
+  <main class="max-w-7xl mx-auto px-6 py-8">
     <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
     <p *ngIf="loading" class="text-sm text-muted-foreground">Chargement des demandes...</p>
 
-    <div *ngIf="!loading && demandes.length === 0" class="card">
+    <div *ngIf="!loading && demandes.length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
         Aucune demande pour le moment.
       </div>
     </div>
 
-    <div *ngIf="!loading && demandes.length > 0" class="table-wrap">
+    <div *ngIf="!loading && demandes.length > 0" class="table-wrap animate-fade-in-up">
       <table class="table">
         <thead>
           <tr>

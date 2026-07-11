@@ -1,13 +1,13 @@
-<div class="min-h-screen bg-muted/30">
-  <header class="border-b border-border bg-card">
-    <div class="max-w-3xl mx-auto px-4 py-4">
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto px-6 py-5">
       <a routerLink="/demandes" class="btn-link">&larr; Retour</a>
       <h1 class="text-xl font-semibold tracking-tight mt-1">Nouvelle Demande</h1>
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-4 py-8">
-    <form [formGroup]="form" (ngSubmit)="submit()" class="card">
+  <main class="max-w-3xl mx-auto px-6 py-8">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="card animate-fade-in-up">
       <div class="card-content pt-6 space-y-5">
 
         <p *ngIf="error" class="alert-destructive">{{ error }}</p>
@@ -27,13 +27,19 @@
 
           <div>
             <label class="field-label">Type de demande</label>
-            <input formControlName="typeDemande" type="text" class="input" />
+            <select formControlName="typeDemande" class="select">
+              <option value="" disabled>Sélectionner...</option>
+              <option *ngFor="let t of typesDemande" [value]="t">{{ t }}</option>
+            </select>
             <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">Champ requis.</p>
           </div>
 
           <div>
             <label class="field-label">Service / Environnement</label>
-            <input formControlName="serviceEnvironnement" type="text" class="input" />
+            <select formControlName="serviceEnvironnement" class="select">
+              <option value="" disabled>Sélectionner...</option>
+              <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s }}</option>
+            </select>
             <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
           </div>
 
@@ -64,8 +70,16 @@
 
           <div>
             <label class="field-label">Contrat</label>
-            <input formControlName="contrat" type="text" class="input" />
+            <select formControlName="contrat" class="select">
+              <option value="" disabled>Sélectionner un contrat...</option>
+              <option *ngFor="let ct of contratsDisponibles()" [value]="ct.reference">
+                {{ ct.reference }} — {{ ct.intitule }}
+              </option>
+            </select>
             <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Champ requis.</p>
+            <p *ngIf="contratsDisponibles().length === 0" class="mt-1 text-xs text-muted-foreground">
+              Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour ce client.
+            </p>
           </div>
 
           <div>

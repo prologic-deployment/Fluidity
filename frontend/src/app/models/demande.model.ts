@@ -30,6 +30,23 @@ export interface Demande {
 
 export const PRIORITES: PrioriteDemande[] = ['Standard', 'Élevée', 'Urgente'];
 
+export const TYPES_DEMANDE: string[] = [
+  'Création de compte',
+  'Modification d\'accès',
+  'Demande d\'information',
+  'Extension de ressources',
+  'Support technique',
+  'Autre',
+];
+
+export const SERVICES_ENVIRONNEMENT: string[] = [
+  'Production',
+  'Pré-production',
+  'Test / QA',
+  'Développement',
+  'Sandbox',
+];
+
 export const CATEGORIES: string[] = [
   'Compte',
   'Accès',

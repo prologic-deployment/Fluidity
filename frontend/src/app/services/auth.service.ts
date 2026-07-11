@@ -49,4 +49,18 @@ export class AuthService {
   isAuthenticated(): boolean {
     return !!localStorage.getItem('fluidity_token');
   }
+
+  /** Utilisateur courant (décodé depuis la session locale), ou null. */
+  getUser(): { userId: string; tenantId: string; role: string } | null {
+    const raw = localStorage.getItem('fluidity_user');
+    return raw ? JSON.parse(raw) : null;
+  }
+
+  getRole(): string | null {
+    return this.getUser()?.role ?? null;
+  }
+
+  isAdmin(): boolean {
+    return this.getRole() === 'ADMIN';
+  }
 }

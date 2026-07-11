@@ -3,7 +3,16 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
-import { PRIORITES, CATEGORIES, SOUS_CATEGORIES, Demande } from '../../models/demande.model';
+import { ContratService } from '../../services/contrat.service';
+import {
+  PRIORITES,
+  CATEGORIES,
+  SOUS_CATEGORIES,
+  TYPES_DEMANDE,
+  SERVICES_ENVIRONNEMENT,
+  Demande,
+} from '../../models/demande.model';
+import { Contrat } from '../../models/contrat.model';
 
 @Component({
   selector: 'app-create-demande',
@@ -15,13 +24,17 @@ export class CreateDemandeComponent implements OnInit {
   form!: FormGroup;
   priorites = PRIORITES;
   categories = CATEGORIES;
+  typesDemande = TYPES_DEMANDE;
+  servicesEnvironnement = SERVICES_ENVIRONNEMENT;
   sousCategories: string[] = [];
+  contrats: Contrat[] = [];
   loading = false;
   error: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private demandeService: DemandeService,
+    private contratService: ContratService,
     private router: Router
   ) {}
 
@@ -40,6 +53,19 @@ export class CreateDemandeComponent implements OnInit {
       contrat: ['', Validators.required],
       piecesJointes: [''], // saisie libre séparée par des virgules
     });
+
+    this.contratService.getAll().subscribe({
+      next: (data) => (this.contrats = data),
+      error: () => (this.contrats = []),
+    });
+  }
+
+  /** Contrats du client actuellement saisi (ou l'ensemble des contrats du tenant à défaut). */
+  contratsDisponibles(): Contrat[] {
+    const clientId = this.form?.get('clientId')?.value;
+    if (!clientId) return this.contrats;
+    const forClient = this.contrats.filter((c) => c.clientId === clientId);
+    return forClient.length ? forClient : this.contrats;
   }
 
   onCategorieChange(): void {

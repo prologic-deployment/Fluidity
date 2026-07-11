@@ -3,12 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
+import { ContratService } from '../../services/contrat.service';
 import {
   CATEGORIES_CHANGEMENT,
   SOUS_CATEGORIES_CHANGEMENT,
   TYPES_CHANGEMENT,
+  SERVICES_ENVIRONNEMENT_CHANGEMENT,
   Changement,
 } from '../../models/changement.model';
+import { Contrat } from '../../models/contrat.model';
 
 @Component({
   selector: 'app-create-changement',
@@ -20,13 +23,16 @@ export class CreateChangementComponent implements OnInit {
   form!: FormGroup;
   typesChangement = TYPES_CHANGEMENT;
   categories = CATEGORIES_CHANGEMENT;
+  servicesEnvironnement = SERVICES_ENVIRONNEMENT_CHANGEMENT;
   sousCategories: string[] = [];
+  contrats: Contrat[] = [];
   loading = false;
   error: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private changementService: ChangementService,
+    private contratService: ContratService,
     private router: Router
   ) {}
 
@@ -42,6 +48,7 @@ export class CreateChangementComponent implements OnInit {
       prerequisNecessaires: [''],
       planRetourArriere: ['', Validators.required],
       typeChangement: ['Normal', Validators.required],
+      contrat: ['', Validators.required],
       general: this.fb.group({
         ressourcesConcernees: [''],
         environnement: [''],
@@ -66,6 +73,19 @@ export class CreateChangementComponent implements OnInit {
         licencesNecessaires: [''],
       }),
     });
+
+    this.contratService.getAll().subscribe({
+      next: (data) => (this.contrats = data),
+      error: () => (this.contrats = []),
+    });
+  }
+
+  /** Contrats du client actuellement saisi (ou l'ensemble des contrats du tenant à défaut). */
+  contratsDisponibles(): Contrat[] {
+    const clientId = this.form?.get('clientId')?.value;
+    if (!clientId) return this.contrats;
+    const forClient = this.contrats.filter((c) => c.clientId === clientId);
+    return forClient.length ? forClient : this.contrats;
   }
 
   onCategorieChange(): void {
@@ -113,6 +133,7 @@ export class CreateChangementComponent implements OnInit {
       prerequisNecessaires: raw.prerequisNecessaires || undefined,
       planRetourArriere: raw.planRetourArriere,
       typeChangement: raw.typeChangement,
+      contrat: raw.contrat,
       specifications: Object.keys(specifications).length ? specifications : undefined,
     };
 

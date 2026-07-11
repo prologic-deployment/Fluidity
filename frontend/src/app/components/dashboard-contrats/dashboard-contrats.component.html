@@ -1,0 +1,56 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">Contrats</h1>
+        <p class="text-sm text-muted-foreground">Contrats clients associés à ce tenant.</p>
+      </div>
+      <a *ngIf="auth.isAdmin()" routerLink="/contrats/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
+        + Ouvrir un contrat
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="loading" class="text-sm text-muted-foreground">Chargement des contrats...</p>
+
+    <div *ngIf="!loading && contrats.length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        Aucun contrat pour le moment.
+        <span *ngIf="auth.isAdmin()">
+          <br /><a routerLink="/contrats/nouveau" class="btn-link">Ouvrir le premier contrat</a>
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && contrats.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div *ngFor="let c of contrats; let i = index"
+        class="card card-hover animate-fade-in-up"
+        [class.stagger-1]="i % 4 === 0" [class.stagger-2]="i % 4 === 1"
+        [class.stagger-3]="i % 4 === 2" [class.stagger-4]="i % 4 === 3">
+        <div class="card-content pt-6">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-xs font-mono text-muted-foreground">{{ c.reference }}</p>
+              <h3 class="font-semibold tracking-tight mt-0.5">{{ c.intitule }}</h3>
+            </div>
+            <span [class]="statutClass(c.statut)">{{ c.statut }}</span>
+          </div>
+          <div class="mt-3 space-y-1 text-sm text-muted-foreground">
+            <p>Client : <span class="text-foreground font-medium">{{ c.clientId }}</span></p>
+            <p>Type : {{ c.typeContrat }}</p>
+            <p>Début : {{ c.dateDebut | date: 'dd/MM/yyyy' }}</p>
+            <p *ngIf="c.dateFin">Fin : {{ c.dateFin | date: 'dd/MM/yyyy' }}</p>
+          </div>
+          <p *ngIf="c.description" class="mt-3 text-sm text-muted-foreground line-clamp-2">{{ c.description }}</p>
+          <div class="mt-4 flex justify-end" *ngIf="auth.isAdmin()">
+            <button (click)="deleteContrat(c._id)" class="btn-ghost btn-sm text-destructive hover:text-destructive">
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

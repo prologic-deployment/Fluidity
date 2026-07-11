@@ -5,27 +5,27 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    --card-foreground: 222 47% 11%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 243 75% 96%;
+    --accent-foreground: 243 75% 40%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --success: 142 71% 29%;
     --success-foreground: 0 0% 98%;
-    --warning: 38 92% 40%;
+    --warning: 32 95% 44%;
     --warning-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 243 75% 59%;
+    --radius: 0.75rem;
   }
 
   * {
@@ -36,6 +36,40 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
+}
+
+@layer utilities {
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .animate-fade-in-up {
+    animation: fade-in-up 0.35s ease-out both;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.25s ease-out both;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out both;
+  }
+  .stagger-1 { animation-delay: 40ms; }
+  .stagger-2 { animation-delay: 80ms; }
+  .stagger-3 { animation-delay: 120ms; }
+  .stagger-4 { animation-delay: 160ms; }
 }
 
 @layer components {
@@ -92,7 +126,10 @@
 
   /* ---------- Surfaces ---------- */
   .card {
-    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-shadow duration-200;
+  }
+  .card-hover {
+    @apply hover:shadow-md hover:border-primary/30;
   }
   .card-header {
     @apply flex flex-col space-y-1 p-6;
@@ -158,11 +195,30 @@
     @apply p-4 align-middle;
   }
 
-  /* ---------- Nav ---------- */
-  .nav-link {
-    @apply px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
+  /* ---------- Sidebar navigation ---------- */
+  .side-group-label {
+    @apply px-3 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500;
   }
-  .nav-link-active {
-    @apply px-3 py-1.5 rounded-md text-sm font-medium bg-secondary text-secondary-foreground;
+  .side-link {
+    @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-300
+      transition-all duration-150 hover:bg-white/5 hover:text-white;
+  }
+  .side-link-active {
+    @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium
+      bg-gradient-to-r from-indigo-500/90 to-violet-500/90 text-white shadow-md shadow-indigo-900/30;
+  }
+  .side-sublink {
+    @apply flex items-center gap-2.5 rounded-lg py-1.5 pl-9 pr-3 text-[13px] font-medium text-slate-400
+      transition-all duration-150 hover:bg-white/5 hover:text-white;
+  }
+  .side-sublink-active {
+    @apply flex items-center gap-2.5 rounded-lg py-1.5 pl-9 pr-3 text-[13px] font-medium
+      text-indigo-300 bg-white/5;
+  }
+  .side-toggle-icon {
+    @apply h-3.5 w-3.5 shrink-0 transition-transform duration-200;
+  }
+  .side-toggle-icon-open {
+    @apply rotate-90;
   }
 }
