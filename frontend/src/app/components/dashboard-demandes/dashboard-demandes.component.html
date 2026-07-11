@@ -1,68 +1,66 @@
-<div class="min-h-screen bg-slate-100">
+<div class="min-h-screen bg-muted/30">
   <!-- Barre supérieure -->
-  <header class="bg-white shadow">
+  <header class="border-b border-border bg-card">
     <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex items-center space-x-4">
-        <h1 class="text-xl font-bold text-slate-800">Fluidity</h1>
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center gap-2">
+          <div class="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-bold">F</div>
+          <h1 class="text-lg font-semibold tracking-tight">Fluidity</h1>
+        </div>
         <nav class="flex space-x-1">
-          <a routerLink="/demandes"
-            class="px-3 py-1 rounded-md text-sm bg-blue-50 text-blue-700 font-medium">Demandes</a>
-          <a routerLink="/changements"
-            class="px-3 py-1 rounded-md text-sm text-slate-600 hover:bg-slate-100">Changements</a>
+          <a routerLink="/demandes" class="nav-link-active">Demandes</a>
+          <a routerLink="/changements" class="nav-link">Changements</a>
         </nav>
       </div>
       <div class="flex items-center space-x-3">
-        <a routerLink="/demandes/nouvelle"
-          class="bg-blue-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-          + Nouvelle demande
-        </a>
-        <button (click)="logout()" class="text-sm text-slate-500 hover:text-slate-800">Déconnexion</button>
+        <a routerLink="/demandes/nouvelle" class="btn-primary">+ Nouvelle demande</a>
+        <button (click)="logout()" class="btn-ghost">Déconnexion</button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 py-6">
-    <p *ngIf="error" class="mb-4 text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-2">{{ error }}</p>
-    <p *ngIf="loading" class="text-slate-500">Chargement des demandes...</p>
-
-    <div *ngIf="!loading && demandes.length === 0" class="text-center text-slate-500 py-12">
-      Aucune demande pour le moment.
+  <main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="mb-6">
+      <h2 class="text-xl font-semibold tracking-tight">Demandes de service</h2>
+      <p class="text-sm text-muted-foreground">Suivi des demandes soumises par les clients du tenant.</p>
     </div>
 
-    <div *ngIf="!loading && demandes.length > 0" class="bg-white shadow rounded-lg overflow-hidden">
-      <table class="min-w-full divide-y divide-slate-200 text-sm">
-        <thead class="bg-slate-50">
-          <tr class="text-left text-slate-500 uppercase text-xs tracking-wider">
-            <th class="px-4 py-3">Objet</th>
-            <th class="px-4 py-3">Catégorie</th>
-            <th class="px-4 py-3">Environnement</th>
-            <th class="px-4 py-3">Priorité</th>
-            <th class="px-4 py-3">Statut</th>
-            <th class="px-4 py-3">Date</th>
-            <th class="px-4 py-3 text-right">Actions</th>
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="loading" class="text-sm text-muted-foreground">Chargement des demandes...</p>
+
+    <div *ngIf="!loading && demandes.length === 0" class="card">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        Aucune demande pour le moment.
+      </div>
+    </div>
+
+    <div *ngIf="!loading && demandes.length > 0" class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Objet</th>
+            <th>Catégorie</th>
+            <th>Environnement</th>
+            <th>Priorité</th>
+            <th>Statut</th>
+            <th>Date</th>
+            <th class="text-right">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100">
-          <tr *ngFor="let d of demandes" class="hover:bg-slate-50">
-            <td class="px-4 py-3 font-medium text-slate-800">{{ d.objet }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ d.categorie }} / {{ d.sousCategorie }}</td>
-            <td class="px-4 py-3 text-slate-600">{{ d.serviceEnvironnement }}</td>
-            <td class="px-4 py-3">
-              <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + prioriteClass(d.prioriteSouhaitee)">
-                {{ d.prioriteSouhaitee }}
-              </span>
+        <tbody>
+          <tr *ngFor="let d of demandes">
+            <td class="font-medium">{{ d.objet }}</td>
+            <td class="text-muted-foreground">{{ d.categorie }} / {{ d.sousCategorie }}</td>
+            <td class="text-muted-foreground">{{ d.serviceEnvironnement }}</td>
+            <td>
+              <span [class]="prioriteClass(d.prioriteSouhaitee)">{{ d.prioriteSouhaitee }}</span>
             </td>
-            <td class="px-4 py-3">
-              <span [class]="'px-2 py-1 rounded-full text-xs font-medium ' + statutClass(d.statut)">
-                {{ d.statut }}
-              </span>
+            <td>
+              <span [class]="statutClass(d.statut)">{{ d.statut }}</span>
             </td>
-            <td class="px-4 py-3 text-slate-500">
-              {{ d.createdAt | date: 'dd/MM/yyyy' }}
-            </td>
-            <td class="px-4 py-3 text-right">
-              <button (click)="deleteDemande(d._id)"
-                class="text-red-600 hover:underline text-xs">Supprimer</button>
+            <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy' }}</td>
+            <td class="text-right">
+              <button (click)="deleteDemande(d._id)" class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
             </td>
           </tr>
         </tbody>

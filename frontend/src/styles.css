@@ -1,3 +1,168 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 71% 29%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 40%;
+    --warning-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+}
+
+@layer components {
+  /* ---------- Buttons ---------- */
+  .btn {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium
+      transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+      disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-primary-foreground shadow hover:bg-primary/90;
+  }
+  .btn-secondary {
+    @apply btn bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80;
+  }
+  .btn-outline {
+    @apply btn border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground;
+  }
+  .btn-ghost {
+    @apply btn hover:bg-accent hover:text-accent-foreground;
+  }
+  .btn-destructive {
+    @apply btn bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90;
+  }
+  .btn-link {
+    @apply inline-flex items-center text-sm font-medium text-primary underline-offset-4 hover:underline;
+  }
+  .btn-sm {
+    @apply h-8 rounded-md px-3 text-xs;
+  }
+
+  /* ---------- Form controls ---------- */
+  .field-label {
+    @apply text-sm font-medium leading-none text-foreground mb-1.5 block;
+  }
+  .input {
+    @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm
+      transition-colors placeholder:text-muted-foreground
+      focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .textarea {
+    @apply input h-auto min-h-[80px] py-2;
+  }
+  .select {
+    @apply input appearance-none bg-background bg-no-repeat pr-8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-size: 1rem;
+  }
+  .field-error {
+    @apply mt-1 text-xs font-medium text-destructive;
+  }
+
+  /* ---------- Surfaces ---------- */
+  .card {
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
+  }
+  .card-header {
+    @apply flex flex-col space-y-1 p-6;
+  }
+  .card-title {
+    @apply text-lg font-semibold leading-none tracking-tight;
+  }
+  .card-description {
+    @apply text-sm text-muted-foreground;
+  }
+  .card-content {
+    @apply p-6 pt-0;
+  }
+
+  /* ---------- Feedback ---------- */
+  .alert-destructive {
+    @apply rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive;
+  }
+  .alert-success {
+    @apply rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success;
+  }
+
+  /* ---------- Badges ---------- */
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors;
+  }
+  .badge-default {
+    @apply badge border-transparent bg-primary text-primary-foreground;
+  }
+  .badge-secondary {
+    @apply badge border-transparent bg-secondary text-secondary-foreground;
+  }
+  .badge-outline {
+    @apply badge border-border text-foreground;
+  }
+  .badge-success {
+    @apply badge border-transparent bg-success/15 text-success;
+  }
+  .badge-warning {
+    @apply badge border-transparent bg-warning/15 text-warning;
+  }
+  .badge-destructive {
+    @apply badge border-transparent bg-destructive/15 text-destructive;
+  }
+
+  /* ---------- Table ---------- */
+  .table-wrap {
+    @apply w-full overflow-auto rounded-xl border border-border bg-card;
+  }
+  .table {
+    @apply w-full caption-bottom text-sm;
+  }
+  .table thead {
+    @apply border-b border-border bg-muted/50;
+  }
+  .table th {
+    @apply h-10 px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground;
+  }
+  .table tbody tr {
+    @apply border-b border-border transition-colors hover:bg-muted/50 last:border-0;
+  }
+  .table td {
+    @apply p-4 align-middle;
+  }
+
+  /* ---------- Nav ---------- */
+  .nav-link {
+    @apply px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground;
+  }
+  .nav-link-active {
+    @apply px-3 py-1.5 rounded-md text-sm font-medium bg-secondary text-secondary-foreground;
+  }
+}

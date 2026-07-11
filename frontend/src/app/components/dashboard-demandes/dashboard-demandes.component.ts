@@ -55,34 +55,34 @@ export class DashboardDemandesComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  /** Retourne la classe Tailwind selon le statut. */
+  /** Retourne la classe de badge (shadcn) selon le statut. */
   statutClass(statut?: string): string {
     switch (statut) {
       case 'Ouverte':
-        return 'bg-blue-100 text-blue-700';
+        return 'badge-outline';
       case 'En cours d\'analyse':
-        return 'bg-indigo-100 text-indigo-700';
+        return 'badge-secondary';
       case 'En cours de traitement':
-        return 'bg-amber-100 text-amber-700';
+        return 'badge-warning';
       case 'Résolue':
-        return 'bg-green-100 text-green-700';
+        return 'badge-success';
       case 'Fermée':
-        return 'bg-slate-200 text-slate-600';
+        return 'badge-secondary';
       case 'Rejetée':
-        return 'bg-red-100 text-red-700';
+        return 'badge-destructive';
       default:
-        return 'bg-slate-100 text-slate-600';
+        return 'badge-outline';
     }
   }
 
   prioriteClass(priorite?: string): string {
     switch (priorite) {
       case 'Urgente':
-        return 'bg-red-100 text-red-700';
+        return 'badge-destructive';
       case 'Élevée':
-        return 'bg-orange-100 text-orange-700';
+        return 'badge-warning';
       default:
-        return 'bg-slate-100 text-slate-600';
+        return 'badge-outline';
     }
   }
 }
