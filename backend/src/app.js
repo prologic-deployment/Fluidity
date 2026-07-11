@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth.route');
 const demandeRoutes = require('./routes/demande.route');
 const changementRoutes = require('./routes/changement.route');
+const contratRoutes = require('./routes/contrat.route');
 
 dotenv.config();
 
@@ -19,5 +20,6 @@ app.get('/health', (_req, res) => res.status(200).json({ status: 'OK' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/demandes', demandeRoutes);
 app.use('/api/changements', changementRoutes);
+app.use('/api/contrats', contratRoutes);
 
 module.exports = app;

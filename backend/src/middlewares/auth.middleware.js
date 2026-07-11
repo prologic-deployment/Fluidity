@@ -31,4 +31,18 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = { authMiddleware };
+module.exports = { authMiddleware, requireRole };
+
+/**
+ * Middleware de contrôle d'accès par rôle.
+ * Usage : router.post('/', authMiddleware, requireRole('ADMIN'), handler)
+ */
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.userRole || !roles.includes(req.userRole)) {
+      res.status(403).json({ message: 'Accès refusé : permissions insuffisantes' });
+      return;
+    }
+    next();
+  };
+}

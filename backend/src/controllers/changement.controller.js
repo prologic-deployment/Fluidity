@@ -30,6 +30,7 @@ const createChangement = async (req, res) => {
         <li><strong>Environnement :</strong> ${changement.serviceEnvironnement}</li>
         <li><strong>Fenêtre d'intervention :</strong> ${changement.fenetreIntervention}</li>
         <li><strong>Plan de retour arrière :</strong> ${changement.planRetourArriere}</li>
+        <li><strong>Contrat :</strong> ${changement.contrat}</li>
         <li><strong>Description :</strong> ${changement.descriptionDetaillee}</li>
       </ul>`;
     sendSupportEmail(`[Changement] ${changement.objetChangement}`, html).catch(console.error);

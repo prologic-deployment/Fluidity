@@ -19,6 +19,7 @@ const createChangementSchema = z.object({
   fenetreIntervention: z.coerce.date(),
   prerequisNecessaires: z.string().optional(),
   planRetourArriere: z.string().min(1, 'Plan de retour arrière requis'),
+  contrat: z.string().min(1, 'Contrat requis'),
   typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']),
   specifications: z
     .object({
@@ -62,6 +63,7 @@ const updateChangementSchema = z
     objetChangement: z.string().min(1).optional(),
     descriptionDetaillee: z.string().min(1).optional(),
     planRetourArriere: z.string().min(1).optional(),
+    contrat: z.string().min(1).optional(),
     typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']).optional(),
     statut: z.string().min(1).optional(),
     specifications: z.record(z.any()).optional(),

@@ -47,6 +47,7 @@ const ChangementSchema = new Schema(
     fenetreIntervention: { type: Date, required: true },
     prerequisNecessaires: { type: String },
     planRetourArriere: { type: String, required: true },
+    contrat: { type: String, required: true },
     typeChangement: {
       type: String,
       enum: ['Normal', 'Majeur', 'Urgent'],
