@@ -26,7 +26,8 @@
 
     <div *ngIf="!loading && contrats.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div *ngFor="let c of contrats; let i = index"
-        class="card card-hover animate-fade-in-up"
+        (click)="viewDetails(c)"
+        class="card card-hover cursor-pointer animate-fade-in-up"
         [class.stagger-1]="i % 4 === 0" [class.stagger-2]="i % 4 === 1"
         [class.stagger-3]="i % 4 === 2" [class.stagger-4]="i % 4 === 3">
         <div class="card-content pt-6">
@@ -45,7 +46,7 @@
           </div>
           <p *ngIf="c.description" class="mt-3 text-sm text-muted-foreground line-clamp-2">{{ c.description }}</p>
           <div class="mt-4 flex justify-end" *ngIf="auth.isAdmin()">
-            <button (click)="deleteContrat(c._id)" class="btn-ghost btn-sm text-destructive hover:text-destructive">
+            <button (click)="$event.stopPropagation(); deleteContrat(c._id)" class="btn-ghost btn-sm text-destructive hover:text-destructive">
               Supprimer
             </button>
           </div>
@@ -54,3 +55,41 @@
     </div>
   </main>
 </div>
+
+<!-- Modal de détail -->
+<app-modal [open]="!!selected" [title]="selected?.intitule || ''" [subtitle]="selected?.reference || ''" (closed)="closeDetails()">
+  <ng-container *ngIf="selected as c">
+    <div class="flex flex-wrap gap-2 mb-5">
+      <span [class]="statutClass(c.statut)">{{ c.statut }}</span>
+      <span class="badge-outline">{{ c.typeContrat }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div>
+        <p class="detail-label">Client</p>
+        <p class="detail-value">{{ c.clientId }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Référence</p>
+        <p class="detail-value font-mono">{{ c.reference }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Date de début</p>
+        <p class="detail-value">{{ c.dateDebut | date: 'dd/MM/yyyy' }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Date de fin</p>
+        <p class="detail-value">{{ (c.dateFin | date: 'dd/MM/yyyy') || 'Indéterminée' }}</p>
+      </div>
+    </div>
+
+    <ng-container *ngIf="c.description">
+      <p class="detail-section-title">Description</p>
+      <p class="detail-value whitespace-pre-line">{{ c.description }}</p>
+    </ng-container>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="auth.isAdmin()">
+      <button (click)="deleteContrat(c._id)" class="btn-destructive">Supprimer le contrat</button>
+    </div>
+  </ng-container>
+</app-modal>

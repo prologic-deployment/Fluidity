@@ -177,22 +177,42 @@
 
   /* ---------- Table ---------- */
   .table-wrap {
-    @apply w-full overflow-auto rounded-xl border border-border bg-card;
+    @apply w-full overflow-auto rounded-xl border border-border bg-card shadow-sm;
   }
   .table {
-    @apply w-full caption-bottom text-sm;
+    @apply w-full caption-bottom text-sm border-collapse;
   }
   .table thead {
-    @apply border-b border-border bg-muted/50;
+    @apply sticky top-0 z-[1] border-b border-border bg-muted/60 backdrop-blur;
   }
   .table th {
-    @apply h-10 px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground;
+    @apply h-11 px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
   }
   .table tbody tr {
-    @apply border-b border-border transition-colors hover:bg-muted/50 last:border-0;
+    @apply border-b border-border transition-colors duration-150 last:border-0 hover:bg-accent/40;
+  }
+  .table-row-clickable {
+    @apply cursor-pointer;
   }
   .table td {
-    @apply p-4 align-middle;
+    @apply px-4 py-3.5 align-middle;
+  }
+  .table-empty-icon {
+    @apply mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground;
+  }
+
+  /* ---------- Detail view (modals) ---------- */
+  .detail-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4;
+  }
+  .detail-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+  .detail-value {
+    @apply mt-1 text-sm text-foreground break-words;
+  }
+  .detail-section-title {
+    @apply text-xs font-semibold uppercase tracking-wider text-primary mt-6 mb-3 pt-4 border-t border-border first:mt-0 first:pt-0 first:border-0;
   }
 
   /* ---------- Sidebar navigation ---------- */

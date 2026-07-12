@@ -4,17 +4,19 @@ import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
 import { Demande } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
+import { ModalComponent } from '../shared/modal.component';
 
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ModalComponent],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
   demandes: Demande[] = [];
   loading = false;
   error: string | null = null;
+  selected: Demande | null = null;
 
   constructor(
     private demandeService: DemandeService,
@@ -41,11 +43,22 @@ export class DashboardDemandesComponent implements OnInit {
     });
   }
 
+  viewDetails(demande: Demande): void {
+    this.selected = demande;
+  }
+
+  closeDetails(): void {
+    this.selected = null;
+  }
+
   deleteDemande(id: string | undefined): void {
     if (!id) return;
     if (!confirm('Confirmer la suppression de cette demande ?')) return;
     this.demandeService.delete(id).subscribe({
-      next: () => this.load(),
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
       error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
     });
   }

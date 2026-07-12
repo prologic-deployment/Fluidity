@@ -4,11 +4,12 @@ import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
+import { ModalComponent } from '../shared/modal.component';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ModalComponent],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
@@ -16,6 +17,7 @@ export class DashboardChangementsComponent implements OnInit {
   loading = false;
   error: string | null = null;
   active = 'changements';
+  selected: Changement | null = null;
 
   constructor(
     private changementService: ChangementService,
@@ -42,6 +44,14 @@ export class DashboardChangementsComponent implements OnInit {
     });
   }
 
+  viewDetails(changement: Changement): void {
+    this.selected = changement;
+  }
+
+  closeDetails(): void {
+    this.selected = null;
+  }
+
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);
@@ -51,7 +61,10 @@ export class DashboardChangementsComponent implements OnInit {
     if (!id) return;
     if (!confirm('Confirmer la suppression de ce changement ?')) return;
     this.changementService.delete(id).subscribe({
-      next: () => this.load(),
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
       error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
     });
   }

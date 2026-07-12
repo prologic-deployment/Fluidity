@@ -35,7 +35,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let d of demandes">
+          <tr *ngFor="let d of demandes" class="table-row-clickable" (click)="viewDetails(d)">
             <td class="font-medium">{{ d.objet }}</td>
             <td class="text-muted-foreground">{{ d.categorie }} / {{ d.sousCategorie }}</td>
             <td class="text-muted-foreground">{{ d.serviceEnvironnement }}</td>
@@ -47,7 +47,8 @@
             </td>
             <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
-              <button (click)="deleteDemande(d._id)" class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
+              <button (click)="$event.stopPropagation(); deleteDemande(d._id)"
+                class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
             </td>
           </tr>
         </tbody>
@@ -55,3 +56,61 @@
     </div>
   </main>
 </div>
+
+<!-- Modal de détail -->
+<app-modal [open]="!!selected" [title]="selected?.objet || ''" [subtitle]="selected?.categorie + ' / ' + selected?.sousCategorie" (closed)="closeDetails()">
+  <ng-container *ngIf="selected as d">
+    <div class="flex flex-wrap gap-2 mb-5">
+      <span [class]="statutClass(d.statut)">{{ d.statut }}</span>
+      <span [class]="prioriteClass(d.prioriteSouhaitee)">Priorité : {{ d.prioriteSouhaitee }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div>
+        <p class="detail-label">Client</p>
+        <p class="detail-value">{{ d.clientId }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Type de demande</p>
+        <p class="detail-value">{{ d.typeDemande }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Service / Environnement</p>
+        <p class="detail-value">{{ d.serviceEnvironnement }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Contrat</p>
+        <p class="detail-value">{{ d.contrat }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Date souhaitée</p>
+        <p class="detail-value">{{ (d.dateSouhaiteeRealisation | date: 'dd/MM/yyyy') || '—' }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Créée le</p>
+        <p class="detail-value">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+      </div>
+    </div>
+
+    <p class="detail-section-title">Description</p>
+    <p class="detail-value whitespace-pre-line">{{ d.descriptionDetaillee }}</p>
+
+    <ng-container *ngIf="d.informationsComplementaires">
+      <p class="detail-section-title">Informations complémentaires</p>
+      <p class="detail-value whitespace-pre-line">{{ d.informationsComplementaires }}</p>
+    </ng-container>
+
+    <ng-container *ngIf="d.piecesJointes?.length">
+      <p class="detail-section-title">Pièces jointes</p>
+      <ul class="space-y-1">
+        <li *ngFor="let p of d.piecesJointes">
+          <a [href]="p" target="_blank" rel="noopener" class="btn-link break-all">{{ p }}</a>
+        </li>
+      </ul>
+    </ng-container>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border">
+      <button (click)="deleteDemande(d._id)" class="btn-destructive">Supprimer la demande</button>
+    </div>
+  </ng-container>
+</app-modal>

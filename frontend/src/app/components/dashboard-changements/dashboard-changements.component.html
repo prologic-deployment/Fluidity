@@ -35,7 +35,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let c of changements">
+          <tr *ngFor="let c of changements" class="table-row-clickable" (click)="viewDetails(c)">
             <td class="font-medium">{{ c.objetChangement }}</td>
             <td class="text-muted-foreground">{{ c.categorie }} / {{ c.sousCategorie }}</td>
             <td>
@@ -47,7 +47,8 @@
             </td>
             <td class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
-              <button (click)="deleteChangement(c._id)" class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
+              <button (click)="$event.stopPropagation(); deleteChangement(c._id)"
+                class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
             </td>
           </tr>
         </tbody>
@@ -55,3 +56,74 @@
     </div>
   </main>
 </div>
+
+<!-- Modal de détail -->
+<app-modal [open]="!!selected" [title]="selected?.objetChangement || ''" [subtitle]="selected?.categorie + ' / ' + selected?.sousCategorie" (closed)="closeDetails()">
+  <ng-container *ngIf="selected as c">
+    <div class="flex flex-wrap gap-2 mb-5">
+      <span [class]="statutClass(c.statut)">{{ c.statut }}</span>
+      <span [class]="typeClass(c.typeChangement)">Type : {{ c.typeChangement }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div>
+        <p class="detail-label">Client</p>
+        <p class="detail-value">{{ c.clientId }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Service / Environnement</p>
+        <p class="detail-value">{{ c.serviceEnvironnement }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Contrat</p>
+        <p class="detail-value">{{ c.contrat }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Fenêtre d'intervention</p>
+        <p class="detail-value">{{ c.fenetreIntervention | date: 'dd/MM/yyyy HH:mm' }}</p>
+      </div>
+    </div>
+
+    <p class="detail-section-title">Description</p>
+    <p class="detail-value whitespace-pre-line">{{ c.descriptionDetaillee }}</p>
+
+    <p class="detail-section-title">Plan de retour arrière</p>
+    <p class="detail-value whitespace-pre-line">{{ c.planRetourArriere }}</p>
+
+    <ng-container *ngIf="c.prerequisNecessaires">
+      <p class="detail-section-title">Prérequis nécessaires</p>
+      <p class="detail-value whitespace-pre-line">{{ c.prerequisNecessaires }}</p>
+    </ng-container>
+
+    <ng-container *ngIf="c.specifications">
+      <p class="detail-section-title">Spécifications techniques</p>
+      <div class="detail-grid">
+        <ng-container *ngIf="c.specifications.general as g">
+          <div *ngIf="g.ressourcesConcernees"><p class="detail-label">Ressources concernées</p><p class="detail-value">{{ g.ressourcesConcernees }}</p></div>
+          <div *ngIf="g.environnement"><p class="detail-label">Environnement</p><p class="detail-value">{{ g.environnement }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.serveur as s">
+          <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
+          <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
+          <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
+          <div *ngIf="s.disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ s.disqueNvmeGo }}</p></div>
+          <div *ngIf="s.disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ s.disqueSasGo }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.reseau as r">
+          <div *ngIf="r.vlan"><p class="detail-label">VLAN</p><p class="detail-value">{{ r.vlan }}</p></div>
+          <div *ngIf="r.adresseIp"><p class="detail-label">Adresse IP</p><p class="detail-value">{{ r.adresseIp }}</p></div>
+          <div *ngIf="r.masqueSousReseau"><p class="detail-label">Masque</p><p class="detail-value">{{ r.masqueSousReseau }}</p></div>
+          <div *ngIf="r.passerelle"><p class="detail-label">Passerelle</p><p class="detail-value">{{ r.passerelle }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.backup as b">
+          <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
+          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border">
+      <button (click)="deleteChangement(c._id)" class="btn-destructive">Supprimer le changement</button>
+    </div>
+  </ng-container>
+</app-modal>
