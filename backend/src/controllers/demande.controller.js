@@ -141,6 +141,7 @@ const changerStatutDemande = async (req, res) => {
 
     // Notification asynchrone (non bloquante) du changement de statut
     sendSupportEmail(
+      req.tenantId,
       `[Demande] Statut mis à jour — ${demande.objet}`,
       `<p>La demande <strong>${demande.objet}</strong> est passée de
        <strong>${statutActuel}</strong> à <strong>${nouveauStatut}</strong>

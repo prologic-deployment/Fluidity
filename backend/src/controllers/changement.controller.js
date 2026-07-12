@@ -34,7 +34,7 @@ const createChangement = async (req, res) => {
         <li><strong>Contrat :</strong> ${changement.contrat}</li>
         <li><strong>Description :</strong> ${changement.descriptionDetaillee}</li>
       </ul>`;
-    sendSupportEmail(`[Changement] ${changement.objetChangement}`, html).catch(console.error);
+    sendSupportEmail(req.tenantId, `[Changement] ${changement.objetChangement}`, html).catch(console.error);
 
     res.status(201).json(changement);
   } catch (err) {
@@ -138,6 +138,7 @@ const changerStatutChangement = async (req, res) => {
     await changement.save();
 
     sendSupportEmail(
+      req.tenantId,
       `[Changement] Statut mis à jour — ${changement.objetChangement}`,
       `<p>Le changement <strong>${changement.objetChangement}</strong> est passé de
        <strong>${statutActuel}</strong> à <strong>${nouveauStatut}</strong>

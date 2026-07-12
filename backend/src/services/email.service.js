@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const User = require('../models/user.model');
+const { Utilisateur } = require('../models/user.model');
 let transporter = null;
 
 /**
