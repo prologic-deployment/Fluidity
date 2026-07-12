@@ -2,10 +2,14 @@ export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
-  | 'En revue'
+  | 'En attente de validation'
   | 'Approuvé'
+  | 'Planifié'
+  | 'En cours d\'implémentation'
+  | 'Rollback'
+  | 'Implémenté'
+  | 'En revue post-implémentation'
   | 'Rejeté'
-  | 'En cours'
   | 'Clôturé';
 
 export interface Specifications {

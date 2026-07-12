@@ -54,6 +54,8 @@ automatiquement** (idempotent — ne s'exécute que si les collections sont vide
 | client@fluidity.dev | CLIENT | tenant-001 |
 | support@fluidity.dev | SUPPORT_N1 | tenant-001 |
 | responsable@fluidity.dev | RESPONSABLE_TECHNIQUE | tenant-001 |
+| commercial@fluidity.dev | COMMERCIAL | tenant-001 |
+| exploitation@fluidity.dev | EXPLOITATION | tenant-001 |
 | client2@fluidity.dev | CLIENT | tenant-002 (isolation tenant) |
 
 ### Contrats de démonstration
@@ -122,6 +124,31 @@ Full-Stack Software Architect") :
   action de suppression incluse).
 - Nouvelles classes utilitaires de mise en page pour le contenu des modales :
   `.detail-grid`, `.detail-label`, `.detail-value`, `.detail-section-title`.
+
+### Étape 5 — Cycle de vie et workflow des statuts (conforme au cahier des charges §2.2.2/§2.2.3 et §2.3.4/§2.3.5)
+- **Nouveau moteur de workflow** (`backend/src/utils/workflow.js`), partagé par les contrôleurs
+  Demande et Changement : pour chaque statut, la liste des transitions sortantes autorisées et,
+  pour chacune, les rôles habilités à l'exécuter (le rôle `ADMIN` peut toujours forcer une
+  transition, à titre de supervision).
+- **Statuts Demande** (enum strict sur le modèle) : `Ouverte` → `En cours d'analyse` →
+  (`En attente de validation` | `En cours de réalisation` | `En attente client` | `Rejetée`) →
+  `En cours de réalisation` → `Réalisée` → `Clôturée`.
+- **Statuts Changement** (enum strict) : `Soumis` → `En attente de validation` →
+  (`Approuvé` | `Rejeté`) → `Planifié` → `En cours d'implémentation` →
+  (`Implémenté` | `Rollback`) → `En revue post-implémentation` → `Clôturé`.
+- **Deux rôles ajoutés** pour coller au circuit de validation des changements :
+  `COMMERCIAL` (co-validation) et `EXPLOITATION` (planification, exécution, tests post-changement).
+  Comptes de démo ajoutés au seeder.
+- **Nouvelles routes dédiées** `PATCH /api/demandes/:id/statut` et
+  `PATCH /api/changements/:id/statut` : seule voie autorisée pour changer un statut (le champ
+  `statut` a été retiré du `PATCH` générique). Toute transition est vérifiée contre le rôle de
+  l'appelant ; une transition non conforme au workflow renvoie `403` avec la liste des
+  transitions réellement permises pour ce rôle. Chaque transition réussie déclenche un email
+  asynchrone de notification (comme le reste du flux Demande/Changement).
+- **Frontend** : miroir du moteur de workflow (`frontend/src/app/models/workflow.ts`) pour
+  n'afficher, dans la modale de détail, que les actions "Faire avancer le workflow" réellement
+  disponibles pour le rôle de l'utilisateur connecté et le statut courant de l'enregistrement —
+  la validation faisant foi reste côté serveur.
 
 ---
 *Ce README est mis à jour à chaque nouvelle étape réalisée sur le projet.*

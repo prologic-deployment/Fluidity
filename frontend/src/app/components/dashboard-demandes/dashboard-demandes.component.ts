@@ -5,6 +5,7 @@ import { DemandeService } from '../../services/demande.service';
 import { Demande } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
   selector: 'app-dashboard-demandes',
@@ -17,6 +18,8 @@ export class DashboardDemandesComponent implements OnInit {
   loading = false;
   error: string | null = null;
   selected: Demande | null = null;
+  transitionLoading = false;
+  transitionError: string | null = null;
 
   constructor(
     private demandeService: DemandeService,
@@ -45,10 +48,12 @@ export class DashboardDemandesComponent implements OnInit {
 
   viewDetails(demande: Demande): void {
     this.selected = demande;
+    this.transitionError = null;
   }
 
   closeDetails(): void {
     this.selected = null;
+    this.transitionError = null;
   }
 
   deleteDemande(id: string | undefined): void {
@@ -60,6 +65,29 @@ export class DashboardDemandesComponent implements OnInit {
         this.closeDetails();
       },
       error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+    });
+  }
+
+  /** Statuts vers lesquels le rôle courant peut faire transiter la demande sélectionnée. */
+  prochainesEtapes(): string[] {
+    if (!this.selected) return [];
+    return availableTransitions(DEMANDE_TRANSITIONS, this.selected.statut, this.auth.getRole());
+  }
+
+  changerStatut(nouveauStatut: string): void {
+    if (!this.selected?._id) return;
+    this.transitionLoading = true;
+    this.transitionError = null;
+    this.demandeService.changerStatut(this.selected._id, nouveauStatut).subscribe({
+      next: (updated) => {
+        this.selected = updated;
+        this.transitionLoading = false;
+        this.load();
+      },
+      error: (err) => {
+        this.transitionError = err.error?.message || 'Transition refusée.';
+        this.transitionLoading = false;
+      },
     });
   }
 
@@ -75,11 +103,15 @@ export class DashboardDemandesComponent implements OnInit {
         return 'badge-outline';
       case 'En cours d\'analyse':
         return 'badge-secondary';
-      case 'En cours de traitement':
+      case 'En attente de validation':
+        return 'badge-secondary';
+      case 'En cours de réalisation':
         return 'badge-warning';
-      case 'Résolue':
+      case 'En attente client':
+        return 'badge-warning';
+      case 'Réalisée':
         return 'badge-success';
-      case 'Fermée':
+      case 'Clôturée':
         return 'badge-secondary';
       case 'Rejetée':
         return 'badge-destructive';

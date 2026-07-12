@@ -4,7 +4,7 @@ const registerSchema = z.object({
   tenantId: z.string().min(1, 'tenantId requis'),
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  role: z.enum(['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE']).optional(),
+  role: z.enum(['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION']).optional(),
 });
 
 const loginSchema = z.object({

@@ -58,6 +58,11 @@ const createChangementSchema = z.object({
     .optional(),
 });
 
+/**
+ * Le statut ne se modifie PAS via cette route générique : il suit le
+ * workflow (voir changerStatutChangementSchema /
+ * PATCH /api/changements/:id/statut).
+ */
 const updateChangementSchema = z
   .object({
     objetChangement: z.string().min(1).optional(),
@@ -65,9 +70,13 @@ const updateChangementSchema = z
     planRetourArriere: z.string().min(1).optional(),
     contrat: z.string().min(1).optional(),
     typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']).optional(),
-    statut: z.string().min(1).optional(),
     specifications: z.record(z.any()).optional(),
   })
   .partial();
 
-module.exports = { createChangementSchema, updateChangementSchema };
+/** Changement de statut : transition contrôlée par le workflow. */
+const changerStatutChangementSchema = z.object({
+  statut: z.string().min(1, 'Statut requis'),
+});
+
+module.exports = { createChangementSchema, updateChangementSchema, changerStatutChangementSchema };

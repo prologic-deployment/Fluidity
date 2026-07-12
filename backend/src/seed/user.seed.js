@@ -14,6 +14,8 @@ const demoUsers = [
     password: 'Password123!',
     role: 'RESPONSABLE_TECHNIQUE',
   },
+  { tenantId: 'tenant-001', email: 'commercial@fluidity.dev', password: 'Password123!', role: 'COMMERCIAL' },
+  { tenantId: 'tenant-001', email: 'exploitation@fluidity.dev', password: 'Password123!', role: 'EXPLOITATION' },
   // Second tenant pour tester l'isolation des données
   { tenantId: 'tenant-002', email: 'client2@fluidity.dev', password: 'Password123!', role: 'CLIENT' },
 ];

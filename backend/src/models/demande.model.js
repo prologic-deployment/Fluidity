@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+const { DEMANDE_STATUTS } = require('../utils/workflow');
+
 /**
  * PrioriteDemande: 'Standard' | 'Élevée' | 'Urgente'
- * StatutDemande: 'Ouverte' | 'En cours d'analyse' | 'En cours de traitement'
- *                | 'Résolue' | 'Fermée' | 'Rejetée'
+ * StatutDemande (cycle de vie complet, §2.2.2) :
+ *   'Ouverte' -> 'En cours d'analyse' -> 'En attente de validation'
+ *   -> 'En cours de réalisation' -> 'Réalisée' -> 'Clôturée'
+ *   (+ 'En attente client' et 'Rejetée')
  */
 
 const DemandeSchema = new Schema(
@@ -26,7 +30,7 @@ const DemandeSchema = new Schema(
     informationsComplementaires: { type: String },
     contrat: { type: String, required: true },
     piecesJointes: [{ type: String }],
-    statut: { type: String, default: 'Ouverte' },
+    statut: { type: String, enum: DEMANDE_STATUTS, default: 'Ouverte' },
   },
   { timestamps: true }
 );

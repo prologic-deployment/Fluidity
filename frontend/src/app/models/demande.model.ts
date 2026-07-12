@@ -3,10 +3,12 @@ export type PrioriteDemande = 'Standard' | 'Élevée' | 'Urgente';
 export type StatutDemande =
   | 'Ouverte'
   | 'En cours d\'analyse'
-  | 'En cours de traitement'
-  | 'Résolue'
-  | 'Fermée'
-  | 'Rejetée';
+  | 'En attente de validation'
+  | 'En cours de réalisation'
+  | 'En attente client'
+  | 'Rejetée'
+  | 'Réalisée'
+  | 'Clôturée';
 
 export interface Demande {
   _id?: string;

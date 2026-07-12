@@ -1,5 +1,6 @@
 const { Demande } = require('../models/demande.model');
 const { sendSupportEmail } = require('../services/email.service');
+const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
  * Création d'une demande.
@@ -107,10 +108,53 @@ const deleteDemande = async (req, res) => {
   }
 };
 
+/**
+ * Transition de statut contrôlée par le workflow (§2.2.2 / §2.2.3).
+ * Seuls les rôles habilités pour la transition demandée (depuis le statut
+ * courant) peuvent l'exécuter ; ADMIN peut toujours forcer.
+ */
+const changerStatutDemande = async (req, res) => {
+  try {
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!demande) {
+      res.status(404).json({ message: 'Demande introuvable' });
+      return;
+    }
+
+    const { statut: nouveauStatut } = req.body;
+    const statutActuel = demande.statut;
+
+    if (!canTransition(DEMANDE_TRANSITIONS, statutActuel, nouveauStatut, req.userRole)) {
+      const permises = availableTransitions(DEMANDE_TRANSITIONS, statutActuel, req.userRole);
+      res.status(403).json({
+        message: `Transition non autorisée : "${statutActuel}" → "${nouveauStatut}" pour le rôle ${req.userRole}.`,
+        transitionsAutorisees: permises,
+      });
+      return;
+    }
+
+    demande.statut = nouveauStatut;
+    await demande.save();
+
+    // Notification asynchrone (non bloquante) du changement de statut
+    sendSupportEmail(
+      `[Demande] Statut mis à jour — ${demande.objet}`,
+      `<p>La demande <strong>${demande.objet}</strong> est passée de
+       <strong>${statutActuel}</strong> à <strong>${nouveauStatut}</strong>
+       (par ${req.userRole}).</p>`
+    ).catch(console.error);
+
+    res.status(200).json(demande);
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
 module.exports = {
   createDemande,
   getAllDemandes,
   getDemandeById,
   updateDemande,
   deleteDemande,
+  changerStatutDemande,
 };

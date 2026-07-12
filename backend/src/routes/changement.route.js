@@ -7,8 +7,9 @@ const {
   getChangementById,
   updateChangement,
   deleteChangement,
+  changerStatutChangement,
 } = require('../controllers/changement.controller');
-const { createChangementSchema, updateChangementSchema } = require('../schemas/changement.schema');
+const { createChangementSchema, updateChangementSchema, changerStatutChangementSchema } = require('../schemas/changement.schema');
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use(authMiddleware);
 router.post('/', validate(createChangementSchema), createChangement);
 router.get('/', getAllChangements);
 router.get('/:id', getChangementById);
+router.patch('/:id/statut', validate(changerStatutChangementSchema), changerStatutChangement);
 router.patch('/:id', validate(updateChangementSchema), updateChangement);
 router.delete('/:id', deleteChangement);
 

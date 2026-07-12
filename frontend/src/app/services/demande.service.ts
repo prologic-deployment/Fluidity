@@ -26,6 +26,11 @@ export class DemandeService {
     return this.http.patch<Demande>(`${this.baseUrl}/${id}`, demande);
   }
 
+  /** Transition de statut contrôlée par le workflow (rôle vérifié côté serveur). */
+  changerStatut(id: string, statut: string): Observable<Demande> {
+    return this.http.patch<Demande>(`${this.baseUrl}/${id}/statut`, { statut });
+  }
+
   delete(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.baseUrl}/${id}`);
   }

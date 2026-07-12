@@ -22,15 +22,21 @@ const createDemandeSchema = z.object({
 });
 
 /**
- * Schéma de mise à jour (partiel).
+ * Schéma de mise à jour (partiel). Le statut ne se modifie PAS via cette
+ * route générique : il suit le workflow (voir changerStatutSchema /
+ * PATCH /api/demandes/:id/statut) pour garantir le respect du cycle de vie.
  */
 const updateDemandeSchema = z
   .object({
     objet: z.string().min(1).optional(),
     prioriteSouhaitee: prioriteEnum.optional(),
-    statut: z.string().min(1).optional(),
     informationsComplementaires: z.string().optional(),
   })
   .partial();
 
-module.exports = { prioriteEnum, createDemandeSchema, updateDemandeSchema };
+/** Changement de statut : transition contrôlée par le workflow. */
+const changerStatutDemandeSchema = z.object({
+  statut: z.string().min(1, 'Statut requis'),
+});
+
+module.exports = { prioriteEnum, createDemandeSchema, updateDemandeSchema, changerStatutDemandeSchema };

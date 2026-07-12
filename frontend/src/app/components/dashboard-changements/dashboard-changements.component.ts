@@ -5,6 +5,7 @@ import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
   selector: 'app-dashboard-changements',
@@ -18,6 +19,8 @@ export class DashboardChangementsComponent implements OnInit {
   error: string | null = null;
   active = 'changements';
   selected: Changement | null = null;
+  transitionLoading = false;
+  transitionError: string | null = null;
 
   constructor(
     private changementService: ChangementService,
@@ -46,10 +49,12 @@ export class DashboardChangementsComponent implements OnInit {
 
   viewDetails(changement: Changement): void {
     this.selected = changement;
+    this.transitionError = null;
   }
 
   closeDetails(): void {
     this.selected = null;
+    this.transitionError = null;
   }
 
   logout(): void {
@@ -69,20 +74,51 @@ export class DashboardChangementsComponent implements OnInit {
     });
   }
 
+  /** Statuts vers lesquels le rôle courant peut faire transiter le changement sélectionné. */
+  prochainesEtapes(): string[] {
+    if (!this.selected) return [];
+    return availableTransitions(CHANGEMENT_TRANSITIONS, this.selected.statut, this.auth.getRole());
+  }
+
+  changerStatut(nouveauStatut: string): void {
+    if (!this.selected?._id) return;
+    this.transitionLoading = true;
+    this.transitionError = null;
+    this.changementService.changerStatut(this.selected._id, nouveauStatut).subscribe({
+      next: (updated) => {
+        this.selected = updated;
+        this.transitionLoading = false;
+        this.load();
+      },
+      error: (err) => {
+        this.transitionError = err.error?.message || 'Transition refusée.';
+        this.transitionLoading = false;
+      },
+    });
+  }
+
   statutClass(statut?: string): string {
     switch (statut) {
       case 'Soumis':
         return 'badge-outline';
-      case 'En revue':
+      case 'En attente de validation':
         return 'badge-secondary';
       case 'Approuvé':
-        return 'badge-success';
-      case 'Rejeté':
+        return 'badge-secondary';
+      case 'Planifié':
+        return 'badge-secondary';
+      case "En cours d'implémentation":
+        return 'badge-warning';
+      case 'Rollback':
         return 'badge-destructive';
-      case 'En cours':
+      case 'Implémenté':
+        return 'badge-success';
+      case 'En revue post-implémentation':
         return 'badge-warning';
       case 'Clôturé':
         return 'badge-secondary';
+      case 'Rejeté':
+        return 'badge-destructive';
       default:
         return 'badge-outline';
     }

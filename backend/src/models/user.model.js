@@ -5,7 +5,9 @@ const { Schema } = mongoose;
 /**
  * Rôles possibles au sein d'un tenant :
  * 'CLIENT' | 'ADMIN' | 'SUPPORT_N1' | 'RESPONSABLE_TECHNIQUE'
+ * | 'COMMERCIAL' | 'EXPLOITATION'
  */
+const ROLES = ['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION'];
 
 const UtilisateurSchema = new Schema(
   {
@@ -18,7 +20,7 @@ const UtilisateurSchema = new Schema(
       trim: true,
     },
     password: { type: String, required: true },
-    role: { type: String, default: 'CLIENT' },
+    role: { type: String, enum: ROLES, default: 'CLIENT' },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
   },
@@ -48,4 +50,4 @@ const Utilisateur = mongoose.model(
   'utilisateurs' // Collection explicite : db.utilisateurs
 );
 
-module.exports = { Utilisateur };
+module.exports = { Utilisateur, ROLES };

@@ -1,5 +1,6 @@
 const { Changement } = require('../models/changement.model');
 const { sendSupportEmail } = require('../services/email.service');
+const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
  * Création d'un changement.
@@ -108,10 +109,52 @@ const deleteChangement = async (req, res) => {
   }
 };
 
+/**
+ * Transition de statut contrôlée par le workflow (§2.3.4 / §2.3.5).
+ * Seuls les rôles habilités pour la transition demandée (depuis le statut
+ * courant) peuvent l'exécuter ; ADMIN peut toujours forcer.
+ */
+const changerStatutChangement = async (req, res) => {
+  try {
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!changement) {
+      res.status(404).json({ message: 'Changement introuvable' });
+      return;
+    }
+
+    const { statut: nouveauStatut } = req.body;
+    const statutActuel = changement.statut;
+
+    if (!canTransition(CHANGEMENT_TRANSITIONS, statutActuel, nouveauStatut, req.userRole)) {
+      const permises = availableTransitions(CHANGEMENT_TRANSITIONS, statutActuel, req.userRole);
+      res.status(403).json({
+        message: `Transition non autorisée : "${statutActuel}" → "${nouveauStatut}" pour le rôle ${req.userRole}.`,
+        transitionsAutorisees: permises,
+      });
+      return;
+    }
+
+    changement.statut = nouveauStatut;
+    await changement.save();
+
+    sendSupportEmail(
+      `[Changement] Statut mis à jour — ${changement.objetChangement}`,
+      `<p>Le changement <strong>${changement.objetChangement}</strong> est passé de
+       <strong>${statutActuel}</strong> à <strong>${nouveauStatut}</strong>
+       (par ${req.userRole}).</p>`
+    ).catch(console.error);
+
+    res.status(200).json(changement);
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
 module.exports = {
   createChangement,
   getAllChangements,
   getChangementById,
   updateChangement,
   deleteChangement,
+  changerStatutChangement,
 };

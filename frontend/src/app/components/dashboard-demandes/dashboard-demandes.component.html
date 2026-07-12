@@ -109,6 +109,18 @@
       </ul>
     </ng-container>
 
+    <ng-container *ngIf="prochainesEtapes().length">
+      <p class="detail-section-title">Faire avancer le workflow</p>
+      <p *ngIf="transitionError" class="alert-destructive mb-3">{{ transitionError }}</p>
+      <div class="flex flex-wrap gap-2">
+        <button *ngFor="let etape of prochainesEtapes()" [disabled]="transitionLoading"
+          (click)="changerStatut(etape)"
+          class="btn-outline btn-sm transition-transform hover:scale-[1.03]">
+          {{ transitionLoading ? '...' : ('→ ' + etape) }}
+        </button>
+      </div>
+    </ng-container>
+
     <div class="flex justify-end pt-6 mt-6 border-t border-border">
       <button (click)="deleteDemande(d._id)" class="btn-destructive">Supprimer la demande</button>
     </div>

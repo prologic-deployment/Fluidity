@@ -7,8 +7,9 @@ const {
   getDemandeById,
   updateDemande,
   deleteDemande,
+  changerStatutDemande,
 } = require('../controllers/demande.controller');
-const { createDemandeSchema, updateDemandeSchema } = require('../schemas/demande.schema');
+const { createDemandeSchema, updateDemandeSchema, changerStatutDemandeSchema } = require('../schemas/demande.schema');
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use(authMiddleware);
 router.post('/', validate(createDemandeSchema), createDemande);
 router.get('/', getAllDemandes);
 router.get('/:id', getDemandeById);
+router.patch('/:id/statut', validate(changerStatutDemandeSchema), changerStatutDemande);
 router.patch('/:id', validate(updateDemandeSchema), updateDemande);
 router.delete('/:id', deleteDemande);
 

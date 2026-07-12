@@ -1,9 +1,14 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+const { CHANGEMENT_STATUTS } = require('../utils/workflow');
+
 /**
  * TypeChangement: 'Normal' | 'Majeur' | 'Urgent'
- * StatutChangement: 'Soumis' | 'En revue' | 'Approuvé' | 'Rejeté' | 'En cours' | 'Clôturé'
+ * StatutChangement (cycle de vie complet, §2.3.4) :
+ *   'Soumis' -> 'En attente de validation' -> 'Approuvé' -> 'Planifié'
+ *   -> 'En cours d'implémentation' -> 'Implémenté' -> 'En revue post-implémentation'
+ *   -> 'Clôturé' (+ 'Rollback' et 'Rejeté')
  */
 
 const SpecificationsSchema = new Schema(
@@ -53,7 +58,7 @@ const ChangementSchema = new Schema(
       enum: ['Normal', 'Majeur', 'Urgent'],
       required: true,
     },
-    statut: { type: String, default: 'Soumis' },
+    statut: { type: String, enum: CHANGEMENT_STATUTS, default: 'Soumis' },
     specifications: { type: SpecificationsSchema, default: {} },
   },
   { timestamps: true }
