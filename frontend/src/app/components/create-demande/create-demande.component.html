@@ -7,112 +7,172 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-6 py-8">
-    <form [formGroup]="form" (ngSubmit)="submit()" class="card animate-fade-in-up">
-      <div class="card-content pt-6 space-y-5">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
 
-        <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+      <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="field-label">Identifiant client</label>
-            <input formControlName="clientId" type="text" class="input" />
-            <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="field-error">Champ requis.</p>
+      <!-- Section 1 : Informations générales -->
+      <section class="card animate-fade-in-up">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <path d="M8 2v4"></path>
+                <path d="M16 2v4"></path>
+                <path d="M3 10h18"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Informations générales</h2>
+              <p class="card-description">Objet, type et contexte de la demande.</p>
+            </div>
           </div>
+        </div>
+        <div class="card-content pt-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Identifiant client</label>
+              <input formControlName="clientId" type="text" class="input" placeholder="ex: client@fluidity.dev" />
+              <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="field-error">Champ requis.</p>
+            </div>
 
-          <div>
-            <label class="field-label">Objet</label>
-            <input formControlName="objet" type="text" class="input" />
-            <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">Champ requis.</p>
+            <div>
+              <label class="field-label">Objet</label>
+              <input formControlName="objet" type="text" class="input" placeholder="ex: Création d'un nouvel utilisateur" />
+              <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <div>
+              <label class="field-label">Type de demande</label>
+              <select formControlName="typeDemande" class="select">
+                <option value="" disabled>Sélectionner...</option>
+                <option *ngFor="let t of typesDemande" [value]="t">{{ t }}</option>
+              </select>
+              <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <div>
+              <label class="field-label">Service / Environnement</label>
+              <select formControlName="serviceEnvironnement" class="select">
+                <option value="" disabled>Sélectionner...</option>
+                <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s }}</option>
+              </select>
+              <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <div>
+              <label class="field-label">Catégorie</label>
+              <select formControlName="categorie" (change)="onCategorieChange()" class="select">
+                <option value="" disabled>Sélectionner...</option>
+                <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+              </select>
+              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <div>
+              <label class="field-label">Sous-catégorie</label>
+              <select formControlName="sousCategorie" class="select">
+                <option value="" disabled>Sélectionner...</option>
+                <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
+              </select>
+              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <div>
-            <label class="field-label">Type de demande</label>
-            <select formControlName="typeDemande" class="select">
-              <option value="" disabled>Sélectionner...</option>
-              <option *ngFor="let t of typesDemande" [value]="t">{{ t }}</option>
-            </select>
-            <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">Champ requis.</p>
+      <!-- Section 2 : Priorité, contrat & échéance -->
+      <section class="card animate-fade-in-up stagger-1">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <path d="M14 2v6h6"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Priorité & contrat</h2>
+              <p class="card-description">Urgence souhaitée et contrat de rattachement.</p>
+            </div>
           </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Priorité souhaitée</label>
+              <select formControlName="prioriteSouhaitee" class="select">
+                <option *ngFor="let p of priorites" [value]="p">{{ p }}</option>
+              </select>
+            </div>
 
-          <div>
-            <label class="field-label">Service / Environnement</label>
-            <select formControlName="serviceEnvironnement" class="select">
-              <option value="" disabled>Sélectionner...</option>
-              <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s }}</option>
-            </select>
-            <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
+            <div>
+              <label class="field-label">Date souhaitée de réalisation</label>
+              <input formControlName="dateSouhaiteeRealisation" type="date" class="input" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="field-label">Contrat</label>
+              <select formControlName="contrat" class="select">
+                <option value="" disabled>Sélectionner un contrat...</option>
+                <option *ngFor="let ct of contratsDisponibles()" [value]="ct.reference">
+                  {{ ct.reference }} — {{ ct.intitule }}
+                </option>
+              </select>
+              <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="contratsDisponibles().length === 0" class="mt-1 text-xs text-muted-foreground">
+                Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour ce client.
+              </p>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <div>
-            <label class="field-label">Catégorie</label>
-            <select formControlName="categorie" (change)="onCategorieChange()" class="select">
-              <option value="" disabled>Sélectionner...</option>
-              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
-            </select>
-            <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
+      <!-- Section 3 : Description & pièces jointes -->
+      <section class="card animate-fade-in-up stagger-2">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6h16"></path>
+                <path d="M4 12h16"></path>
+                <path d="M4 18h10"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Détails</h2>
+              <p class="card-description">Description complète et éléments joints.</p>
+            </div>
           </div>
-
+        </div>
+        <div class="card-content pt-6 space-y-4">
           <div>
-            <label class="field-label">Sous-catégorie</label>
-            <select formControlName="sousCategorie" class="select">
-              <option value="" disabled>Sélectionner...</option>
-              <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
-            </select>
-            <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
-          </div>
-
-          <div>
-            <label class="field-label">Priorité souhaitée</label>
-            <select formControlName="prioriteSouhaitee" class="select">
-              <option *ngFor="let p of priorites" [value]="p">{{ p }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="field-label">Contrat</label>
-            <select formControlName="contrat" class="select">
-              <option value="" disabled>Sélectionner un contrat...</option>
-              <option *ngFor="let ct of contratsDisponibles()" [value]="ct.reference">
-                {{ ct.reference }} — {{ ct.intitule }}
-              </option>
-            </select>
-            <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Champ requis.</p>
-            <p *ngIf="contratsDisponibles().length === 0" class="mt-1 text-xs text-muted-foreground">
-              Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour ce client.
+            <label class="field-label">Description détaillée</label>
+            <textarea formControlName="descriptionDetaillee" rows="4" class="textarea"
+              placeholder="Décrivez votre besoin (minimum 10 caractères)"></textarea>
+            <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">
+              Description requise (min. 10 caractères).
             </p>
           </div>
 
           <div>
-            <label class="field-label">Date souhaitée de réalisation</label>
-            <input formControlName="dateSouhaiteeRealisation" type="date" class="input" />
+            <label class="field-label">Informations complémentaires</label>
+            <textarea formControlName="informationsComplementaires" rows="2" class="textarea"></textarea>
+          </div>
+
+          <div>
+            <label class="field-label">Pièces jointes (URLs, séparées par des virgules)</label>
+            <input formControlName="piecesJointes" type="text" class="input" placeholder="https://..., https://..." />
           </div>
         </div>
+      </section>
 
-        <div>
-          <label class="field-label">Description détaillée</label>
-          <textarea formControlName="descriptionDetaillee" rows="4" class="textarea"
-            placeholder="Décrivez votre besoin (minimum 10 caractères)"></textarea>
-          <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">
-            Description requise (min. 10 caractères).
-          </p>
-        </div>
-
-        <div>
-          <label class="field-label">Informations complémentaires</label>
-          <textarea formControlName="informationsComplementaires" rows="2" class="textarea"></textarea>
-        </div>
-
-        <div>
-          <label class="field-label">Pièces jointes (URLs, séparées par des virgules)</label>
-          <input formControlName="piecesJointes" type="text" class="input" placeholder="https://..., https://..." />
-        </div>
-
-        <div class="flex justify-end space-x-3 pt-2 border-t border-border mt-2 pt-4">
-          <a routerLink="/demandes" class="btn-outline">Annuler</a>
-          <button type="submit" [disabled]="loading" class="btn-primary">
-            {{ loading ? 'Envoi...' : 'Soumettre la demande' }}
-          </button>
-        </div>
+      <div class="flex justify-end space-x-3">
+        <a routerLink="/demandes" class="btn-outline">Annuler</a>
+        <button type="submit" [disabled]="loading" class="btn-primary">
+          {{ loading ? 'Envoi...' : 'Soumettre la demande' }}
+        </button>
       </div>
     </form>
   </main>

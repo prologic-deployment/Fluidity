@@ -5,6 +5,7 @@ import { DemandeService } from '../../services/demande.service';
 import { Demande } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
@@ -24,7 +25,8 @@ export class DashboardDemandesComponent implements OnInit {
   constructor(
     private demandeService: DemandeService,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -56,9 +58,15 @@ export class DashboardDemandesComponent implements OnInit {
     this.transitionError = null;
   }
 
-  deleteDemande(id: string | undefined): void {
+  async deleteDemande(id: string | undefined): Promise<void> {
     if (!id) return;
-    if (!confirm('Confirmer la suppression de cette demande ?')) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Supprimer cette demande ?',
+      message: 'Cette action est définitive et ne pourra pas être annulée.',
+      confirmLabel: 'Supprimer',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     this.demandeService.delete(id).subscribe({
       next: () => {
         this.load();

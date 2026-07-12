@@ -5,6 +5,7 @@ import { ContratService } from '../../services/contrat.service';
 import { Contrat } from '../../models/contrat.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 
 @Component({
   selector: 'app-dashboard-contrats',
@@ -20,7 +21,8 @@ export class DashboardContratsComponent implements OnInit {
 
   constructor(
     private contratService: ContratService,
-    public auth: AuthService
+    public auth: AuthService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -50,9 +52,15 @@ export class DashboardContratsComponent implements OnInit {
     this.selected = null;
   }
 
-  deleteContrat(id: string | undefined): void {
+  async deleteContrat(id: string | undefined): Promise<void> {
     if (!id) return;
-    if (!confirm('Confirmer la suppression de ce contrat ?')) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Supprimer ce contrat ?',
+      message: 'Cette action est définitive et ne pourra pas être annulée.',
+      confirmLabel: 'Supprimer',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     this.contratService.delete(id).subscribe({
       next: () => {
         this.load();
@@ -72,6 +80,19 @@ export class DashboardContratsComponent implements OnInit {
         return 'badge-destructive';
       default:
         return 'badge-outline';
+    }
+  }
+
+  accentClass(statut?: string): string {
+    switch (statut) {
+      case 'Actif':
+        return 'accent-bar-success';
+      case 'Suspendu':
+        return 'accent-bar-warning';
+      case 'Expiré':
+        return 'accent-bar-destructive';
+      default:
+        return 'accent-bar-default';
     }
   }
 }

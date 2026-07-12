@@ -17,6 +17,12 @@
 
     <div *ngIf="!loading && demandes.length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        <div class="table-empty-icon">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </div>
         Aucune demande pour le moment.
       </div>
     </div>
@@ -35,20 +41,25 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let d of demandes" class="table-row-clickable" (click)="viewDetails(d)">
+          <tr *ngFor="let d of demandes" class="table-row-clickable group" (click)="viewDetails(d)">
             <td class="font-medium">{{ d.objet }}</td>
             <td class="text-muted-foreground">{{ d.categorie }} / {{ d.sousCategorie }}</td>
             <td class="text-muted-foreground">{{ d.serviceEnvironnement }}</td>
             <td>
-              <span [class]="prioriteClass(d.prioriteSouhaitee)">{{ d.prioriteSouhaitee }}</span>
+              <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee }}</span>
             </td>
             <td>
-              <span [class]="statutClass(d.statut)">{{ d.statut }}</span>
+              <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
             </td>
             <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
-              <button (click)="$event.stopPropagation(); deleteDemande(d._id)"
-                class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
+              <div class="flex items-center justify-end gap-1">
+                <button (click)="$event.stopPropagation(); deleteDemande(d._id)"
+                  class="btn-ghost btn-sm text-destructive hover:text-destructive">Supprimer</button>
+                <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -61,8 +72,8 @@
 <app-modal [open]="!!selected" [title]="selected?.objet || ''" [subtitle]="selected?.categorie + ' / ' + selected?.sousCategorie" (closed)="closeDetails()">
   <ng-container *ngIf="selected as d">
     <div class="flex flex-wrap gap-2 mb-5">
-      <span [class]="statutClass(d.statut)">{{ d.statut }}</span>
-      <span [class]="prioriteClass(d.prioriteSouhaitee)">Priorité : {{ d.prioriteSouhaitee }}</span>
+      <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
+      <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>Priorité : {{ d.prioriteSouhaitee }}</span>
     </div>
 
     <div class="detail-grid">

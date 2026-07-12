@@ -150,5 +150,84 @@ Full-Stack Software Architect") :
   disponibles pour le rôle de l'utilisateur connecté et le statut courant de l'enregistrement —
   la validation faisant foi reste côté serveur.
 
+### Étape 6 — Correctif notifications + modernisation forms/tables/cartes + popup de confirmation
+- **Correctif** : `email.service.js` importait le modèle `Utilisateur` de façon incorrecte
+  (`const User = require(...)` au lieu d'une déstructuration), ce qui provoquait une
+  `ReferenceError` silencieuse (avalée par le `try/catch`) — aucune notification Support N1
+  n'était donc jamais envoyée. Corrigé, ainsi que les appels à `sendSupportEmail` qui n'avaient
+  pas été mis à jour vers sa nouvelle signature `(tenantId, subject, html)`.
+- **Popup de confirmation moderne** : `window.confirm()` remplacé partout par un vrai composant
+  (`ConfirmDialogService` + `app-confirm-dialog`, monté une seule fois à la racine de
+  l'application). API impérative basée sur une `Promise<boolean>` :
+  `await this.confirmDialog.confirm({ title, message, variant: 'destructive' })`. Fond flouté,
+  icône contextuelle (alerte pour les actions destructives), animation `scale-in`. Utilisé pour
+  toutes les suppressions (Demandes, Changements, Contrats).
+- **Formulaires** (Nouvelle Demande, Nouveau Changement, Ouvrir un contrat) : découpés en
+  sections `card` avec un en-tête teinté (`card-header-tinted`) portant une icône dans un badge
+  dégradé (`form-section-icon`) et une description courte du contenu de la section — plus lisible
+  qu'un simple `<h2>` sur un long formulaire.
+- **Tables** (Demandes, Changements) : chevron d'affordance qui glisse et se colore au survol
+  de la ligne pour signaler qu'elle est cliquable (ouvre la modale de détail).
+- **Badges** : tous les badges de statut/priorité/type portent désormais un point de couleur
+  (`badge-dot`) en plus du texte, pour une lecture plus rapide façon "statut système".
+- **Cartes Contrat** repensées : bandeau de couleur en haut de carte selon le statut
+  (`accent-bar-success/warning/destructive/default`), icône de contrat dans un badge dégradé,
+  bloc d'informations en mini-grille (client / type / début / fin) sur fond `muted`, effet de
+  levée au survol (`card-hover` : ombre + léger décalage vers le haut).
+- **États vides** illustrés d'une icône ronde (`table-empty-icon`) au lieu d'un simple texte.
+
+## 4. Système de design (design system)
+
+Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
+Tailwind CSS (pas de librairie de composants), pour qu'elle reste cohérente au fil des évolutions.
+
+### Palette & tokens
+Toutes les couleurs sont des variables CSS HSL définies dans `:root` (`frontend/src/styles.css`)
+et consommées via `tailwind.config.js` (`hsl(var(--primary))`, etc.) — changer un token suffit à
+retable toute l'application :
+- **Primaire** : indigo (`--primary: 243 75% 59%`), utilisé en dégradé indigo → violet sur les
+  boutons principaux, la sidebar et les icônes de section.
+- **Neutres** : palette slate froide pour `--background/--foreground/--muted/--border`.
+- **Sémantiques** : `--success` (vert), `--warning` (ambre), `--destructive` (rouge),
+  chacun décliné en badge, alerte et barre d'accent de carte.
+- **Rayon** : `--radius: 0.75rem`, décliné en `sm/md/lg/xl` pour une cohérence des arrondis.
+- **Police** : Inter (chargée via Google Fonts dans `index.html`).
+
+### Composants Tailwind réutilisables (`@layer components` dans `styles.css`)
+| Catégorie | Classes |
+|---|---|
+| Boutons | `.btn-primary` (dégradé + ombre colorée), `.btn-secondary`, `.btn-outline`, `.btn-ghost`, `.btn-destructive`, `.btn-link`, `.btn-sm` — tous avec `active:scale-[0.97]` (retour tactile) |
+| Champs | `.input`, `.select` (chevron SVG intégré), `.textarea`, `.field-label`, `.field-error` — bordure et anneau de focus indigo au survol/focus |
+| Sections de formulaire | `.card-header-tinted` (dégradé subtil + bordure), `.form-section-icon` (badge dégradé indigo/violet) |
+| Surfaces | `.card`, `.card-hover` (ombre + léger soulèvement au survol), `.card-header`, `.card-content` |
+| Badges | `.badge-default/secondary/outline/success/warning/destructive`, `.badge-dot` (point de couleur) |
+| Accents de carte | `.accent-bar-default/success/warning/destructive` (bandeau dégradé en haut de carte, ex. cartes Contrat) |
+| Tables | `.table-wrap`, `.table` (en-tête collant flouté), `.table-row-clickable`, `.table-row-chevron`, `.table-empty-icon` |
+| Détail (modales) | `.detail-grid`, `.detail-label`, `.detail-value`, `.detail-section-title` |
+| Navigation | `.side-link/-active`, `.side-sublink/-active`, `.side-group-label`, `.side-toggle-icon` |
+| Alertes | `.alert-destructive`, `.alert-success` |
+
+### Composants d'interaction partagés
+- **`app-modal`** (`components/shared/modal.component`) : modale générique à contenu projeté
+  (`<ng-content>`), fond flouté, panneau `animate-scale-in`, fermeture par bouton / clic sur le
+  fond / touche `Échap`. Utilisée pour le détail des Demandes, Changements et Contrats.
+- **`app-confirm-dialog`** (`components/shared/confirm-dialog.component`) : popup de
+  confirmation pilotée par `ConfirmDialogService` (API `Promise<boolean>`), montée une seule fois
+  à la racine (`app.component.ts`). Variante `destructive` (icône alerte, bouton rouge) pour les
+  suppressions, variante par défaut (icône info, bouton indigo) pour le reste.
+- **`app-sidebar`** / **`ShellComponent`** : navigation multi-niveaux (voir Étape 3).
+
+### Animations
+Définies en `@layer utilities` : `animate-fade-in` (fond de modale), `animate-scale-in`
+(panneaux de modale/popup), `animate-fade-in-up` (apparition des cartes/tables au chargement,
+avec variantes `stagger-1` à `stagger-4` pour échelonner l'apparition d'une liste). Toutes les
+interactions (boutons, liens, lignes de tableau, cartes) ont une `transition-all duration-150`
+pour un rendu fluide.
+
+### Iconographie
+Toutes les icônes sont des SVG inline (traits `stroke="currentColor"`, `stroke-width="2"`),
+sans dépendance à une librairie d'icônes externe — cohérent avec l'esprit "shadcn/ui" du projet
+(copier/coller du SVG plutôt qu'un package supplémentaire).
+
 ---
 *Ce README est mis à jour à chaque nouvelle étape réalisée sur le projet.*

@@ -76,17 +76,17 @@
   /* ---------- Buttons ---------- */
   .btn {
     @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium
-      transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
-      disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2;
+      transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+      disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] h-9 px-4 py-2;
   }
   .btn-primary {
-    @apply btn bg-primary text-primary-foreground shadow hover:bg-primary/90;
+    @apply btn bg-gradient-to-br from-primary to-violet-600 text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:brightness-105;
   }
   .btn-secondary {
     @apply btn bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80;
   }
   .btn-outline {
-    @apply btn border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground;
+    @apply btn border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground hover:border-primary/40;
   }
   .btn-ghost {
     @apply btn hover:bg-accent hover:text-accent-foreground;
@@ -95,7 +95,7 @@
     @apply btn bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90;
   }
   .btn-link {
-    @apply inline-flex items-center text-sm font-medium text-primary underline-offset-4 hover:underline;
+    @apply inline-flex items-center text-sm font-medium text-primary underline-offset-4 transition-colors hover:underline hover:text-primary/80;
   }
   .btn-sm {
     @apply h-8 rounded-md px-3 text-xs;
@@ -107,15 +107,16 @@
   }
   .input {
     @apply flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm
-      transition-colors placeholder:text-muted-foreground
-      focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring
+      transition-all duration-150 placeholder:text-muted-foreground
+      hover:border-primary/40
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:border-primary
       disabled:cursor-not-allowed disabled:opacity-50;
   }
   .textarea {
     @apply input h-auto min-h-[80px] py-2;
   }
   .select {
-    @apply input appearance-none bg-background bg-no-repeat pr-8;
+    @apply input appearance-none bg-background bg-no-repeat pr-8 cursor-pointer;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-position: right 0.5rem center;
     background-size: 1rem;
@@ -124,15 +125,38 @@
     @apply mt-1 text-xs font-medium text-destructive;
   }
 
+  /* ---------- Form sections ---------- */
+  .form-section-header {
+    @apply flex items-start gap-3;
+  }
+  .form-section-icon {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary/15 to-violet-500/15 text-primary;
+  }
+  .field-group {
+    @apply relative;
+  }
+  .field-icon {
+    @apply pointer-events-none absolute left-3 top-[34px] h-4 w-4 text-muted-foreground;
+  }
+  .input-with-icon {
+    @apply input pl-9;
+  }
+  .select-with-icon {
+    @apply select pl-9;
+  }
+
   /* ---------- Surfaces ---------- */
   .card {
-    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-shadow duration-200;
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all duration-200;
   }
   .card-hover {
-    @apply hover:shadow-md hover:border-primary/30;
+    @apply hover:shadow-lg hover:shadow-slate-200/60 hover:border-primary/30 hover:-translate-y-0.5;
   }
   .card-header {
     @apply flex flex-col space-y-1 p-6;
+  }
+  .card-header-tinted {
+    @apply flex flex-col space-y-1 p-6 bg-gradient-to-br from-muted/60 to-transparent rounded-t-xl border-b border-border;
   }
   .card-title {
     @apply text-lg font-semibold leading-none tracking-tight;
@@ -154,7 +178,10 @@
 
   /* ---------- Badges ---------- */
   .badge {
-    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors;
+  }
+  .badge-dot {
+    @apply h-1.5 w-1.5 shrink-0 rounded-full bg-current;
   }
   .badge-default {
     @apply badge border-transparent bg-primary text-primary-foreground;
@@ -175,6 +202,23 @@
     @apply badge border-transparent bg-destructive/15 text-destructive;
   }
 
+  /* ---------- Status accent bar (cards) ---------- */
+  .accent-bar {
+    @apply h-1 w-full rounded-t-xl bg-gradient-to-r;
+  }
+  .accent-bar-default {
+    @apply accent-bar from-slate-300 to-slate-400;
+  }
+  .accent-bar-success {
+    @apply accent-bar from-emerald-400 to-teal-500;
+  }
+  .accent-bar-warning {
+    @apply accent-bar from-amber-400 to-orange-500;
+  }
+  .accent-bar-destructive {
+    @apply accent-bar from-rose-400 to-red-500;
+  }
+
   /* ---------- Table ---------- */
   .table-wrap {
     @apply w-full overflow-auto rounded-xl border border-border bg-card shadow-sm;
@@ -193,6 +237,9 @@
   }
   .table-row-clickable {
     @apply cursor-pointer;
+  }
+  .table-row-chevron {
+    @apply text-muted-foreground/40 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-primary;
   }
   .table td {
     @apply px-4 py-3.5 align-middle;

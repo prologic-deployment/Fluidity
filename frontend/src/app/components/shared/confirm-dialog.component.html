@@ -1,0 +1,34 @@
+<ng-container *ngIf="state$ | async as state">
+  <div *ngIf="state.open" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm animate-fade-in" (click)="respond(false)"></div>
+
+    <div class="relative w-full max-w-sm overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-2xl animate-scale-in">
+      <div class="p-6">
+        <div class="flex h-11 w-11 items-center justify-center rounded-full"
+          [ngClass]="state.variant === 'destructive' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'">
+          <svg *ngIf="state.variant === 'destructive'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <svg *ngIf="state.variant !== 'destructive'" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </div>
+
+        <h2 class="mt-4 text-base font-semibold tracking-tight">{{ state.title }}</h2>
+        <p class="mt-1.5 text-sm text-muted-foreground">{{ state.message }}</p>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t border-border bg-muted/30 px-6 py-4">
+        <button (click)="respond(false)" class="btn-outline btn-sm">{{ state.cancelLabel }}</button>
+        <button (click)="respond(true)"
+          [class]="state.variant === 'destructive' ? 'btn-destructive btn-sm' : 'btn-primary btn-sm'">
+          {{ state.confirmLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

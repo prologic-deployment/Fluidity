@@ -5,6 +5,7 @@ import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
@@ -25,7 +26,8 @@ export class DashboardChangementsComponent implements OnInit {
   constructor(
     private changementService: ChangementService,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -62,9 +64,15 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  deleteChangement(id: string | undefined): void {
+  async deleteChangement(id: string | undefined): Promise<void> {
     if (!id) return;
-    if (!confirm('Confirmer la suppression de ce changement ?')) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Supprimer ce changement ?',
+      message: 'Cette action est définitive et ne pourra pas être annulée.',
+      confirmLabel: 'Supprimer',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     this.changementService.delete(id).subscribe({
       next: () => {
         this.load();
