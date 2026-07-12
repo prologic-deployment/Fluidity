@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-
+const User = require('../models/user.model');
 let transporter = null;
 
 /**
@@ -59,8 +59,32 @@ const sendResetPasswordEmail = async (email, token) => {
 /**
  * Notification asynchrone à l'équipe Support N1 (helpdesk).
  */
-const sendSupportEmail = async (subject, html) => {
-  await sendEmail('helpdesk@company.com', subject, html);
+const sendSupportEmail = async (tenantId, subject, html) => {
+  try {
+    // Email du helpdesk + utilisateurs SUPPORT_N1
+    const recipients = [];
+
+    const supportUsers = await Utilisateur.find({
+      tenantId,
+      role: 'SUPPORT_N1',
+    }).select('email');
+
+    recipients.push(...supportUsers.map(user => user.email));
+
+    // Suppression des doublons
+    const uniqueRecipients = [...new Set(recipients.filter(Boolean))];
+
+    if (uniqueRecipients.length === 0) {
+      return;
+    }
+
+    await sendEmail(uniqueRecipients.join(','), subject, html);
+  } catch (err) {
+    console.error(
+      '[Fluidity] Erreur lors de la notification du Support N1 :',
+      err
+    );
+  }
 };
 
 module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail };

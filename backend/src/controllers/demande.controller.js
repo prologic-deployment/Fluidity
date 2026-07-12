@@ -33,8 +33,11 @@ const createDemande = async (req, res) => {
         <li><strong>Contrat :</strong> ${demande.contrat}</li>
         <li><strong>Description :</strong> ${demande.descriptionDetaillee}</li>
       </ul>`;
-    sendSupportEmail(`[Demande] ${demande.objet}`, html).catch(console.error);
-
+    sendSupportEmail(
+      req.tenantId,
+      `[Demande] ${demande.objet}`,
+      html
+    ).catch(console.error);
     res.status(201).json(demande);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
