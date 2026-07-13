@@ -1,5 +1,6 @@
 const { Changement } = require('../models/changement.model');
 const { sendSupportEmail } = require('../services/email.service');
+const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
@@ -22,18 +23,24 @@ const createChangement = async (req, res) => {
     });
     await changement.save();
 
-    const html = `
-      <h2>Nouveau changement soumis</h2>
-      <ul>
-        <li><strong>Objet :</strong> ${changement.objetChangement}</li>
-        <li><strong>Type :</strong> ${changement.typeChangement}</li>
-        <li><strong>Catégorie :</strong> ${changement.categorie} / ${changement.sousCategorie}</li>
-        <li><strong>Environnement :</strong> ${changement.serviceEnvironnement}</li>
-        <li><strong>Fenêtre d'intervention :</strong> ${changement.fenetreIntervention}</li>
-        <li><strong>Plan de retour arrière :</strong> ${changement.planRetourArriere}</li>
-        <li><strong>Contrat :</strong> ${changement.contrat}</li>
-        <li><strong>Description :</strong> ${changement.descriptionDetaillee}</li>
-      </ul>`;
+    const html = renderEmailLayout({
+      preheader: `Nouveau changement : ${changement.objetChangement}`,
+      heading: 'Nouveau changement soumis',
+      bodyHtml: `
+        <p style="margin: 0 0 6px;">Un nouveau changement d'infrastructure vient d'être soumis${' '}
+        ${renderBadge(changement.typeChangement, changement.typeChangement === 'Urgent' ? '#e11d48' : changement.typeChangement === 'Majeur' ? '#d97706' : '#6366f1')}.</p>
+        ${renderDetailsTable([
+          { label: 'Objet', value: changement.objetChangement },
+          { label: 'Catégorie', value: `${changement.categorie} / ${changement.sousCategorie}` },
+          { label: 'Environnement', value: changement.serviceEnvironnement },
+          { label: "Fenêtre d'intervention", value: new Date(changement.fenetreIntervention).toLocaleString('fr-FR') },
+          { label: 'Contrat', value: changement.contrat },
+          { label: 'Plan de retour arrière', value: changement.planRetourArriere },
+          { label: 'Description', value: changement.descriptionDetaillee },
+        ])}`,
+      ctaLabel: 'Voir les changements',
+      ctaUrl: `${FRONTEND_URL()}/changements`,
+    });
     sendSupportEmail(req.tenantId, `[Changement] ${changement.objetChangement}`, html).catch(console.error);
 
     res.status(201).json(changement);
@@ -137,13 +144,21 @@ const changerStatutChangement = async (req, res) => {
     changement.statut = nouveauStatut;
     await changement.save();
 
-    sendSupportEmail(
-      req.tenantId,
-      `[Changement] Statut mis à jour — ${changement.objetChangement}`,
-      `<p>Le changement <strong>${changement.objetChangement}</strong> est passé de
-       <strong>${statutActuel}</strong> à <strong>${nouveauStatut}</strong>
-       (par ${req.userRole}).</p>`
-    ).catch(console.error);
+    const html = renderEmailLayout({
+      preheader: `${changement.objetChangement} : ${statutActuel} → ${nouveauStatut}`,
+      heading: 'Statut de changement mis à jour',
+      bodyHtml: `
+        <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a changé de statut :</p>
+        <p style="margin: 0 0 12px;">
+          ${renderBadge(statutActuel, '#64748b')}
+          <span style="color:#94a3b8; margin: 0 6px;">→</span>
+          ${renderBadge(nouveauStatut, '#6366f1')}
+        </p>
+        <p style="margin: 0; font-size: 13px; color: #64748b;">Transition effectuée par le rôle <strong>${req.userRole}</strong>.</p>`,
+      ctaLabel: 'Voir les changements',
+      ctaUrl: `${FRONTEND_URL()}/changements`,
+    });
+    sendSupportEmail(req.tenantId, `[Changement] Statut mis à jour — ${changement.objetChangement}`, html).catch(console.error);
 
     res.status(200).json(changement);
   } catch (err) {

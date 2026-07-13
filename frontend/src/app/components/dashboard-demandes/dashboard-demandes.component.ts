@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
 import { Demande } from '../../models/demande.model';
@@ -11,7 +12,7 @@ import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, RouterLink, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
@@ -21,6 +22,22 @@ export class DashboardDemandesComponent implements OnInit {
   selected: Demande | null = null;
   transitionLoading = false;
   transitionError: string | null = null;
+
+  searchTerm = '';
+  statutFiltre = '';
+  prioriteFiltre = '';
+
+  readonly statutsFiltrables = [
+    'Ouverte',
+    "En cours d'analyse",
+    'En attente de validation',
+    'En cours de réalisation',
+    'En attente client',
+    'Réalisée',
+    'Clôturée',
+    'Rejetée',
+  ];
+  readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
 
   constructor(
     private demandeService: DemandeService,
@@ -46,6 +63,31 @@ export class DashboardDemandesComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  /** Liste filtrée (recherche texte + statut + priorité), la plus récente en premier. */
+  filteredDemandes(): Demande[] {
+    const term = this.searchTerm.trim().toLowerCase();
+    return this.demandes.filter((d) => {
+      const matchTerm =
+        !term ||
+        d.objet.toLowerCase().includes(term) ||
+        d.clientId.toLowerCase().includes(term) ||
+        d.categorie.toLowerCase().includes(term);
+      const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
+      const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
+      return matchTerm && matchStatut && matchPriorite;
+    });
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre);
+  }
+
+  resetFilters(): void {
+    this.searchTerm = '';
+    this.statutFiltre = '';
+    this.prioriteFiltre = '';
   }
 
   viewDetails(demande: Demande): void {

@@ -1,5 +1,6 @@
 const { Demande } = require('../models/demande.model');
 const { sendSupportEmail } = require('../services/email.service');
+const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL } = require('../services/email-template');
 const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
@@ -22,22 +23,24 @@ const createDemande = async (req, res) => {
     });
     await demande.save();
 
-    const html = `
-      <h2>Nouvelle demande reçue</h2>
-      <ul>
-        <li><strong>Objet :</strong> ${demande.objet}</li>
-        <li><strong>Type :</strong> ${demande.typeDemande}</li>
-        <li><strong>Catégorie :</strong> ${demande.categorie} / ${demande.sousCategorie}</li>
-        <li><strong>Environnement :</strong> ${demande.serviceEnvironnement}</li>
-        <li><strong>Priorité :</strong> ${demande.prioriteSouhaitee}</li>
-        <li><strong>Contrat :</strong> ${demande.contrat}</li>
-        <li><strong>Description :</strong> ${demande.descriptionDetaillee}</li>
-      </ul>`;
-    sendSupportEmail(
-      req.tenantId,
-      `[Demande] ${demande.objet}`,
-      html
-    ).catch(console.error);
+    const html = renderEmailLayout({
+      preheader: `Nouvelle demande : ${demande.objet}`,
+      heading: 'Nouvelle demande reçue',
+      bodyHtml: `
+        <p style="margin: 0 0 6px;">Une nouvelle demande de service vient d'être soumise${' '}
+        ${renderBadge(demande.prioriteSouhaitee, demande.prioriteSouhaitee === 'Urgente' ? '#e11d48' : demande.prioriteSouhaitee === 'Élevée' ? '#d97706' : '#6366f1')}.</p>
+        ${renderDetailsTable([
+          { label: 'Objet', value: demande.objet },
+          { label: 'Type', value: demande.typeDemande },
+          { label: 'Catégorie', value: `${demande.categorie} / ${demande.sousCategorie}` },
+          { label: 'Environnement', value: demande.serviceEnvironnement },
+          { label: 'Contrat', value: demande.contrat },
+          { label: 'Description', value: demande.descriptionDetaillee },
+        ])}`,
+      ctaLabel: 'Voir les demandes',
+      ctaUrl: `${FRONTEND_URL()}/demandes`,
+    });
+    sendSupportEmail(req.tenantId, `[Demande] ${demande.objet}`, html).catch(console.error);
     res.status(201).json(demande);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -140,13 +143,21 @@ const changerStatutDemande = async (req, res) => {
     await demande.save();
 
     // Notification asynchrone (non bloquante) du changement de statut
-    sendSupportEmail(
-      req.tenantId,
-      `[Demande] Statut mis à jour — ${demande.objet}`,
-      `<p>La demande <strong>${demande.objet}</strong> est passée de
-       <strong>${statutActuel}</strong> à <strong>${nouveauStatut}</strong>
-       (par ${req.userRole}).</p>`
-    ).catch(console.error);
+    const html = renderEmailLayout({
+      preheader: `${demande.objet} : ${statutActuel} → ${nouveauStatut}`,
+      heading: 'Statut de demande mis à jour',
+      bodyHtml: `
+        <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a changé de statut :</p>
+        <p style="margin: 0 0 12px;">
+          ${renderBadge(statutActuel, '#64748b')}
+          <span style="color:#94a3b8; margin: 0 6px;">→</span>
+          ${renderBadge(nouveauStatut, '#6366f1')}
+        </p>
+        <p style="margin: 0; font-size: 13px; color: #64748b;">Transition effectuée par le rôle <strong>${req.userRole}</strong>.</p>`,
+      ctaLabel: 'Voir les demandes',
+      ctaUrl: `${FRONTEND_URL()}/demandes`,
+    });
+    sendSupportEmail(req.tenantId, `[Demande] Statut mis à jour — ${demande.objet}`, html).catch(console.error);
 
     res.status(200).json(demande);
   } catch (err) {

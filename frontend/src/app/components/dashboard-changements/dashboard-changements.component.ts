@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
@@ -11,7 +12,7 @@ import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workf
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, RouterLink, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
@@ -22,6 +23,24 @@ export class DashboardChangementsComponent implements OnInit {
   selected: Changement | null = null;
   transitionLoading = false;
   transitionError: string | null = null;
+
+  searchTerm = '';
+  statutFiltre = '';
+  typeFiltre = '';
+
+  readonly statutsFiltrables = [
+    'Soumis',
+    'En attente de validation',
+    'Approuvé',
+    'Planifié',
+    "En cours d'implémentation",
+    'Implémenté',
+    'En revue post-implémentation',
+    'Rollback',
+    'Clôturé',
+    'Rejeté',
+  ];
+  readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
 
   constructor(
     private changementService: ChangementService,
@@ -47,6 +66,30 @@ export class DashboardChangementsComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  filteredChangements(): Changement[] {
+    const term = this.searchTerm.trim().toLowerCase();
+    return this.changements.filter((c) => {
+      const matchTerm =
+        !term ||
+        c.objetChangement.toLowerCase().includes(term) ||
+        c.clientId.toLowerCase().includes(term) ||
+        c.categorie.toLowerCase().includes(term);
+      const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
+      const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
+      return matchTerm && matchStatut && matchType;
+    });
+  }
+
+  hasActiveFilters(): boolean {
+    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre);
+  }
+
+  resetFilters(): void {
+    this.searchTerm = '';
+    this.statutFiltre = '';
+    this.typeFiltre = '';
   }
 
   viewDetails(changement: Changement): void {

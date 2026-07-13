@@ -176,6 +176,36 @@ Full-Stack Software Architect") :
   levée au survol (`card-hover` : ombre + léger décalage vers le haut).
 - **États vides** illustrés d'une icône ronde (`table-empty-icon`) au lieu d'un simple texte.
 
+### Étape 7 — Tables avec filtres, chargement squelette, boutons/icônes modernisés, emails à la charte, couleurs de la sidebar plus présentes
+- **Tables (Demandes / Changements)** : nouvelle barre d'outils au-dessus de chaque tableau —
+  champ de recherche (icône loupe, bouton d'effacement), filtre par statut, filtre par
+  priorité/type, bouton "Réinitialiser" affiché uniquement si un filtre est actif. Le filtrage
+  est appliqué en mémoire (`filteredDemandes()` / `filteredChangements()`), avec un compteur
+  "X sur Y affiché(s)" et un état vide dédié ("Aucun résultat pour ces filtres").
+- **Chargement** : les états "Chargement..." textuels sont remplacés par des lignes/cartes
+  squelettes animées (`.skeleton`, effet de scintillement `shimmer`) qui reprennent la forme
+  réelle du contenu (tableau ou grille de cartes Contrat).
+- **Défilement** : `scroll-smooth` activé globalement, et une scrollbar fine personnalisée aux
+  couleurs indigo/violet de la sidebar (`::-webkit-scrollbar` + `scrollbar-color`) remplace la
+  scrollbar par défaut du navigateur.
+- **Boutons & icônes** : tous les boutons ont désormais un retour tactile
+  (`active:scale-[0.97]`), un anneau de focus indigo plus visible, et `.btn-primary` porte le
+  dégradé indigo→violet avec une ombre colorée. Les actions de suppression dans les tableaux
+  passent d'un texte "Supprimer" à un bouton icône (`.btn-icon-sm`, icône corbeille) avec
+  info-bulle, plus compact et cohérent avec les cartes Contrat. Chevron animé qui glisse au
+  survol d'une ligne cliquable.
+- **Emails** : nouveau gabarit de marque partagé (`backend/src/services/email-template.js`,
+  `renderEmailLayout` / `renderBadge` / `renderDetailsTable`) — bandeau dégradé indigo→violet
+  avec le badge "F", contenu dans une carte à coins arrondis, tableau clé/valeur discret pour
+  les détails, bouton d'action (CTA) vers le tableau de bord concerné, pied de page. Utilisé
+  pour : réinitialisation de mot de passe, notification de nouvelle Demande/Changement, et
+  notification de changement de statut (avec les deux badges de statut reliés par une flèche).
+- **Couleurs de la sidebar davantage présentes dans l'interface** : fine barre dégradée
+  indigo→violet en haut de chaque en-tête de page (Demandes, Changements, Contrats) et en haut
+  de chaque modale de détail ; icône de page dans un badge dégradé identique à celui de la
+  sidebar ; en-têtes de sections de formulaire et en-tête collant des tableaux légèrement
+  teintés indigo/violet au lieu d'un gris neutre.
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
@@ -196,13 +226,15 @@ retable toute l'application :
 ### Composants Tailwind réutilisables (`@layer components` dans `styles.css`)
 | Catégorie | Classes |
 |---|---|
-| Boutons | `.btn-primary` (dégradé + ombre colorée), `.btn-secondary`, `.btn-outline`, `.btn-ghost`, `.btn-destructive`, `.btn-link`, `.btn-sm` — tous avec `active:scale-[0.97]` (retour tactile) |
+| Boutons | `.btn-primary` (dégradé + ombre colorée), `.btn-secondary`, `.btn-outline`, `.btn-ghost`, `.btn-destructive`, `.btn-link`, `.btn-sm`, `.btn-icon` / `.btn-icon-sm` — tous avec `active:scale-[0.97]` (retour tactile) |
 | Champs | `.input`, `.select` (chevron SVG intégré), `.textarea`, `.field-label`, `.field-error` — bordure et anneau de focus indigo au survol/focus |
-| Sections de formulaire | `.card-header-tinted` (dégradé subtil + bordure), `.form-section-icon` (badge dégradé indigo/violet) |
+| Filtres | `.toolbar`, `.search-field` / `.search-input` / `.search-icon` / `.search-clear`, `.filter-select`, `.filter-count-badge` |
+| Chargement | `.skeleton` (bloc à effet de scintillement `shimmer`), utilisé en lignes de tableau ou en cartes selon le contexte |
+| Sections de formulaire | `.card-header-tinted` (dégradé indigo/violet léger + bordure), `.form-section-icon` (badge dégradé indigo/violet) |
 | Surfaces | `.card`, `.card-hover` (ombre + léger soulèvement au survol), `.card-header`, `.card-content` |
 | Badges | `.badge-default/secondary/outline/success/warning/destructive`, `.badge-dot` (point de couleur) |
 | Accents de carte | `.accent-bar-default/success/warning/destructive` (bandeau dégradé en haut de carte, ex. cartes Contrat) |
-| Tables | `.table-wrap`, `.table` (en-tête collant flouté), `.table-row-clickable`, `.table-row-chevron`, `.table-empty-icon` |
+| Tables | `.table-wrap`, `.table` (en-tête collant teinté indigo/violet), `.table-row-clickable`, `.table-row-chevron`, `.table-empty-icon` |
 | Détail (modales) | `.detail-grid`, `.detail-label`, `.detail-value`, `.detail-section-title` |
 | Navigation | `.side-link/-active`, `.side-sublink/-active`, `.side-group-label`, `.side-toggle-icon` |
 | Alertes | `.alert-destructive`, `.alert-success` |
@@ -228,6 +260,14 @@ pour un rendu fluide.
 Toutes les icônes sont des SVG inline (traits `stroke="currentColor"`, `stroke-width="2"`),
 sans dépendance à une librairie d'icônes externe — cohérent avec l'esprit "shadcn/ui" du projet
 (copier/coller du SVG plutôt qu'un package supplémentaire).
+
+### Emails transactionnels
+`backend/src/services/email-template.js` fournit un gabarit HTML "email-safe" (tables, styles
+inline) repris de la même identité visuelle que l'application : bandeau dégradé indigo→violet
+avec le badge de marque "F", carte blanche à coins arrondis, bouton d'action au même dégradé
+que `.btn-primary`, tableau clé/valeur discret pour le détail d'un enregistrement, pied de page
+sobre. Utilisé pour la réinitialisation de mot de passe et toutes les notifications
+Demande/Changement (création et changement de statut).
 
 ---
 *Ce README est mis à jour à chaque nouvelle étape réalisée sur le projet.*

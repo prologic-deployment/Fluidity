@@ -32,9 +32,34 @@
     @apply border-border;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Scrollbar fine, teintée indigo/violet — cohérente avec la sidebar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(243 75% 75%), hsl(262 60% 65%));
+    border-radius: 999px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, hsl(243 75% 65%), hsl(262 60% 55%));
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(243 60% 78%) transparent;
   }
 }
 
@@ -56,6 +81,9 @@
   @keyframes scale-in {
     from { opacity: 0; transform: scale(0.97); }
     to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
   }
   .animate-fade-in-up {
     animation: fade-in-up 0.35s ease-out both;
@@ -99,6 +127,12 @@
   }
   .btn-sm {
     @apply h-8 rounded-md px-3 text-xs;
+  }
+  .btn-icon {
+    @apply btn h-9 w-9 shrink-0 p-0;
+  }
+  .btn-icon-sm {
+    @apply btn h-7 w-7 shrink-0 rounded-md p-0;
   }
 
   /* ---------- Form controls ---------- */
@@ -156,7 +190,7 @@
     @apply flex flex-col space-y-1 p-6;
   }
   .card-header-tinted {
-    @apply flex flex-col space-y-1 p-6 bg-gradient-to-br from-muted/60 to-transparent rounded-t-xl border-b border-border;
+    @apply flex flex-col space-y-1 p-6 bg-gradient-to-br from-primary/[0.06] via-violet-500/[0.04] to-transparent rounded-t-xl border-b border-border;
   }
   .card-title {
     @apply text-lg font-semibold leading-none tracking-tight;
@@ -227,7 +261,7 @@
     @apply w-full caption-bottom text-sm border-collapse;
   }
   .table thead {
-    @apply sticky top-0 z-[1] border-b border-border bg-muted/60 backdrop-blur;
+    @apply sticky top-0 z-[1] border-b border-border bg-gradient-to-r from-primary/[0.05] via-violet-500/[0.04] to-primary/[0.05] backdrop-blur;
   }
   .table th {
     @apply h-11 px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
@@ -248,7 +282,40 @@
     @apply mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground;
   }
 
-  /* ---------- Detail view (modals) ---------- */
+  /* ---------- Toolbar & filtres ---------- */
+  .toolbar {
+    @apply flex flex-col sm:flex-row sm:items-center gap-3 mb-5;
+  }
+  .search-field {
+    @apply relative flex-1 min-w-[220px];
+  }
+  .search-icon {
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground;
+  }
+  .search-input {
+    @apply input pl-9 pr-8;
+  }
+  .search-clear {
+    @apply absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full
+      text-muted-foreground transition-colors hover:bg-muted hover:text-foreground;
+  }
+  .filter-select {
+    @apply select w-auto min-w-[160px];
+  }
+  .filter-count-badge {
+    @apply inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold h-5 min-w-[20px] px-1.5;
+  }
+
+  /* ---------- Skeleton (chargement) ---------- */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-muted;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(90deg, transparent, hsl(var(--background) / 0.6), transparent);
+    animation: shimmer 1.6s infinite;
+  }
   .detail-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4;
   }

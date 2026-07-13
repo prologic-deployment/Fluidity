@@ -1,19 +1,69 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
     <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-      <div>
-        <h1 class="text-xl font-semibold tracking-tight">Contrats</h1>
-        <p class="text-sm text-muted-foreground">Contrats clients associés à ce tenant.</p>
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-900/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <path d="M14 2v6h6"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Contrats</h1>
+          <p class="text-sm text-muted-foreground">Contrats clients associés à ce tenant.</p>
+        </div>
       </div>
       <a *ngIf="auth.isAdmin()" routerLink="/contrats/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
-        + Ouvrir un contrat
+        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Ouvrir un contrat
       </a>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-6 py-8">
     <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
-    <p *ngIf="loading" class="text-sm text-muted-foreground">Chargement des contrats...</p>
+
+    <!-- Barre de filtres -->
+    <div class="toolbar">
+      <div class="search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher une référence, un client, un intitulé..." class="search-input" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <select [(ngModel)]="statutFiltre" class="filter-select">
+        <option value="">Tous les statuts</option>
+        <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
+      </select>
+
+      <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
+        <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+        Réinitialiser
+      </button>
+    </div>
+
+    <!-- Squelette de chargement -->
+    <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div *ngFor="let i of [1,2,3]" class="card overflow-hidden">
+        <div class="skeleton h-1 w-full rounded-none"></div>
+        <div class="card-content pt-5 space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="skeleton h-10 w-10 rounded-lg"></div>
+            <div class="space-y-1.5 flex-1">
+              <div class="skeleton h-3 w-20"></div>
+              <div class="skeleton h-4 w-32"></div>
+            </div>
+          </div>
+          <div class="skeleton h-16 w-full rounded-lg"></div>
+        </div>
+      </div>
+    </div>
 
     <div *ngIf="!loading && contrats.length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
@@ -30,8 +80,21 @@
       </div>
     </div>
 
-    <div *ngIf="!loading && contrats.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <div *ngFor="let c of contrats; let i = index"
+    <div *ngIf="!loading && contrats.length > 0 && filteredContrats().length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        <div class="table-empty-icon">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+        </div>
+        Aucun résultat pour ces filtres.
+        <br /><button (click)="resetFilters()" class="btn-link">Réinitialiser les filtres</button>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredContrats().length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div *ngFor="let c of filteredContrats(); let i = index"
         (click)="viewDetails(c)"
         class="card card-hover cursor-pointer overflow-hidden animate-fade-in-up"
         [class.stagger-1]="i % 4 === 0" [class.stagger-2]="i % 4 === 1"
@@ -86,6 +149,10 @@
         </div>
       </div>
     </div>
+
+    <p *ngIf="!loading && contrats.length > 0" class="mt-4 text-xs text-muted-foreground">
+      {{ filteredContrats().length }} sur {{ contrats.length }} contrat(s) affiché(s)
+    </p>
   </main>
 </div>
 

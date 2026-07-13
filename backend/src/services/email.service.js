@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { Utilisateur } = require('../models/user.model');
+const { renderEmailLayout, FRONTEND_URL } = require('./email-template');
 let transporter = null;
 
 /**
@@ -42,17 +43,19 @@ const sendEmail = async (to, subject, html) => {
  * Lien : http://localhost:4200/reset-password?token=...
  */
 const sendResetPasswordEmail = async (email, token) => {
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
-  const link = `${frontendUrl}/reset-password?token=${token}`;
-  const html = `
-    <div>
-      <h2>Réinitialisation de votre mot de passe Fluidity</h2>
-      <p>Bonjour,</p>
-      <p>Vous avez demandé la réinitialisation de votre mot de passe.</p>
-      <p>Cliquez sur le lien ci-dessous pour en définir un nouveau (valable 1 heure) :</p>
-      <p><a href="${link}">${link}</a></p>
-      <p>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
-    </div>`;
+  const link = `${FRONTEND_URL()}/reset-password?token=${token}`;
+  const html = renderEmailLayout({
+    preheader: 'Réinitialisez votre mot de passe Fluidity (valable 1 heure).',
+    heading: 'Réinitialisation de votre mot de passe',
+    bodyHtml: `
+      <p style="margin: 0 0 10px;">Bonjour,</p>
+      <p style="margin: 0 0 10px;">Vous avez demandé la réinitialisation de votre mot de passe Fluidity.</p>
+      <p style="margin: 0;">Cliquez sur le bouton ci-dessous pour en définir un nouveau. Ce lien est valable
+      <strong>1 heure</strong>. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email
+      en toute sécurité.</p>`,
+    ctaLabel: 'Réinitialiser mon mot de passe',
+    ctaUrl: link,
+  });
   await sendEmail(email, 'Réinitialisation de votre mot de passe Fluidity', html);
 };
 
