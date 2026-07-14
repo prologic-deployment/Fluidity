@@ -33,11 +33,6 @@
         <div class="card-content pt-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="field-label">Identifiant client</label>
-              <input formControlName="clientId" type="text" class="input" />
-              <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="field-error">Champ requis.</p>
-            </div>
-            <div>
               <label class="field-label">Objet du changement</label>
               <input formControlName="objetChangement" type="text" class="input" placeholder="ex: Augmentation RAM serveur DB-PROD-02" />
               <p *ngIf="form.get('objetChangement')?.invalid && form.get('objetChangement')?.touched" class="field-error">Champ requis.</p>
@@ -83,13 +78,13 @@
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>
-                <option *ngFor="let ct of contratsDisponibles()" [value]="ct.reference">
+                <option *ngFor="let ct of contrats" [value]="ct.reference">
                   {{ ct.reference }} — {{ ct.intitule }}
                 </option>
               </select>
               <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Champ requis.</p>
-              <p *ngIf="contratsDisponibles().length === 0" class="mt-1 text-xs text-muted-foreground">
-                Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour ce client.
+              <p *ngIf="contrats.length === 0" class="mt-1 text-xs text-muted-foreground">
+                Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour votre compte.
               </p>
             </div>
           </div>

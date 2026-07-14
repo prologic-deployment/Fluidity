@@ -10,7 +10,6 @@ const optionalNumber = z.preprocess(
 );
 
 const createChangementSchema = z.object({
-  clientId: z.string().min(1, 'clientId requis'),
   objetChangement: z.string().min(1, 'Objet du changement requis'),
   descriptionDetaillee: z.string().min(1, 'Description détaillée requise'),
   serviceEnvironnement: z.string().min(1, 'Service / Environnement requis'),

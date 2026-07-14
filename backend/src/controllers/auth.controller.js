@@ -53,7 +53,7 @@ const login = async (req, res) => {
     const secret = process.env.JWT_SECRET;
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign(
-      { tenantId: user.tenantId, userId: user._id, role: user.role },
+      { tenantId: user.tenantId, userId: user._id, role: user.role, email: user.email },
       secret,
       { expiresIn }
     );
@@ -63,6 +63,7 @@ const login = async (req, res) => {
       userId: user._id,
       tenantId: user.tenantId,
       role: user.role,
+      email: user.email,
     });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

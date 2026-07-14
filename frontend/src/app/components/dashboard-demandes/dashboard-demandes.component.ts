@@ -41,7 +41,7 @@ export class DashboardDemandesComponent implements OnInit {
 
   constructor(
     private demandeService: DemandeService,
-    private auth: AuthService,
+    public auth: AuthService,
     private router: Router,
     private confirmDialog: ConfirmDialogService
   ) {}
@@ -72,7 +72,7 @@ export class DashboardDemandesComponent implements OnInit {
       const matchTerm =
         !term ||
         d.objet.toLowerCase().includes(term) ||
-        d.clientId.toLowerCase().includes(term) ||
+        d.clientId?.toLowerCase().includes(term) ||
         d.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
       const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
@@ -98,6 +98,11 @@ export class DashboardDemandesComponent implements OnInit {
   closeDetails(): void {
     this.selected = null;
     this.transitionError = null;
+  }
+
+  /** Seul le client propriétaire de la demande peut la supprimer (ADMIN excepté). */
+  isOwner(demande: Demande): boolean {
+    return this.auth.isClient() && demande.clientId === this.auth.getEmail();
   }
 
   async deleteDemande(id: string | undefined): Promise<void> {

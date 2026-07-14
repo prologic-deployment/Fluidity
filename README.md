@@ -206,6 +206,30 @@ Full-Stack Software Architect") :
   sidebar ; en-têtes de sections de formulaire et en-tête collant des tableaux légèrement
   teintés indigo/violet au lieu d'un gris neutre.
 
+### Étape 8 — Demandes/Changements réservés au client propriétaire + pages Connexion/Réinitialisation repensées
+- **Propriété stricte** : seul un compte de rôle `CLIENT` peut désormais créer une Demande ou un
+  Changement (`requireRole('CLIENT')` sur les routes `POST`), et seul le client propriétaire de
+  l'enregistrement (`clientId` = son propre email) peut le supprimer — un `ADMIN` garde un droit
+  de suppression pour la supervision, les autres rôles (SUPPORT_N1, RESPONSABLE_TECHNIQUE,
+  COMMERCIAL, EXPLOITATION) n'ont ni l'un ni l'autre.
+- **`clientId` n'est plus saisi à la main** : le champ "Identifiant client" est retiré des
+  formulaires. Le JWT embarque désormais l'email de l'utilisateur (`req.userEmail` côté
+  backend) et `clientId` en est dérivé automatiquement à la création — impossible pour un
+  client de soumettre une demande au nom d'un autre. Les listes déroulantes "Contrat" des
+  formulaires n'affichent plus que les contrats du client connecté.
+- **Frontend** : les boutons "Nouvelle demande" / "Nouveau changement" ne s'affichent plus que
+  pour les comptes CLIENT ; les actions de suppression (icône corbeille dans les tableaux,
+  bouton dans la modale de détail) ne s'affichent que si l'utilisateur est le propriétaire de
+  l'enregistrement.
+- **Pages Connexion et Réinitialisation du mot de passe repensées** en écran scindé deux
+  colonnes, à l'image des outils SaaS modernes : à gauche (visible à partir de `lg:`), un
+  panneau reprenant le dégradé sombre indigo/violet de la sidebar (halos flous, grille de
+  points en filigrane), avec le message de marque et — sur l'écran de connexion — trois
+  arguments clés (multi-tenant, workflow par rôle, contrats centralisés) ; à droite, le
+  formulaire avec champs à icône (`.field-group` / `.field-icon` / `.input-with-icon`) et
+  bouton avec indicateur de chargement animé. Sur mobile, le panneau de gauche est masqué au
+  profit d'un petit bandeau de marque au-dessus du formulaire.
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en

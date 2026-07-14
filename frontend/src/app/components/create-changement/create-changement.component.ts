@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
+import { AuthService } from '../../services/auth.service';
 import {
   CATEGORIES_CHANGEMENT,
   SOUS_CATEGORIES_CHANGEMENT,
@@ -33,12 +34,12 @@ export class CreateChangementComponent implements OnInit {
     private fb: FormBuilder,
     private changementService: ChangementService,
     private contratService: ContratService,
+    private auth: AuthService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
-      clientId: ['', Validators.required],
       objetChangement: ['', Validators.required],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
       serviceEnvironnement: ['', Validators.required],
@@ -74,18 +75,11 @@ export class CreateChangementComponent implements OnInit {
       }),
     });
 
-    this.contratService.getAll().subscribe({
+    // Contrats du client connecté uniquement (un changement est toujours créé en son nom)
+    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
-  }
-
-  /** Contrats du client actuellement saisi (ou l'ensemble des contrats du tenant à défaut). */
-  contratsDisponibles(): Contrat[] {
-    const clientId = this.form?.get('clientId')?.value;
-    if (!clientId) return this.contrats;
-    const forClient = this.contrats.filter((c) => c.clientId === clientId);
-    return forClient.length ? forClient : this.contrats;
   }
 
   onCategorieChange(): void {
@@ -122,8 +116,8 @@ export class CreateChangementComponent implements OnInit {
     if (Object.keys(reseau).length) specifications.reseau = reseau;
     if (Object.keys(backup).length) specifications.backup = backup;
 
+    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Changement = {
-      clientId: raw.clientId,
       objetChangement: raw.objetChangement,
       descriptionDetaillee: raw.descriptionDetaillee,
       serviceEnvironnement: raw.serviceEnvironnement,

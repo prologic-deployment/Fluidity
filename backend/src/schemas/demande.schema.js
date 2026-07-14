@@ -4,10 +4,10 @@ const prioriteEnum = z.enum(['Standard', 'Élevée', 'Urgente']);
 
 /**
  * Schéma de validation (Zod) pour la création d'une demande.
- * Note : tenantId est injecté côté contrôleur, jamais fourni par le client.
+ * Note : tenantId et clientId sont injectés côté contrôleur à partir du
+ * compte authentifié, jamais fournis par le client.
  */
 const createDemandeSchema = z.object({
-  clientId: z.string().min(1, 'clientId requis'),
   objet: z.string().min(1, 'Objet requis'),
   typeDemande: z.string().min(1, 'Type de demande requis'),
   serviceEnvironnement: z.string().min(1, 'Service / Environnement requis'),

@@ -44,7 +44,7 @@ export class DashboardChangementsComponent implements OnInit {
 
   constructor(
     private changementService: ChangementService,
-    private auth: AuthService,
+    public auth: AuthService,
     private router: Router,
     private confirmDialog: ConfirmDialogService
   ) {}
@@ -74,7 +74,7 @@ export class DashboardChangementsComponent implements OnInit {
       const matchTerm =
         !term ||
         c.objetChangement.toLowerCase().includes(term) ||
-        c.clientId.toLowerCase().includes(term) ||
+        c.clientId?.toLowerCase().includes(term) ||
         c.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
@@ -105,6 +105,11 @@ export class DashboardChangementsComponent implements OnInit {
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);
+  }
+
+  /** Seul le client propriétaire du changement peut le supprimer (ADMIN excepté). */
+  isOwner(changement: Changement): boolean {
+    return this.auth.isClient() && changement.clientId === this.auth.getEmail();
   }
 
   async deleteChangement(id: string | undefined): Promise<void> {

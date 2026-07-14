@@ -16,7 +16,7 @@
           <p class="text-sm text-muted-foreground">Suivi des demandes de changement soumises pour validation.</p>
         </div>
       </div>
-      <a routerLink="/changements/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
+      <a *ngIf="auth.isClient()" routerLink="/changements/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
         Nouveau changement
       </a>
@@ -123,7 +123,7 @@
             <td class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
+                <button *ngIf="isOwner(c)" (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -227,7 +227,7 @@
       </div>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border">
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isOwner(c)">
       <button (click)="deleteChangement(c._id)" class="btn-destructive">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6"></polyline>

@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
 import { ContratService } from '../../services/contrat.service';
+import { AuthService } from '../../services/auth.service';
 import {
   PRIORITES,
   CATEGORIES,
@@ -35,12 +36,12 @@ export class CreateDemandeComponent implements OnInit {
     private fb: FormBuilder,
     private demandeService: DemandeService,
     private contratService: ContratService,
+    private auth: AuthService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.form = this.fb.group({
-      clientId: ['', Validators.required],
       objet: ['', Validators.required],
       typeDemande: ['', Validators.required],
       serviceEnvironnement: ['', Validators.required],
@@ -54,18 +55,11 @@ export class CreateDemandeComponent implements OnInit {
       piecesJointes: [''], // saisie libre séparée par des virgules
     });
 
-    this.contratService.getAll().subscribe({
+    // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
+    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
-  }
-
-  /** Contrats du client actuellement saisi (ou l'ensemble des contrats du tenant à défaut). */
-  contratsDisponibles(): Contrat[] {
-    const clientId = this.form?.get('clientId')?.value;
-    if (!clientId) return this.contrats;
-    const forClient = this.contrats.filter((c) => c.clientId === clientId);
-    return forClient.length ? forClient : this.contrats;
   }
 
   onCategorieChange(): void {
@@ -80,8 +74,8 @@ export class CreateDemandeComponent implements OnInit {
       return;
     }
     const raw = this.form.value;
+    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Demande = {
-      clientId: raw.clientId,
       objet: raw.objet,
       typeDemande: raw.typeDemande,
       serviceEnvironnement: raw.serviceEnvironnement,

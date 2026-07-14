@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authMiddleware } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireRole } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createChangement,
@@ -16,11 +16,13 @@ const router = Router();
 // Toutes les routes de changements nécessitent une authentification
 router.use(authMiddleware);
 
-router.post('/', validate(createChangementSchema), createChangement);
+// Création réservée aux CLIENT (chaque client soumet son propre changement)
+router.post('/', requireRole('CLIENT'), validate(createChangementSchema), createChangement);
 router.get('/', getAllChangements);
 router.get('/:id', getChangementById);
 router.patch('/:id/statut', validate(changerStatutChangementSchema), changerStatutChangement);
 router.patch('/:id', validate(updateChangementSchema), updateChangement);
+// Suppression : contrôle de propriété (client propriétaire ou ADMIN) fait dans le contrôleur
 router.delete('/:id', deleteChangement);
 
 module.exports = router;

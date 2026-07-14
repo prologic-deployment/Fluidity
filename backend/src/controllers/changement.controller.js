@@ -5,6 +5,8 @@ const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require(
 
 /**
  * Création d'un changement.
+ * - Réservé au rôle CLIENT (seul un client peut soumettre son propre changement)
+ * - clientId toujours dérivé du compte authentifié (jamais fourni par le body)
  * - tenantId injecté depuis le JWT (req.tenantId)
  * - statut initialisé à "Soumis"
  * - Email asynchrone au Responsable Technique
@@ -15,9 +17,14 @@ const createChangement = async (req, res) => {
       res.status(401).json({ message: 'Tenant non identifié' });
       return;
     }
+    if (req.userRole !== 'CLIENT') {
+      res.status(403).json({ message: 'Seul un client peut créer un changement.' });
+      return;
+    }
 
     const changement = new Changement({
       ...req.body,
+      clientId: req.userEmail,
       tenantId: req.tenantId,
       statut: 'Soumis',
     });
@@ -99,17 +106,24 @@ const updateChangement = async (req, res) => {
 
 /**
  * Suppression d'un changement (isolé par tenant).
+ * Réservée au client propriétaire du changement (clientId = son email),
+ * ou à un ADMIN pour la supervision.
  */
 const deleteChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOneAndDelete({
-      _id: req.params.id,
-      tenantId: req.tenantId,
-    });
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
+
+    const estProprietaire = req.userRole === 'CLIENT' && changement.clientId === req.userEmail;
+    if (!estProprietaire && req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Seul le client propriétaire de ce changement peut le supprimer.' });
+      return;
+    }
+
+    await changement.deleteOne();
     res.status(200).json({ message: 'Changement supprimé avec succès' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

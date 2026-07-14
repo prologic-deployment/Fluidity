@@ -5,6 +5,8 @@ const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('..
 
 /**
  * Création d'une demande.
+ * - Réservé au rôle CLIENT (seul un client peut soumettre sa propre demande)
+ * - clientId toujours dérivé du compte authentifié (jamais fourni par le body)
  * - tenantId injecté depuis le JWT (req.tenantId)
  * - statut initialisé à "Ouverte"
  * - Email asynchrone au Support N1
@@ -15,9 +17,14 @@ const createDemande = async (req, res) => {
       res.status(401).json({ message: 'Tenant non identifié' });
       return;
     }
+    if (req.userRole !== 'CLIENT') {
+      res.status(403).json({ message: 'Seul un client peut créer une demande.' });
+      return;
+    }
 
     const demande = new Demande({
       ...req.body,
+      clientId: req.userEmail,
       tenantId: req.tenantId,
       statut: 'Ouverte',
     });
@@ -97,17 +104,24 @@ const updateDemande = async (req, res) => {
 
 /**
  * Suppression d'une demande (isolée par tenant).
+ * Réservée au client propriétaire de la demande (clientId = son email),
+ * ou à un ADMIN pour la supervision.
  */
 const deleteDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOneAndDelete({
-      _id: req.params.id,
-      tenantId: req.tenantId,
-    });
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
+
+    const estProprietaire = req.userRole === 'CLIENT' && demande.clientId === req.userEmail;
+    if (!estProprietaire && req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Seul le client propriétaire de cette demande peut la supprimer.' });
+      return;
+    }
+
+    await demande.deleteOne();
     res.status(200).json({ message: 'Demande supprimée avec succès' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

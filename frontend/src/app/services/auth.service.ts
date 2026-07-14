@@ -8,6 +8,7 @@ export interface AuthResponse {
   userId: string;
   tenantId: string;
   role: string;
+  email: string;
 }
 
 export interface LoginPayload {
@@ -37,7 +38,7 @@ export class AuthService {
     localStorage.setItem('fluidity_token', res.token);
     localStorage.setItem(
       'fluidity_user',
-      JSON.stringify({ userId: res.userId, tenantId: res.tenantId, role: res.role })
+      JSON.stringify({ userId: res.userId, tenantId: res.tenantId, role: res.role, email: res.email })
     );
   }
 
@@ -51,7 +52,7 @@ export class AuthService {
   }
 
   /** Utilisateur courant (décodé depuis la session locale), ou null. */
-  getUser(): { userId: string; tenantId: string; role: string } | null {
+  getUser(): { userId: string; tenantId: string; role: string; email: string } | null {
     const raw = localStorage.getItem('fluidity_user');
     return raw ? JSON.parse(raw) : null;
   }
@@ -60,7 +61,15 @@ export class AuthService {
     return this.getUser()?.role ?? null;
   }
 
+  getEmail(): string | null {
+    return this.getUser()?.email ?? null;
+  }
+
   isAdmin(): boolean {
     return this.getRole() === 'ADMIN';
+  }
+
+  isClient(): boolean {
+    return this.getRole() === 'CLIENT';
   }
 }

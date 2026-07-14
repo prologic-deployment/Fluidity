@@ -13,7 +13,7 @@ export type StatutDemande =
 export interface Demande {
   _id?: string;
   tenantId?: string;
-  clientId: string;
+  clientId?: string; // dérivé côté serveur du compte authentifié à la création
   objet: string;
   typeDemande: string;
   serviceEnvironnement: string;

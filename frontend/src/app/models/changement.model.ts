@@ -41,7 +41,7 @@ export interface Specifications {
 export interface Changement {
   _id?: string;
   tenantId?: string;
-  clientId: string;
+  clientId?: string; // dérivé côté serveur du compte authentifié à la création
   objetChangement: string;
   descriptionDetaillee: string;
   serviceEnvironnement: string;
