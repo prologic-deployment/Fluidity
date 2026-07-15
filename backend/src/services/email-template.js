@@ -6,11 +6,28 @@
  * principaux clients de messagerie.
  */
 
-const BRAND_GRADIENT = 'linear-gradient(135deg, #6366f1 0%, #7c3aed 100%)';
-const TEXT_COLOR = '#1e293b';
-const MUTED_COLOR = '#64748b';
-const BORDER_COLOR = '#e2e8f0';
-const BG_COLOR = '#f8fafc';
+/**
+ * Palette alignée pixel pour pixel sur les variables CSS de l'application
+ * (frontend/src/styles.css, section :root). Convertie une fois en hex ici
+ * pour un usage dans du HTML email (styles inline, pas de var() CSS).
+ */
+const COLORS = {
+  primary: '#4f46e5', // hsl(var(--primary))      — indigo-600
+  violet: '#7c3aed', // fin de dégradé (boutons/sidebar) — violet-600
+  text: '#0f172a', // hsl(var(--foreground))
+  muted: '#64748b', // hsl(var(--muted-foreground))
+  border: '#e2e8f0', // hsl(var(--border))
+  bg: '#f8fafc', // proche de hsl(var(--muted)), fond de page email
+  destructive: '#ef4444', // hsl(var(--destructive))
+  warning: '#d97706', // hsl(var(--warning))
+  success: '#15803d', // hsl(var(--success))
+};
+
+const BRAND_GRADIENT = `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.violet} 100%)`;
+const TEXT_COLOR = COLORS.text;
+const MUTED_COLOR = COLORS.muted;
+const BORDER_COLOR = COLORS.border;
+const BG_COLOR = COLORS.bg;
 
 const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:4200';
 
@@ -103,7 +120,7 @@ function renderEmailLayout({ preheader = '', heading, bodyHtml, ctaLabel, ctaUrl
 }
 
 /** Petit badge coloré (statut, priorité, type...) pour usage dans un email. */
-function renderBadge(text, color = '#6366f1') {
+function renderBadge(text, color = COLORS.primary) {
   return `<span style="display:inline-block; padding: 3px 10px; border-radius:999px; font-size:12px; font-weight:600; color:${color}; background:${color}1a;">${text}</span>`;
 }
 
@@ -122,4 +139,4 @@ function renderDetailsTable(rows) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px;">${items}</table>`;
 }
 
-module.exports = { renderEmailLayout, renderBadge, renderDetailsTable, FRONTEND_URL };
+module.exports = { renderEmailLayout, renderBadge, renderDetailsTable, FRONTEND_URL, COLORS };

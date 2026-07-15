@@ -170,7 +170,7 @@
     @apply relative;
   }
   .field-icon {
-    @apply pointer-events-none absolute left-3 top-[34px] h-4 w-4 text-muted-foreground;
+    @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground;
   }
   .input-with-icon {
     @apply input pl-9;

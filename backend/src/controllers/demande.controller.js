@@ -1,6 +1,6 @@
 const { Demande } = require('../models/demande.model');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS } = require('../services/email-template');
 const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
@@ -35,7 +35,7 @@ const createDemande = async (req, res) => {
       heading: 'Nouvelle demande reçue',
       bodyHtml: `
         <p style="margin: 0 0 6px;">Une nouvelle demande de service vient d'être soumise${' '}
-        ${renderBadge(demande.prioriteSouhaitee, demande.prioriteSouhaitee === 'Urgente' ? '#e11d48' : demande.prioriteSouhaitee === 'Élevée' ? '#d97706' : '#6366f1')}.</p>
+        ${renderBadge(demande.prioriteSouhaitee, demande.prioriteSouhaitee === 'Urgente' ? COLORS.destructive : demande.prioriteSouhaitee === 'Élevée' ? COLORS.warning : COLORS.primary)}.</p>
         ${renderDetailsTable([
           { label: 'Objet', value: demande.objet },
           { label: 'Type', value: demande.typeDemande },
@@ -163,9 +163,9 @@ const changerStatutDemande = async (req, res) => {
       bodyHtml: `
         <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a changé de statut :</p>
         <p style="margin: 0 0 12px;">
-          ${renderBadge(statutActuel, '#64748b')}
+          ${renderBadge(statutActuel, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
-          ${renderBadge(nouveauStatut, '#6366f1')}
+          ${renderBadge(nouveauStatut, COLORS.primary)}
         </p>
         <p style="margin: 0; font-size: 13px; color: #64748b;">Transition effectuée par le rôle <strong>${req.userRole}</strong>.</p>`,
       ctaLabel: 'Voir les demandes',

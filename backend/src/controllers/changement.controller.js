@@ -1,6 +1,6 @@
 const { Changement } = require('../models/changement.model');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
@@ -35,7 +35,7 @@ const createChangement = async (req, res) => {
       heading: 'Nouveau changement soumis',
       bodyHtml: `
         <p style="margin: 0 0 6px;">Un nouveau changement d'infrastructure vient d'être soumis${' '}
-        ${renderBadge(changement.typeChangement, changement.typeChangement === 'Urgent' ? '#e11d48' : changement.typeChangement === 'Majeur' ? '#d97706' : '#6366f1')}.</p>
+        ${renderBadge(changement.typeChangement, changement.typeChangement === 'Urgent' ? COLORS.destructive : changement.typeChangement === 'Majeur' ? COLORS.warning : COLORS.primary)}.</p>
         ${renderDetailsTable([
           { label: 'Objet', value: changement.objetChangement },
           { label: 'Catégorie', value: `${changement.categorie} / ${changement.sousCategorie}` },
@@ -164,9 +164,9 @@ const changerStatutChangement = async (req, res) => {
       bodyHtml: `
         <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a changé de statut :</p>
         <p style="margin: 0 0 12px;">
-          ${renderBadge(statutActuel, '#64748b')}
+          ${renderBadge(statutActuel, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
-          ${renderBadge(nouveauStatut, '#6366f1')}
+          ${renderBadge(nouveauStatut, COLORS.primary)}
         </p>
         <p style="margin: 0; font-size: 13px; color: #64748b;">Transition effectuée par le rôle <strong>${req.userRole}</strong>.</p>`,
       ctaLabel: 'Voir les changements',

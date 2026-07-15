@@ -230,6 +230,24 @@ Full-Stack Software Architect") :
   bouton avec indicateur de chargement animé. Sur mobile, le panneau de gauche est masqué au
   profit d'un petit bandeau de marque au-dessus du formulaire.
 
+### Étape 9 — Correctif icônes des champs (Connexion/Réinitialisation) + palette des emails alignée pixel pour pixel sur l'app
+- **Correctif `.field-icon`** : l'icône à l'intérieur des champs email/mot de passe était mal
+  positionnée (décalage fixe `top-[34px]` hérité d'une mise en page où le libellé se trouvait
+  à l'intérieur du même conteneur relatif ; ce n'est pas le cas sur les pages Connexion/
+  Réinitialisation, où `.field-group` n'entoure que l'icône et le champ). Remplacé par un
+  centrage vertical relatif (`top-1/2 -translate-y-1/2`), identique à celui déjà utilisé pour
+  l'icône de recherche des tableaux — l'icône est désormais correctement centrée dans le champ
+  quelle que soit la structure du formulaire.
+- **Couleurs des emails alignées sur l'app** : `email-template.js` exporte désormais un objet
+  `COLORS` dont chaque valeur est la conversion hexadécimale exacte de la variable CSS
+  correspondante dans `styles.css` (`--primary`, `--foreground`, `--muted-foreground`,
+  `--border`, `--destructive`, `--warning`, `--success`) plutôt que des teintes approximatives
+  choisies à la main. Le dégradé de marque des emails utilise maintenant exactement
+  `primary → violet-600`, comme `.btn-primary` et les badges d'en-tête de page. Les contrôleurs
+  Demande et Changement consomment ce même objet `COLORS` pour les badges de priorité/type et
+  les flèches de transition de statut, au lieu de coder des couleurs en dur — une seule source
+  de vérité pour la palette, partagée entre l'interface et les emails.
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
