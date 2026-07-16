@@ -1,6 +1,6 @@
 const { Changement } = require('../models/changement.model');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
@@ -32,6 +32,7 @@ const createChangement = async (req, res) => {
 
     const html = renderEmailLayout({
       preheader: `Nouveau changement : ${changement.objetChangement}`,
+      iconSvg: ICONS.refresh,
       heading: 'Nouveau changement soumis',
       bodyHtml: `
         <p style="margin: 0 0 6px;">Un nouveau changement d'infrastructure vient d'être soumis${' '}
@@ -160,6 +161,7 @@ const changerStatutChangement = async (req, res) => {
 
     const html = renderEmailLayout({
       preheader: `${changement.objetChangement} : ${statutActuel} → ${nouveauStatut}`,
+      iconSvg: ICONS.exchange,
       heading: 'Statut de changement mis à jour',
       bodyHtml: `
         <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a changé de statut :</p>

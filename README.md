@@ -248,6 +248,29 @@ Full-Stack Software Architect") :
   les flèches de transition de statut, au lieu de coder des couleurs en dur — une seule source
   de vérité pour la palette, partagée entre l'interface et les emails.
 
+### Étape 10 — Refonte complète des emails : design moderne + support du mode clair/sombre
+- **Structure repensée** : bandeau de marque en dégradé indigo→violet surmonté d'un badge
+  circulaire "hero" (icône blanche sur fond dégradé, légèrement en surplomb entre le bandeau et
+  la carte — même codes visuels que les badges d'icône de l'app), titre centré, corps de texte
+  aligné à gauche pour la lisibilité, bouton d'action et pied de page. Une icône dédiée par type
+  d'email : cadenas (réinitialisation de mot de passe), document validé (nouvelle demande),
+  boucle de synchronisation (nouveau changement), double flèche d'échange (changement de statut).
+- **Badges à point de couleur** : `renderBadge` reproduit désormais le `.badge-dot` de l'app
+  (petit point plein suivi du texte) au lieu d'un simple texte teinté.
+- **Tableau de détail en encart carte** : `renderDetailsTable` n'est plus un tableau nu mais un
+  encart arrondi à bordure, avec séparateurs entre lignes — même esprit que `.detail-grid` dans
+  l'application.
+- **Mode clair/sombre** : un bloc `<style>` dans le `<head>` définit une palette sombre
+  (fond proche de celui de la sidebar `#0b0a1f`, carte `#151330`, texte clair, bordures
+  translucides) appliquée via `@media (prefers-color-scheme: dark)` sur des classes `email-*`
+  posées sur chaque élément concerné (fond de page, carte, texte, texte atténué, bordures,
+  encarts) — avec un repli additionnel `[data-ogsc]` pour les clients Outlook.com qui
+  détectent le mode sombre autrement. Les clients qui ignorent `<style>` affichent simplement
+  la version claire (dégradation progressive), sans jamais casser la mise en page.
+- Vérifié par un test structurel (comptage des balises `<table>`/`<tr>` ouvertes/fermées) sur
+  les 4 emails du portail (réinitialisation, nouvelle Demande, nouveau Changement, changement
+  de statut), et par un chargement réel de `app.js`.
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
@@ -306,10 +329,13 @@ sans dépendance à une librairie d'icônes externe — cohérent avec l'esprit 
 ### Emails transactionnels
 `backend/src/services/email-template.js` fournit un gabarit HTML "email-safe" (tables, styles
 inline) repris de la même identité visuelle que l'application : bandeau dégradé indigo→violet
-avec le badge de marque "F", carte blanche à coins arrondis, bouton d'action au même dégradé
-que `.btn-primary`, tableau clé/valeur discret pour le détail d'un enregistrement, pied de page
-sobre. Utilisé pour la réinitialisation de mot de passe et toutes les notifications
-Demande/Changement (création et changement de statut).
+avec badge de marque "F", badge circulaire "hero" à icône selon le type d'email, carte à coins
+arrondis, badges à point de couleur (`renderBadge`), encart de détail en carte
+(`renderDetailsTable`), bouton d'action au même dégradé que `.btn-primary`, pied de page sobre.
+**Mode clair/sombre** pris en charge nativement via `@media (prefers-color-scheme: dark)` :
+la palette sombre reprend les couleurs de la sidebar (fond `#0b0a1f`, carte `#151330`). Utilisé
+pour la réinitialisation de mot de passe et toutes les notifications Demande/Changement
+(création et changement de statut).
 
 ---
 *Ce README est mis à jour à chaque nouvelle étape réalisée sur le projet.*
