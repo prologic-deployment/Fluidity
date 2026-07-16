@@ -46,7 +46,7 @@ const sendResetPasswordEmail = async (email, token) => {
   const link = `${FRONTEND_URL()}/reset-password?token=${token}`;
   const html = renderEmailLayout({
     preheader: 'Réinitialisez votre mot de passe Fluidity (valable 1 heure).',
-    iconSvg: ICONS.lock,
+    icon: ICONS.lock,
     heading: 'Réinitialisation de votre mot de passe',
     bodyHtml: `
       <p style="margin: 0 0 10px;">Bonjour,</p>

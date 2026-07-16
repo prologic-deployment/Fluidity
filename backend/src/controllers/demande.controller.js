@@ -32,7 +32,7 @@ const createDemande = async (req, res) => {
 
     const html = renderEmailLayout({
       preheader: `Nouvelle demande : ${demande.objet}`,
-      iconSvg: ICONS.fileCheck,
+      icon: ICONS.fileCheck,
       heading: 'Nouvelle demande reçue',
       bodyHtml: `
         <p style="margin: 0 0 6px;">Une nouvelle demande de service vient d'être soumise${' '}
@@ -160,7 +160,7 @@ const changerStatutDemande = async (req, res) => {
     // Notification asynchrone (non bloquante) du changement de statut
     const html = renderEmailLayout({
       preheader: `${demande.objet} : ${statutActuel} → ${nouveauStatut}`,
-      iconSvg: ICONS.exchange,
+      icon: ICONS.exchange,
       heading: 'Statut de demande mis à jour',
       bodyHtml: `
         <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a changé de statut :</p>

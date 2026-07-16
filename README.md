@@ -271,6 +271,29 @@ Full-Stack Software Architect") :
   les 4 emails du portail (réinitialisation, nouvelle Demande, nouveau Changement, changement
   de statut), et par un chargement réel de `app.js`.
 
+### Étape 11 — Correctif réel du rendu des emails (les icônes SVG et les dégradés ne s'affichaient pas)
+Les captures d'écran fournies (Outlook desktop et un client en mode sombre) ont révélé que la
+refonte de l'Étape 10 s'affichait mal en pratique, pour deux raisons précises :
+- **Les icônes SVG inline ne s'affichent pas dans la plupart des clients mail** (Outlook
+  desktop en particulier) : le badge circulaire restait vide. Remplacé par une simple **lettre
+  en gras** (police système, aucune dépendance à une police d'émoji ou au support SVG) — `R`
+  pour la réinitialisation, `D` pour une nouvelle demande, `C` pour un nouveau changement, `S`
+  pour un changement de statut.
+- **`background: linear-gradient(...)` sans repli** : les clients qui ne comprennent pas cette
+  déclaration (Outlook desktop notamment) l'ignorent et affichent un fond blanc/transparent —
+  ce qui rendait le texte blanc du bandeau et le bouton d'action invisibles. Corrigé en faisant
+  précéder **chaque** dégradé d'un `background-color` uni de repli (même couleur de départ) :
+  les clients sans support du dégradé affichent la couleur unie, ceux qui le supportent
+  affichent le dégradé.
+- **Contraste du mode sombre renforcé** : bordures et fond des encarts de détail trop peu
+  visibles sur fond sombre — opacité des bordures et arrière-plans `email-*` augmentée, et
+  l'opacité de fond des badges relevée pour rester lisible aussi bien en clair qu'en sombre.
+- Un commentaire conditionnel `<!--[if mso]>` a été ajouté en tête de document comme filet de
+  sécurité supplémentaire pour Outlook.
+- Vérifié par un test structurel étendu (balises équilibrées, absence de toute balise `<svg>`,
+  présence systématique d'un `background-color` avant chaque `linear-gradient`) sur les 4 types
+  d'email, et par un rendu HTML complet exporté pour inspection visuelle directe.
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
