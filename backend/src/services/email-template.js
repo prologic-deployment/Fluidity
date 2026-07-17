@@ -2,7 +2,8 @@
  * Gabarit d'email HTML partagé, aligné sur l'identité visuelle de
  * l'application (dégradé indigo → violet, badge "F", coins arrondis,
  * badges à point de couleur, tableau de détail façon "carte"). Écrit en
- * HTML "email-safe" avec deux contraintes strictes de compatibilité :
+ * HTML "email-safe" avec plusieurs contraintes de compatibilité, pour un
+ * rendu cohérent sur webmail, client de bureau ET mobile :
  *
  * 1. Aucun SVG. Beaucoup de clients mail (Outlook desktop en tête) ne
  *    rendent pas les SVG inline : ils affichent un cadre vide. Les
@@ -12,6 +13,13 @@
  *    `background-color` uni de repli. Les clients qui ignorent la
  *    propriété `background` (dégradé) affichent alors la couleur unie au
  *    lieu d'un fond blanc/transparent (texte blanc devenu invisible).
+ * 3. Mise en page "fluide/spongieuse" (fluid-hybrid) : le tableau
+ *    conteneur est en width="100%" avec un max-width en pixels — il se
+ *    comprime naturellement sur mobile. Un bloc <style> avec
+ *    `@media (max-width: 600px)` resserre les marges/tailles de police
+ *    (en `!important`, respecté par Apple Mail, Gmail, Outlook.com/mobile)
+ *    tandis qu'Outlook desktop (qui ignore les media queries) conserve
+ *    simplement la mise en page de bureau, déjà compacte (560px).
  *
  * Le mode sombre est pris en charge via `prefers-color-scheme`.
  */
@@ -91,9 +99,8 @@ function renderHeroIcon(letter) {
 
 /**
  * Enveloppe le contenu (déjà en HTML) dans le gabarit de marque Fluidity.
- * Prend en charge le mode sombre via `prefers-color-scheme` (classes
- * `email-*` surchargées dans le <style> pour les clients qui le lisent ;
- * dégrade proprement vers le mode clair sinon).
+ * Mise en page fluide-hybride : identique sur web, bureau et mobile, avec
+ * resserrement des marges/tailles de police sous 600px d'écran.
  *
  * @param {Object} options
  * @param {string} options.preheader - Texte d'aperçu (invisible, avant le corps)
@@ -114,6 +121,7 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
       <tr>
         <td align="center" style="border-radius: 8px; ${BRAND_BG_DECLARATION}">
           <a href="${ctaUrl}" target="_blank"
+            class="email-cta-btn"
             style="display:inline-block; padding: 12px 26px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700;
             color: #ffffff; text-decoration: none; border-radius: 8px;">
             ${ctaLabel} &rarr;
@@ -130,6 +138,8 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
 <meta name="supported-color-schemes" content="light dark" />
+<meta name="x-apple-disable-message-reformatting" />
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no" />
 <title>${heading}</title>
 <!--[if mso]>
 <style>
@@ -156,6 +166,18 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
   [data-ogsc] .email-text  { color: ${DARK.text} !important; }
   [data-ogsc] .email-muted { color: ${DARK.muted} !important; }
   [data-ogsc] .email-box-bg { background-color: ${DARK.boxBg} !important; }
+
+  /* ---- Mobile (Apple Mail iOS, Gmail app, Outlook.com/mobile) : resserre la mise en page ---- */
+  @media only screen and (max-width: 600px) {
+    .email-wrapper      { width: 100% !important; }
+    .email-band-pad      { padding: 18px 20px !important; }
+    .email-content-pad   { padding: 16px 20px 26px !important; }
+    .email-content-pad-noicon { padding: 26px 20px 26px !important; }
+    .email-footer-pad    { padding: 20px 10px 0 !important; }
+    .email-heading       { font-size: 17px !important; }
+    .email-detail-cell   { padding: 9px 12px !important; font-size: 12.5px !important; }
+    .email-cta-btn       { display:block !important; text-align:center !important; }
+  }
 </style>
 </head>
 <body class="email-bg" style="margin:0; padding:0; background-color:${COLORS.bg}; font-family: Arial, Helvetica, 'Segoe UI', sans-serif;">
@@ -166,11 +188,11 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-bg" style="background-color:${COLORS.bg}; padding: 40px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrapper" style="max-width: 560px;">
 
           <!-- Bandeau de marque -->
           <tr>
-            <td align="center" style="${BRAND_BG_DECLARATION} padding: 22px 32px; border-radius: 16px 16px 0 0;">
+            <td align="center" class="email-band-pad" style="${BRAND_BG_DECLARATION} padding: 22px 32px; border-radius: 16px 16px 0 0;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:34px; height:34px; background-color: rgba(255,255,255,0.18); border-radius: 9px; text-align:center; vertical-align:middle;">
@@ -191,8 +213,8 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
               ${heroIcon}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding: ${icon ? '16px 32px 30px' : '32px 32px 30px'}; text-align:${align};">
-                    <h1 class="email-text" style="margin:0 0 14px; font-family: Arial, Helvetica, sans-serif; font-size: 19px; font-weight:700; color:${COLORS.text};">${heading}</h1>
+                  <td class="${icon ? 'email-content-pad' : 'email-content-pad-noicon'}" style="padding: ${icon ? '16px 32px 30px' : '32px 32px 30px'}; text-align:${align};">
+                    <h1 class="email-text email-heading" style="margin:0 0 14px; font-family: Arial, Helvetica, sans-serif; font-size: 19px; font-weight:700; color:${COLORS.text};">${heading}</h1>
                     <div class="email-text" style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.65; color:${COLORS.text}; text-align:left;">
                       ${bodyHtml}
                     </div>
@@ -205,7 +227,7 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
 
           <!-- Pied de page -->
           <tr>
-            <td style="padding: 22px 8px 0;">
+            <td class="email-footer-pad" style="padding: 22px 8px 0;">
               <p class="email-muted" style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color:${COLORS.muted}; text-align:center; line-height:1.6;">
                 Cet email a été envoyé automatiquement par le portail Fluidity.<br/>Merci de ne pas y répondre directement.
               </p>
@@ -237,8 +259,8 @@ function renderDetailsTable(rows) {
       const borderTop = i > 0 ? `border-top: 1px solid ${COLORS.border};` : '';
       return `
       <tr>
-        <td class="email-muted email-border" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:12px; color:${COLORS.muted}; width: 42%; vertical-align:top;">${r.label}</td>
-        <td class="email-text email-border" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:13px; color:${COLORS.text}; font-weight:700;">${r.value}</td>
+        <td class="email-muted email-border email-detail-cell" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:12px; color:${COLORS.muted}; width: 42%; vertical-align:top;">${r.label}</td>
+        <td class="email-text email-border email-detail-cell" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:13px; color:${COLORS.text}; font-weight:700;">${r.value}</td>
       </tr>`;
     })
     .join('');

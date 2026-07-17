@@ -294,6 +294,24 @@ refonte de l'Étape 10 s'affichait mal en pratique, pour deux raisons précises 
   présence systématique d'un `background-color` avant chaque `linear-gradient`) sur les 4 types
   d'email, et par un rendu HTML complet exporté pour inspection visuelle directe.
 
+### Étape 12 — Cohérence web / bureau / mobile pour les emails
+En complément du correctif de rendu de l'Étape 11 (icônes, dégradés), la mise en page est
+passée en **fluide-hybride** pour un rendu cohérent quel que soit le client :
+- Conteneur en `width="100%"` avec un `max-width` en pixels : se comprime naturellement sur
+  petit écran sans jamais provoquer de défilement horizontal.
+- Bloc `@media only screen and (max-width: 600px)` (marges/tailles de police resserrées,
+  bouton d'action en pleine largeur) en `!important` — respecté par Apple Mail iOS, l'app
+  Gmail, Outlook.com/mobile ; Outlook desktop (qui ignore les media queries) conserve
+  simplement la mise en page de bureau, déjà compacte.
+- `<meta name="x-apple-disable-message-reformatting">` pour empêcher Apple Mail de
+  redimensionner le texte automatiquement (source fréquente d'incohérences entre appareils
+  Apple), et `<meta name="format-detection">` pour désactiver la détection automatique de
+  numéros/dates qui reformate parfois le texte de façon inattendue sur mobile.
+- Vérifié par un test structurel étendu (présence de la media query mobile, des méta-balises,
+  des classes de resserrement mobile sur chaque zone du gabarit) sur les emails de
+  réinitialisation et de nouvelle Demande, en plus des vérifications déjà en place
+  (tables équilibrées, absence de `<svg>`, repli `background-color` avant chaque dégradé).
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
