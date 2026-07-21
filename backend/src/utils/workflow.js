@@ -66,6 +66,7 @@ const DEMANDE_TRANSITIONS = {
 // CHANGEMENT — §2.3.4 (Statuts) + §2.3.5 (Workflow de traitement)
 // ---------------------------------------------------------------------
 const CHANGEMENT_STATUTS = [
+  'Annulé',
   'Soumis',
   'En attente de validation',
   'Approuvé',
@@ -109,6 +110,7 @@ const CHANGEMENT_TRANSITIONS = {
   'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
   Rejeté: [], // état final, motivé
   Clôturé: [], // état final
+  'Annulé': [], // état final (annulation client)
 };
 
 /**

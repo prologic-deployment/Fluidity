@@ -45,6 +45,14 @@
               </select>
               <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
             </div>
+
+            <!-- Précisez votre Service / Environnement (Autre) -->
+            <div *ngIf="isServiceAutre()" class="md:col-span-2">
+              <label class="field-label">Précisez votre Service / Environnement</label>
+              <input formControlName="serviceEnvironnementAutre" type="text" class="input" placeholder="Décrivez le service ou environnement" />
+              <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
             <div>
               <label class="field-label">Type de changement</label>
               <select formControlName="typeChangement" class="select">
@@ -59,6 +67,14 @@
                 <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
               </select>
             </div>
+
+            <!-- Précisez votre catégorie (Autre) -->
+            <div *ngIf="isCategorieAutre()" class="md:col-span-2">
+              <label class="field-label">Précisez votre catégorie</label>
+              <input formControlName="categorieAutre" type="text" class="input" placeholder="Décrivez la catégorie" />
+              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
             <div>
               <label class="field-label">Sous-catégorie</label>
               <select formControlName="sousCategorie" class="select">
@@ -66,12 +82,12 @@
                 <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
               </select>
             </div>
-            
+
             <div>
               <label class="field-label">Prérequis nécessaires</label>
               <input formControlName="prerequisNecessaires" type="text" class="input" />
             </div>
-            <div  class="md:col-span-2">
+            <div class="md:col-span-2">
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>
@@ -128,14 +144,10 @@
         </div>
         <div class="card-content pt-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div  class="md:col-span-2">
+            <div class="md:col-span-2">
               <label class="field-label">Ressources concernées</label>
               <input formControlName="ressourcesConcernees" type="text" class="input" />
             </div>
-            <!-- <div>
-              <label class="field-label">Environnement</label>
-              <input formControlName="environnement" type="text" class="input" />
-            </div> -->
             <div class="md:col-span-2">
               <label class="field-label">Commentaire</label>
               <textarea formControlName="commentaire" rows="2" class="textarea"></textarea>
@@ -144,8 +156,8 @@
         </div>
       </section>
 
-      <!-- Section 3 : Serveur -->
-      <section class="card animate-fade-in-up stagger-2" formGroupName="serveur">
+      <!-- Section 3 : Serveur (VM / Infrastructure) -->
+      <section *ngIf="showServeurSpecs()" class="card animate-fade-in-up stagger-2" formGroupName="serveur">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -176,20 +188,39 @@
               <label class="field-label">RAM (Go)</label>
               <input formControlName="ramGo" type="number" min="0" class="input" />
             </div>
-            <div>
-              <label class="field-label">Disque NVMe (Go)</label>
-              <input formControlName="disqueNvmeGo" type="number" min="0" class="input" />
+          </div>
+
+          <!-- Dynamic Disks -->
+          <div class="mt-4">
+            <label class="field-label">Disques</label>
+            <div formArrayName="disques" class="space-y-2">
+              <div *ngFor="let disque of disquesArray.controls; let i = index" [formGroupName]="i" class="flex gap-2 items-end">
+                <div class="flex-1">
+                  <input formControlName="taille" type="number" min="0" class="input" placeholder="Taille (Go)" />
+                </div>
+                <div class="flex-1">
+                  <select formControlName="type" class="select">
+                    <option *ngFor="let dt of diskTypes" [value]="dt">{{ dt }}</option>
+                  </select>
+                </div>
+                <div *ngIf="isDiskTypeAutre(i)" class="flex-1">
+                  <input formControlName="typeAutre" type="text" class="input" placeholder="Précisez le type" />
+                </div>
+                <button type="button" (click)="removeDisk(i)" class="btn-icon-sm text-destructive hover:bg-destructive/10" title="Supprimer">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
             </div>
-            <div>
-              <label class="field-label">Disque SAS (Go)</label>
-              <input formControlName="disqueSasGo" type="number" min="0" class="input" />
-            </div>
+            <button type="button" (click)="addDisk()" class="btn-outline btn-sm mt-2">
+              <svg class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Ajouter un disque
+            </button>
           </div>
         </div>
       </section>
 
       <!-- Section 4 : Réseau -->
-      <section class="card animate-fade-in-up stagger-3" formGroupName="reseau">
+      <section *ngIf="showReseauSpecs()" class="card animate-fade-in-up stagger-3" formGroupName="reseau">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -217,22 +248,25 @@
             </div>
             <div>
               <label class="field-label">Adresse IP</label>
-              <input formControlName="adresseIp" type="text" class="input" />
+              <input formControlName="adresseIp" type="text" class="input" placeholder="192.168.1.1" />
+              <p *ngIf="form.get('reseau.adresseIp')?.invalid && form.get('reseau.adresseIp')?.touched" class="field-error">Format IPv4 invalide.</p>
             </div>
             <div>
               <label class="field-label">Masque de sous-réseau</label>
-              <input formControlName="masqueSousReseau" type="text" class="input" />
+              <input formControlName="masqueSousReseau" type="text" class="input" placeholder="255.255.255.0" />
+              <p *ngIf="form.get('reseau.masqueSousReseau')?.invalid && form.get('reseau.masqueSousReseau')?.touched" class="field-error">Format IPv4 invalide.</p>
             </div>
             <div>
               <label class="field-label">Passerelle</label>
-              <input formControlName="passerelle" type="text" class="input" />
+              <input formControlName="passerelle" type="text" class="input" placeholder="192.168.1.254" />
+              <p *ngIf="form.get('reseau.passerelle')?.invalid && form.get('reseau.passerelle')?.touched" class="field-error">Format IPv4 invalide.</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- Section 5 : Sauvegarde -->
-      <section class="card animate-fade-in-up stagger-4" formGroupName="backup">
+      <section *ngIf="showBackupSpecs()" class="card animate-fade-in-up stagger-4" formGroupName="backup">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -255,9 +289,18 @@
               <label class="field-label">Espace backup sup. (Go)</label>
               <input formControlName="espaceBackupSupplementaireGo" type="number" min="0" class="input" />
             </div>
-            <div>
+            <div class="md:col-span-2">
               <label class="field-label">Rétention souhaitée</label>
-              <input formControlName="retentionSouhaitee" type="text" class="input" />
+              <div class="flex gap-2">
+                <select formControlName="retentionNombre" class="select flex-1">
+                  <option value="" disabled>Nombre...</option>
+                  <option *ngFor="let n of retentionNombres" [value]="n">{{ n }}</option>
+                </select>
+                <select formControlName="retentionPeriode" class="select flex-1">
+                  <option value="" disabled>Période...</option>
+                  <option *ngFor="let p of retentionPeriodes" [value]="p">{{ p }}</option>
+                </select>
+              </div>
             </div>
             <div class="md:col-span-2">
               <label class="field-label">Licences nécessaires</label>
