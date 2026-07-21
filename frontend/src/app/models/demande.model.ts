@@ -60,7 +60,7 @@ export const CATEGORIES: string[] = [
 
 export const SOUS_CATEGORIES: Record<string, string[]> = {
   Compte: ['Création', 'Modification', 'Suppression'],
-  Accès: ['VPN', 'OU', 'Groupe', 'Application'],
+  Accès: ['VPN', 'Groupe', 'Application'],
   Infrastructure: ['Serveur', 'Stockage', 'Base de données'],
   Sécurité: ['Firewall', 'Certificat', 'Audit'],
   Réseau: ['IP', 'VLAN', 'Routage'],

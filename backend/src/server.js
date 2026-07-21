@@ -13,9 +13,9 @@ const PORT = process.env.PORT || 3000;
   try {
     await connectDB();
     // Crée les utilisateurs, clients et contrats de démonstration automatiquement au 1er lancement
-    await seedUsers();
-    await seedClients();
-    await seedContrats();
+    // await seedUsers();
+    // await seedClients();
+    // await seedContrats();
     app.listen(PORT, () => {
       console.log(`[Fluidity] Serveur démarré sur le port ${PORT}`);
     });

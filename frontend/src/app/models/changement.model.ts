@@ -1,4 +1,4 @@
-export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
+export type TypeChangement = 'Standard' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
@@ -15,7 +15,7 @@ export type StatutChangement =
 export interface Specifications {
   general?: {
     ressourcesConcernees?: string;
-    environnement?: string;
+    // environnement?: string;
     commentaire?: string;
   };
   serveur?: {
@@ -44,10 +44,10 @@ export interface Changement {
   clientId?: string; // dérivé côté serveur du compte authentifié à la création
   objetChangement: string;
   descriptionDetaillee: string;
-  serviceEnvironnement: string;
+  serviceEnvironnement?: string;
   categorie: string;
   sousCategorie: string;
-  fenetreIntervention: string;
+  fenetreIntervention?: string;
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
@@ -59,7 +59,7 @@ export interface Changement {
   updatedAt?: string;
 }
 
-export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
+export const TYPES_CHANGEMENT: TypeChangement[] = ['Standard', 'Majeur', 'Urgent'];
 
 export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = [
   'Production',

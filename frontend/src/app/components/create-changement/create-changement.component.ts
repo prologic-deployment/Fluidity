@@ -48,14 +48,13 @@ export class CreateChangementComponent implements OnInit {
       serviceEnvironnement: ['', Validators.required],
       categorie: ['', Validators.required],
       sousCategorie: ['', Validators.required],
-      fenetreIntervention: ['', Validators.required],
       prerequisNecessaires: [''],
       planRetourArriere: ['', Validators.required],
       typeChangement: ['Normal', Validators.required],
       contrat: ['', Validators.required],
       general: this.fb.group({
         ressourcesConcernees: [''],
-        environnement: [''],
+        // environnement: [''],
         commentaire: [''],
       }),
       serveur: this.fb.group({
@@ -127,10 +126,9 @@ export class CreateChangementComponent implements OnInit {
     const payload: Changement = {
       objetChangement: raw.objetChangement,
       descriptionDetaillee: raw.descriptionDetaillee,
-      serviceEnvironnement: raw.serviceEnvironnement,
+      // serviceEnvironnement: raw.serviceEnvironnement,
       categorie: raw.categorie,
       sousCategorie: raw.sousCategorie,
-      fenetreIntervention: raw.fenetreIntervention,
       prerequisNecessaires: raw.prerequisNecessaires || undefined,
       planRetourArriere: raw.planRetourArriere,
       typeChangement: raw.typeChangement,

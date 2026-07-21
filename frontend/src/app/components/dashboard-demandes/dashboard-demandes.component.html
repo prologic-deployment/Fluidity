@@ -101,7 +101,7 @@
             <th>Environnement</th>
             <th>Priorité</th>
             <th>Statut</th>
-            <th>Date</th>
+            <th>Date de création</th>
             <th class="text-right">Actions</th>
           </tr>
         </thead>
@@ -116,7 +116,7 @@
             <td>
               <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
             </td>
-            <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy' }}</td>
+            <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy hh:mm' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
                 <button *ngIf="isOwner(d)" (click)="$event.stopPropagation(); deleteDemande(d._id)" title="Supprimer"
@@ -168,10 +168,7 @@
         <p class="detail-label">Contrat</p>
         <p class="detail-value">{{ d.contrat }}</p>
       </div>
-      <div>
-        <p class="detail-label">Date souhaitée</p>
-        <p class="detail-value">{{ (d.dateSouhaiteeRealisation | date: 'dd/MM/yyyy') || '—' }}</p>
-      </div>
+      
       <div>
         <p class="detail-label">Créée le</p>
         <p class="detail-value">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>

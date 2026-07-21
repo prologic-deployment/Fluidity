@@ -46,7 +46,7 @@
               <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">Champ requis.</p>
             </div>
 
-            <div>
+            <div  class="md:col-span-2">
               <label class="field-label">Service / Environnement</label>
               <select formControlName="serviceEnvironnement" class="select">
                 <option value="" disabled>Sélectionner...</option>
@@ -101,12 +101,9 @@
               </select>
             </div>
 
-            <div>
-              <label class="field-label">Date souhaitée de réalisation</label>
-              <input formControlName="dateSouhaiteeRealisation" type="date" class="input" />
-            </div>
+          
 
-            <div class="md:col-span-2">
+            <div>
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>

@@ -52,7 +52,6 @@ export class CreateDemandeComponent implements OnInit {
       sousCategorie: ['', Validators.required],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
       prioriteSouhaitee: ['Standard', Validators.required],
-      dateSouhaiteeRealisation: [''],
       informationsComplementaires: [''],
       contrat: ['', Validators.required],
     });
@@ -91,7 +90,6 @@ export class CreateDemandeComponent implements OnInit {
       prioriteSouhaitee: raw.prioriteSouhaitee,
       contrat: raw.contrat,
       informationsComplementaires: raw.informationsComplementaires || undefined,
-      dateSouhaiteeRealisation: raw.dateSouhaiteeRealisation || undefined,
       piecesJointes: this.piecesJointes.map((f) => f.url),
     };
 
