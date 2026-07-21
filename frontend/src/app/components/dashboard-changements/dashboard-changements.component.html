@@ -123,7 +123,13 @@
             <td class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="isOwner(c)" (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
+                <button *ngIf="canCancel(c)" (click)="$event.stopPropagation(); cancelChangement(c._id)" title="Annuler"
+                  class="btn-icon-sm text-muted-foreground hover:bg-warning/10 hover:text-warning">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12"></path>
+                  </svg>
+                </button>
+                <button *ngIf="canDelete(c)" (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -162,7 +168,11 @@
       </div>
       <div>
         <p class="detail-label">Service / Environnement</p>
-        <p class="detail-value">{{ c.serviceEnvironnement }}</p>
+        <p class="detail-value">{{ c.serviceEnvironnement }}{{ c.serviceEnvironnementAutre ? ' — ' + c.serviceEnvironnementAutre : '' }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Catégorie</p>
+        <p class="detail-value">{{ c.categorie }}{{ c.categorieAutre ? ' — ' + c.categorieAutre : '' }}</p>
       </div>
       <div>
         <p class="detail-label">Contrat</p>
@@ -196,8 +206,12 @@
           <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
           <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
           <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
-          <div *ngIf="s.disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ s.disqueNvmeGo }}</p></div>
-          <div *ngIf="s.disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ s.disqueSasGo }}</p></div>
+          <div *ngIf="s.disques?.length">
+            <p class="detail-label">Disques</p>
+            <p class="detail-value">
+              <span *ngFor="let d of s.disques; let last = last">{{ d.taille }} Go ({{ d.type === 'Autre' ? d.typeAutre : d.type }}){{ !last ? ', ' : '' }}</span>
+            </p>
+          </div>
         </ng-container>
         <ng-container *ngIf="c.specifications.reseau as r">
           <div *ngIf="r.vlan"><p class="detail-label">VLAN</p><p class="detail-value">{{ r.vlan }}</p></div>
@@ -207,7 +221,7 @@
         </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
-          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.retentionNombre && b.retentionPeriode"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionNombre }} {{ b.retentionPeriode }}</p></div>
         </ng-container>
       </div>
     </ng-container>
@@ -236,13 +250,12 @@
       </div>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isOwner(c)">
-      <button (click)="deleteChangement(c._id)" class="btn-destructive">
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="canCancel(c)">
+      <button (click)="cancelChangement(c._id)" class="btn-destructive">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <path d="M18 6L6 18M6 6l12 12"></path>
         </svg>
-        Supprimer le changement
+        Annuler le changement
       </button>
     </div>
   </ng-container>

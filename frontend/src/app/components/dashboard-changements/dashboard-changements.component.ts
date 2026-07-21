@@ -39,6 +39,7 @@ export class DashboardChangementsComponent implements OnInit {
     'Rollback',
     'Clôturé',
     'Rejeté',
+    'Annulé',
   ];
   readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
 
@@ -107,9 +108,17 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  /** Seul le client propriétaire du changement peut le supprimer (ADMIN excepté). */
+  /** Seul le client propriétaire du changement peut agir (ADMIN excepté). */
   isOwner(changement: Changement): boolean {
     return this.auth.isClient() && changement.clientId === this.auth.getEmail();
+  }
+
+  canCancel(changement: Changement): boolean {
+    return this.isOwner(changement) && changement.statut !== 'Annulé';
+  }
+
+  canDelete(changement: Changement): boolean {
+    return !this.auth.isClient() && (this.auth.isAdmin() || changement.clientId === this.auth.getEmail());
   }
 
   async deleteChangement(id: string | undefined): Promise<void> {
@@ -127,6 +136,24 @@ export class DashboardChangementsComponent implements OnInit {
         this.closeDetails();
       },
       error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+    });
+  }
+
+  async cancelChangement(id: string | undefined): Promise<void> {
+    if (!id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Annuler ce changement ?',
+      message: 'Le changement restera visible dans l'historique mais ne pourra plus être traité.',
+      confirmLabel: 'Annuler le changement',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.changementService.cancel(id).subscribe({
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
+      error: (err) => (this.error = err.error?.message || 'Échec de l'annulation.'),
     });
   }
 
@@ -175,6 +202,8 @@ export class DashboardChangementsComponent implements OnInit {
         return 'badge-secondary';
       case 'Rejeté':
         return 'badge-destructive';
+      case 'Annulé':
+        return 'badge-muted';
       default:
         return 'badge-outline';
     }

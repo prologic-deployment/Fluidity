@@ -60,7 +60,11 @@ const createDemande = async (req, res) => {
  */
 const getAllDemandes = async (req, res) => {
   try {
-    const demandes = await Demande.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
+    const filter = { tenantId: req.tenantId };
+    if (req.userRole === 'CLIENT') {
+      filter.clientId = req.userEmail;
+    }
+    const demandes = await Demande.find(filter).sort({ createdAt: -1 });
     res.status(200).json(demandes);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -88,16 +92,29 @@ const getDemandeById = async (req, res) => {
  */
 const updateDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
-    res.status(200).json(demande);
+
+    if (demande.statut === 'Annulée') {
+      res.status(403).json({ message: 'Une demande annulée ne peut pas être modifiée.' });
+      return;
+    }
+
+    const estProprietaire = req.userRole === 'CLIENT' && demande.clientId === req.userEmail;
+    if (!estProprietaire && req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Accès refusé : vous ne pouvez modifier que vos propres demandes.' });
+      return;
+    }
+
+    const updated = await Demande.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.tenantId },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -181,6 +198,38 @@ const changerStatutDemande = async (req, res) => {
   }
 };
 
+
+/**
+ * Annulation d'une demande par le client propriétaire.
+ * La demande reste en base mais passe au statut "Annulée".
+ */
+const annulerDemande = async (req, res) => {
+  try {
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!demande) {
+      res.status(404).json({ message: 'Demande introuvable' });
+      return;
+    }
+
+    const estProprietaire = req.userRole === 'CLIENT' && demande.clientId === req.userEmail;
+    if (!estProprietaire) {
+      res.status(403).json({ message: 'Seul le client propriétaire peut annuler cette demande.' });
+      return;
+    }
+
+    if (demande.statut === 'Annulée') {
+      res.status(400).json({ message: 'Cette demande est déjà annulée.' });
+      return;
+    }
+
+    demande.statut = 'Annulée';
+    await demande.save();
+
+    res.status(200).json({ message: 'Demande annulée avec succès', demande });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
 module.exports = {
   createDemande,
   getAllDemandes,
@@ -188,4 +237,5 @@ module.exports = {
   updateDemande,
   deleteDemande,
   changerStatutDemande,
+  annulerDemande,
 };

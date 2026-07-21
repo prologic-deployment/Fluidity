@@ -37,24 +37,26 @@ export class SidebarComponent {
         { label: 'Changements', path: '/changements' },
       ],
     },
-    {
-      label: 'Contrats',
-      icon: 'file',
-      open: true,
-      children: [
-        { label: 'Tous les contrats', path: '/contrats' },
-        { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
-      ].filter((c) => this.isAdmin || c.path === '/contrats'),
-    },
-    {
-      label: 'Clients',
-      icon: 'users',
-      open: true,
-      children: [
-        { label: 'Tous les clients', path: '/clients' },
-        { label: 'Nouveau client', path: '/clients/nouveau' },
-      ].filter((c) => this.isAdmin || c.path === '/clients'),
-    },
+    ...(this.auth.isClient() ? [] : [
+      {
+        label: 'Contrats',
+        icon: 'file',
+        open: true,
+        children: [
+          { label: 'Tous les contrats', path: '/contrats' },
+          { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
+        ].filter((c) => this.isAdmin || c.path === '/contrats'),
+      } as SidebarGroup,
+      {
+        label: 'Clients',
+        icon: 'users',
+        open: true,
+        children: [
+          { label: 'Tous les clients', path: '/clients' },
+          { label: 'Nouveau client', path: '/clients/nouveau' },
+        ].filter((c) => this.isAdmin || c.path === '/clients'),
+      } as SidebarGroup,
+    ]),
   ];
 
   constructor(private auth: AuthService, private router: Router) {}

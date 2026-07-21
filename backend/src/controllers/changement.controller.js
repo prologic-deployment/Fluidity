@@ -62,7 +62,11 @@ const createChangement = async (req, res) => {
  */
 const getAllChangements = async (req, res) => {
   try {
-    const changements = await Changement.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
+    const filter = { tenantId: req.tenantId };
+    if (req.userRole === 'CLIENT') {
+      filter.clientId = req.userEmail;
+    }
+    const changements = await Changement.find(filter).sort({ createdAt: -1 });
     res.status(200).json(changements);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -90,16 +94,29 @@ const getChangementById = async (req, res) => {
  */
 const updateChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
-    res.status(200).json(changement);
+
+    if (changement.statut === 'Annulé') {
+      res.status(403).json({ message: 'Un changement annulé ne peut pas être modifié.' });
+      return;
+    }
+
+    const estProprietaire = req.userRole === 'CLIENT' && changement.clientId === req.userEmail;
+    if (!estProprietaire && req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Accès refusé : vous ne pouvez modifier que vos propres changements.' });
+      return;
+    }
+
+    const updated = await Changement.findOneAndUpdate(
+      { _id: req.params.id, tenantId: req.tenantId },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    res.status(200).json(updated);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -182,6 +199,38 @@ const changerStatutChangement = async (req, res) => {
   }
 };
 
+
+/**
+ * Annulation d'un changement par le client propriétaire.
+ * Le changement reste en base mais passe au statut "Annulé".
+ */
+const annulerChangement = async (req, res) => {
+  try {
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!changement) {
+      res.status(404).json({ message: 'Changement introuvable' });
+      return;
+    }
+
+    const estProprietaire = req.userRole === 'CLIENT' && changement.clientId === req.userEmail;
+    if (!estProprietaire) {
+      res.status(403).json({ message: 'Seul le client propriétaire peut annuler ce changement.' });
+      return;
+    }
+
+    if (changement.statut === 'Annulé') {
+      res.status(400).json({ message: 'Ce changement est déjà annulé.' });
+      return;
+    }
+
+    changement.statut = 'Annulé';
+    await changement.save();
+
+    res.status(200).json({ message: 'Changement annulé avec succès', changement });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
 module.exports = {
   createChangement,
   getAllChangements,
@@ -189,4 +238,5 @@ module.exports = {
   updateChangement,
   deleteChangement,
   changerStatutChangement,
+  annulerChangement,
 };

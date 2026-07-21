@@ -36,6 +36,7 @@ export class DashboardDemandesComponent implements OnInit {
     'Réalisée',
     'Clôturée',
     'Rejetée',
+    'Annulée',
   ];
   readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
 
@@ -100,9 +101,17 @@ export class DashboardDemandesComponent implements OnInit {
     this.transitionError = null;
   }
 
-  /** Seul le client propriétaire de la demande peut la supprimer (ADMIN excepté). */
+  /** Seul le client propriétaire de la demande peut agir (ADMIN excepté). */
   isOwner(demande: Demande): boolean {
     return this.auth.isClient() && demande.clientId === this.auth.getEmail();
+  }
+
+  canCancel(demande: Demande): boolean {
+    return this.isOwner(demande) && demande.statut !== 'Annulée';
+  }
+
+  canDelete(demande: Demande): boolean {
+    return !this.auth.isClient() && (this.auth.isAdmin() || demande.clientId === this.auth.getEmail());
   }
 
   async deleteDemande(id: string | undefined): Promise<void> {
@@ -120,6 +129,24 @@ export class DashboardDemandesComponent implements OnInit {
         this.closeDetails();
       },
       error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+    });
+  }
+
+  async cancelDemande(id: string | undefined): Promise<void> {
+    if (!id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Annuler cette demande ?',
+      message: 'La demande restera visible dans l'historique mais ne pourra plus être traitée.',
+      confirmLabel: 'Annuler la demande',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.demandeService.cancel(id).subscribe({
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
+      error: (err) => (this.error = err.error?.message || 'Échec de l'annulation.'),
     });
   }
 
@@ -170,6 +197,8 @@ export class DashboardDemandesComponent implements OnInit {
         return 'badge-secondary';
       case 'Rejetée':
         return 'badge-destructive';
+      case 'Annulée':
+        return 'badge-muted';
       default:
         return 'badge-outline';
     }
