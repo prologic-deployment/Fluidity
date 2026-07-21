@@ -10,6 +10,8 @@ import { DashboardChangementsComponent } from './components/dashboard-changement
 import { CreateChangementComponent } from './components/create-changement/create-changement.component';
 import { DashboardContratsComponent } from './components/dashboard-contrats/dashboard-contrats.component';
 import { CreateContratComponent } from './components/create-contrat/create-contrat.component';
+import { DashboardClientsComponent } from './components/dashboard-clients/dashboard-clients.component';
+import { CreateClientComponent } from './components/create-client/create-client.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -26,6 +28,8 @@ export const routes: Routes = [
       { path: 'changements/nouveau', component: CreateChangementComponent },
       { path: 'contrats', component: DashboardContratsComponent },
       { path: 'contrats/nouveau', component: CreateContratComponent, canActivate: [adminGuard] },
+      { path: 'clients', component: DashboardClientsComponent },
+      { path: 'clients/nouveau', component: CreateClientComponent, canActivate: [adminGuard] },
     ],
   },
   { path: '**', redirectTo: 'login' },

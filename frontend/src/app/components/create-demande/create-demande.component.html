@@ -156,8 +156,13 @@
           </div>
 
           <div>
-            <label class="field-label">Pièces jointes (URLs, séparées par des virgules)</label>
-            <input formControlName="piecesJointes" type="text" class="input" placeholder="https://..., https://..." />
+            <label class="field-label">Pièces jointes</label>
+            <app-dropzone
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              [multiple]="true"
+              hint="ou cliquez pour parcourir — PDF, images, documents (15 Mo max)"
+              (filesChange)="onPiecesJointesChange($event)">
+            </app-dropzone>
           </div>
         </div>
       </section>

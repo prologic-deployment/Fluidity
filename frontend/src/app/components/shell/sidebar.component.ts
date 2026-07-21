@@ -46,6 +46,15 @@ export class SidebarComponent {
         { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
       ].filter((c) => this.isAdmin || c.path === '/contrats'),
     },
+    {
+      label: 'Clients',
+      icon: 'users',
+      open: true,
+      children: [
+        { label: 'Tous les clients', path: '/clients' },
+        { label: 'Nouveau client', path: '/clients/nouveau' },
+      ].filter((c) => this.isAdmin || c.path === '/clients'),
+    },
   ];
 
   constructor(private auth: AuthService, private router: Router) {}

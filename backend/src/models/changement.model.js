@@ -53,6 +53,7 @@ const ChangementSchema = new Schema(
     prerequisNecessaires: { type: String },
     planRetourArriere: { type: String, required: true },
     contrat: { type: String, required: true },
+    piecesJointes: [{ type: String }],
     typeChangement: {
       type: String,
       enum: ['Normal', 'Majeur', 'Urgent'],

@@ -63,6 +63,11 @@ automatiquement** (idempotent — ne s'exécute que si les collections sont vide
 (tenant-002 / client2@fluidity.dev), utilisés pour peupler les listes déroulantes "Contrat"
 des formulaires Demande / Changement.
 
+### Clients de démonstration
+`Atlas Industries` (tenant-001, client@fluidity.dev) et `Nova Systems` (tenant-002,
+client2@fluidity.dev) — mêmes emails que les comptes CLIENT de démonstration ci-dessus, pour
+que les contrats de démo s'y rattachent correctement.
+
 ## 3. Journal des évolutions
 
 ### Étape 0 — Génération initiale du projet
@@ -312,6 +317,34 @@ passée en **fluide-hybride** pour un rendu cohérent quel que soit le client :
   réinitialisation et de nouvelle Demande, en plus des vérifications déjà en place
   (tables équilibrées, absence de `<svg>`, repli `background-color` avant chaque dégradé).
 
+### Étape 13 — Téléversement de fichiers (dropzone globale) + modèle Client rattaché aux Contrats
+- **Pièces jointes = vrais fichiers, plus des URLs saisies à la main.** Nouveau pipeline
+  d'upload backend : middleware `multer` (stockage disque, un dossier par tenant sous
+  `backend/uploads/<tenantId>/`, noms de fichiers randomisés), route `POST /api/uploads`
+  (authentifiée, jusqu'à 10 fichiers, 15 Mo max chacun), fichiers servis statiquement sous
+  `/uploads`. Chaque fichier renvoie une URL absolue immédiatement utilisable dans le tableau
+  `piecesJointes` d'une Demande ou d'un Changement.
+- **Dropzone moderne et réutilisable** (`components/shared/dropzone.component`) : glisser-
+  déposer ou clic pour parcourir, envoi immédiat à l'upload dès la sélection, liste des
+  fichiers avec statut (en cours / envoyé / erreur), retrait individuel. Utilisée dans les
+  formulaires **Nouvelle Demande** et **Nouveau Changement** (le champ `piecesJointes`,
+  présent dans le cahier des charges du Changement mais jusque-là absent du modèle, a été
+  ajouté à cette occasion) — un seul composant, cohérent visuellement partout dans l'app.
+- **Nouveau modèle `Client`** (`db.clients`) : compte/entreprise cliente créé par un `ADMIN`
+  (nom, email, téléphone, adresse, statut Actif/Inactif, notes). L'email d'un Client doit
+  correspondre à celui du compte Utilisateur `CLIENT` qui se connectera en son nom (même
+  logique que `Demande.clientId`/`Changement.clientId`, dérivés de `req.userEmail`).
+- **Les Contrats sont désormais réellement rattachés à un Client** : `POST /api/contrats`
+  vérifie qu'un `Client` portant l'email fourni existe dans le tenant avant de créer le
+  contrat (sinon `400`) ; côté formulaire "Ouvrir un contrat", le champ libre "Identifiant
+  client" est remplacé par une liste déroulante alimentée par `GET /api/clients`.
+- **Nouvelles pages Clients** : liste filtrable (recherche + statut) façon tableau moderne,
+  modale de détail, et formulaire "Nouveau client" réservé aux administrateurs — nouvelle
+  section dédiée dans la sidebar, seed de démonstration (`Atlas Industries` / `Nova Systems`,
+  alignés sur les comptes clients de démo) exécuté automatiquement au premier lancement.
+- Vérifié par un chargement réel de `app.js` (routes clients/uploads incluses) et un
+  `ng build` complet sans erreur.
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
@@ -354,6 +387,10 @@ retable toute l'application :
   à la racine (`app.component.ts`). Variante `destructive` (icône alerte, bouton rouge) pour les
   suppressions, variante par défaut (icône info, bouton indigo) pour le reste.
 - **`app-sidebar`** / **`ShellComponent`** : navigation multi-niveaux (voir Étape 3).
+- **`app-dropzone`** (`components/shared/dropzone.component`) : dropzone générique
+  glisser-déposer / clic-pour-parcourir, envoi immédiat via `UploadService`, liste de fichiers
+  avec statut et retrait individuel (voir Étape 13). Utilisée pour les pièces jointes des
+  Demandes et des Changements.
 
 ### Animations
 Définies en `@layer utilities` : `animate-fade-in` (fond de modale), `animate-scale-in`

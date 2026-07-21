@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ContratService } from '../../services/contrat.service';
+import { ClientService } from '../../services/client.service';
 import { STATUTS_CONTRAT, TYPES_CONTRAT, Contrat } from '../../models/contrat.model';
+import { Client } from '../../models/client.model';
 
 @Component({
   selector: 'app-create-contrat',
@@ -15,12 +17,14 @@ export class CreateContratComponent implements OnInit {
   form!: FormGroup;
   statuts = STATUTS_CONTRAT;
   types = TYPES_CONTRAT;
+  clients: Client[] = [];
   loading = false;
   error: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private contratService: ContratService,
+    private clientService: ClientService,
     private router: Router
   ) {}
 
@@ -34,6 +38,11 @@ export class CreateContratComponent implements OnInit {
       dateDebut: ['', Validators.required],
       dateFin: [''],
       description: [''],
+    });
+
+    this.clientService.getAll().subscribe({
+      next: (data) => (this.clients = data),
+      error: () => (this.clients = []),
     });
   }
 

@@ -212,6 +212,15 @@
       </div>
     </ng-container>
 
+    <ng-container *ngIf="c.piecesJointes?.length">
+      <p class="detail-section-title">Pièces jointes</p>
+      <ul class="space-y-1">
+        <li *ngFor="let p of c.piecesJointes">
+          <a [href]="p" target="_blank" rel="noopener" class="btn-link break-all">{{ p }}</a>
+        </li>
+      </ul>
+    </ng-container>
+
     <ng-container *ngIf="prochainesEtapes().length">
       <p class="detail-section-title">Faire avancer le workflow</p>
       <p *ngIf="transitionError" class="alert-destructive mb-3">{{ transitionError }}</p>

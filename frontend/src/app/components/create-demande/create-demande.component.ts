@@ -14,11 +14,13 @@ import {
   Demande,
 } from '../../models/demande.model';
 import { Contrat } from '../../models/contrat.model';
+import { DropzoneComponent } from '../shared/dropzone.component';
+import { UploadedFile } from '../../services/upload.service';
 
 @Component({
   selector: 'app-create-demande',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent],
   templateUrl: './create-demande.component.html',
 })
 export class CreateDemandeComponent implements OnInit {
@@ -29,6 +31,7 @@ export class CreateDemandeComponent implements OnInit {
   servicesEnvironnement = SERVICES_ENVIRONNEMENT;
   sousCategories: string[] = [];
   contrats: Contrat[] = [];
+  piecesJointes: UploadedFile[] = [];
   loading = false;
   error: string | null = null;
 
@@ -52,7 +55,6 @@ export class CreateDemandeComponent implements OnInit {
       dateSouhaiteeRealisation: [''],
       informationsComplementaires: [''],
       contrat: ['', Validators.required],
-      piecesJointes: [''], // saisie libre séparée par des virgules
     });
 
     // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
@@ -60,6 +62,10 @@ export class CreateDemandeComponent implements OnInit {
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
+  }
+
+  onPiecesJointesChange(files: UploadedFile[]): void {
+    this.piecesJointes = files;
   }
 
   onCategorieChange(): void {
@@ -86,9 +92,7 @@ export class CreateDemandeComponent implements OnInit {
       contrat: raw.contrat,
       informationsComplementaires: raw.informationsComplementaires || undefined,
       dateSouhaiteeRealisation: raw.dateSouhaiteeRealisation || undefined,
-      piecesJointes: raw.piecesJointes
-        ? raw.piecesJointes.split(',').map((s: string) => s.trim()).filter((s: string) => s)
-        : [],
+      piecesJointes: this.piecesJointes.map((f) => f.url),
     };
 
     this.loading = true;

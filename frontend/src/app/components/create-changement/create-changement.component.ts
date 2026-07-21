@@ -13,11 +13,13 @@ import {
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
+import { DropzoneComponent } from '../shared/dropzone.component';
+import { UploadedFile } from '../../services/upload.service';
 
 @Component({
   selector: 'app-create-changement',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent],
   templateUrl: './create-changement.component.html',
 })
 export class CreateChangementComponent implements OnInit {
@@ -27,6 +29,7 @@ export class CreateChangementComponent implements OnInit {
   servicesEnvironnement = SERVICES_ENVIRONNEMENT_CHANGEMENT;
   sousCategories: string[] = [];
   contrats: Contrat[] = [];
+  piecesJointes: UploadedFile[] = [];
   loading = false;
   error: string | null = null;
 
@@ -82,6 +85,10 @@ export class CreateChangementComponent implements OnInit {
     });
   }
 
+  onPiecesJointesChange(files: UploadedFile[]): void {
+    this.piecesJointes = files;
+  }
+
   onCategorieChange(): void {
     const cat = this.form.get('categorie')?.value;
     this.sousCategories = SOUS_CATEGORIES_CHANGEMENT[cat] || [];
@@ -128,6 +135,7 @@ export class CreateChangementComponent implements OnInit {
       planRetourArriere: raw.planRetourArriere,
       typeChangement: raw.typeChangement,
       contrat: raw.contrat,
+      piecesJointes: this.piecesJointes.map((f) => f.url),
       specifications: Object.keys(specifications).length ? specifications : undefined,
     };
 

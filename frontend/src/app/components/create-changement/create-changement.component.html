@@ -101,6 +101,15 @@
             <textarea formControlName="planRetourArriere" rows="3" class="textarea"></textarea>
             <p *ngIf="form.get('planRetourArriere')?.invalid && form.get('planRetourArriere')?.touched" class="field-error">Champ requis.</p>
           </div>
+          <div>
+            <label class="field-label">Pièces jointes</label>
+            <app-dropzone
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+              [multiple]="true"
+              hint="Plan d'intervention, schéma, devis — PDF, images, documents (15 Mo max)"
+              (filesChange)="onPiecesJointesChange($event)">
+            </app-dropzone>
+          </div>
         </div>
       </section>
 

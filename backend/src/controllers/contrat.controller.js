@@ -1,12 +1,23 @@
 const { Contrat } = require('../models/contrat.model');
+const { Client } = require('../models/client.model');
 
 /**
  * Création d'un contrat (réservé aux ADMIN).
  * - tenantId injecté depuis le JWT (req.tenantId)
  * - statut par défaut "Actif"
+ * - clientId doit correspondre à un Client existant du tenant (le contrat
+ *   est toujours "attaché" à une fiche client, jamais à un email libre)
  */
 const createContrat = async (req, res) => {
   try {
+    const client = await Client.findOne({ tenantId: req.tenantId, email: req.body.clientId });
+    if (!client) {
+      res.status(400).json({
+        message: "Client introuvable. Créez d'abord ce client avant de lui ouvrir un contrat.",
+      });
+      return;
+    }
+
     const contrat = new Contrat({
       ...req.body,
       tenantId: req.tenantId,

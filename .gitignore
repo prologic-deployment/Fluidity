@@ -19,3 +19,6 @@ npm-debug.log*
 # Angular (frontend)
 frontend/dist/
 frontend/.angular/
+
+# Fichiers téléversés (pièces jointes)
+backend/uploads/

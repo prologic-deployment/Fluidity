@@ -1,0 +1,160 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-900/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Clients</h1>
+          <p class="text-sm text-muted-foreground">Comptes clients du tenant, rattachés à leurs contrats.</p>
+        </div>
+      </div>
+      <a *ngIf="auth.isAdmin()" routerLink="/clients/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
+        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Nouveau client
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <div class="toolbar">
+      <div class="search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un nom, un email..." class="search-input" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <select [(ngModel)]="statutFiltre" class="filter-select">
+        <option value="">Tous les statuts</option>
+        <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
+      </select>
+
+      <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
+        <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+        Réinitialiser
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="table-wrap">
+      <div class="p-2">
+        <div *ngFor="let i of [1,2,3,4]" class="flex items-center gap-4 px-4 py-4 border-b border-border last:border-0">
+          <div class="skeleton h-4 w-40"></div>
+          <div class="skeleton h-4 w-48"></div>
+          <div class="skeleton h-4 w-28"></div>
+          <div class="skeleton h-5 w-16 rounded-full ml-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && clients.length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        <div class="table-empty-icon">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        Aucun client pour le moment.
+        <span *ngIf="auth.isAdmin()">
+          <br /><a routerLink="/clients/nouveau" class="btn-link">Créer le premier client</a>
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && clients.length > 0 && filteredClients().length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        Aucun résultat pour ces filtres.
+        <br /><button (click)="resetFilters()" class="btn-link">Réinitialiser les filtres</button>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredClients().length > 0" class="table-wrap animate-fade-in-up scroll-smooth">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Téléphone</th>
+            <th>Statut</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of filteredClients()" class="table-row-clickable group" (click)="viewDetails(c)">
+            <td class="font-medium">{{ c.nom }}</td>
+            <td class="text-muted-foreground">{{ c.email }}</td>
+            <td class="text-muted-foreground">{{ c.telephone || '—' }}</td>
+            <td>
+              <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
+            </td>
+            <td class="text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button *ngIf="auth.isAdmin()" (click)="$event.stopPropagation(); deleteClient(c._id)" title="Supprimer"
+                  class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6M14 11v6"></path>
+                  </svg>
+                </button>
+                <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p *ngIf="!loading && clients.length > 0" class="mt-3 text-xs text-muted-foreground">
+      {{ filteredClients().length }} sur {{ clients.length }} client(s) affiché(s)
+    </p>
+  </main>
+</div>
+
+<app-modal [open]="!!selected" [title]="selected?.nom || ''" [subtitle]="selected?.email || ''" (closed)="closeDetails()">
+  <ng-container *ngIf="selected as c">
+    <div class="flex flex-wrap gap-2 mb-5">
+      <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div>
+        <p class="detail-label">Email</p>
+        <p class="detail-value">{{ c.email }}</p>
+      </div>
+      <div>
+        <p class="detail-label">Téléphone</p>
+        <p class="detail-value">{{ c.telephone || '—' }}</p>
+      </div>
+      <div class="sm:col-span-2">
+        <p class="detail-label">Adresse</p>
+        <p class="detail-value">{{ c.adresse || '—' }}</p>
+      </div>
+    </div>
+
+    <ng-container *ngIf="c.notes">
+      <p class="detail-section-title">Notes</p>
+      <p class="detail-value whitespace-pre-line">{{ c.notes }}</p>
+    </ng-container>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="auth.isAdmin()">
+      <button (click)="deleteClient(c._id)" class="btn-destructive">Supprimer le client</button>
+    </div>
+  </ng-container>
+</app-modal>

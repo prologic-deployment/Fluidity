@@ -52,6 +52,7 @@ export interface Changement {
   planRetourArriere: string;
   typeChangement: TypeChangement;
   contrat: string;
+  piecesJointes?: string[];
   statut?: StatutChangement;
   specifications?: Specifications;
   createdAt?: string;
