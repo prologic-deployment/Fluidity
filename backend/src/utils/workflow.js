@@ -12,6 +12,7 @@
 // DEMANDE — §2.2.2 (Statuts) + §2.2.3 (Workflow de traitement)
 // ---------------------------------------------------------------------
 const DEMANDE_STATUTS = [
+  'Annulée',
   'Ouverte',
   "En cours d'analyse",
   'En attente de validation',
@@ -58,6 +59,7 @@ const DEMANDE_TRANSITIONS = {
     { to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] },
   ],
   Clôturée: [], // état final
+  'Annulée': [], // état final (annulation client)
 };
 
 // ---------------------------------------------------------------------

@@ -46,13 +46,27 @@
               <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">Champ requis.</p>
             </div>
 
-            <div>
+            <!-- Précisez votre type (Autre) -->
+            <div *ngIf="isTypeAutre()" class="md:col-span-2">
+              <label class="field-label">Précisez votre type</label>
+              <input formControlName="typeDemandeAutre" type="text" class="input" placeholder="Décrivez le type de demande" />
+              <p *ngIf="form.get('typeDemandeAutre')?.invalid && form.get('typeDemandeAutre')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <div class="md:col-span-2">
               <label class="field-label">Service / Environnement</label>
               <select formControlName="serviceEnvironnement" class="select">
                 <option value="" disabled>Sélectionner...</option>
                 <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s }}</option>
               </select>
               <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <!-- Précisez votre Service / Environnement (Autre) -->
+            <div *ngIf="isServiceAutre()" class="md:col-span-2">
+              <label class="field-label">Précisez votre Service / Environnement</label>
+              <input formControlName="serviceEnvironnementAutre" type="text" class="input" placeholder="Décrivez le service ou environnement" />
+              <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
 
             <div>
@@ -62,6 +76,13 @@
                 <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
               </select>
               <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <!-- Précisez votre catégorie (Autre) -->
+            <div *ngIf="isCategorieAutre()" class="md:col-span-2">
+              <label class="field-label">Précisez votre catégorie</label>
+              <input formControlName="categorieAutre" type="text" class="input" placeholder="Décrivez la catégorie" />
+              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
 
             <div>
@@ -102,11 +123,6 @@
             </div>
 
             <div>
-              <label class="field-label">Date souhaitée de réalisation</label>
-              <input formControlName="dateSouhaiteeRealisation" type="date" class="input" />
-            </div>
-
-            <div class="md:col-span-2">
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>

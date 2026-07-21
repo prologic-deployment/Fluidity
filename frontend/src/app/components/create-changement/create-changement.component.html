@@ -48,6 +48,7 @@
             <div>
               <label class="field-label">Type de changement</label>
               <select formControlName="typeChangement" class="select">
+                <option value="" disabled>Sélectionner...</option>
                 <option *ngFor="let t of typesChangement" [value]="t">{{ t }}</option>
               </select>
             </div>
@@ -65,16 +66,12 @@
                 <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
               </select>
             </div>
-            <div>
-              <label class="field-label">Fenêtre d'intervention</label>
-              <input formControlName="fenetreIntervention" type="datetime-local" class="input" />
-              <p *ngIf="form.get('fenetreIntervention')?.invalid && form.get('fenetreIntervention')?.touched" class="field-error">Champ requis.</p>
-            </div>
+            
             <div>
               <label class="field-label">Prérequis nécessaires</label>
               <input formControlName="prerequisNecessaires" type="text" class="input" />
             </div>
-            <div>
+            <div  class="md:col-span-2">
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>
@@ -131,14 +128,14 @@
         </div>
         <div class="card-content pt-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+            <div  class="md:col-span-2">
               <label class="field-label">Ressources concernées</label>
               <input formControlName="ressourcesConcernees" type="text" class="input" />
             </div>
-            <div>
+            <!-- <div>
               <label class="field-label">Environnement</label>
               <input formControlName="environnement" type="text" class="input" />
-            </div>
+            </div> -->
             <div class="md:col-span-2">
               <label class="field-label">Commentaire</label>
               <textarea formControlName="commentaire" rows="2" class="textarea"></textarea>
