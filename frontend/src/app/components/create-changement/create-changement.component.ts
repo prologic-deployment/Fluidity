@@ -169,47 +169,6 @@ export class CreateChangementComponent implements OnInit {
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
-
-    // Watch serviceEnvironnement changes
-    this.form.get('serviceEnvironnement')?.valueChanges.subscribe((val) => {
-      if (val !== 'Autre') {
-        this.form.get('serviceEnvironnementAutre')?.setValue('');
-        this.form.get('serviceEnvironnementAutre')?.clearValidators();
-      } else {
-        this.form.get('serviceEnvironnementAutre')?.setValidators(Validators.required);
-      }
-      this.form.get('serviceEnvironnementAutre')?.updateValueAndValidity();
-    });
-
-    // Watch categorie changes
-    this.form.get('categorie')?.valueChanges.subscribe((val) => {
-      if (val !== 'Autre') {
-        this.form.get('categorieAutre')?.setValue('');
-        this.form.get('categorieAutre')?.clearValidators();
-      } else {
-        this.form.get('categorieAutre')?.setValidators(Validators.required);
-      }
-      this.form.get('categorieAutre')?.updateValueAndValidity();
-      this.onCategorieChange();
-    });
-  }
-
-  get disquesArray(): FormArray {
-    return this.form.get('serveur.disques') as FormArray;
-  }
-
-  addDisk(): void {
-    this.disquesArray.push(
-      this.fb.group({
-        taille: [null],
-        type: ['NVMe'],
-        typeAutre: [''],
-      })
-    );
-  }
-
-  removeDisk(index: number): void {
-    this.disquesArray.removeAt(index);
   }
 
   private toggleAutreValidator(controlName: string, autreControlName: string): void {
