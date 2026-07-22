@@ -123,6 +123,24 @@ export class DashboardDemandesComponent implements OnInit {
     });
   }
 
+  async cancelDemande(id: string | undefined): Promise<void> {
+    if (!id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Annuler cette demande ?',
+      message: 'La demande restera visible dans l\'historique mais ne pourra plus être traitée.',
+      confirmLabel: 'Annuler la demande',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.demandeService.cancel(id).subscribe({
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+    });
+  }
+
   /** Statuts vers lesquels le rôle courant peut faire transiter la demande sélectionnée. */
   prochainesEtapes(): string[] {
     if (!this.selected) return [];

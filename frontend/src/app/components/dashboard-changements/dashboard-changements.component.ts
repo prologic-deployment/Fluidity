@@ -130,6 +130,24 @@ export class DashboardChangementsComponent implements OnInit {
     });
   }
 
+  async cancelChangement(id: string | undefined): Promise<void> {
+    if (!id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Annuler ce changement ?',
+      message: 'Le changement restera visible dans l\'historique mais ne pourra plus être traité.',
+      confirmLabel: 'Annuler le changement',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.changementService.cancel(id).subscribe({
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+    });
+  }
+
   /** Statuts vers lesquels le rôle courant peut faire transiter le changement sélectionné. */
   prochainesEtapes(): string[] {
     if (!this.selected) return [];

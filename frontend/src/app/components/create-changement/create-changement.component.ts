@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
@@ -82,6 +82,47 @@ export class CreateChangementComponent implements OnInit {
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
+
+    // Watch serviceEnvironnement changes
+    this.form.get('serviceEnvironnement')?.valueChanges.subscribe((val) => {
+      if (val !== 'Autre') {
+        this.form.get('serviceEnvironnementAutre')?.setValue('');
+        this.form.get('serviceEnvironnementAutre')?.clearValidators();
+      } else {
+        this.form.get('serviceEnvironnementAutre')?.setValidators(Validators.required);
+      }
+      this.form.get('serviceEnvironnementAutre')?.updateValueAndValidity();
+    });
+
+    // Watch categorie changes
+    this.form.get('categorie')?.valueChanges.subscribe((val) => {
+      if (val !== 'Autre') {
+        this.form.get('categorieAutre')?.setValue('');
+        this.form.get('categorieAutre')?.clearValidators();
+      } else {
+        this.form.get('categorieAutre')?.setValidators(Validators.required);
+      }
+      this.form.get('categorieAutre')?.updateValueAndValidity();
+      this.onCategorieChange();
+    });
+  }
+
+  get disquesArray(): FormArray {
+    return this.form.get('serveur['disques']') as FormArray;
+  }
+
+  addDisk(): void {
+    this.disquesArray.push(
+      this.fb.group({
+        taille: [null],
+        type: ['NVMe'],
+        typeAutre: [''],
+      })
+    );
+  }
+
+  removeDisk(index: number): void {
+    this.disquesArray.removeAt(index);
   }
 
   onPiecesJointesChange(files: UploadedFile[]): void {
@@ -115,6 +156,11 @@ export class CreateChangementComponent implements OnInit {
     const serveur = this.clean(raw.serveur);
     const reseau = this.clean(raw.reseau);
     const backup = this.clean(raw.backup);
+
+    if (serveur['disques']) {
+      serveur['disques'] = this.cleanArray(serveur['disques']);
+      if (serveur['disques'].length === 0) delete serveur['disques'];
+    }
 
     const specifications: any = {};
     if (Object.keys(general).length) specifications.general = general;

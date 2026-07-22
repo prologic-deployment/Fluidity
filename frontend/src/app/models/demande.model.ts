@@ -2,22 +2,26 @@ export type PrioriteDemande = 'Standard' | 'Élevée' | 'Urgente';
 
 export type StatutDemande =
   | 'Ouverte'
-  | 'En cours d\'analyse'
+  | "En cours d'analyse"
   | 'En attente de validation'
   | 'En cours de réalisation'
   | 'En attente client'
   | 'Rejetée'
   | 'Réalisée'
-  | 'Clôturée';
+  | 'Clôturée'
+  | 'Annulée';
 
 export interface Demande {
   _id?: string;
   tenantId?: string;
-  clientId?: string; // dérivé côté serveur du compte authentifié à la création
+  clientId?: string;
   objet: string;
   typeDemande: string;
+  typeDemandeAutre?: string;
   serviceEnvironnement: string;
+  serviceEnvironnementAutre?: string;
   categorie: string;
+  categorieAutre?: string;
   sousCategorie: string;
   descriptionDetaillee: string;
   prioriteSouhaitee: PrioriteDemande;
@@ -34,8 +38,8 @@ export const PRIORITES: PrioriteDemande[] = ['Standard', 'Élevée', 'Urgente'];
 
 export const TYPES_DEMANDE: string[] = [
   'Création de compte',
-  'Modification d\'accès',
-  'Demande d\'information',
+  "Modification d'accès",
+  "Demande d'information",
   'Extension de ressources',
   'Support technique',
   'Autre',
@@ -44,25 +48,36 @@ export const TYPES_DEMANDE: string[] = [
 export const SERVICES_ENVIRONNEMENT: string[] = [
   'Production',
   'Pré-production',
-  'Test / QA',
+  'Test',
   'Développement',
-  'Sandbox',
+  'UAT',
+  'Autre',
 ];
 
 export const CATEGORIES: string[] = [
-  'Compte',
-  'Accès',
-  'Infrastructure',
-  'Sécurité',
   'Réseau',
+  'Infrastructure',
+  'VM',
+  'Base de données',
+  'Portail web',
+  'Conteneurs',
+  'IA-GPU',
+  'Stockage',
+  'Sécurité',
+  'Sauvegarde',
   'Autre',
 ];
 
 export const SOUS_CATEGORIES: Record<string, string[]> = {
-  Compte: ['Création', 'Modification', 'Suppression'],
-  Accès: ['VPN', 'Groupe', 'Application'],
-  Infrastructure: ['Serveur', 'Stockage', 'Base de données'],
-  Sécurité: ['Firewall', 'Certificat', 'Audit'],
-  Réseau: ['IP', 'VLAN', 'Routage'],
+  Réseau: ['VLAN', 'Firewall', 'DNS', 'DHCP', 'Routage', 'VPN', 'Load Balancer'],
+  Infrastructure: ['Serveur physique', 'Hyperviseur', 'Datacenter', 'Monitoring', 'Architecture'],
+  VM: ['Création VM', 'Extension ressources', 'Migration VM', 'Suppression VM'],
+  'Base de données': ['MySQL', 'PostgreSQL', 'MongoDB', 'Oracle', 'Backup DB'],
+  'Portail web': ['Création portail', 'Déploiement', 'Maintenance', 'Domaine', 'SSL'],
+  Conteneurs: ['Docker', 'Kubernetes', 'Registry', 'Deployment'],
+  'IA-GPU': ['GPU Allocation', 'Machine Learning', 'IA Training', 'Inference'],
+  Stockage: ['NAS', 'SAN', 'Volume', 'Extension capacité'],
+  Sécurité: ['Antivirus', 'Audit', 'Firewall', 'IAM'],
+  Sauvegarde: ['Backup configuration', 'Restore', 'Retention'],
   Autre: ['Divers'],
 };
