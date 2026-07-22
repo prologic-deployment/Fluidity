@@ -8,6 +8,7 @@ export type StatutDemande =
   | 'En attente client'
   | 'Rejetée'
   | 'Réalisée'
+  | 'Annulé'
   | 'Clôturée';
 
 export interface Demande {

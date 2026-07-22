@@ -1,7 +1,11 @@
 const { Changement } = require('../models/changement.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
-const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
+const { CHANGEMENT_TRANSITIONS, CHANGEMENT_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
+
+/** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres changements. */
+const filtreProprietaire = (req) =>
+  req.userRole === 'CLIENT' ? { clientId: req.userEmail } : {};
 
 /**
  * Création d'un changement.
@@ -62,7 +66,8 @@ const createChangement = async (req, res) => {
  */
 const getAllChangements = async (req, res) => {
   try {
-    const changements = await Changement.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
+    // Un client ne liste que SES changements ; les autres rôles gardent la vue tenant.
+    const changements = await Changement.find({ tenantId: req.tenantId, ...filtreProprietaire(req) }).sort({ createdAt: -1 });
     res.status(200).json(changements);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -70,11 +75,11 @@ const getAllChangements = async (req, res) => {
 };
 
 /**
- * Détail d'un changement (isolé par tenant).
+ * Détail d'un changement (isolé par tenant + propriété client).
  */
 const getChangementById = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
@@ -86,19 +91,27 @@ const getChangementById = async (req, res) => {
 };
 
 /**
- * Mise à jour d'un changement (isolé par tenant).
+ * Mise à jour d'un changement (isolé par tenant + propriété client).
+ * - Un CLIENT ne peut modifier que SES changements.
+ * - Un changement « Annulé » n'est plus modifiable par personne.
  */
 const updateChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-    if (!changement) {
+    const existant = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
+    if (!existant) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
+    if (existant.statut === 'Annulé') {
+      res.status(409).json({ message: 'Ce changement est annulé : aucune modification n\'est possible.' });
+      return;
+    }
+
+    const changement = await Changement.findOneAndUpdate(
+      { _id: existant._id, tenantId: req.tenantId },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
     res.status(200).json(changement);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -107,25 +120,86 @@ const updateChangement = async (req, res) => {
 
 /**
  * Suppression d'un changement (isolé par tenant).
- * Réservée au client propriétaire du changement (clientId = son email),
- * ou à un ADMIN pour la supervision.
+ * INTERDITE aux clients : ils utilisent l'annulation (PATCH /:id/annuler),
+ * qui conserve le dossier en base avec le statut « Annulé ».
+ * Réservée à un ADMIN pour la supervision.
  */
 const deleteChangement = async (req, res) => {
   try {
+    if (req.userRole === 'CLIENT') {
+      res.status(403).json({
+        message: 'La suppression est interdite pour un client. Utilisez « Annuler » : le dossier reste conservé avec le statut « Annulé ».',
+      });
+      return;
+    }
+    if (req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Seul un administrateur peut supprimer un changement.' });
+      return;
+    }
+
     const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
 
-    const estProprietaire = req.userRole === 'CLIENT' && changement.clientId === req.userEmail;
-    if (!estProprietaire && req.userRole !== 'ADMIN') {
-      res.status(403).json({ message: 'Seul le client propriétaire de ce changement peut le supprimer.' });
+    await changement.deleteOne();
+    res.status(200).json({ message: 'Changement supprimé avec succès' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
+/**
+ * Annulation d'un changement par le client propriétaire (remplace la suppression).
+ * - Réservé au rôle CLIENT propriétaire du dossier
+ * - Possible uniquement depuis un statut précoce (CHANGEMENT_STATUTS_ANNULABLES)
+ * - Le dossier RESTE en base, visible dans l'historique, avec statut « Annulé »
+ * - Un dossier annulé sort du workflow : plus aucune action possible
+ */
+const annulerChangement = async (req, res) => {
+  try {
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!changement) {
+      res.status(404).json({ message: 'Changement introuvable' });
+      return;
+    }
+    if (changement.clientId !== req.userEmail) {
+      res.status(403).json({ message: 'Seul le client propriétaire de ce changement peut l\'annuler.' });
+      return;
+    }
+    if (changement.statut === 'Annulé') {
+      res.status(409).json({ message: 'Ce changement est déjà annulé.' });
+      return;
+    }
+    if (!CHANGEMENT_STATUTS_ANNULABLES.includes(changement.statut)) {
+      res.status(409).json({
+        message: `Ce changement ne peut plus être annulé depuis le statut « ${changement.statut} ». Annulation possible depuis : ${CHANGEMENT_STATUTS_ANNULABLES.join(', ')}.`,
+      });
       return;
     }
 
-    await changement.deleteOne();
-    res.status(200).json({ message: 'Changement supprimé avec succès' });
+    const statutPrecedent = changement.statut;
+    changement.statut = 'Annulé';
+    await changement.save();
+
+    const html = renderEmailLayout({
+      preheader: `Changement annulé : ${changement.objetChangement}`,
+      icon: ICONS.exchange,
+      heading: 'Changement annulé par le client',
+      bodyHtml: `
+        <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a été annulé par le client ${changement.clientId}.</p>
+        <p style="margin: 0;">
+          ${renderBadge(statutPrecedent, COLORS.muted)}
+          <span style="color:#94a3b8; margin: 0 6px;">→</span>
+          ${renderBadge('Annulé', COLORS.destructive)}
+        </p>`,
+      ctaLabel: 'Voir les changements',
+      ctaUrl: `${FRONTEND_URL()}/changements`,
+    });
+    sendSupportEmail(req.tenantId, `[Changement] Annulé — ${changement.objetChangement}`, html).catch(console.error);
+
+    res.status(200).json(changement);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -188,5 +262,6 @@ module.exports = {
   getChangementById,
   updateChangement,
   deleteChangement,
+  annulerChangement,
   changerStatutChangement,
 };

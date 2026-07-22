@@ -31,6 +31,14 @@ export class ChangementService {
     return this.http.patch<Changement>(`${this.baseUrl}/${id}/statut`, { statut });
   }
 
+  /**
+   * Annulation (remplace la suppression pour un client) : le dossier est
+   * conservé en base et passe au statut « Annulé » — état final sans reprise.
+   */
+  annuler(id: string): Observable<Changement> {
+    return this.http.patch<Changement>(`${this.baseUrl}/${id}/annuler`, {});
+  }
+
   delete(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.baseUrl}/${id}`);
   }

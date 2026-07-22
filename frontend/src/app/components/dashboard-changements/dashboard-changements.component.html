@@ -123,12 +123,11 @@
             <td class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="isOwner(c)" (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
+                <button *ngIf="isAnnulable(c)" (click)="$event.stopPropagation(); annulerChangement(c._id)" title="Annuler ce changement"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                    <path d="M10 11v6M14 11v6"></path>
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="m5.6 5.6 12.8 12.8"></path>
                   </svg>
                 </button>
                 <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -278,13 +277,17 @@
       </div>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isOwner(c)">
-      <button (click)="deleteChangement(c._id)" class="btn-destructive">
+    <p *ngIf="c.statut === 'Annulé'" class="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
+      Ce dossier est annulé : il reste visible dans l'historique mais ne suit plus aucun traitement et ne peut plus être modifié.
+    </p>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isAnnulable(c)">
+      <button (click)="annulerChangement(c._id)" class="btn-destructive">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="m5.6 5.6 12.8 12.8"></path>
         </svg>
-        Supprimer le changement
+        Annuler le changement
       </button>
     </div>
   </ng-container>

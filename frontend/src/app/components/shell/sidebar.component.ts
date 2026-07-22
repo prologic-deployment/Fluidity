@@ -26,9 +26,12 @@ interface SidebarGroup {
 export class SidebarComponent {
   user = this.auth.getUser();
   isAdmin = this.auth.isAdmin();
+  isClient = this.auth.isClient();
 
-  groups: SidebarGroup[] = [
-    {
+  groups: SidebarGroup[];
+
+  constructor(private auth: AuthService, private router: Router) {
+    const espaceServices: SidebarGroup = {
       label: 'Espace Services',
       icon: 'grid',
       open: true,
@@ -36,28 +39,36 @@ export class SidebarComponent {
         { label: 'Demandes', path: '/demandes' },
         { label: 'Changements', path: '/changements' },
       ],
-    },
-    {
-      label: 'Contrats',
-      icon: 'file',
-      open: true,
-      children: [
-        { label: 'Tous les contrats', path: '/contrats' },
-        { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
-      ].filter((c) => this.isAdmin || c.path === '/contrats'),
-    },
-    {
-      label: 'Clients',
-      icon: 'users',
-      open: true,
-      children: [
-        { label: 'Tous les clients', path: '/clients' },
-        { label: 'Nouveau client', path: '/clients/nouveau' },
-      ].filter((c) => this.isAdmin || c.path === '/clients'),
-    },
-  ];
+    };
 
-  constructor(private auth: AuthService, private router: Router) {}
+    // Un client n'a accès QU'À « Espace Services » (ses demandes / changements).
+    if (this.isClient) {
+      this.groups = [espaceServices];
+      return;
+    }
+
+    this.groups = [
+      espaceServices,
+      {
+        label: 'Contrats',
+        icon: 'file',
+        open: true,
+        children: [
+          { label: 'Tous les contrats', path: '/contrats' },
+          { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
+        ].filter((c) => this.isAdmin || c.path === '/contrats'),
+      },
+      {
+        label: 'Clients',
+        icon: 'users',
+        open: true,
+        children: [
+          { label: 'Tous les clients', path: '/clients' },
+          { label: 'Nouveau client', path: '/clients/nouveau' },
+        ].filter((c) => this.isAdmin || c.path === '/clients'),
+      },
+    ];
+  }
 
   toggle(group: SidebarGroup): void {
     group.open = !group.open;

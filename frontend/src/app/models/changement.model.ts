@@ -16,6 +16,7 @@ export type StatutChangement =
   | 'Implémenté'
   | 'En revue post-implémentation'
   | 'Rejeté'
+  | 'Annulé'
   | 'Clôturé';
 
 export interface Specifications {
