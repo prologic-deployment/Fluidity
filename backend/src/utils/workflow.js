@@ -20,7 +20,15 @@ const DEMANDE_STATUTS = [
   'Rejetée',
   'Réalisée',
   'Clôturée',
+  'Annulé',
 ];
+
+/**
+ * Statuts depuis lesquels le client propriétaire peut ANNULER sa demande
+ * (avant que la réalisation ne démarre). Une fois annulée, la demande reste
+ * en base mais sort définitivement du workflow.
+ */
+const DEMANDE_STATUTS_ANNULABLES = ['Ouverte', "En cours d'analyse", 'En attente de validation', 'En attente client'];
 
 const DEMANDE_TRANSITIONS = {
   Ouverte: [
@@ -58,6 +66,7 @@ const DEMANDE_TRANSITIONS = {
     { to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] },
   ],
   Clôturée: [], // état final
+  Annulé: [], // état final : exclu du workflow, aucune action possible
 };
 
 // ---------------------------------------------------------------------
@@ -74,7 +83,15 @@ const CHANGEMENT_STATUTS = [
   'En revue post-implémentation',
   'Rejeté',
   'Clôturé',
+  'Annulé',
 ];
+
+/**
+ * Statuts depuis lesquels le client propriétaire peut ANNULER son changement
+ * (avant le début de l'implémentation). Une fois annulé, le changement reste
+ * en base mais sort définitivement du workflow.
+ */
+const CHANGEMENT_STATUTS_ANNULABLES = ['Soumis', 'En attente de validation', 'Approuvé', 'Planifié'];
 
 const CHANGEMENT_TRANSITIONS = {
   Soumis: [
@@ -107,13 +124,16 @@ const CHANGEMENT_TRANSITIONS = {
   'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
   Rejeté: [], // état final, motivé
   Clôturé: [], // état final
+  Annulé: [], // état final : exclu du workflow, aucune action possible
 };
 
 /**
  * Vérifie si la transition `from` -> `to` est autorisée pour `role`.
- * ADMIN passe toujours (supervision / correction manuelle).
+ * ADMIN passe toujours (supervision / correction manuelle), SAUF depuis
+ * « Annulé » : un dossier annulé est figé pour tout le monde.
  */
 function canTransition(transitions, from, to, role) {
+  if (from === 'Annulé') return false;
   if (role === 'ADMIN') return true;
   const options = transitions[from] || [];
   const match = options.find((o) => o.to === to);
@@ -125,6 +145,7 @@ function canTransition(transitions, from, to, role) {
  * (utilisé par le frontend pour proposer les actions disponibles).
  */
 function availableTransitions(transitions, from, role) {
+  if (from === 'Annulé') return [];
   const options = transitions[from] || [];
   if (role === 'ADMIN') return options.map((o) => o.to);
   return options.filter((o) => o.roles.includes(role)).map((o) => o.to);
@@ -132,8 +153,10 @@ function availableTransitions(transitions, from, role) {
 
 module.exports = {
   DEMANDE_STATUTS,
+  DEMANDE_STATUTS_ANNULABLES,
   DEMANDE_TRANSITIONS,
   CHANGEMENT_STATUTS,
+  CHANGEMENT_STATUTS_ANNULABLES,
   CHANGEMENT_TRANSITIONS,
   canTransition,
   availableTransitions,

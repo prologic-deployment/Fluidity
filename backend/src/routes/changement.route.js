@@ -7,6 +7,7 @@ const {
   getChangementById,
   updateChangement,
   deleteChangement,
+  annulerChangement,
   changerStatutChangement,
 } = require('../controllers/changement.controller');
 const { createChangementSchema, updateChangementSchema, changerStatutChangementSchema } = require('../schemas/changement.schema');
@@ -21,8 +22,11 @@ router.post('/', requireRole('CLIENT'), validate(createChangementSchema), create
 router.get('/', getAllChangements);
 router.get('/:id', getChangementById);
 router.patch('/:id/statut', validate(changerStatutChangementSchema), changerStatutChangement);
+// Annulation par le client propriétaire (remplace la suppression côté client)
+router.patch('/:id/annuler', requireRole('CLIENT'), annulerChangement);
+// Modification : un client ne peut toucher que ses propres changements (vérif dans le contrôleur)
 router.patch('/:id', validate(updateChangementSchema), updateChangement);
-// Suppression : contrôle de propriété (client propriétaire ou ADMIN) fait dans le contrôleur
+// Suppression : interdite aux clients, réservée à l'ADMIN (vérif dans le contrôleur)
 router.delete('/:id', deleteChangement);
 
 module.exports = router;

@@ -8,8 +8,8 @@ export type StatutDemande =
   | 'En attente client'
   | 'Rejetée'
   | 'Réalisée'
-  | 'Clôturée'
-  | 'Annulée';
+  | 'Annulé'
+  | 'Clôturée';
 
 export interface Demande {
   _id?: string;
@@ -68,16 +68,20 @@ export const CATEGORIES: string[] = [
   'Autre',
 ];
 
+/**
+ * Sous-catégories proposées par catégorie (§ formulaire dynamique).
+ * Fusionnées à partir du cahier des charges et des besoins terrain ;
+ * chaque liste contient « Autre » pour laisser une précision libre.
+ */
 export const SOUS_CATEGORIES: Record<string, string[]> = {
-  Réseau: ['VLAN', 'Firewall', 'DNS', 'DHCP', 'Routage', 'VPN', 'Load Balancer'],
-  Infrastructure: ['Serveur physique', 'Hyperviseur', 'Datacenter', 'Monitoring', 'Architecture'],
-  VM: ['Création VM', 'Extension ressources', 'Migration VM', 'Suppression VM'],
-  'Base de données': ['MySQL', 'PostgreSQL', 'MongoDB', 'Oracle', 'Backup DB'],
-  'Portail web': ['Création portail', 'Déploiement', 'Maintenance', 'Domaine', 'SSL'],
-  Conteneurs: ['Docker', 'Kubernetes', 'Registry', 'Deployment'],
-  'IA-GPU': ['GPU Allocation', 'Machine Learning', 'IA Training', 'Inference'],
-  Stockage: ['NAS', 'SAN', 'Volume', 'Extension capacité'],
-  Sécurité: ['Antivirus', 'Audit', 'Firewall', 'IAM'],
-  Sauvegarde: ['Backup configuration', 'Restore', 'Retention'],
-  Autre: ['Divers'],
+  Réseau: ['VLAN', 'Firewall', 'DNS', 'DHCP', 'Routage', 'VPN', 'Load Balancer', 'Switch', 'WiFi', 'Proxy', 'Autre'],
+  Infrastructure: ['Serveur physique', 'Hyperviseur', 'Datacenter', 'Monitoring', 'Architecture', 'Rack / Baie', 'Climatisation', 'Alimentation', 'Autre'],
+  VM: ['Création VM', 'Extension ressources', 'Migration VM', 'Suppression VM', 'Snapshot', 'Clone', 'Autre'],
+  'Base de données': ['MySQL', 'PostgreSQL', 'MongoDB', 'Oracle', 'Backup DB', 'SQL Server', 'Restauration', 'Performance', 'Autre'],
+  'Portail web': ['Création portail', 'Déploiement', 'Maintenance', 'Domaine', 'SSL', 'IIS', 'Apache', 'Nginx', 'API', 'Autre'],
+  Conteneurs: ['Docker', 'Kubernetes', 'Registry', 'Deployment', 'Docker Compose', 'Helm', 'Autre'],
+  'IA-GPU': ['GPU Allocation', 'Machine Learning', 'IA Training', 'Inference', 'CUDA', 'TensorFlow', 'PyTorch', 'Drivers', 'Autre'],
+  Stockage: ['NAS', 'SAN', 'Volume', 'Extension capacité', 'NFS', 'SMB', 'Quotas', 'Autre'],
+  Sécurité: ['Antivirus', 'Audit', 'Firewall', 'IAM', 'MFA', 'Certificat', 'Autre'],
+  Sauvegarde: ['Backup configuration', 'Restore', 'Retention', 'Réplication', 'Archivage', 'Veeam', 'Autre'],
 };

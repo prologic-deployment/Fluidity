@@ -39,8 +39,12 @@ export class DashboardChangementsComponent implements OnInit {
     'Rollback',
     'Clôturé',
     'Rejeté',
+    'Annulé',
   ];
   readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
+
+  /** Statuts depuis lesquels le client propriétaire peut annuler son changement. */
+  readonly statutsAnnulables = ['Soumis', 'En attente de validation', 'Approuvé', 'Planifié'];
 
   constructor(
     private changementService: ChangementService,
@@ -107,26 +111,39 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  /** Seul le client propriétaire du changement peut le supprimer (ADMIN excepté). */
+  /** Le client connecté est le propriétaire du changement. */
   isOwner(changement: Changement): boolean {
     return this.auth.isClient() && changement.clientId === this.auth.getEmail();
   }
 
-  async deleteChangement(id: string | undefined): Promise<void> {
+  /**
+   * Annulation possible uniquement : client propriétaire + statut précoce.
+   * (Un dossier « Annulé » est figé : aucune action n'est plus proposée.)
+   */
+  isAnnulable(changement: Changement): boolean {
+    return this.isOwner(changement) && !!changement.statut && this.statutsAnnulables.includes(changement.statut);
+  }
+
+  /**
+   * « Annuler » remplace la suppression pour un client : le dossier reste en
+   * base, visible dans l'historique, et passe au statut « Annulé » (état final).
+   */
+  async annulerChangement(id: string | undefined): Promise<void> {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
-      title: 'Supprimer ce changement ?',
-      message: 'Cette action est définitive et ne pourra pas être annulée.',
-      confirmLabel: 'Supprimer',
+      title: 'Annuler ce changement ?',
+      message:
+        'Le changement sera conservé dans l\'historique avec le statut « Annulé ». Cette action est définitive : aucune reprise ne sera possible.',
+      confirmLabel: 'Annuler le changement',
       variant: 'destructive',
     });
     if (!ok) return;
-    this.changementService.delete(id).subscribe({
+    this.changementService.annuler(id).subscribe({
       next: () => {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
     });
   }
 
@@ -192,6 +209,8 @@ export class DashboardChangementsComponent implements OnInit {
       case 'Clôturé':
         return 'badge-secondary';
       case 'Rejeté':
+        return 'badge-destructive';
+      case 'Annulé':
         return 'badge-destructive';
       default:
         return 'badge-outline';

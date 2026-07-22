@@ -36,8 +36,12 @@ export class DashboardDemandesComponent implements OnInit {
     'Réalisée',
     'Clôturée',
     'Rejetée',
+    'Annulé',
   ];
   readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
+
+  /** Statuts depuis lesquels le client propriétaire peut annuler sa demande. */
+  readonly statutsAnnulables = ['Ouverte', "En cours d'analyse", 'En attente de validation', 'En attente client'];
 
   constructor(
     private demandeService: DemandeService,
@@ -100,26 +104,39 @@ export class DashboardDemandesComponent implements OnInit {
     this.transitionError = null;
   }
 
-  /** Seul le client propriétaire de la demande peut la supprimer (ADMIN excepté). */
+  /** Le client connecté est le propriétaire de la demande. */
   isOwner(demande: Demande): boolean {
     return this.auth.isClient() && demande.clientId === this.auth.getEmail();
   }
 
-  async deleteDemande(id: string | undefined): Promise<void> {
+  /**
+   * Annulation possible uniquement : client propriétaire + statut précoce.
+   * (Un dossier « Annulé » est figé : aucune action n'est plus proposée.)
+   */
+  isAnnulable(demande: Demande): boolean {
+    return this.isOwner(demande) && !!demande.statut && this.statutsAnnulables.includes(demande.statut);
+  }
+
+  /**
+   * « Annuler » remplace la suppression pour un client : le dossier reste en
+   * base, visible dans l'historique, et passe au statut « Annulé » (état final).
+   */
+  async annulerDemande(id: string | undefined): Promise<void> {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
-      title: 'Supprimer cette demande ?',
-      message: 'Cette action est définitive et ne pourra pas être annulée.',
-      confirmLabel: 'Supprimer',
+      title: 'Annuler cette demande ?',
+      message:
+        'La demande sera conservée dans l\'historique avec le statut « Annulé ». Cette action est définitive : aucune reprise ne sera possible.',
+      confirmLabel: 'Annuler la demande',
       variant: 'destructive',
     });
     if (!ok) return;
-    this.demandeService.delete(id).subscribe({
+    this.demandeService.annuler(id).subscribe({
       next: () => {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
     });
   }
 
@@ -187,6 +204,8 @@ export class DashboardDemandesComponent implements OnInit {
       case 'Clôturée':
         return 'badge-secondary';
       case 'Rejetée':
+        return 'badge-destructive';
+      case 'Annulé':
         return 'badge-destructive';
       default:
         return 'badge-outline';

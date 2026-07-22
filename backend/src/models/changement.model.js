@@ -11,6 +11,15 @@ const { CHANGEMENT_STATUTS } = require('../utils/workflow');
  *   -> 'Clôturé' (+ 'Rollback' et 'Rejeté')
  */
 
+/**
+ * Sections de spécifications affichées dynamiquement selon la catégorie :
+ *   general     -> toujours visible
+ *   serveur     -> VM / Infrastructure
+ *   reseau      -> Réseau
+ *   backup      -> Sauvegarde
+ *   baseDeDonnees / stockage / portailWeb / conteneurs / iaGpu / securite
+ *               -> catégories éponymes (sections ajoutées)
+ */
 const SpecificationsSchema = new Schema(
   {
     general: {
@@ -22,8 +31,17 @@ const SpecificationsSchema = new Schema(
       os: { type: String },
       cpuCores: { type: Number },
       ramGo: { type: Number },
-      disqueNvmeGo: { type: Number },
-      disqueSasGo: { type: Number },
+      // Disques dynamiques : paires [capacité Go] + [type] (NVMe/SAS/SSD/HDD/SATA/Autre)
+      disques: [
+        new Schema(
+          {
+            capaciteGo: { type: Number, required: true },
+            type: { type: String, required: true },
+            typePrecision: { type: String }, // précision libre quand type = 'Autre'
+          },
+          { _id: false }
+        ),
+      ],
     },
     reseau: {
       vlan: { type: String },
@@ -35,6 +53,36 @@ const SpecificationsSchema = new Schema(
       espaceBackupSupplementaireGo: { type: Number },
       retentionSouhaitee: { type: String },
       licencesNecessaires: { type: String },
+    },
+    baseDeDonnees: {
+      moteur: { type: String },
+      version: { type: String },
+      tailleGo: { type: Number },
+    },
+    stockage: {
+      typeStockage: { type: String },
+      capaciteGo: { type: Number },
+      protocole: { type: String },
+    },
+    portailWeb: {
+      domaine: { type: String },
+      sslRequis: { type: String }, // 'Oui' | 'Non'
+      technologie: { type: String },
+    },
+    conteneurs: {
+      plateforme: { type: String },
+      nombreReplicas: { type: Number },
+      cpuAlloue: { type: String },
+      memoireAllouee: { type: String },
+    },
+    iaGpu: {
+      typeGpu: { type: String },
+      nombreGpu: { type: Number },
+      framework: { type: String },
+    },
+    securite: {
+      perimetre: { type: String },
+      niveauCriticite: { type: String },
     },
   },
   { _id: false }

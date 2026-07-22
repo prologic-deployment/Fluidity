@@ -123,12 +123,11 @@
             <td class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="isOwner(c)" (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
+                <button *ngIf="isAnnulable(c)" (click)="$event.stopPropagation(); annulerChangement(c._id)" title="Annuler ce changement"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                    <path d="M10 11v6M14 11v6"></path>
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="m5.6 5.6 12.8 12.8"></path>
                   </svg>
                 </button>
                 <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -196,8 +195,15 @@
           <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
           <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
           <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
-          <div *ngIf="s.disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ s.disqueNvmeGo }}</p></div>
-          <div *ngIf="s.disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ s.disqueSasGo }}</p></div>
+          <div *ngIf="s.disques?.length" class="md:col-span-2">
+            <p class="detail-label">Disques</p>
+            <ul class="detail-value space-y-0.5">
+              <li *ngFor="let d of s.disques">{{ d.capaciteGo }} Go — {{ d.type === 'Autre' && d.typePrecision ? d.typePrecision : d.type }}</li>
+            </ul>
+          </div>
+          <!-- Ancien format (enregistrements historiques) -->
+          <div *ngIf="!s.disques?.length && $any(s).disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ $any(s).disqueNvmeGo }}</p></div>
+          <div *ngIf="!s.disques?.length && $any(s).disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ $any(s).disqueSasGo }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.reseau as r">
           <div *ngIf="r.vlan"><p class="detail-label">VLAN</p><p class="detail-value">{{ r.vlan }}</p></div>
@@ -207,8 +213,43 @@
         </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
-          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention souhaitée</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.licencesNecessaires"><p class="detail-label">Licences nécessaires</p><p class="detail-value">{{ b.licencesNecessaires }}</p></div>
         </ng-container>
+        <ng-container *ngIf="c.specifications.baseDeDonnees as db">
+          <div *ngIf="db.moteur"><p class="detail-label">Moteur BDD</p><p class="detail-value">{{ db.moteur }}</p></div>
+          <div *ngIf="db.version"><p class="detail-label">Version</p><p class="detail-value">{{ db.version }}</p></div>
+          <div *ngIf="db.tailleGo"><p class="detail-label">Taille (Go)</p><p class="detail-value">{{ db.tailleGo }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.stockage as st">
+          <div *ngIf="st.typeStockage"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ st.typeStockage }}</p></div>
+          <div *ngIf="st.capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ st.capaciteGo }}</p></div>
+          <div *ngIf="st.protocole"><p class="detail-label">Protocole</p><p class="detail-value">{{ st.protocole }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.portailWeb as pw">
+          <div *ngIf="pw.domaine"><p class="detail-label">Domaine</p><p class="detail-value">{{ pw.domaine }}</p></div>
+          <div *ngIf="pw.sslRequis"><p class="detail-label">SSL requis</p><p class="detail-value">{{ pw.sslRequis }}</p></div>
+          <div *ngIf="pw.technologie"><p class="detail-label">Technologie</p><p class="detail-value">{{ pw.technologie }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.conteneurs as ct">
+          <div *ngIf="ct.plateforme"><p class="detail-label">Plateforme</p><p class="detail-value">{{ ct.plateforme }}</p></div>
+          <div *ngIf="ct.nombreReplicas"><p class="detail-label">Réplicas</p><p class="detail-value">{{ ct.nombreReplicas }}</p></div>
+          <div *ngIf="ct.cpuAlloue"><p class="detail-label">CPU alloué</p><p class="detail-value">{{ ct.cpuAlloue }}</p></div>
+          <div *ngIf="ct.memoireAllouee"><p class="detail-label">Mémoire allouée</p><p class="detail-value">{{ ct.memoireAllouee }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.iaGpu as gpu">
+          <div *ngIf="gpu.typeGpu"><p class="detail-label">Type de GPU</p><p class="detail-value">{{ gpu.typeGpu }}</p></div>
+          <div *ngIf="gpu.nombreGpu"><p class="detail-label">Nombre de GPU</p><p class="detail-value">{{ gpu.nombreGpu }}</p></div>
+          <div *ngIf="gpu.framework"><p class="detail-label">Framework</p><p class="detail-value">{{ gpu.framework }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.securite as sec">
+          <div *ngIf="sec.perimetre"><p class="detail-label">Périmètre</p><p class="detail-value">{{ sec.perimetre }}</p></div>
+          <div *ngIf="sec.niveauCriticite"><p class="detail-label">Criticité</p><p class="detail-value">{{ sec.niveauCriticite }}</p></div>
+        </ng-container>
+        <div *ngIf="c.specifications.general?.commentaire" class="md:col-span-2">
+          <p class="detail-label">Commentaire</p>
+          <p class="detail-value whitespace-pre-line">{{ c.specifications.general?.commentaire }}</p>
+        </div>
       </div>
     </ng-container>
 
@@ -236,13 +277,17 @@
       </div>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isOwner(c)">
-      <button (click)="deleteChangement(c._id)" class="btn-destructive">
+    <p *ngIf="c.statut === 'Annulé'" class="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
+      Ce dossier est annulé : il reste visible dans l'historique mais ne suit plus aucun traitement et ne peut plus être modifié.
+    </p>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isAnnulable(c)">
+      <button (click)="annulerChangement(c._id)" class="btn-destructive">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="m5.6 5.6 12.8 12.8"></path>
         </svg>
-        Supprimer le changement
+        Annuler le changement
       </button>
     </div>
   </ng-container>

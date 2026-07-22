@@ -32,6 +32,7 @@ export const DEMANDE_TRANSITIONS: Record<string, Transition[]> = {
   Rejetée: [],
   Réalisée: [{ to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] }],
   Clôturée: [],
+  Annulé: [], // état final : exclu du workflow, aucune action possible
 };
 
 export const CHANGEMENT_TRANSITIONS: Record<string, Transition[]> = {
@@ -51,15 +52,16 @@ export const CHANGEMENT_TRANSITIONS: Record<string, Transition[]> = {
   'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
   Rejeté: [],
   Clôturé: [],
+  Annulé: [], // état final : exclu du workflow, aucune action possible
 };
 
-/** Statuts cibles atteignables depuis `from` pour `role` (ADMIN : tout autorisé). */
+/** Statuts cibles atteignables depuis `from` pour `role` (ADMIN : tout autorisé, sauf depuis « Annulé »). */
 export function availableTransitions(
   transitions: Record<string, Transition[]>,
   from: string | undefined,
   role: string | null | undefined
 ): string[] {
-  if (!from || !role) return [];
+  if (!from || !role || from === 'Annulé') return [];
   const options = transitions[from] || [];
   if (role === 'ADMIN') return options.map((o) => o.to);
   return options.filter((o) => o.roles.includes(role)).map((o) => o.to);
