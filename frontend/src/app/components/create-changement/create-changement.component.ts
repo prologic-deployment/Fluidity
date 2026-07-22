@@ -1,6 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormArray,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
@@ -24,12 +30,15 @@ import { UploadedFile } from '../../services/upload.service';
 })
 export class CreateChangementComponent implements OnInit {
   form!: FormGroup;
+
   typesChangement = TYPES_CHANGEMENT;
   categories = CATEGORIES_CHANGEMENT;
   servicesEnvironnement = SERVICES_ENVIRONNEMENT_CHANGEMENT;
+
   sousCategories: string[] = [];
   contrats: Contrat[] = [];
   piecesJointes: UploadedFile[] = [];
+
   loading = false;
   error: string | null = null;
 
@@ -44,7 +53,10 @@ export class CreateChangementComponent implements OnInit {
   ngOnInit(): void {
     this.form = this.fb.group({
       objetChangement: ['', Validators.required],
-      descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
+      descriptionDetaillee: [
+        '',
+        [Validators.required, Validators.minLength(10)],
+      ],
       serviceEnvironnement: ['', Validators.required],
       categorie: ['', Validators.required],
       sousCategorie: ['', Validators.required],
@@ -52,24 +64,26 @@ export class CreateChangementComponent implements OnInit {
       planRetourArriere: ['', Validators.required],
       typeChangement: ['Normal', Validators.required],
       contrat: ['', Validators.required],
+
       general: this.fb.group({
         ressourcesConcernees: [''],
-        // environnement: [''],
         commentaire: [''],
       }),
+
       serveur: this.fb.group({
         os: [''],
         cpuCores: [null],
         ramGo: [null],
-        disqueNvmeGo: [null],
-        disqueSasGo: [null],
+        disques: this.fb.array([]),
       }),
+
       reseau: this.fb.group({
         vlan: [''],
         adresseIp: [''],
         masqueSousReseau: [''],
         passerelle: [''],
       }),
+
       backup: this.fb.group({
         espaceBackupSupplementaireGo: [null],
         retentionSouhaitee: [''],
@@ -77,24 +91,29 @@ export class CreateChangementComponent implements OnInit {
       }),
     });
 
-    // Contrats du client connecté uniquement (un changement est toujours créé en son nom)
+    // Start with one disk
+    this.addDisk();
+
     this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
 
-    // Watch serviceEnvironnement changes
     this.form.get('serviceEnvironnement')?.valueChanges.subscribe((val) => {
       if (val !== 'Autre') {
         this.form.get('serviceEnvironnementAutre')?.setValue('');
         this.form.get('serviceEnvironnementAutre')?.clearValidators();
       } else {
-        this.form.get('serviceEnvironnementAutre')?.setValidators(Validators.required);
+        this.form
+          .get('serviceEnvironnementAutre')
+          ?.setValidators(Validators.required);
       }
-      this.form.get('serviceEnvironnementAutre')?.updateValueAndValidity();
+
+      this.form
+        .get('serviceEnvironnementAutre')
+        ?.updateValueAndValidity();
     });
 
-    // Watch categorie changes
     this.form.get('categorie')?.valueChanges.subscribe((val) => {
       if (val !== 'Autre') {
         this.form.get('categorieAutre')?.setValue('');
@@ -102,6 +121,7 @@ export class CreateChangementComponent implements OnInit {
       } else {
         this.form.get('categorieAutre')?.setValidators(Validators.required);
       }
+
       this.form.get('categorieAutre')?.updateValueAndValidity();
       this.onCategorieChange();
     });
@@ -135,15 +155,34 @@ export class CreateChangementComponent implements OnInit {
     this.form.get('sousCategorie')?.setValue('');
   }
 
-  /** Retire les champs vides/null pour ne pas polluer le payload. */
   private clean(obj: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
+
     for (const key of Object.keys(obj)) {
-      const v = obj[key];
-      if (v === '' || v === null || v === undefined) continue;
-      out[key] = v;
+      const value = obj[key];
+
+      if (value === '' || value === null || value === undefined) {
+        continue;
+      }
+
+      out[key] = value;
     }
+
     return out;
+  }
+
+  private cleanArray(arr: any[]): any[] {
+    return arr
+      .map((item) => {
+        const cleaned = this.clean(item);
+
+        if (cleaned['type'] !== 'Autre') {
+          delete cleaned['typeAutre'];
+        }
+
+        return cleaned;
+      })
+      .filter((item) => Object.keys(item).length > 0);
   }
 
   submit(): void {
@@ -151,28 +190,43 @@ export class CreateChangementComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
+
     const raw = this.form.value;
+
     const general = this.clean(raw.general);
     const serveur = this.clean(raw.serveur);
     const reseau = this.clean(raw.reseau);
     const backup = this.clean(raw.backup);
 
-    if (serveur['disques']) {
+    if (Array.isArray(serveur['disques'])) {
       serveur['disques'] = this.cleanArray(serveur['disques']);
-      if (serveur['disques'].length === 0) delete serveur['disques'];
+
+      if (!serveur['disques'].length) {
+        delete serveur['disques'];
+      }
     }
 
     const specifications: any = {};
-    if (Object.keys(general).length) specifications.general = general;
-    if (Object.keys(serveur).length) specifications.serveur = serveur;
-    if (Object.keys(reseau).length) specifications.reseau = reseau;
-    if (Object.keys(backup).length) specifications.backup = backup;
 
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
+    if (Object.keys(general).length) {
+      specifications.general = general;
+    }
+
+    if (Object.keys(serveur).length) {
+      specifications.serveur = serveur;
+    }
+
+    if (Object.keys(reseau).length) {
+      specifications.reseau = reseau;
+    }
+
+    if (Object.keys(backup).length) {
+      specifications.backup = backup;
+    }
+
     const payload: Changement = {
       objetChangement: raw.objetChangement,
       descriptionDetaillee: raw.descriptionDetaillee,
-      // serviceEnvironnement: raw.serviceEnvironnement,
       categorie: raw.categorie,
       sousCategorie: raw.sousCategorie,
       prerequisNecessaires: raw.prerequisNecessaires || undefined,
@@ -180,15 +234,23 @@ export class CreateChangementComponent implements OnInit {
       typeChangement: raw.typeChangement,
       contrat: raw.contrat,
       piecesJointes: this.piecesJointes.map((f) => f.url),
-      specifications: Object.keys(specifications).length ? specifications : undefined,
+      specifications:
+        Object.keys(specifications).length > 0
+          ? specifications
+          : undefined,
     };
 
     this.loading = true;
     this.error = null;
+
     this.changementService.create(payload).subscribe({
-      next: () => this.router.navigate(['/changements']),
+      next: () => {
+        this.router.navigate(['/changements']);
+      },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la création du changement.';
+        this.error =
+          err.error?.message ||
+          'Erreur lors de la création du changement.';
         this.loading = false;
       },
     });
