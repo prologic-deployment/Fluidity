@@ -69,12 +69,14 @@ export class CreateDemandeComponent implements OnInit {
     // Catégorie "Autre" : plus de liste de sous-catégories, la sous-catégorie devient elle-même
     // un champ libre obligatoire (categorieAutre + sousCategorieAutre)
     this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
+      const estAutre = cat === AUTRE;
       this.sousCategories = SOUS_CATEGORIES[cat] || [];
       this.form.get('sousCategorie')?.setValue('');
       this.form.get('sousCategorieAutre')?.setValue('');
-      this.setValidator(this.form.get('categorieAutre'), cat === AUTRE);
-      this.setValidator(this.form.get('sousCategorie'), cat !== AUTRE);
-      this.setValidator(this.form.get('sousCategorieAutre'), cat === AUTRE);
+      if (!estAutre) this.resetControl(this.form.get('categorieAutre')); // masqué => réinitialisé
+      this.setValidator(this.form.get('categorieAutre'), estAutre);
+      this.setValidator(this.form.get('sousCategorie'), !estAutre);
+      this.setValidator(this.form.get('sousCategorieAutre'), estAutre);
     });
 
     // "Autre" activé sur Sous-catégorie (cas d'une catégorie normale) : précision obligatoire
@@ -90,10 +92,17 @@ export class CreateDemandeComponent implements OnInit {
     });
   }
 
-  /** Abonne un contrôle "Autre" pour qu'il devienne obligatoire quand la valeur sélectionnée est "Autre". */
+  /**
+   * Abonne un contrôle "Autre" : le champ de précision devient obligatoire
+   * quand "Autre" est sélectionné, et il est masqué + réinitialisé dès qu'une
+   * autre valeur est choisie.
+   */
   private toggleAutreValidator(controlName: string, autreControlName: string): void {
     this.form.get(controlName)?.valueChanges.subscribe((val: string) => {
-      this.setValidator(this.form.get(autreControlName), val === AUTRE);
+      const autre = this.form.get(autreControlName);
+      const required = val === AUTRE;
+      if (!required) this.resetControl(autre);
+      this.setValidator(autre, required);
     });
   }
 
@@ -101,6 +110,13 @@ export class CreateDemandeComponent implements OnInit {
     if (!control) return;
     control.setValidators(required ? [Validators.required] : []);
     control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Vide un champ masqué et efface son état de validation. */
+  private resetControl(control: any): void {
+    if (!control) return;
+    control.setValue('', { emitEvent: false });
+    control.markAsUntouched();
   }
 
   onPiecesJointesChange(files: UploadedFile[]): void {

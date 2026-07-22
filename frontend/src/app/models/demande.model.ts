@@ -64,15 +64,20 @@ export const CATEGORIES: string[] = [
   'Autre',
 ];
 
+/**
+ * Sous-catégories proposées par catégorie (§ formulaire dynamique).
+ * Fusionnées à partir du cahier des charges et des besoins terrain ;
+ * chaque liste contient « Autre » pour laisser une précision libre.
+ */
 export const SOUS_CATEGORIES: Record<string, string[]> = {
-  Réseau: ['Switch', 'Routeur', 'VLAN', 'VPN', 'Firewall', 'DNS', 'DHCP', 'WiFi', 'Proxy', 'Load Balancer', 'Autre'],
-  Infrastructure: ['Serveur physique', 'Rack', 'Baie', 'Climatisation', 'Monitoring', 'Alimentation', 'Autre'],
-  VM: ['Création VM', 'Extension ressources', 'Migration', 'Snapshot', 'Clone', 'Suppression', 'Autre'],
-  'Base de données': ['SQL Server', 'PostgreSQL', 'MySQL', 'Oracle', 'MongoDB', 'Backup', 'Restore', 'Performance', 'Autre'],
-  'Portail web': ['IIS', 'Apache', 'Nginx', 'Certificat SSL', 'DNS', 'API', 'Autre'],
-  Conteneurs: ['Docker', 'Docker Compose', 'Kubernetes', 'Helm', 'Registry', 'Autre'],
-  'IA-GPU': ['CUDA', 'GPU Allocation', 'TensorFlow', 'PyTorch', 'Drivers', 'Autre'],
-  Stockage: ['NAS', 'SAN', 'NFS', 'SMB', 'Capacity', 'Quotas', 'Autre'],
-  Sécurité: ['Antivirus', 'IAM', 'MFA', 'Firewall', 'Audit', 'Certificat', 'Autre'],
-  Sauvegarde: ['Backup', 'Restore', 'Replication', 'Archive', 'Veeam', 'Autre'],
+  Réseau: ['VLAN', 'Firewall', 'DNS', 'DHCP', 'Routage', 'VPN', 'Load Balancer', 'Switch', 'WiFi', 'Proxy', 'Autre'],
+  Infrastructure: ['Serveur physique', 'Hyperviseur', 'Datacenter', 'Monitoring', 'Architecture', 'Rack / Baie', 'Climatisation', 'Alimentation', 'Autre'],
+  VM: ['Création VM', 'Extension ressources', 'Migration VM', 'Suppression VM', 'Snapshot', 'Clone', 'Autre'],
+  'Base de données': ['MySQL', 'PostgreSQL', 'MongoDB', 'Oracle', 'Backup DB', 'SQL Server', 'Restauration', 'Performance', 'Autre'],
+  'Portail web': ['Création portail', 'Déploiement', 'Maintenance', 'Domaine', 'SSL', 'IIS', 'Apache', 'Nginx', 'API', 'Autre'],
+  Conteneurs: ['Docker', 'Kubernetes', 'Registry', 'Deployment', 'Docker Compose', 'Helm', 'Autre'],
+  'IA-GPU': ['GPU Allocation', 'Machine Learning', 'IA Training', 'Inference', 'CUDA', 'TensorFlow', 'PyTorch', 'Drivers', 'Autre'],
+  Stockage: ['NAS', 'SAN', 'Volume', 'Extension capacité', 'NFS', 'SMB', 'Quotas', 'Autre'],
+  Sécurité: ['Antivirus', 'Audit', 'Firewall', 'IAM', 'MFA', 'Certificat', 'Autre'],
+  Sauvegarde: ['Backup configuration', 'Restore', 'Retention', 'Réplication', 'Archivage', 'Veeam', 'Autre'],
 };

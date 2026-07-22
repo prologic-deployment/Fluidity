@@ -46,7 +46,7 @@
               <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('typeDemande')?.value === 'Autre'">
-              <label class="field-label">Précisez le type</label>
+              <label class="field-label">Précisez votre type</label>
               <input formControlName="typeDemandeAutre" type="text" class="input" />
               <p *ngIf="form.get('typeDemandeAutre')?.invalid && form.get('typeDemandeAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
@@ -60,7 +60,7 @@
               <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'" class="md:col-span-2">
-              <label class="field-label">Précisez le service / environnement</label>
+              <label class="field-label">Précisez votre Service / Environnement</label>
               <input formControlName="serviceEnvironnementAutre" type="text" class="input" />
               <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
@@ -74,7 +74,7 @@
               <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">Précisez la catégorie</label>
+              <label class="field-label">Précisez votre catégorie</label>
               <input formControlName="categorieAutre" type="text" class="input" />
               <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
@@ -88,12 +88,12 @@
               <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('categorie')?.value !== 'Autre' && form.get('sousCategorie')?.value === 'Autre'">
-              <label class="field-label">Précisez la sous-catégorie</label>
+              <label class="field-label">Précisez votre sous-catégorie</label>
               <input formControlName="sousCategorieAutre" type="text" class="input" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">Précisez la sous-catégorie</label>
+              <label class="field-label">Précisez votre sous-catégorie</label>
               <input formControlName="sousCategorieAutre" type="text" class="input" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
