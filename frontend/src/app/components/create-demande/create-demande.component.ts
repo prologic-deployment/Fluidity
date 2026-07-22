@@ -17,6 +17,8 @@ import { Contrat } from '../../models/contrat.model';
 import { DropzoneComponent } from '../shared/dropzone.component';
 import { UploadedFile } from '../../services/upload.service';
 
+const AUTRE = 'Autre';
+
 @Component({
   selector: 'app-create-demande',
   standalone: true,
@@ -47,13 +49,38 @@ export class CreateDemandeComponent implements OnInit {
     this.form = this.fb.group({
       objet: ['', Validators.required],
       typeDemande: ['', Validators.required],
+      typeDemandeAutre: [''],
       serviceEnvironnement: ['', Validators.required],
+      serviceEnvironnementAutre: [''],
       categorie: ['', Validators.required],
+      categorieAutre: [''],
       sousCategorie: ['', Validators.required],
+      sousCategorieAutre: [''],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
       prioriteSouhaitee: ['Standard', Validators.required],
       informationsComplementaires: [''],
       contrat: ['', Validators.required],
+    });
+
+    // "Autre" activé sur Type / Service-Environnement : rend le champ de précision obligatoire
+    this.toggleAutreValidator('typeDemande', 'typeDemandeAutre');
+    this.toggleAutreValidator('serviceEnvironnement', 'serviceEnvironnementAutre');
+
+    // Catégorie "Autre" : plus de liste de sous-catégories, la sous-catégorie devient elle-même
+    // un champ libre obligatoire (categorieAutre + sousCategorieAutre)
+    this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
+      this.sousCategories = SOUS_CATEGORIES[cat] || [];
+      this.form.get('sousCategorie')?.setValue('');
+      this.form.get('sousCategorieAutre')?.setValue('');
+      this.setValidator(this.form.get('categorieAutre'), cat === AUTRE);
+      this.setValidator(this.form.get('sousCategorie'), cat !== AUTRE);
+      this.setValidator(this.form.get('sousCategorieAutre'), cat === AUTRE);
+    });
+
+    // "Autre" activé sur Sous-catégorie (cas d'une catégorie normale) : précision obligatoire
+    this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
+      if (this.form.get('categorie')?.value === AUTRE) return; // déjà géré ci-dessus
+      this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
     // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
@@ -63,14 +90,21 @@ export class CreateDemandeComponent implements OnInit {
     });
   }
 
-  onPiecesJointesChange(files: UploadedFile[]): void {
-    this.piecesJointes = files;
+  /** Abonne un contrôle "Autre" pour qu'il devienne obligatoire quand la valeur sélectionnée est "Autre". */
+  private toggleAutreValidator(controlName: string, autreControlName: string): void {
+    this.form.get(controlName)?.valueChanges.subscribe((val: string) => {
+      this.setValidator(this.form.get(autreControlName), val === AUTRE);
+    });
   }
 
-  onCategorieChange(): void {
-    const cat = this.form.get('categorie')?.value;
-    this.sousCategories = SOUS_CATEGORIES[cat] || [];
-    this.form.get('sousCategorie')?.setValue('');
+  private setValidator(control: any, required: boolean): void {
+    if (!control) return;
+    control.setValidators(required ? [Validators.required] : []);
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  onPiecesJointesChange(files: UploadedFile[]): void {
+    this.piecesJointes = files;
   }
 
   submit(): void {
@@ -79,13 +113,16 @@ export class CreateDemandeComponent implements OnInit {
       return;
     }
     const raw = this.form.value;
+    const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
+    const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
+
     // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Demande = {
       objet: raw.objet,
-      typeDemande: raw.typeDemande,
-      serviceEnvironnement: raw.serviceEnvironnement,
-      categorie: raw.categorie,
-      sousCategorie: raw.sousCategorie,
+      typeDemande: raw.typeDemande === AUTRE ? raw.typeDemandeAutre : raw.typeDemande,
+      serviceEnvironnement: raw.serviceEnvironnement === AUTRE ? raw.serviceEnvironnementAutre : raw.serviceEnvironnement,
+      categorie,
+      sousCategorie,
       descriptionDetaillee: raw.descriptionDetaillee,
       prioriteSouhaitee: raw.prioriteSouhaitee,
       contrat: raw.contrat,

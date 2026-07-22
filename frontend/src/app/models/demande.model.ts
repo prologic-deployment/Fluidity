@@ -44,25 +44,35 @@ export const TYPES_DEMANDE: string[] = [
 export const SERVICES_ENVIRONNEMENT: string[] = [
   'Production',
   'Pré-production',
-  'Test / QA',
+  'Test',
   'Développement',
-  'Sandbox',
+  'UAT',
+  'Autre',
 ];
 
 export const CATEGORIES: string[] = [
-  'Compte',
-  'Accès',
-  'Infrastructure',
-  'Sécurité',
   'Réseau',
+  'Infrastructure',
+  'VM',
+  'Base de données',
+  'Portail web',
+  'Conteneurs',
+  'IA-GPU',
+  'Stockage',
+  'Sécurité',
+  'Sauvegarde',
   'Autre',
 ];
 
 export const SOUS_CATEGORIES: Record<string, string[]> = {
-  Compte: ['Création', 'Modification', 'Suppression'],
-  Accès: ['VPN', 'Groupe', 'Application'],
-  Infrastructure: ['Serveur', 'Stockage', 'Base de données'],
-  Sécurité: ['Firewall', 'Certificat', 'Audit'],
-  Réseau: ['IP', 'VLAN', 'Routage'],
-  Autre: ['Divers'],
+  Réseau: ['Switch', 'Routeur', 'VLAN', 'VPN', 'Firewall', 'DNS', 'DHCP', 'WiFi', 'Proxy', 'Load Balancer', 'Autre'],
+  Infrastructure: ['Serveur physique', 'Rack', 'Baie', 'Climatisation', 'Monitoring', 'Alimentation', 'Autre'],
+  VM: ['Création VM', 'Extension ressources', 'Migration', 'Snapshot', 'Clone', 'Suppression', 'Autre'],
+  'Base de données': ['SQL Server', 'PostgreSQL', 'MySQL', 'Oracle', 'MongoDB', 'Backup', 'Restore', 'Performance', 'Autre'],
+  'Portail web': ['IIS', 'Apache', 'Nginx', 'Certificat SSL', 'DNS', 'API', 'Autre'],
+  Conteneurs: ['Docker', 'Docker Compose', 'Kubernetes', 'Helm', 'Registry', 'Autre'],
+  'IA-GPU': ['CUDA', 'GPU Allocation', 'TensorFlow', 'PyTorch', 'Drivers', 'Autre'],
+  Stockage: ['NAS', 'SAN', 'NFS', 'SMB', 'Capacity', 'Quotas', 'Autre'],
+  Sécurité: ['Antivirus', 'IAM', 'MFA', 'Firewall', 'Audit', 'Certificat', 'Autre'],
+  Sauvegarde: ['Backup', 'Restore', 'Replication', 'Archive', 'Veeam', 'Autre'],
 };
