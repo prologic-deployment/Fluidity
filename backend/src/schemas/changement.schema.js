@@ -54,6 +54,49 @@ const createChangementSchema = z.object({
           licencesNecessaires: z.string().optional(),
         })
         .optional(),
+      // --- Sections supplémentaires affichées selon la catégorie choisie ---
+      baseDeDonnees: z
+        .object({
+          moteur: z.string().optional(),
+          version: z.string().optional(),
+          tailleGo: optionalNumber,
+        })
+        .optional(),
+      stockage: z
+        .object({
+          typeStockage: z.string().optional(),
+          capaciteGo: optionalNumber,
+          protocole: z.string().optional(),
+        })
+        .optional(),
+      portailWeb: z
+        .object({
+          domaine: z.string().optional(),
+          sslRequis: z.string().optional(),
+          technologie: z.string().optional(),
+        })
+        .optional(),
+      conteneurs: z
+        .object({
+          plateforme: z.string().optional(),
+          nombreReplicas: optionalNumber,
+          cpuAlloue: z.string().optional(),
+          memoireAllouee: z.string().optional(),
+        })
+        .optional(),
+      iaGpu: z
+        .object({
+          typeGpu: z.string().optional(),
+          nombreGpu: optionalNumber,
+          framework: z.string().optional(),
+        })
+        .optional(),
+      securite: z
+        .object({
+          perimetre: z.string().optional(),
+          niveauCriticite: z.string().optional(),
+        })
+        .optional(),
     })
     .optional(),
 });

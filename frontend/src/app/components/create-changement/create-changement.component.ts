@@ -10,6 +10,7 @@ import {
   SOUS_CATEGORIES_CHANGEMENT,
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
+  SECTIONS_SPECIFICATIONS,
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
@@ -80,6 +81,37 @@ export class CreateChangementComponent implements OnInit {
         retentionSouhaitee: [''],
         licencesNecessaires: [''],
       }),
+      // --- Sections supplémentaires affichées selon la catégorie choisie ---
+      baseDeDonnees: this.fb.group({
+        moteur: [''],
+        version: [''],
+        tailleGo: [null],
+      }),
+      stockage: this.fb.group({
+        typeStockage: [''],
+        capaciteGo: [null],
+        protocole: [''],
+      }),
+      portailWeb: this.fb.group({
+        domaine: [''],
+        sslRequis: [''],
+        technologie: [''],
+      }),
+      conteneurs: this.fb.group({
+        plateforme: [''],
+        nombreReplicas: [null],
+        cpuAlloue: [''],
+        memoireAllouee: [''],
+      }),
+      iaGpu: this.fb.group({
+        typeGpu: [''],
+        nombreGpu: [null],
+        framework: [''],
+      }),
+      securite: this.fb.group({
+        perimetre: [''],
+        niveauCriticite: [''],
+      }),
     });
 
     // "Autre" sur Service / Environnement : champ de précision obligatoire,
@@ -137,6 +169,25 @@ export class CreateChangementComponent implements OnInit {
     this.piecesJointes = files;
   }
 
+  /**
+   * Une section de spécifications n'est affichée que si la catégorie
+   * sélectionnée la requiert ('general' reste toujours visible ; aucune
+   * section spécifique n'est proposée pour une catégorie « Autre » custom).
+   */
+  showSection(section: string): boolean {
+    if (section === 'general') return true;
+    const cat = this.form?.get('categorie')?.value;
+    if (!cat || cat === AUTRE) return false;
+    return (SECTIONS_SPECIFICATIONS[cat] || []).includes(section);
+  }
+
+  /** Clés des sections réellement envoyées : general + sections visibles. */
+  private sectionsVisibles(): string[] {
+    return ['general', 'serveur', 'reseau', 'backup', 'baseDeDonnees', 'stockage', 'portailWeb', 'conteneurs', 'iaGpu', 'securite'].filter(
+      (s) => this.showSection(s)
+    );
+  }
+
   /** Retire les champs vides/null pour ne pas polluer le payload. */
   private clean(obj: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
@@ -157,16 +208,12 @@ export class CreateChangementComponent implements OnInit {
     const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
     const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
 
-    const general = this.clean(raw.general);
-    const serveur = this.clean(raw.serveur);
-    const reseau = this.clean(raw.reseau);
-    const backup = this.clean(raw.backup);
-
+    // Ne persiste que les sections pertinentes pour la catégorie choisie
     const specifications: any = {};
-    if (Object.keys(general).length) specifications.general = general;
-    if (Object.keys(serveur).length) specifications.serveur = serveur;
-    if (Object.keys(reseau).length) specifications.reseau = reseau;
-    if (Object.keys(backup).length) specifications.backup = backup;
+    for (const section of this.sectionsVisibles()) {
+      const data = this.clean(raw[section] || {});
+      if (Object.keys(data).length) specifications[section] = data;
+    }
 
     // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     // Les valeurs « Autre » sont remplacées par leur précision libre avant envoi.

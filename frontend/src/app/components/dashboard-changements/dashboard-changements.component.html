@@ -209,6 +209,40 @@
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
           <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
         </ng-container>
+        <ng-container *ngIf="c.specifications.baseDeDonnees as db">
+          <div *ngIf="db.moteur"><p class="detail-label">Moteur BDD</p><p class="detail-value">{{ db.moteur }}</p></div>
+          <div *ngIf="db.version"><p class="detail-label">Version</p><p class="detail-value">{{ db.version }}</p></div>
+          <div *ngIf="db.tailleGo"><p class="detail-label">Taille (Go)</p><p class="detail-value">{{ db.tailleGo }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.stockage as st">
+          <div *ngIf="st.typeStockage"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ st.typeStockage }}</p></div>
+          <div *ngIf="st.capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ st.capaciteGo }}</p></div>
+          <div *ngIf="st.protocole"><p class="detail-label">Protocole</p><p class="detail-value">{{ st.protocole }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.portailWeb as pw">
+          <div *ngIf="pw.domaine"><p class="detail-label">Domaine</p><p class="detail-value">{{ pw.domaine }}</p></div>
+          <div *ngIf="pw.sslRequis"><p class="detail-label">SSL requis</p><p class="detail-value">{{ pw.sslRequis }}</p></div>
+          <div *ngIf="pw.technologie"><p class="detail-label">Technologie</p><p class="detail-value">{{ pw.technologie }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.conteneurs as ct">
+          <div *ngIf="ct.plateforme"><p class="detail-label">Plateforme</p><p class="detail-value">{{ ct.plateforme }}</p></div>
+          <div *ngIf="ct.nombreReplicas"><p class="detail-label">Réplicas</p><p class="detail-value">{{ ct.nombreReplicas }}</p></div>
+          <div *ngIf="ct.cpuAlloue"><p class="detail-label">CPU alloué</p><p class="detail-value">{{ ct.cpuAlloue }}</p></div>
+          <div *ngIf="ct.memoireAllouee"><p class="detail-label">Mémoire allouée</p><p class="detail-value">{{ ct.memoireAllouee }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.iaGpu as gpu">
+          <div *ngIf="gpu.typeGpu"><p class="detail-label">Type de GPU</p><p class="detail-value">{{ gpu.typeGpu }}</p></div>
+          <div *ngIf="gpu.nombreGpu"><p class="detail-label">Nombre de GPU</p><p class="detail-value">{{ gpu.nombreGpu }}</p></div>
+          <div *ngIf="gpu.framework"><p class="detail-label">Framework</p><p class="detail-value">{{ gpu.framework }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.securite as sec">
+          <div *ngIf="sec.perimetre"><p class="detail-label">Périmètre</p><p class="detail-value">{{ sec.perimetre }}</p></div>
+          <div *ngIf="sec.niveauCriticite"><p class="detail-label">Criticité</p><p class="detail-value">{{ sec.niveauCriticite }}</p></div>
+        </ng-container>
+        <div *ngIf="c.specifications.general?.commentaire" class="md:col-span-2">
+          <p class="detail-label">Commentaire</p>
+          <p class="detail-value whitespace-pre-line">{{ c.specifications.general?.commentaire }}</p>
+        </div>
       </div>
     </ng-container>
 
