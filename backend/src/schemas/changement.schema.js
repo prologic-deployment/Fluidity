@@ -9,6 +9,26 @@ const optionalNumber = z.preprocess(
   z.coerce.number().optional()
 );
 
+/**
+ * IPv4 strict (chaque octet 0-255), ex. 192.168.1.10.
+ * Appliqué à Adresse IP, Masque de sous-réseau et Passerelle.
+ */
+const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1\d\d|0?[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|0?[1-9]?\d)){3}$/;
+const optionalIpv4 = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? undefined : v),
+  z.string().regex(IPV4_REGEX, 'Adresse IPv4 invalide').optional()
+);
+
+/** Disque dynamique : [capacité Go] + [type] (+ précision libre si 'Autre'). */
+const disqueSchema = z.object({
+  capaciteGo: z.coerce.number().min(1, 'Capacité requise (Go)'),
+  type: z.string().min(1, 'Type de disque requis'),
+  typePrecision: z.string().optional(),
+});
+
+/** Rétention canonique "<nombre> <période>", ex. "6 Mois". */
+const RETENTION_REGEX = /^([1-9]|1[0-2]) (Jour|Semaines|Mois|Années)$/;
+
 const createChangementSchema = z.object({
   objetChangement: z.string().min(1, 'Objet du changement requis'),
   descriptionDetaillee: z.string().min(1, 'Description détaillée requise'),
@@ -35,22 +55,25 @@ const createChangementSchema = z.object({
           os: z.string().optional(),
           cpuCores: optionalNumber,
           ramGo: optionalNumber,
-          disqueNvmeGo: optionalNumber,
-          disqueSasGo: optionalNumber,
+          // Remplace disqueNvmeGo / disqueSasGo : liste dynamique de disques
+          disques: z.array(disqueSchema).optional(),
         })
         .optional(),
       reseau: z
         .object({
           vlan: z.string().optional(),
-          adresseIp: z.string().optional(),
-          masqueSousReseau: z.string().optional(),
-          passerelle: z.string().optional(),
+          adresseIp: optionalIpv4,
+          masqueSousReseau: optionalIpv4,
+          passerelle: optionalIpv4,
         })
         .optional(),
       backup: z
         .object({
           espaceBackupSupplementaireGo: optionalNumber,
-          retentionSouhaitee: z.string().optional(),
+          retentionSouhaitee: z
+            .string()
+            .regex(RETENTION_REGEX, 'Rétention attendue au format « <1-12> <Jour|Semaines|Mois|Années> »')
+            .optional(),
           licencesNecessaires: z.string().optional(),
         })
         .optional(),

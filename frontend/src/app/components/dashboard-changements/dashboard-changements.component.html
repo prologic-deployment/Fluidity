@@ -196,8 +196,15 @@
           <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
           <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
           <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
-          <div *ngIf="s.disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ s.disqueNvmeGo }}</p></div>
-          <div *ngIf="s.disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ s.disqueSasGo }}</p></div>
+          <div *ngIf="s.disques?.length" class="md:col-span-2">
+            <p class="detail-label">Disques</p>
+            <ul class="detail-value space-y-0.5">
+              <li *ngFor="let d of s.disques">{{ d.capaciteGo }} Go — {{ d.type === 'Autre' && d.typePrecision ? d.typePrecision : d.type }}</li>
+            </ul>
+          </div>
+          <!-- Ancien format (enregistrements historiques) -->
+          <div *ngIf="!s.disques?.length && $any(s).disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ $any(s).disqueNvmeGo }}</p></div>
+          <div *ngIf="!s.disques?.length && $any(s).disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ $any(s).disqueSasGo }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.reseau as r">
           <div *ngIf="r.vlan"><p class="detail-label">VLAN</p><p class="detail-value">{{ r.vlan }}</p></div>
@@ -207,7 +214,8 @@
         </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
-          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention souhaitée</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.licencesNecessaires"><p class="detail-label">Licences nécessaires</p><p class="detail-value">{{ b.licencesNecessaires }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.baseDeDonnees as db">
           <div *ngIf="db.moteur"><p class="detail-label">Moteur BDD</p><p class="detail-value">{{ db.moteur }}</p></div>

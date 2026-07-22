@@ -28,8 +28,8 @@ export interface Specifications {
     os?: string;
     cpuCores?: number;
     ramGo?: number;
-    disqueNvmeGo?: number;
-    disqueSasGo?: number;
+    // Disques dynamiques : remplace les anciens champs fixes disqueNvmeGo / disqueSasGo
+    disques?: DisqueServeur[];
   };
   reseau?: {
     vlan?: string;
@@ -39,6 +39,7 @@ export interface Specifications {
   };
   backup?: {
     espaceBackupSupplementaireGo?: number;
+    /** Valeur canonique composée « <1-12> <période> », ex. « 6 Mois ». */
     retentionSouhaitee?: string;
     licencesNecessaires?: string;
   };
@@ -108,6 +109,25 @@ export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = SERVICES_ENVIRONNEMEN
 export const CATEGORIES_CHANGEMENT: string[] = CATEGORIES;
 
 export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = SOUS_CATEGORIES;
+
+/** Disque dynamique des Spécifications — Serveur : [capacité Go] + [type]. */
+export interface DisqueServeur {
+  capaciteGo: number;
+  type: string; // NVMe | SAS | SSD | HDD | SATA | Autre
+  typePrecision?: string; // précision libre quand type = 'Autre'
+}
+
+/** Types de disques proposés dans le dropdown. */
+export const TYPES_DISQUE: string[] = ['NVMe', 'SAS', 'SSD', 'HDD', 'SATA', 'Autre'];
+
+/** Périodes de rétention proposées (Spécifications — Sauvegarde). */
+export const RETENTION_PERIODES: string[] = ['Jour', 'Semaines', 'Mois', 'Années'];
+
+/** Nombres de rétention proposés (1 à 12). */
+export const RETENTION_NOMBRES: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+/** Motif IPv4 utilisé pour la validation des champs réseau. */
+export const IPV4_PATTERN = '^(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)){3}$';
 
 /**
  * Sections de spécifications affichées dynamiquement selon la catégorie.

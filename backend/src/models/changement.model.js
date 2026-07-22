@@ -31,8 +31,17 @@ const SpecificationsSchema = new Schema(
       os: { type: String },
       cpuCores: { type: Number },
       ramGo: { type: Number },
-      disqueNvmeGo: { type: Number },
-      disqueSasGo: { type: Number },
+      // Disques dynamiques : paires [capacité Go] + [type] (NVMe/SAS/SSD/HDD/SATA/Autre)
+      disques: [
+        new Schema(
+          {
+            capaciteGo: { type: Number, required: true },
+            type: { type: String, required: true },
+            typePrecision: { type: String }, // précision libre quand type = 'Autre'
+          },
+          { _id: false }
+        ),
+      ],
     },
     reseau: {
       vlan: { type: String },

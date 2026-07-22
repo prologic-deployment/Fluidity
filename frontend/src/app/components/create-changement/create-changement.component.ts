@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
@@ -11,6 +11,11 @@ import {
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
   SECTIONS_SPECIFICATIONS,
+  TYPES_DISQUE,
+  RETENTION_NOMBRES,
+  RETENTION_PERIODES,
+  IPV4_PATTERN,
+  DisqueServeur,
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
@@ -18,6 +23,18 @@ import { DropzoneComponent } from '../shared/dropzone.component';
 import { UploadedFile } from '../../services/upload.service';
 
 const AUTRE = 'Autre';
+
+/**
+ * Rétention sauvegarde : les deux dropdowns vont de pair — soit les deux
+ * sont renseignés (ex. 6 | Mois), soit aucun (rétention non précisée).
+ */
+function retentionCompleteValidator(control: AbstractControl): ValidationErrors | null {
+  const nombre = control.get('retentionNombre')?.value;
+  const periode = control.get('retentionPeriode')?.value;
+  const a = nombre !== null && nombre !== undefined && nombre !== '';
+  const b = periode !== null && periode !== undefined && periode !== '';
+  return a === b ? null : { retentionIncomplete: true };
+}
 
 @Component({
   selector: 'app-create-changement',
@@ -35,6 +52,11 @@ export class CreateChangementComponent implements OnInit {
   piecesJointes: UploadedFile[] = [];
   loading = false;
   error: string | null = null;
+
+  // Spécifications — Serveur : disques dynamiques / Sauvegarde : rétention
+  typesDisque = TYPES_DISQUE;
+  retentionNombres = RETENTION_NOMBRES;
+  retentionPeriodes = RETENTION_PERIODES;
 
   constructor(
     private fb: FormBuilder,
@@ -67,20 +89,25 @@ export class CreateChangementComponent implements OnInit {
         os: [''],
         cpuCores: [null],
         ramGo: [null],
-        disqueNvmeGo: [null],
-        disqueSasGo: [null],
+        // Disques dynamiques : [capacité Go] + [type] (+ précision si 'Autre')
+        disques: this.fb.array([]),
       }),
       reseau: this.fb.group({
         vlan: [''],
-        adresseIp: [''],
-        masqueSousReseau: [''],
-        passerelle: [''],
+        // Validation stricte du format IPv4 (octets 0-255)
+        adresseIp: ['', Validators.pattern(IPV4_PATTERN)],
+        masqueSousReseau: ['', Validators.pattern(IPV4_PATTERN)],
+        passerelle: ['', Validators.pattern(IPV4_PATTERN)],
       }),
-      backup: this.fb.group({
-        espaceBackupSupplementaireGo: [null],
-        retentionSouhaitee: [''],
-        licencesNecessaires: [''],
-      }),
+      backup: this.fb.group(
+        {
+          espaceBackupSupplementaireGo: [null],
+          retentionNombre: [null],
+          retentionPeriode: [''],
+          licencesNecessaires: [''],
+        },
+        { validators: [retentionCompleteValidator] }
+      ),
       // --- Sections supplémentaires affichées selon la catégorie choisie ---
       baseDeDonnees: this.fb.group({
         moteur: [''],
@@ -169,6 +196,41 @@ export class CreateChangementComponent implements OnInit {
     this.piecesJointes = files;
   }
 
+  // --- Disques dynamiques (Spécifications — Serveur) ----------------------
+
+  get disques(): FormArray {
+    return this.form.get('serveur.disques') as FormArray;
+  }
+
+  addDisque(): void {
+    this.disques.push(
+      this.fb.group({
+        capaciteGo: [null, [Validators.required, Validators.min(1)]],
+        type: ['NVMe', Validators.required],
+        typePrecision: [''],
+      })
+    );
+  }
+
+  removeDisque(index: number): void {
+    this.disques.removeAt(index);
+  }
+
+  /** Précision libre requise uniquement quand le type de disque est « Autre ». */
+  onDisqueTypeChange(index: number): void {
+    const group = this.disques.at(index) as FormGroup;
+    const precision = group.get('typePrecision');
+    const required = group.get('type')?.value === AUTRE;
+    if (!required) {
+      precision?.setValue('', { emitEvent: false });
+      precision?.markAsUntouched();
+    }
+    if (precision) {
+      precision.setValidators(required ? [Validators.required] : []);
+      precision.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
   /**
    * Une section de spécifications n'est affichée que si la catégorie
    * sélectionnée la requiert ('general' reste toujours visible ; aucune
@@ -211,8 +273,31 @@ export class CreateChangementComponent implements OnInit {
     // Ne persiste que les sections pertinentes pour la catégorie choisie
     const specifications: any = {};
     for (const section of this.sectionsVisibles()) {
-      const data = this.clean(raw[section] || {});
-      if (Object.keys(data).length) specifications[section] = data;
+      if (section === 'serveur') {
+        const serveur: any = this.clean(raw.serveur || {});
+        delete serveur.disques; // reconstruit proprement ci-dessous
+        const disques: DisqueServeur[] = (raw.serveur?.disques || [])
+          .filter((d: any) => d?.capaciteGo && d?.type)
+          .map((d: any) => {
+            const disque: DisqueServeur = { capaciteGo: Number(d.capaciteGo), type: d.type };
+            if (d.type === AUTRE && d.typePrecision) disque.typePrecision = d.typePrecision;
+            return disque;
+          });
+        if (disques.length) serveur.disques = disques;
+        if (Object.keys(serveur).length) specifications.serveur = serveur;
+      } else if (section === 'backup') {
+        const backup: any = this.clean(raw.backup || {});
+        delete backup.retentionNombre;
+        delete backup.retentionPeriode;
+        // Rétention composée « <nombre> <période> », ex. « 6 Mois »
+        if (raw.backup?.retentionNombre && raw.backup?.retentionPeriode) {
+          backup.retentionSouhaitee = `${raw.backup.retentionNombre} ${raw.backup.retentionPeriode}`;
+        }
+        if (Object.keys(backup).length) specifications.backup = backup;
+      } else {
+        const data = this.clean(raw[section] || {});
+        if (Object.keys(data).length) specifications[section] = data;
+      }
     }
 
     // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)

@@ -200,14 +200,44 @@
               <label class="field-label">RAM (Go)</label>
               <input formControlName="ramGo" type="number" min="0" class="input" />
             </div>
-            <div>
-              <label class="field-label">Disque NVMe (Go)</label>
-              <input formControlName="disqueNvmeGo" type="number" min="0" class="input" />
+          </div>
+
+          <!-- Disques dynamiques : [capacité Go] [type] (+ précision si « Autre ») -->
+          <div class="mt-4" formArrayName="disques">
+            <div class="flex items-center justify-between mb-2">
+              <label class="field-label mb-0">Disques</label>
+              <button type="button" (click)="addDisque()" class="btn-outline btn-sm">
+                <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                Ajouter un disque
+              </button>
             </div>
-            <div>
-              <label class="field-label">Disque SAS (Go)</label>
-              <input formControlName="disqueSasGo" type="number" min="0" class="input" />
+            <p *ngIf="disques.length === 0" class="text-xs text-muted-foreground">
+              Aucun disque ajouté — cliquez sur « Ajouter un disque » pour déclarer le stockage (ex : 500 | NVMe).
+            </p>
+            <div *ngFor="let d of disques.controls; let i = index" [formGroupName]="i" class="flex items-start gap-2 mt-2">
+              <div class="w-32">
+                <input formControlName="capaciteGo" type="number" min="1" class="input" placeholder="500" />
+              </div>
+              <span class="text-xs text-muted-foreground mt-3">Go</span>
+              <div class="w-36">
+                <select formControlName="type" (change)="onDisqueTypeChange(i)" class="select">
+                  <option *ngFor="let t of typesDisque" [value]="t">{{ t }}</option>
+                </select>
+              </div>
+              <div *ngIf="d.get('type')?.value === 'Autre'" class="flex-1">
+                <input formControlName="typePrecision" type="text" class="input" placeholder="Précisez le type de disque" />
+              </div>
+              <button type="button" (click)="removeDisque(i)" title="Retirer ce disque"
+                class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive mt-1">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  <path d="M10 11v6M14 11v6"></path>
+                </svg>
+              </button>
             </div>
+            <p *ngIf="disques.invalid && disques.touched" class="field-error mt-1">
+              Chaque disque doit avoir une capacité (Go ≥ 1) et un type.
+            </p>
           </div>
         </div>
       </section>
@@ -241,15 +271,24 @@
             </div>
             <div>
               <label class="field-label">Adresse IP</label>
-              <input formControlName="adresseIp" type="text" class="input" />
+              <input formControlName="adresseIp" type="text" class="input" placeholder="ex : 192.168.1.10" />
+              <p *ngIf="form.get('reseau.adresseIp')?.hasError('pattern') && form.get('reseau.adresseIp')?.touched" class="field-error">
+                Format IPv4 invalide (ex : 192.168.1.10).
+              </p>
             </div>
             <div>
               <label class="field-label">Masque de sous-réseau</label>
-              <input formControlName="masqueSousReseau" type="text" class="input" />
+              <input formControlName="masqueSousReseau" type="text" class="input" placeholder="ex : 255.255.255.0" />
+              <p *ngIf="form.get('reseau.masqueSousReseau')?.hasError('pattern') && form.get('reseau.masqueSousReseau')?.touched" class="field-error">
+                Format IPv4 invalide (ex : 255.255.255.0).
+              </p>
             </div>
             <div>
               <label class="field-label">Passerelle</label>
-              <input formControlName="passerelle" type="text" class="input" />
+              <input formControlName="passerelle" type="text" class="input" placeholder="ex : 192.168.1.1" />
+              <p *ngIf="form.get('reseau.passerelle')?.hasError('pattern') && form.get('reseau.passerelle')?.touched" class="field-error">
+                Format IPv4 invalide (ex : 192.168.1.1).
+              </p>
             </div>
           </div>
         </div>
@@ -281,7 +320,19 @@
             </div>
             <div>
               <label class="field-label">Rétention souhaitée</label>
-              <input formControlName="retentionSouhaitee" type="text" class="input" />
+              <div class="flex gap-2">
+                <select formControlName="retentionNombre" class="select w-24">
+                  <option [ngValue]="null" disabled>Nombre</option>
+                  <option *ngFor="let n of retentionNombres" [ngValue]="n">{{ n }}</option>
+                </select>
+                <select formControlName="retentionPeriode" class="select flex-1">
+                  <option value="" disabled>Période</option>
+                  <option *ngFor="let p of retentionPeriodes" [value]="p">{{ p }}</option>
+                </select>
+              </div>
+              <p *ngIf="form.get('backup')?.hasError('retentionIncomplete') && form.get('backup')?.touched" class="field-error">
+                Choisissez un nombre et une période (ex : 6 | Mois).
+              </p>
             </div>
             <div class="md:col-span-2">
               <label class="field-label">Licences nécessaires</label>
