@@ -108,7 +108,7 @@ export class CreateChangementComponent implements OnInit {
   }
 
   get disquesArray(): FormArray {
-    return this.form.get('serveur['disques']') as FormArray;
+    return this.form.get('serveur.disques') as FormArray;
   }
 
   addDisk(): void {
