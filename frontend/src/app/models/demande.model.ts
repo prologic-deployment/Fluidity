@@ -2,7 +2,7 @@ export type PrioriteDemande = 'Standard' | 'Élevée' | 'Urgente';
 
 export type StatutDemande =
   | 'Ouverte'
-  | 'En cours d'analyse'
+  | "En cours d'analyse"
   | 'En attente de validation'
   | 'En cours de réalisation'
   | 'En attente client'
@@ -38,8 +38,8 @@ export const PRIORITES: PrioriteDemande[] = ['Standard', 'Élevée', 'Urgente'];
 
 export const TYPES_DEMANDE: string[] = [
   'Création de compte',
-  'Modification d'accès',
-  'Demande d'information',
+  "Modification d'accès",
+  "Demande d'information",
   'Extension de ressources',
   'Support technique',
   'Autre',
