@@ -1,4 +1,10 @@
-export type TypeChangement = 'Standard' | 'Majeur' | 'Urgent';
+import { CATEGORIES, SERVICES_ENVIRONNEMENT, SOUS_CATEGORIES } from './demande.model';
+
+/**
+ * Types de changement côté frontend — alignés sur l'enum backend
+ * (backend/src/models/changement.model.js) : 'Normal' | 'Majeur' | 'Urgent'.
+ */
+export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
@@ -59,30 +65,15 @@ export interface Changement {
   updatedAt?: string;
 }
 
-export const TYPES_CHANGEMENT: TypeChangement[] = ['Standard', 'Majeur', 'Urgent'];
+export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
 
-export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = [
-  'Production',
-  'Pré-production',
-  'Test / QA',
-  'Développement',
-  'Sandbox',
-];
+/**
+ * Listes partagées avec le module Demandes (même catalogue imposé) :
+ * Service / Environnement, Catégories et Sous-catégories dynamiques,
+ * avec pour chacune l'entrée « Autre » qui ouvre un champ de précision.
+ */
+export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = SERVICES_ENVIRONNEMENT;
 
-export const CATEGORIES_CHANGEMENT: string[] = [
-  'Réseau',
-  'Serveur',
-  'Base de données',
-  'Sécurité',
-  'Application',
-  'Autre',
-];
+export const CATEGORIES_CHANGEMENT: string[] = CATEGORIES;
 
-export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = {
-  Réseau: ['VLAN', 'Routage', 'Firewall', 'Load Balancer'],
-  Serveur: ['Physique', 'Virtuel', 'Cloud', 'Mise à jour OS'],
-  'Base de données': ['Migration', 'Sauvegarde', 'Restauration', 'Optimisation'],
-  Sécurité: ['Certificat', 'Pare-feu', 'Durcissement'],
-  Application: ['Déploiement', 'Mise à jour', 'Configuration'],
-  Autre: ['Divers'],
-};
+export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = SOUS_CATEGORIES;

@@ -16,6 +16,8 @@ import { Contrat } from '../../models/contrat.model';
 import { DropzoneComponent } from '../shared/dropzone.component';
 import { UploadedFile } from '../../services/upload.service';
 
+const AUTRE = 'Autre';
+
 @Component({
   selector: 'app-create-changement',
   standalone: true,
@@ -46,15 +48,18 @@ export class CreateChangementComponent implements OnInit {
       objetChangement: ['', Validators.required],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
       serviceEnvironnement: ['', Validators.required],
+      serviceEnvironnementAutre: [''],
       categorie: ['', Validators.required],
+      categorieAutre: [''],
       sousCategorie: ['', Validators.required],
+      sousCategorieAutre: [''],
+      fenetreIntervention: ['', Validators.required],
       prerequisNecessaires: [''],
       planRetourArriere: ['', Validators.required],
       typeChangement: ['Normal', Validators.required],
       contrat: ['', Validators.required],
       general: this.fb.group({
         ressourcesConcernees: [''],
-        // environnement: [''],
         commentaire: [''],
       }),
       serveur: this.fb.group({
@@ -77,6 +82,29 @@ export class CreateChangementComponent implements OnInit {
       }),
     });
 
+    // "Autre" sur Service / Environnement : champ de précision obligatoire,
+    // masqué et réinitialisé dès qu'une autre valeur est choisie
+    this.toggleAutreValidator('serviceEnvironnement', 'serviceEnvironnementAutre');
+
+    // Catégorie "Autre" : catégorie + sous-catégorie deviennent des champs
+    // libres obligatoires ; sinon la liste de sous-catégories suit la catégorie
+    this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
+      const estAutre = cat === AUTRE;
+      this.sousCategories = SOUS_CATEGORIES_CHANGEMENT[cat] || [];
+      this.form.get('sousCategorie')?.setValue('');
+      this.form.get('sousCategorieAutre')?.setValue('');
+      if (!estAutre) this.resetControl(this.form.get('categorieAutre'));
+      this.setValidator(this.form.get('categorieAutre'), estAutre);
+      this.setValidator(this.form.get('sousCategorie'), !estAutre);
+      this.setValidator(this.form.get('sousCategorieAutre'), estAutre);
+    });
+
+    // "Autre" sur Sous-catégorie (catégorie standard) : précision obligatoire
+    this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
+      if (this.form.get('categorie')?.value === AUTRE) return; // déjà géré ci-dessus
+      this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
+    });
+
     // Contrats du client connecté uniquement (un changement est toujours créé en son nom)
     this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
       next: (data) => (this.contrats = data),
@@ -84,14 +112,29 @@ export class CreateChangementComponent implements OnInit {
     });
   }
 
-  onPiecesJointesChange(files: UploadedFile[]): void {
-    this.piecesJointes = files;
+  private toggleAutreValidator(controlName: string, autreControlName: string): void {
+    this.form.get(controlName)?.valueChanges.subscribe((val: string) => {
+      const autre = this.form.get(autreControlName);
+      const required = val === AUTRE;
+      if (!required) this.resetControl(autre);
+      this.setValidator(autre, required);
+    });
   }
 
-  onCategorieChange(): void {
-    const cat = this.form.get('categorie')?.value;
-    this.sousCategories = SOUS_CATEGORIES_CHANGEMENT[cat] || [];
-    this.form.get('sousCategorie')?.setValue('');
+  private setValidator(control: any, required: boolean): void {
+    if (!control) return;
+    control.setValidators(required ? [Validators.required] : []);
+    control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private resetControl(control: any): void {
+    if (!control) return;
+    control.setValue('', { emitEvent: false });
+    control.markAsUntouched();
+  }
+
+  onPiecesJointesChange(files: UploadedFile[]): void {
+    this.piecesJointes = files;
   }
 
   /** Retire les champs vides/null pour ne pas polluer le payload. */
@@ -111,6 +154,9 @@ export class CreateChangementComponent implements OnInit {
       return;
     }
     const raw = this.form.value;
+    const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
+    const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
+
     const general = this.clean(raw.general);
     const serveur = this.clean(raw.serveur);
     const reseau = this.clean(raw.reseau);
@@ -123,12 +169,15 @@ export class CreateChangementComponent implements OnInit {
     if (Object.keys(backup).length) specifications.backup = backup;
 
     // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
+    // Les valeurs « Autre » sont remplacées par leur précision libre avant envoi.
     const payload: Changement = {
       objetChangement: raw.objetChangement,
       descriptionDetaillee: raw.descriptionDetaillee,
-      // serviceEnvironnement: raw.serviceEnvironnement,
-      categorie: raw.categorie,
-      sousCategorie: raw.sousCategorie,
+      serviceEnvironnement:
+        raw.serviceEnvironnement === AUTRE ? raw.serviceEnvironnementAutre : raw.serviceEnvironnement,
+      categorie,
+      sousCategorie,
+      fenetreIntervention: new Date(raw.fenetreIntervention).toISOString(),
       prerequisNecessaires: raw.prerequisNecessaires || undefined,
       planRetourArriere: raw.planRetourArriere,
       typeChangement: raw.typeChangement,
