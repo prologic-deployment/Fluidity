@@ -1,4 +1,4 @@
-export type TypeChangement = 'Standard' | 'Majeur' | 'Urgent';
+export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
@@ -44,10 +44,10 @@ export interface Changement {
   clientId?: string; // dérivé côté serveur du compte authentifié à la création
   objetChangement: string;
   descriptionDetaillee: string;
-  serviceEnvironnement?: string;
+  serviceEnvironnement: string;
   categorie: string;
   sousCategorie: string;
-  fenetreIntervention?: string;
+  fenetreIntervention: string;
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
@@ -59,30 +59,40 @@ export interface Changement {
   updatedAt?: string;
 }
 
-export const TYPES_CHANGEMENT: TypeChangement[] = ['Standard', 'Majeur', 'Urgent'];
+export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
 
 export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = [
   'Production',
   'Pré-production',
-  'Test / QA',
+  'Test',
   'Développement',
-  'Sandbox',
+  'UAT',
+  'Autre',
 ];
 
 export const CATEGORIES_CHANGEMENT: string[] = [
   'Réseau',
-  'Serveur',
+  'Infrastructure',
+  'VM',
   'Base de données',
+  'Portail web',
+  'Conteneurs',
+  'IA-GPU',
+  'Stockage',
   'Sécurité',
-  'Application',
+  'Sauvegarde',
   'Autre',
 ];
 
 export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = {
-  Réseau: ['VLAN', 'Routage', 'Firewall', 'Load Balancer'],
-  Serveur: ['Physique', 'Virtuel', 'Cloud', 'Mise à jour OS'],
-  'Base de données': ['Migration', 'Sauvegarde', 'Restauration', 'Optimisation'],
-  Sécurité: ['Certificat', 'Pare-feu', 'Durcissement'],
-  Application: ['Déploiement', 'Mise à jour', 'Configuration'],
-  Autre: ['Divers'],
+  Réseau: ['Switch', 'Routeur', 'VLAN', 'VPN', 'Firewall', 'DNS', 'DHCP', 'WiFi', 'Proxy', 'Load Balancer', 'Autre'],
+  Infrastructure: ['Serveur physique', 'Rack', 'Baie', 'Climatisation', 'Monitoring', 'Alimentation', 'Autre'],
+  VM: ['Création VM', 'Extension ressources', 'Migration', 'Snapshot', 'Clone', 'Suppression', 'Autre'],
+  'Base de données': ['SQL Server', 'PostgreSQL', 'MySQL', 'Oracle', 'MongoDB', 'Backup', 'Restore', 'Performance', 'Autre'],
+  'Portail web': ['IIS', 'Apache', 'Nginx', 'Certificat SSL', 'DNS', 'API', 'Autre'],
+  Conteneurs: ['Docker', 'Docker Compose', 'Kubernetes', 'Helm', 'Registry', 'Autre'],
+  'IA-GPU': ['CUDA', 'GPU Allocation', 'TensorFlow', 'PyTorch', 'Drivers', 'Autre'],
+  Stockage: ['NAS', 'SAN', 'NFS', 'SMB', 'Capacity', 'Quotas', 'Autre'],
+  Sécurité: ['Antivirus', 'IAM', 'MFA', 'Firewall', 'Audit', 'Certificat', 'Autre'],
+  Sauvegarde: ['Backup', 'Restore', 'Replication', 'Archive', 'Veeam', 'Autre'],
 };
