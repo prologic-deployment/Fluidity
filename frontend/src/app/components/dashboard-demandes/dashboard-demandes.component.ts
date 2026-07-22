@@ -136,7 +136,7 @@ export class DashboardDemandesComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler cette demande ?',
-      message: 'La demande restera visible dans l'historique mais ne pourra plus être traitée.',
+      message: 'La demande restera visible dans l\'historique mais ne pourra plus être traitée.',
       confirmLabel: 'Annuler la demande',
       variant: 'destructive',
     });
@@ -146,7 +146,7 @@ export class DashboardDemandesComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l'annulation.'),
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
     });
   }
 

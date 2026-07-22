@@ -33,7 +33,9 @@ export class DemandeService {
 
   delete(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.baseUrl}/${id}`);
-    cancel(id: string): Observable<Demande> {
+  }
+
+  cancel(id: string): Observable<Demande> {
     return this.http.patch<Demande>(`${this.baseUrl}/${id}/annuler`, {});
   }
 }

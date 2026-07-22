@@ -5,7 +5,7 @@ export type StatutChangement =
   | 'En attente de validation'
   | 'Approuvé'
   | 'Planifié'
-  | 'En cours d'implémentation'
+  | 'En cours d\'implémentation'
   | 'Rollback'
   | 'Implémenté'
   | 'En revue post-implémentation'

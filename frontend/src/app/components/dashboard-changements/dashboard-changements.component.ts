@@ -143,7 +143,7 @@ export class DashboardChangementsComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler ce changement ?',
-      message: 'Le changement restera visible dans l'historique mais ne pourra plus être traité.',
+      message: 'Le changement restera visible dans l\'historique mais ne pourra plus être traité.',
       confirmLabel: 'Annuler le changement',
       variant: 'destructive',
     });
@@ -153,7 +153,7 @@ export class DashboardChangementsComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l'annulation.'),
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
     });
   }
 

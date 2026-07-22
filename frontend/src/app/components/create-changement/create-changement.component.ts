@@ -114,7 +114,7 @@ export class CreateChangementComponent implements OnInit {
   }
 
   get disquesArray(): FormArray {
-    return this.form.get('serveur.disques') as FormArray;
+    return this.form.get('serveur['disques']') as FormArray;
   }
 
   addDisk(): void {
@@ -192,9 +192,9 @@ export class CreateChangementComponent implements OnInit {
     const reseau = this.clean(raw.reseau);
     const backup = this.clean(raw.backup);
 
-    if (serveur.disques) {
-      serveur.disques = this.cleanArray(serveur.disques);
-      if (serveur.disques.length === 0) delete serveur.disques;
+    if (serveur['disques']) {
+      serveur['disques'] = this.cleanArray(serveur['disques']);
+      if (serveur['disques'].length === 0) delete serveur['disques'];
     }
 
     const specifications: any = {};
