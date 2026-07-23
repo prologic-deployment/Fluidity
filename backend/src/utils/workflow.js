@@ -20,6 +20,7 @@ const DEMANDE_STATUTS = [
   'Rejetée',
   'Réalisée',
   'Clôturée',
+  'Annulée',
 ];
 
 const DEMANDE_TRANSITIONS = {
@@ -58,6 +59,7 @@ const DEMANDE_TRANSITIONS = {
     { to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] },
   ],
   Clôturée: [], // état final
+  'Annulée': [], // état final (annulation client)
 };
 
 // ---------------------------------------------------------------------
@@ -74,6 +76,7 @@ const CHANGEMENT_STATUTS = [
   'En revue post-implémentation',
   'Rejeté',
   'Clôturé',
+  'Annulé',
 ];
 
 const CHANGEMENT_TRANSITIONS = {
@@ -107,6 +110,7 @@ const CHANGEMENT_TRANSITIONS = {
   'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
   Rejeté: [], // état final, motivé
   Clôturé: [], // état final
+  'Annulé': [], // état final (annulation client)
 };
 
 /**

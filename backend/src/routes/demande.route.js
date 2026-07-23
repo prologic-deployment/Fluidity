@@ -25,4 +25,7 @@ router.patch('/:id', validate(updateDemandeSchema), updateDemande);
 // Suppression : contrôle de propriété (client propriétaire ou ADMIN) fait dans le contrôleur
 router.delete('/:id', deleteDemande);
 
+// Annulation par le client propriétaire
+router.patch('/:id/annuler', authMiddleware, demandeController.annulerDemande);
+
 module.exports = router;

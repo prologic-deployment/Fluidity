@@ -17,8 +17,11 @@ const DemandeSchema = new Schema(
     clientId: { type: String, required: true },
     objet: { type: String, required: true },
     typeDemande: { type: String, required: true },
+    typeDemandeAutre: { type: String },
     serviceEnvironnement: { type: String, required: true },
+    serviceEnvironnementAutre: { type: String },
     categorie: { type: String, required: true },
+    categorieAutre: { type: String },
     sousCategorie: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },
     prioriteSouhaitee: {
