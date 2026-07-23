@@ -1,0 +1,280 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-900/20 font-bold">S</div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Plateforme — Tenants</h1>
+          <p class="text-sm text-muted-foreground">Supervision multi-tenant : abonnements, licences, cycle de vie.</p>
+        </div>
+      </div>
+      <button (click)="openCreate()" class="btn-primary transition-transform hover:scale-[1.03]">
+        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Nouveau tenant
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <!-- Statistiques plateforme -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.tenants?.active ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">Tenants actifs</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.tenants?.suspended ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">Tenants suspendus</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.users ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">Utilisateurs</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.clients ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">Clients</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.demandes ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">Demandes</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.changements ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">Changements</p>
+      </div></div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="toolbar">
+      <div class="search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un tenant..." class="search-input" />
+      </div>
+      <select [(ngModel)]="statutFiltre" class="filter-select">
+        <option value="">Tous les statuts</option>
+        <option value="active">Actif</option>
+        <option value="suspended">Suspendu</option>
+      </select>
+      <select [(ngModel)]="planFiltre" class="filter-select">
+        <option value="">Tous les plans</option>
+        <option *ngFor="let p of plans" [value]="p">{{ p }}</option>
+      </select>
+    </div>
+
+    <!-- Chargement -->
+    <div *ngIf="loading" class="table-wrap">
+      <div class="p-2">
+        <div *ngFor="let i of [1,2,3]" class="flex items-center gap-4 px-4 py-4 border-b border-border last:border-0">
+          <div class="skeleton h-8 w-8 rounded-md"></div>
+          <div class="skeleton h-4 w-40"></div>
+          <div class="skeleton h-5 w-16 rounded-full"></div>
+          <div class="skeleton h-5 w-16 rounded-full"></div>
+          <div class="skeleton h-4 w-28 ml-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredTenants().length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        Aucun tenant ne correspond à ces critères.
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredTenants().length > 0" class="table-wrap animate-fade-in-up">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Type</th>
+            <th>Plan</th>
+            <th>Licences</th>
+            <th>Activité</th>
+            <th>Statut</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of filteredTenants()" class="group">
+            <td>
+              <div class="flex items-center gap-3">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold text-white"
+                  [ngStyle]="{ background: 'linear-gradient(135deg,' + (t.primaryColor || '#6366f1') + ',' + (t.secondaryColor || '#8b5cf6') + ')' }">
+                  {{ tenantInitial(t) }}
+                </div>
+                <div>
+                  <p class="font-medium">{{ t.name }}</p>
+                  <p class="text-xs text-muted-foreground">{{ t.contactEmail || '—' }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="text-muted-foreground">{{ t.type === 'Individual' ? 'Individu' : 'Entreprise' }}</td>
+            <td><span class="badge-secondary"><span class="badge-dot"></span>{{ t.plan }}</span></td>
+            <td>
+              <div class="w-28">
+                <p class="text-xs mb-1">{{ t.stats?.license?.activeUsers ?? 0 }}/{{ t.stats?.license?.maxUsers ?? t.maxUsers ?? 0 }} utilisateurs</p>
+                <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" [style.width.%]="licensePct(t)"></div>
+                </div>
+              </div>
+            </td>
+            <td class="text-muted-foreground text-xs">
+              {{ t.stats?.demandes ?? 0 }} demandes · {{ t.stats?.changements ?? 0 }} changements
+            </td>
+            <td>
+              <span [class]="statutClass(t.status)"><span class="badge-dot"></span>{{ statutLabel(t.status) }}</span>
+            </td>
+            <td class="text-right">
+              <div class="flex items-center justify-end gap-1">
+                <button (click)="consulter(t)" title="Consulter l'espace (impersonation)"
+                  class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+                <button (click)="openEdit(t)" title="Modifier (plan, licences, marque)"
+                  class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                  </svg>
+                </button>
+                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? 'Suspendre' : 'Réactiver'"
+                  class="btn-icon-sm text-muted-foreground hover:bg-warning/10 hover:text-amber-600">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                    <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                  </svg>
+                </button>
+                <button (click)="supprimer(t)" title="Supprimer le tenant"
+                  class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6M14 11v6"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Modal création -->
+<app-modal [open]="showCreate" [title]="'Nouveau tenant'" [subtitle]="'Créer un espace de travail isolé (entreprise ou individu)'" (closed)="closeCreate()">
+  <form [formGroup]="createForm" (ngSubmit)="submitCreate()" class="space-y-4">
+    <p *ngIf="formError" class="alert-destructive">{{ formError }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="md:col-span-2">
+        <label class="field-label">Nom du tenant *</label>
+        <input formControlName="name" type="text" class="input" placeholder="ex : Acme Corp" />
+      </div>
+      <div>
+        <label class="field-label">Type</label>
+        <select formControlName="type" class="select">
+          <option *ngFor="let t of types" [value]="t">{{ t === 'Individual' ? 'Individu' : 'Entreprise' }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Email de contact</label>
+        <input formControlName="contactEmail" type="email" class="input" placeholder="contact@acme.com" />
+      </div>
+      <div>
+        <label class="field-label">Plan</label>
+        <select formControlName="plan" class="select">
+          <option *ngFor="let p of plans" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Licences utilisateurs</label>
+        <input formControlName="maxUsers" type="number" min="1" class="input" />
+      </div>
+      <div>
+        <label class="field-label">Couleur principale</label>
+        <input formControlName="primaryColor" type="color" class="input h-10" />
+      </div>
+      <div>
+        <label class="field-label">Couleur secondaire</label>
+        <input formControlName="secondaryColor" type="color" class="input h-10" />
+      </div>
+    </div>
+
+    <p class="detail-section-title">Compte Tenant Admin (optionnel)</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="field-label">Email</label>
+        <input formControlName="adminEmail" type="email" class="input" placeholder="admin@acme.com" />
+      </div>
+      <div>
+        <label class="field-label">Mot de passe</label>
+        <input formControlName="adminPassword" type="password" class="input" placeholder="6 caractères minimum" />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-4 border-t border-border">
+      <button type="button" (click)="closeCreate()" class="btn-outline">Annuler</button>
+      <button type="submit" [disabled]="createForm.invalid || submitting" class="btn-primary">
+        {{ submitting ? 'Création...' : 'Créer le tenant' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal édition -->
+<app-modal [open]="!!editing" [title]="editing?.name || ''" [subtitle]="'Plan, licences et marque (white-label)'" (closed)="closeEdit()">
+  <form [formGroup]="editForm" (ngSubmit)="submitEdit()" class="space-y-4">
+    <p *ngIf="formError" class="alert-destructive">{{ formError }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="field-label">Plan</label>
+        <select formControlName="plan" class="select">
+          <option *ngFor="let p of plans" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label">Licences utilisateurs</label>
+        <input formControlName="maxUsers" type="number" min="1" class="input" />
+      </div>
+      <div>
+        <label class="field-label">Email de contact</label>
+        <input formControlName="contactEmail" type="email" class="input" />
+      </div>
+      <div>
+        <label class="field-label">Téléphone</label>
+        <input formControlName="phone" type="text" class="input" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="field-label">Adresse</label>
+        <input formControlName="address" type="text" class="input" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="field-label">Site web</label>
+        <input formControlName="website" type="text" class="input" placeholder="https://..." />
+      </div>
+      <div>
+        <label class="field-label">Couleur principale</label>
+        <input formControlName="primaryColor" type="color" class="input h-10" />
+      </div>
+      <div>
+        <label class="field-label">Couleur secondaire</label>
+        <input formControlName="secondaryColor" type="color" class="input h-10" />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-4 border-t border-border">
+      <button type="button" (click)="closeEdit()" class="btn-outline">Annuler</button>
+      <button type="submit" [disabled]="editForm.invalid || submitting" class="btn-primary">
+        {{ submitting ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
