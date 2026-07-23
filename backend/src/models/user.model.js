@@ -26,9 +26,14 @@ const ROLE_LABELS = {
   VIEWER: 'Observateur',
 };
 
-/** Correspondance rôles historiques -> nouveaux rôles (script de migration). */
+/**
+ * Correspondance rôles historiques -> nouveaux rôles (script de migration).
+ * L'ancien ADMIN était l'administrateur D'UN tenant (clients, contrats…) :
+ * il devient TENANT_ADMIN. Le compte PLATFORM_ADMIN (plateforme) est
+ * provisionné par le seed, jamais par la migration.
+ */
 const LEGACY_ROLE_MAP = {
-  ADMIN: 'PLATFORM_ADMIN',
+  ADMIN: 'TENANT_ADMIN',
   SUPPORT_N1: 'AGENT',
   EXPLOITATION: 'AGENT',
   RESPONSABLE_TECHNIQUE: 'MANAGER',
