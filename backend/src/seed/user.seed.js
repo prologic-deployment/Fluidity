@@ -33,7 +33,7 @@ const seedUsers = async (tenants = {}) => {
     { tenantId: fluidity._id, email: 'client@fluidity.dev', password: 'Password123!', role: 'CLIENT', department: '' },
     // Tenant « Nova Systems » (isolation inter-tenants)
     { tenantId: nova._id, email: 'nova-admin@nova-systems.dev', password: 'Password123!', role: 'TENANT_ADMIN', department: 'Direction' },
-    { tenantId: nova._id, email: 'client2@fluidity.dev', password: 'Password123!', role: 'CLIENT', department: '' },
+    { tenantId: nova._id, email: 'client@nova-systems.dev', password: 'Password123!', role: 'CLIENT', department: '' },
   ];
 
   for (const u of demoUsers) {

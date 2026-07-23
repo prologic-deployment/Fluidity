@@ -19,7 +19,7 @@ const seedContrats = async (tenants = {}) => {
   }
 
   const atlas = await Client.findOne({ tenantId: fluidity._id, email: 'client@fluidity.dev' });
-  const novaRetail = await Client.findOne({ tenantId: nova._id, email: 'client2@fluidity.dev' });
+  const novaRetail = await Client.findOne({ tenantId: nova._id, email: 'client@nova-systems.dev' });
 
   const demoContrats = [
     {

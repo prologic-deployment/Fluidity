@@ -29,7 +29,7 @@ const seedClients = async (tenants = {}) => {
     },
     {
       tenantId: nova._id,
-      email: 'client2@fluidity.dev',
+      email: 'client@nova-systems.dev',
       nom: 'Nova Retail',
       telephone: '+216 71 222 333',
       adresse: 'Sfax, Tunisie',
