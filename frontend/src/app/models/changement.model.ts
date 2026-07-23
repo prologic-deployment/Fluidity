@@ -12,18 +12,18 @@ export type StatutChangement =
   | 'Rejeté'
   | 'Clôturé';
 
+export type DiskType = 'NVMe' | 'SAS' | 'SSD' | 'SATA';
+
 export interface Specifications {
   general?: {
     ressourcesConcernees?: string;
-    // environnement?: string;
     commentaire?: string;
   };
   serveur?: {
     os?: string;
     cpuCores?: number;
     ramGo?: number;
-    disqueNvmeGo?: number;
-    disqueSasGo?: number;
+    disques?: { tailleGo?: number; type?: DiskType }[];
   };
   reseau?: {
     vlan?: string;
@@ -35,6 +35,34 @@ export interface Specifications {
     espaceBackupSupplementaireGo?: number;
     retentionSouhaitee?: string;
     licencesNecessaires?: string;
+  };
+  database?: {
+    moteur?: string;
+    version?: string;
+    instance?: string;
+    nomBaseDeDonnees?: string;
+  };
+  conteneurs?: {
+    nomConteneur?: string;
+    image?: string;
+    registry?: string;
+    namespace?: string;
+  };
+  stockage?: {
+    capaciteGo?: number;
+    pointMontage?: string;
+    systemeFichiers?: string;
+  };
+  securite?: {
+    regleFirewall?: string;
+    niveauSecurite?: string;
+    certificat?: string;
+  };
+  iaGpu?: {
+    modeleGpu?: string;
+    versionCuda?: string;
+    vramGo?: number;
+    nombreGpu?: number;
   };
 }
 
@@ -95,4 +123,27 @@ export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = {
   Stockage: ['NAS', 'SAN', 'NFS', 'SMB', 'Capacity', 'Quotas', 'Autre'],
   Sécurité: ['Antivirus', 'IAM', 'MFA', 'Firewall', 'Audit', 'Certificat', 'Autre'],
   Sauvegarde: ['Backup', 'Restore', 'Replication', 'Archive', 'Veeam', 'Autre'],
+};
+
+export const DISK_TYPES: DiskType[] = ['NVMe', 'SAS', 'SSD', 'SATA'];
+
+export const RETENTION_UNITES: string[] = ['Jour(s)', 'Semaine(s)', 'Mois', 'Année(s)'];
+
+/**
+ * Section(s) de spécifications techniques pertinentes selon la catégorie
+ * sélectionnée (Task 3 : sections dynamiques). "Général" reste toujours
+ * affichée quelle que soit la catégorie.
+ */
+export const CATEGORIE_SPEC_SECTIONS: Record<string, string[]> = {
+  Réseau: ['reseau'],
+  Infrastructure: ['serveur'],
+  VM: ['serveur'],
+  'Base de données': ['database'],
+  'Portail web': ['serveur'],
+  Conteneurs: ['conteneurs'],
+  'IA-GPU': ['iaGpu'],
+  Stockage: ['stockage'],
+  Sécurité: ['securite'],
+  Sauvegarde: ['backup'],
+  Autre: [],
 };

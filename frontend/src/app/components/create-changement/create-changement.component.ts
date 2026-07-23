@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
@@ -10,6 +10,9 @@ import {
   SOUS_CATEGORIES_CHANGEMENT,
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
+  CATEGORIE_SPEC_SECTIONS,
+  DISK_TYPES,
+  RETENTION_UNITES,
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
@@ -17,6 +20,9 @@ import { DropzoneComponent } from '../shared/dropzone.component';
 import { UploadedFile } from '../../services/upload.service';
 
 const AUTRE = 'Autre';
+
+/** Validateur IPv4 simple (accepte une valeur vide — le champ est optionnel). */
+const IPV4_PATTERN = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;
 
 @Component({
   selector: 'app-create-changement',
@@ -34,6 +40,10 @@ export class CreateChangementComponent implements OnInit {
   piecesJointes: UploadedFile[] = [];
   loading = false;
   error: string | null = null;
+
+  diskTypes = DISK_TYPES;
+  retentionUnites = RETENTION_UNITES;
+  retentionValeurs = Array.from({ length: 12 }, (_, i) => i + 1);
 
   constructor(
     private fb: FormBuilder,
@@ -66,19 +76,47 @@ export class CreateChangementComponent implements OnInit {
         os: [''],
         cpuCores: [null],
         ramGo: [null],
-        disqueNvmeGo: [null],
-        disqueSasGo: [null],
+        disques: this.fb.array([]),
       }),
       reseau: this.fb.group({
         vlan: [''],
-        adresseIp: [''],
-        masqueSousReseau: [''],
-        passerelle: [''],
+        adresseIp: ['', Validators.pattern(IPV4_PATTERN)],
+        masqueSousReseau: ['', Validators.pattern(IPV4_PATTERN)],
+        passerelle: ['', Validators.pattern(IPV4_PATTERN)],
       }),
       backup: this.fb.group({
         espaceBackupSupplementaireGo: [null],
-        retentionSouhaitee: [''],
+        retentionValeur: [null],
+        retentionUnite: [''],
         licencesNecessaires: [''],
+      }),
+      database: this.fb.group({
+        moteur: [''],
+        version: [''],
+        instance: [''],
+        nomBaseDeDonnees: [''],
+      }),
+      conteneurs: this.fb.group({
+        nomConteneur: [''],
+        image: [''],
+        registry: [''],
+        namespace: [''],
+      }),
+      stockage: this.fb.group({
+        capaciteGo: [null],
+        pointMontage: [''],
+        systemeFichiers: [''],
+      }),
+      securite: this.fb.group({
+        regleFirewall: [''],
+        niveauSecurite: [''],
+        certificat: [''],
+      }),
+      iaGpu: this.fb.group({
+        modeleGpu: [''],
+        versionCuda: [''],
+        vramGo: [null],
+        nombreGpu: [null],
       }),
     });
 
@@ -126,6 +164,28 @@ export class CreateChangementComponent implements OnInit {
     this.piecesJointes = files;
   }
 
+  /**
+   * Sections de spécifications techniques à afficher pour la catégorie
+   * sélectionnée (Task 3 : sections dynamiques). "general" est toujours
+   * pertinente et gérée séparément dans le template.
+   */
+  isSectionVisible(section: string): boolean {
+    const cat = this.form?.get('categorie')?.value;
+    return (CATEGORIE_SPEC_SECTIONS[cat] || []).includes(section);
+  }
+
+  get disques(): FormArray {
+    return this.form.get('serveur.disques') as FormArray;
+  }
+
+  addDisque(): void {
+    this.disques.push(this.fb.group({ tailleGo: [null], type: ['NVMe'] }));
+  }
+
+  removeDisque(index: number): void {
+    this.disques.removeAt(index);
+  }
+
   /** Retire les champs vides/null pour ne pas polluer le payload. */
   private clean(obj: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
@@ -144,15 +204,37 @@ export class CreateChangementComponent implements OnInit {
     }
     const raw = this.form.value;
     const general = this.clean(raw.general);
-    const serveur = this.clean(raw.serveur);
+
+    const serveur = this.clean({ os: raw.serveur.os, cpuCores: raw.serveur.cpuCores, ramGo: raw.serveur.ramGo });
+    const disques = (raw.serveur.disques || []).filter((d: any) => d.tailleGo);
+    if (disques.length) serveur['disques'] = disques;
+
     const reseau = this.clean(raw.reseau);
-    const backup = this.clean(raw.backup);
+
+    const backup = this.clean({
+      espaceBackupSupplementaireGo: raw.backup.espaceBackupSupplementaireGo,
+      licencesNecessaires: raw.backup.licencesNecessaires,
+    });
+    if (raw.backup.retentionValeur && raw.backup.retentionUnite) {
+      backup['retentionSouhaitee'] = `${raw.backup.retentionValeur} ${raw.backup.retentionUnite}`;
+    }
+
+    const database = this.clean(raw.database);
+    const conteneurs = this.clean(raw.conteneurs);
+    const stockage = this.clean(raw.stockage);
+    const securite = this.clean(raw.securite);
+    const iaGpu = this.clean(raw.iaGpu);
 
     const specifications: any = {};
     if (Object.keys(general).length) specifications.general = general;
     if (Object.keys(serveur).length) specifications.serveur = serveur;
     if (Object.keys(reseau).length) specifications.reseau = reseau;
     if (Object.keys(backup).length) specifications.backup = backup;
+    if (Object.keys(database).length) specifications.database = database;
+    if (Object.keys(conteneurs).length) specifications.conteneurs = conteneurs;
+    if (Object.keys(stockage).length) specifications.stockage = stockage;
+    if (Object.keys(securite).length) specifications.securite = securite;
+    if (Object.keys(iaGpu).length) specifications.iaGpu = iaGpu;
 
     const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
     const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;

@@ -11,6 +11,9 @@ const { CHANGEMENT_STATUTS } = require('../utils/workflow');
  *   -> 'Clôturé' (+ 'Rollback' et 'Rejeté')
  */
 
+const DISK_TYPES = ['NVMe', 'SAS', 'SSD', 'SATA'];
+const IPV4_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;
+
 const SpecificationsSchema = new Schema(
   {
     general: {
@@ -22,19 +25,55 @@ const SpecificationsSchema = new Schema(
       os: { type: String },
       cpuCores: { type: Number },
       ramGo: { type: Number },
-      disqueNvmeGo: { type: Number },
-      disqueSasGo: { type: Number },
+      // Liste extensible de disques (taille + type), remplace les anciens
+      // champs fixes disqueNvmeGo / disqueSasGo pour supporter tout type de disque.
+      disques: [
+        {
+          _id: false,
+          tailleGo: { type: Number },
+          type: { type: String, enum: DISK_TYPES },
+        },
+      ],
     },
     reseau: {
       vlan: { type: String },
-      adresseIp: { type: String },
-      masqueSousReseau: { type: String },
-      passerelle: { type: String },
+      adresseIp: { type: String, match: [IPV4_REGEX, 'Adresse IP invalide (format IPv4 attendu)'] },
+      masqueSousReseau: { type: String, match: [IPV4_REGEX, 'Masque de sous-réseau invalide (format IPv4 attendu)'] },
+      passerelle: { type: String, match: [IPV4_REGEX, 'Passerelle invalide (format IPv4 attendu)'] },
     },
     backup: {
       espaceBackupSupplementaireGo: { type: Number },
       retentionSouhaitee: { type: String },
       licencesNecessaires: { type: String },
+    },
+    // Sections additionnelles, affichées côté formulaire selon la catégorie sélectionnée
+    database: {
+      moteur: { type: String }, // SQL Server, PostgreSQL, MySQL, Oracle, MongoDB...
+      version: { type: String },
+      instance: { type: String },
+      nomBaseDeDonnees: { type: String },
+    },
+    conteneurs: {
+      nomConteneur: { type: String },
+      image: { type: String },
+      registry: { type: String },
+      namespace: { type: String },
+    },
+    stockage: {
+      capaciteGo: { type: Number },
+      pointMontage: { type: String },
+      systemeFichiers: { type: String }, // NFS, SMB, ext4, XFS...
+    },
+    securite: {
+      regleFirewall: { type: String },
+      niveauSecurite: { type: String }, // Standard, Élevé, Critique...
+      certificat: { type: String },
+    },
+    iaGpu: {
+      modeleGpu: { type: String },
+      versionCuda: { type: String },
+      vramGo: { type: Number },
+      nombreGpu: { type: Number },
     },
   },
   { _id: false }

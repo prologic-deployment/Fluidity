@@ -93,12 +93,11 @@
               <input formControlName="sousCategorieAutre" type="text" class="input" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
-
             <div>
               <label class="field-label">Prérequis nécessaires</label>
               <input formControlName="prerequisNecessaires" type="text" class="input" />
             </div>
-            <div  class="md:col-span-2">
+            <div class="md:col-span-2">
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>
@@ -137,7 +136,7 @@
         </div>
       </section>
 
-      <!-- Section 2 : Spécifications générales -->
+      <!-- Section 2 : Spécifications générales (toujours affichée) -->
       <section class="card animate-fade-in-up stagger-1" formGroupName="general">
         <div class="card-header-tinted">
           <div class="form-section-header">
@@ -149,20 +148,16 @@
             </div>
             <div>
               <h2 class="card-title">Spécifications — Général</h2>
-              <p class="card-description">Ressources et environnement concernés.</p>
+              <p class="card-description">Ressources concernées par ce changement.</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div  class="md:col-span-2">
+            <div class="md:col-span-2">
               <label class="field-label">Ressources concernées</label>
               <input formControlName="ressourcesConcernees" type="text" class="input" />
             </div>
-            <!-- <div>
-              <label class="field-label">Environnement</label>
-              <input formControlName="environnement" type="text" class="input" />
-            </div> -->
             <div class="md:col-span-2">
               <label class="field-label">Commentaire</label>
               <textarea formControlName="commentaire" rows="2" class="textarea"></textarea>
@@ -171,8 +166,8 @@
         </div>
       </section>
 
-      <!-- Section 3 : Serveur -->
-      <section class="card animate-fade-in-up stagger-2" formGroupName="serveur">
+      <!-- Section 3 : Serveur (VM, Infrastructure, Portail web) -->
+      <section class="card animate-fade-in-up stagger-2" formGroupName="serveur" *ngIf="isSectionVisible('serveur')">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -189,7 +184,7 @@
             </div>
           </div>
         </div>
-        <div class="card-content pt-6">
+        <div class="card-content pt-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="field-label">Système d'exploitation</label>
@@ -203,20 +198,32 @@
               <label class="field-label">RAM (Go)</label>
               <input formControlName="ramGo" type="number" min="0" class="input" />
             </div>
-            <div>
-              <label class="field-label">Disque NVMe (Go)</label>
-              <input formControlName="disqueNvmeGo" type="number" min="0" class="input" />
+          </div>
+
+          <!-- Liste extensible de disques : taille + type côte à côte -->
+          <div formArrayName="disques">
+            <label class="field-label">Disques</label>
+            <div class="space-y-2">
+              <div *ngFor="let disque of disques.controls; let i = index" [formGroupName]="i" class="flex items-center gap-2">
+                <input formControlName="tailleGo" type="number" min="0" class="input flex-1" placeholder="Taille (Go)" />
+                <select formControlName="type" class="select w-32 shrink-0">
+                  <option *ngFor="let t of diskTypes" [value]="t">{{ t }}</option>
+                </select>
+                <button type="button" (click)="removeDisque(i)" title="Retirer" class="btn-icon-sm shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                </button>
+              </div>
             </div>
-            <div>
-              <label class="field-label">Disque SAS (Go)</label>
-              <input formControlName="disqueSasGo" type="number" min="0" class="input" />
-            </div>
+            <button type="button" (click)="addDisque()" class="btn-outline btn-sm mt-2">
+              <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              Ajouter un disque
+            </button>
           </div>
         </div>
       </section>
 
       <!-- Section 4 : Réseau -->
-      <section class="card animate-fade-in-up stagger-3" formGroupName="reseau">
+      <section class="card animate-fade-in-up stagger-3" formGroupName="reseau" *ngIf="isSectionVisible('reseau')">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -244,22 +251,25 @@
             </div>
             <div>
               <label class="field-label">Adresse IP</label>
-              <input formControlName="adresseIp" type="text" class="input" />
+              <input formControlName="adresseIp" type="text" class="input" placeholder="ex: 10.20.30.40" />
+              <p *ngIf="form.get('reseau.adresseIp')?.invalid && form.get('reseau.adresseIp')?.touched" class="field-error">Adresse IPv4 invalide.</p>
             </div>
             <div>
               <label class="field-label">Masque de sous-réseau</label>
-              <input formControlName="masqueSousReseau" type="text" class="input" />
+              <input formControlName="masqueSousReseau" type="text" class="input" placeholder="ex: 255.255.255.0" />
+              <p *ngIf="form.get('reseau.masqueSousReseau')?.invalid && form.get('reseau.masqueSousReseau')?.touched" class="field-error">Masque IPv4 invalide.</p>
             </div>
             <div>
               <label class="field-label">Passerelle</label>
-              <input formControlName="passerelle" type="text" class="input" />
+              <input formControlName="passerelle" type="text" class="input" placeholder="ex: 10.20.30.1" />
+              <p *ngIf="form.get('reseau.passerelle')?.invalid && form.get('reseau.passerelle')?.touched" class="field-error">Passerelle IPv4 invalide.</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- Section 5 : Sauvegarde -->
-      <section class="card animate-fade-in-up stagger-4" formGroupName="backup">
+      <section class="card animate-fade-in-up stagger-4" formGroupName="backup" *ngIf="isSectionVisible('backup')">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -284,11 +294,212 @@
             </div>
             <div>
               <label class="field-label">Rétention souhaitée</label>
-              <input formControlName="retentionSouhaitee" type="text" class="input" />
+              <div class="flex items-center gap-2">
+                <select formControlName="retentionValeur" class="select w-20 shrink-0">
+                  <option [ngValue]="null">—</option>
+                  <option *ngFor="let n of retentionValeurs" [ngValue]="n">{{ n }}</option>
+                </select>
+                <select formControlName="retentionUnite" class="select flex-1">
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let u of retentionUnites" [value]="u">{{ u }}</option>
+                </select>
+              </div>
             </div>
             <div class="md:col-span-2">
               <label class="field-label">Licences nécessaires</label>
               <input formControlName="licencesNecessaires" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6 : Base de données -->
+      <section class="card animate-fade-in-up" formGroupName="database" *ngIf="isSectionVisible('database')">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Base de données</h2>
+              <p class="card-description">Moteur, version et instance concernés.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Moteur</label>
+              <input formControlName="moteur" type="text" class="input" placeholder="ex: PostgreSQL" />
+            </div>
+            <div>
+              <label class="field-label">Version</label>
+              <input formControlName="version" type="text" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Instance</label>
+              <input formControlName="instance" type="text" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Nom de la base de données</label>
+              <input formControlName="nomBaseDeDonnees" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 7 : Conteneurs -->
+      <section class="card animate-fade-in-up" formGroupName="conteneurs" *ngIf="isSectionVisible('conteneurs')">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Conteneurs</h2>
+              <p class="card-description">Image, registre et espace de nommage.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Nom du conteneur</label>
+              <input formControlName="nomConteneur" type="text" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Image</label>
+              <input formControlName="image" type="text" class="input" placeholder="ex: nginx:1.27" />
+            </div>
+            <div>
+              <label class="field-label">Registry</label>
+              <input formControlName="registry" type="text" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Namespace</label>
+              <input formControlName="namespace" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 8 : Stockage -->
+      <section class="card animate-fade-in-up" formGroupName="stockage" *ngIf="isSectionVisible('stockage')">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                <path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Stockage</h2>
+              <p class="card-description">Capacité et point de montage.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Capacité (Go)</label>
+              <input formControlName="capaciteGo" type="number" min="0" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Point de montage</label>
+              <input formControlName="pointMontage" type="text" class="input" placeholder="ex: /mnt/data" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">Système de fichiers</label>
+              <input formControlName="systemeFichiers" type="text" class="input" placeholder="ex: NFS, SMB, ext4..." />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 9 : Sécurité -->
+      <section class="card animate-fade-in-up" formGroupName="securite" *ngIf="isSectionVisible('securite')">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Sécurité</h2>
+              <p class="card-description">Règles, niveau et certificat concernés.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Règle firewall</label>
+              <input formControlName="regleFirewall" type="text" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Niveau de sécurité</label>
+              <input formControlName="niveauSecurite" type="text" class="input" placeholder="ex: Standard, Élevé, Critique" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">Certificat</label>
+              <input formControlName="certificat" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 10 : IA-GPU -->
+      <section class="card animate-fade-in-up" formGroupName="iaGpu" *ngIf="isSectionVisible('iaGpu')">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="2" x2="9" y2="4"></line>
+                <line x1="15" y1="2" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="22"></line>
+                <line x1="15" y1="20" x2="15" y2="22"></line>
+                <line x1="20" y1="9" x2="22" y2="9"></line>
+                <line x1="20" y1="15" x2="22" y2="15"></line>
+                <line x1="2" y1="9" x2="4" y2="9"></line>
+                <line x1="2" y1="15" x2="4" y2="15"></line>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — IA / GPU</h2>
+              <p class="card-description">Modèle GPU, CUDA et allocation VRAM.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Modèle GPU</label>
+              <input formControlName="modeleGpu" type="text" class="input" placeholder="ex: NVIDIA A100" />
+            </div>
+            <div>
+              <label class="field-label">Version CUDA</label>
+              <input formControlName="versionCuda" type="text" class="input" />
+            </div>
+            <div>
+              <label class="field-label">VRAM (Go)</label>
+              <input formControlName="vramGo" type="number" min="0" class="input" />
+            </div>
+            <div>
+              <label class="field-label">Nombre de GPU</label>
+              <input formControlName="nombreGpu" type="number" min="0" class="input" />
             </div>
           </div>
         </div>

@@ -9,6 +9,13 @@ const optionalNumber = z.preprocess(
   z.coerce.number().optional()
 );
 
+/** Chaîne IPv4 optionnelle : vide -> undefined, sinon doit respecter le format IPv4. */
+const IPV4_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;
+const optionalIPv4 = z.preprocess(
+  (v) => (v === '' || v === null || v === undefined ? undefined : v),
+  z.string().regex(IPV4_REGEX, 'Adresse IPv4 invalide').optional()
+);
+
 const createChangementSchema = z.object({
   objetChangement: z.string().min(1, 'Objet du changement requis'),
   descriptionDetaillee: z.string().min(1, 'Description détaillée requise'),
@@ -35,16 +42,22 @@ const createChangementSchema = z.object({
           os: z.string().optional(),
           cpuCores: optionalNumber,
           ramGo: optionalNumber,
-          disqueNvmeGo: optionalNumber,
-          disqueSasGo: optionalNumber,
+          disques: z
+            .array(
+              z.object({
+                tailleGo: optionalNumber,
+                type: z.enum(['NVMe', 'SAS', 'SSD', 'SATA']).optional(),
+              })
+            )
+            .optional(),
         })
         .optional(),
       reseau: z
         .object({
           vlan: z.string().optional(),
-          adresseIp: z.string().optional(),
-          masqueSousReseau: z.string().optional(),
-          passerelle: z.string().optional(),
+          adresseIp: optionalIPv4,
+          masqueSousReseau: optionalIPv4,
+          passerelle: optionalIPv4,
         })
         .optional(),
       backup: z
@@ -52,6 +65,44 @@ const createChangementSchema = z.object({
           espaceBackupSupplementaireGo: optionalNumber,
           retentionSouhaitee: z.string().optional(),
           licencesNecessaires: z.string().optional(),
+        })
+        .optional(),
+      database: z
+        .object({
+          moteur: z.string().optional(),
+          version: z.string().optional(),
+          instance: z.string().optional(),
+          nomBaseDeDonnees: z.string().optional(),
+        })
+        .optional(),
+      conteneurs: z
+        .object({
+          nomConteneur: z.string().optional(),
+          image: z.string().optional(),
+          registry: z.string().optional(),
+          namespace: z.string().optional(),
+        })
+        .optional(),
+      stockage: z
+        .object({
+          capaciteGo: optionalNumber,
+          pointMontage: z.string().optional(),
+          systemeFichiers: z.string().optional(),
+        })
+        .optional(),
+      securite: z
+        .object({
+          regleFirewall: z.string().optional(),
+          niveauSecurite: z.string().optional(),
+          certificat: z.string().optional(),
+        })
+        .optional(),
+      iaGpu: z
+        .object({
+          modeleGpu: z.string().optional(),
+          versionCuda: z.string().optional(),
+          vramGo: optionalNumber,
+          nombreGpu: optionalNumber,
         })
         .optional(),
     })
