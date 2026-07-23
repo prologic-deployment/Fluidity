@@ -14,7 +14,8 @@ export type StatutDemande =
 export interface Demande {
   _id?: string;
   tenantId?: string;
-  clientId?: string;
+  /** Compte demandeur — ObjectId du Utilisateur, peuplé en lecture par le serveur. */
+  requester?: RequesterRef | string;
   objet: string;
   typeDemande: string;
   typeDemandeAutre?: string;
@@ -27,7 +28,8 @@ export interface Demande {
   prioriteSouhaitee: PrioriteDemande;
   dateSouhaiteeRealisation?: string;
   informationsComplementaires?: string;
-  contrat: string;
+  /** Contrat de rattachement — ObjectId en écriture, peuplé en lecture. */
+  contrat: string | ContratRef;
   piecesJointes?: string[];
   statut?: StatutDemande;
   createdAt?: string;
@@ -35,6 +37,22 @@ export interface Demande {
 }
 
 export const PRIORITES: PrioriteDemande[] = ['Standard', 'Élevée', 'Urgente'];
+
+/** Référence peuplée côté serveur : le compte utilisateur demandeur. */
+export interface RequesterRef {
+  _id: string;
+  email: string;
+  role?: string;
+  status?: string;
+}
+
+/** Référence peuplée côté serveur : le contrat de rattachement du dossier. */
+export interface ContratRef {
+  _id: string;
+  reference: string;
+  intitule?: string;
+  typeContrat?: string;
+}
 
 export const TYPES_DEMANDE: string[] = [
   'Création de compte',

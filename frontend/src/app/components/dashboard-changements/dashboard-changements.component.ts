@@ -78,7 +78,7 @@ export class DashboardChangementsComponent implements OnInit {
       const matchTerm =
         !term ||
         c.objetChangement.toLowerCase().includes(term) ||
-        c.clientId?.toLowerCase().includes(term) ||
+        this.requesterEmail(c).toLowerCase().includes(term) ||
         c.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
@@ -111,9 +111,28 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  /** Email du compte demandeur (référence ObjectId peuplée côté serveur). */
+  requesterEmail(changement: Changement): string {
+    const r = changement.requester;
+    if (r && typeof r === 'object') return r.email;
+    return (r as string) || '—';
+  }
+
+  /** Référence lisible du contrat rattaché (ObjectId peuplé en lecture). */
+  contratLabel(changement: Changement): string {
+    const ct = changement.contrat;
+    if (ct && typeof ct === 'object') return ct.reference;
+    return (ct as string) || '—';
+  }
+
   /** Le client connecté est le propriétaire du changement. */
   isOwner(changement: Changement): boolean {
-    return this.auth.isClient() && changement.clientId === this.auth.getEmail();
+    if (!this.auth.isClient()) return false;
+    const r = changement.requester;
+    if (r && typeof r === 'object') {
+      return r._id === this.auth.getUserId() || r.email === this.auth.getEmail();
+    }
+    return r === this.auth.getUserId();
   }
 
   /**

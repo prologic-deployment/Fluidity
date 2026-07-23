@@ -76,7 +76,7 @@ export class DashboardDemandesComponent implements OnInit {
       const matchTerm =
         !term ||
         d.objet.toLowerCase().includes(term) ||
-        d.clientId?.toLowerCase().includes(term) ||
+        this.requesterEmail(d).toLowerCase().includes(term) ||
         d.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
       const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
@@ -104,9 +104,28 @@ export class DashboardDemandesComponent implements OnInit {
     this.transitionError = null;
   }
 
+  /** Email du compte demandeur (référence ObjectId peuplée côté serveur). */
+  requesterEmail(demande: Demande): string {
+    const r = demande.requester;
+    if (r && typeof r === 'object') return r.email;
+    return (r as string) || '—';
+  }
+
+  /** Référence lisible du contrat rattaché (ObjectId peuplé en lecture). */
+  contratLabel(demande: Demande): string {
+    const c = demande.contrat;
+    if (c && typeof c === 'object') return c.reference;
+    return (c as string) || '—';
+  }
+
   /** Le client connecté est le propriétaire de la demande. */
   isOwner(demande: Demande): boolean {
-    return this.auth.isClient() && demande.clientId === this.auth.getEmail();
+    if (!this.auth.isClient()) return false;
+    const r = demande.requester;
+    if (r && typeof r === 'object') {
+      return r._id === this.auth.getUserId() || r.email === this.auth.getEmail();
+    }
+    return r === this.auth.getUserId();
   }
 
   /**

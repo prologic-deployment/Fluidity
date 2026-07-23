@@ -1,4 +1,4 @@
-import { CATEGORIES, SERVICES_ENVIRONNEMENT, SOUS_CATEGORIES } from './demande.model';
+import { CATEGORIES, SERVICES_ENVIRONNEMENT, SOUS_CATEGORIES, ContratRef, RequesterRef } from './demande.model';
 
 /**
  * Types de changement côté frontend — alignés sur l'enum backend
@@ -80,7 +80,8 @@ export interface Specifications {
 export interface Changement {
   _id?: string;
   tenantId?: string;
-  clientId?: string; // dérivé côté serveur du compte authentifié à la création
+  /** Compte demandeur — dérivé côté serveur à la création, peuplé en lecture. */
+  requester?: RequesterRef | string;
   objetChangement: string;
   descriptionDetaillee: string;
   serviceEnvironnement?: string;
@@ -90,7 +91,8 @@ export interface Changement {
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
-  contrat: string;
+  /** Contrat de rattachement — ObjectId en écriture, peuplé en lecture. */
+  contrat: string | ContratRef;
   piecesJointes?: string[];
   statut?: StatutChangement;
   specifications?: Specifications;

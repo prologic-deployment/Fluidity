@@ -4,7 +4,6 @@ import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
-import { AuthService } from '../../services/auth.service';
 import {
   CATEGORIES_CHANGEMENT,
   SOUS_CATEGORIES_CHANGEMENT,
@@ -62,7 +61,6 @@ export class CreateChangementComponent implements OnInit {
     private fb: FormBuilder,
     private changementService: ChangementService,
     private contratService: ContratService,
-    private auth: AuthService,
     private router: Router
   ) {}
 
@@ -164,8 +162,9 @@ export class CreateChangementComponent implements OnInit {
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
-    // Contrats du client connecté uniquement (un changement est toujours créé en son nom)
-    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
+    // Contrats proposés : pour un compte CLIENT, le serveur filtre
+    // automatiquement ses propres contrats (restriction côté serveur).
+    this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
@@ -300,7 +299,7 @@ export class CreateChangementComponent implements OnInit {
       }
     }
 
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
+    // Le demandeur (requester) est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     // Les valeurs « Autre » sont remplacées par leur précision libre avant envoi.
     const payload: Changement = {
       objetChangement: raw.objetChangement,

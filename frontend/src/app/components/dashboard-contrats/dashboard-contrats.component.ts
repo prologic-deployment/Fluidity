@@ -56,7 +56,8 @@ export class DashboardContratsComponent implements OnInit {
         !term ||
         c.intitule.toLowerCase().includes(term) ||
         c.reference.toLowerCase().includes(term) ||
-        c.clientId.toLowerCase().includes(term);
+        this.clientNom(c).toLowerCase().includes(term) ||
+        this.clientEmail(c).toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       return matchTerm && matchStatut;
     });
@@ -77,6 +78,19 @@ export class DashboardContratsComponent implements OnInit {
 
   closeDetails(): void {
     this.selected = null;
+  }
+
+  /** Nom de la fiche client (référence ObjectId peuplée côté serveur). */
+  clientNom(contrat: Contrat): string {
+    const cl = contrat.clientId;
+    if (cl && typeof cl === 'object') return cl.nom;
+    return (cl as string) || '—';
+  }
+
+  /** Email de la fiche client, quand la référence est peuplée. */
+  clientEmail(contrat: Contrat): string {
+    const cl = contrat.clientId;
+    return cl && typeof cl === 'object' ? cl.email || '' : '';
   }
 
   async deleteContrat(id: string | undefined): Promise<void> {

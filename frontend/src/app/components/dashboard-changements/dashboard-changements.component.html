@@ -156,8 +156,8 @@
 
     <div class="detail-grid">
       <div>
-        <p class="detail-label">Client</p>
-        <p class="detail-value">{{ c.clientId }}</p>
+        <p class="detail-label">Demandeur</p>
+        <p class="detail-value">{{ requesterEmail(c) }}</p>
       </div>
       <div>
         <p class="detail-label">Service / Environnement</p>
@@ -165,7 +165,7 @@
       </div>
       <div>
         <p class="detail-label">Contrat</p>
-        <p class="detail-value">{{ c.contrat }}</p>
+        <p class="detail-value">{{ contratLabel(c) }}</p>
       </div>
       <div>
         <p class="detail-label">Fenêtre d'intervention</p>

@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
 import { ContratService } from '../../services/contrat.service';
-import { AuthService } from '../../services/auth.service';
 import {
   PRIORITES,
   CATEGORIES,
@@ -41,7 +40,6 @@ export class CreateDemandeComponent implements OnInit {
     private fb: FormBuilder,
     private demandeService: DemandeService,
     private contratService: ContratService,
-    private auth: AuthService,
     private router: Router
   ) {}
 
@@ -85,8 +83,9 @@ export class CreateDemandeComponent implements OnInit {
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
-    // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
-    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
+    // Contrats proposés : pour un compte CLIENT, le serveur filtre
+    // automatiquement ses propres contrats (restriction côté serveur).
+    this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
@@ -132,7 +131,7 @@ export class CreateDemandeComponent implements OnInit {
     const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
     const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
 
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
+    // Le demandeur (requester) est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Demande = {
       objet: raw.objet,
       typeDemande: raw.typeDemande === AUTRE ? raw.typeDemandeAutre : raw.typeDemande,
