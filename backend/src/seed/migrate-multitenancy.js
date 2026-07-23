@@ -119,8 +119,8 @@ const migrateDossiers = async (db, collection) => {
   let requesters = 0, contrats = 0, unresolved = 0;
   const users = await db.collection('utilisateurs').find({}).toArray();
   const userByTenantEmail = new Map(users.map((u) => [`${u.tenantId}:${u.email}`, u._id]));
-  const contrats = await db.collection('contrats').find({}).toArray();
-  const contratByTenantRef = new Map(contrats.map((c) => [`${c.tenantId}:${c.reference}`, c._id]));
+  const contratDocs = await db.collection('contrats').find({}).toArray();
+  const contratByTenantRef = new Map(contratDocs.map((c) => [`${c.tenantId}:${c.reference}`, c._id]));
 
   const docs = await db.collection(collection).find({ $or: [{ clientId: { $exists: true } }, { contrat: { $type: 'string' } }] }).toArray();
   for (const d of docs) {
