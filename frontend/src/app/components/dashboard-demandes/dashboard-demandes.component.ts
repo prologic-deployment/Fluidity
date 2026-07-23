@@ -36,6 +36,7 @@ export class DashboardDemandesComponent implements OnInit {
     'Réalisée',
     'Clôturée',
     'Rejetée',
+    'Annulé',
   ];
   readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
 
@@ -100,33 +101,45 @@ export class DashboardDemandesComponent implements OnInit {
     this.transitionError = null;
   }
 
-  /** Seul le client propriétaire de la demande peut la supprimer (ADMIN excepté). */
+  /** Le client propriétaire peut agir sur sa propre demande (Task 4 : plus de suppression). */
   isOwner(demande: Demande): boolean {
     return this.auth.isClient() && demande.clientId === this.auth.getEmail();
   }
 
-  async deleteDemande(id: string | undefined): Promise<void> {
-    if (!id) return;
+  /** La demande peut-elle encore être annulée par son client propriétaire ? */
+  canCancel(demande: Demande): boolean {
+    return this.isOwner(demande) && availableTransitions(DEMANDE_TRANSITIONS, demande.statut, this.auth.getRole()).includes('Annulé');
+  }
+
+  /**
+   * Annulation d'une demande par son client propriétaire (remplace la suppression,
+   * Task 4). La demande reste en base et visible dans l'historique, avec le statut
+   * "Annulé" — elle sort définitivement du workflow (aucune transition ultérieure
+   * possible, pour aucun rôle).
+   */
+  async cancelDemande(demande: Demande): Promise<void> {
+    if (!demande._id) return;
     const ok = await this.confirmDialog.confirm({
-      title: 'Supprimer cette demande ?',
-      message: 'Cette action est définitive et ne pourra pas être annulée.',
-      confirmLabel: 'Supprimer',
+      title: 'Annuler cette demande ?',
+      message: "La demande sera marquée comme annulée et sortira définitivement du workflow. Elle reste consultable dans l'historique.",
+      confirmLabel: 'Annuler la demande',
       variant: 'destructive',
     });
     if (!ok) return;
-    this.demandeService.delete(id).subscribe({
+    this.demandeService.changerStatut(demande._id, 'Annulé').subscribe({
       next: () => {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
     });
   }
 
-  /** Statuts vers lesquels le rôle courant peut faire transiter la demande sélectionnée. */
+  /** Statuts vers lesquels le rôle courant peut faire transiter la demande sélectionnée
+   * (l'annulation "Annulé" est gérée séparément via le bouton dédié — voir canCancel/cancelDemande). */
   prochainesEtapes(): string[] {
     if (!this.selected) return [];
-    return availableTransitions(DEMANDE_TRANSITIONS, this.selected.statut, this.auth.getRole());
+    return availableTransitions(DEMANDE_TRANSITIONS, this.selected.statut, this.auth.getRole()).filter((s) => s !== 'Annulé');
   }
 
   changerStatut(nouveauStatut: string): void {
@@ -170,6 +183,8 @@ export class DashboardDemandesComponent implements OnInit {
         return 'badge-secondary';
       case 'Rejetée':
         return 'badge-destructive';
+      case 'Annulé':
+        return 'badge-secondary';
       default:
         return 'badge-outline';
     }

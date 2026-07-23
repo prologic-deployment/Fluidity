@@ -10,7 +10,8 @@ export type StatutChangement =
   | 'Implémenté'
   | 'En revue post-implémentation'
   | 'Rejeté'
-  | 'Clôturé';
+  | 'Clôturé'
+  | 'Annulé';
 
 export type DiskType = 'NVMe' | 'SAS' | 'SSD' | 'SATA';
 

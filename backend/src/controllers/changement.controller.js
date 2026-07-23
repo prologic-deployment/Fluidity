@@ -87,18 +87,29 @@ const getChangementById = async (req, res) => {
 
 /**
  * Mise à jour d'un changement (isolé par tenant).
+ * - Un CLIENT ne peut modifier que ses propres changements (Task 4).
+ * - Un changement "Annulé" est figé : plus aucune modification, pour aucun rôle.
  */
 const updateChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
+
+    if (req.userRole === 'CLIENT' && changement.clientId !== req.userEmail) {
+      res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres changements.' });
+      return;
+    }
+
+    if (changement.statut === 'Annulé') {
+      res.status(403).json({ message: 'Ce changement est annulé et ne peut plus être modifié.' });
+      return;
+    }
+
+    changement.set(req.body);
+    await changement.save();
     res.status(200).json(changement);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -107,24 +118,23 @@ const updateChangement = async (req, res) => {
 
 /**
  * Suppression d'un changement (isolé par tenant).
- * Réservée au client propriétaire du changement (clientId = son email),
- * ou à un ADMIN pour la supervision.
+ * Réservée à un ADMIN (Task 4 : les clients ne peuvent plus supprimer
+ * leurs changements — ils les annulent via le workflow, voir
+ * changerStatutChangement / statut "Annulé").
  */
 const deleteChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Seul un administrateur peut supprimer un changement.' });
+      return;
+    }
+
+    const changement = await Changement.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
 
-    const estProprietaire = req.userRole === 'CLIENT' && changement.clientId === req.userEmail;
-    if (!estProprietaire && req.userRole !== 'ADMIN') {
-      res.status(403).json({ message: 'Seul le client propriétaire de ce changement peut le supprimer.' });
-      return;
-    }
-
-    await changement.deleteOne();
     res.status(200).json({ message: 'Changement supprimé avec succès' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

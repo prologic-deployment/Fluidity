@@ -39,6 +39,7 @@ export class DashboardChangementsComponent implements OnInit {
     'Rollback',
     'Clôturé',
     'Rejeté',
+    'Annulé',
   ];
   readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
 
@@ -107,33 +108,45 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  /** Seul le client propriétaire du changement peut le supprimer (ADMIN excepté). */
+  /** Le client propriétaire peut agir sur son propre changement (Task 4 : plus de suppression). */
   isOwner(changement: Changement): boolean {
     return this.auth.isClient() && changement.clientId === this.auth.getEmail();
   }
 
-  async deleteChangement(id: string | undefined): Promise<void> {
-    if (!id) return;
+  /** Le changement peut-il encore être annulé par son client propriétaire ? */
+  canCancel(changement: Changement): boolean {
+    return this.isOwner(changement) && availableTransitions(CHANGEMENT_TRANSITIONS, changement.statut, this.auth.getRole()).includes('Annulé');
+  }
+
+  /**
+   * Annulation d'un changement par son client propriétaire (remplace la suppression,
+   * Task 4). Le changement reste en base et visible dans l'historique, avec le statut
+   * "Annulé" — il sort définitivement du workflow (aucune transition ultérieure
+   * possible, pour aucun rôle).
+   */
+  async cancelChangement(changement: Changement): Promise<void> {
+    if (!changement._id) return;
     const ok = await this.confirmDialog.confirm({
-      title: 'Supprimer ce changement ?',
-      message: 'Cette action est définitive et ne pourra pas être annulée.',
-      confirmLabel: 'Supprimer',
+      title: 'Annuler ce changement ?',
+      message: "Le changement sera marqué comme annulé et sortira définitivement du workflow. Il reste consultable dans l'historique.",
+      confirmLabel: 'Annuler le changement',
       variant: 'destructive',
     });
     if (!ok) return;
-    this.changementService.delete(id).subscribe({
+    this.changementService.changerStatut(changement._id, 'Annulé').subscribe({
       next: () => {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
     });
   }
 
-  /** Statuts vers lesquels le rôle courant peut faire transiter le changement sélectionné. */
+  /** Statuts vers lesquels le rôle courant peut faire transiter le changement sélectionné
+   * (l'annulation "Annulé" est gérée séparément via le bouton dédié — voir canCancel/cancelChangement). */
   prochainesEtapes(): string[] {
     if (!this.selected) return [];
-    return availableTransitions(CHANGEMENT_TRANSITIONS, this.selected.statut, this.auth.getRole());
+    return availableTransitions(CHANGEMENT_TRANSITIONS, this.selected.statut, this.auth.getRole()).filter((s) => s !== 'Annulé');
   }
 
   changerStatut(nouveauStatut: string): void {
@@ -175,6 +188,8 @@ export class DashboardChangementsComponent implements OnInit {
         return 'badge-secondary';
       case 'Rejeté':
         return 'badge-destructive';
+      case 'Annulé':
+        return 'badge-secondary';
       default:
         return 'badge-outline';
     }

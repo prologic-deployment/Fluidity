@@ -20,12 +20,14 @@ const DEMANDE_STATUTS = [
   'Rejetée',
   'Réalisée',
   'Clôturée',
+  'Annulé',
 ];
 
 const DEMANDE_TRANSITIONS = {
   Ouverte: [
     // Étape 2 : Qualification et vérification d'éligibilité (Support N1)
     { to: "En cours d'analyse", roles: ['SUPPORT_N1'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   "En cours d'analyse": [
     // Étape 3 : Validation / approbation si requise -> transmis au Responsable Technique
@@ -36,21 +38,25 @@ const DEMANDE_TRANSITIONS = {
     { to: 'En attente client', roles: ['SUPPORT_N1'] },
     // Demande non éligible
     { to: 'Rejetée', roles: ['SUPPORT_N1'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   'En attente de validation': [
     { to: "En cours de réalisation", roles: ['RESPONSABLE_TECHNIQUE'] },
     { to: 'Rejetée', roles: ['RESPONSABLE_TECHNIQUE'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   "En cours de réalisation": [
     // Étape 4 : Réalisation de la demande (Support N1/N2)
     { to: 'Réalisée', roles: ['SUPPORT_N1'] },
     { to: 'En attente client', roles: ['SUPPORT_N1'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   'En attente client': [
     // Le client fournit l'information demandée -> reprise de l'analyse
     { to: "En cours d'analyse", roles: ['CLIENT', 'SUPPORT_N1'] },
     // Clôture automatique après 2 jours ouvrés sans réponse (déclenchée manuellement ici, ou par un job planifié)
     { to: 'Clôturée', roles: ['SUPPORT_N1'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   Rejetée: [], // état final, motivé
   Réalisée: [
@@ -58,6 +64,7 @@ const DEMANDE_TRANSITIONS = {
     { to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] },
   ],
   Clôturée: [], // état final
+  Annulé: [], // état final — annulation client, exclue du workflow (voir canTransition)
 };
 
 // ---------------------------------------------------------------------
@@ -74,25 +81,30 @@ const CHANGEMENT_STATUTS = [
   'En revue post-implémentation',
   'Rejeté',
   'Clôturé',
+  'Annulé',
 ];
 
 const CHANGEMENT_TRANSITIONS = {
   Soumis: [
     // Étape 2 : Évaluation du risque et de l'impact (Responsable Technique)
     { to: 'En attente de validation', roles: ['RESPONSABLE_TECHNIQUE'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   'En attente de validation': [
     // Étape 3 : Validation selon le type de changement (Responsable Technique / Commercial)
     { to: 'Approuvé', roles: ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'] },
     { to: 'Rejeté', roles: ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   Approuvé: [
     // Étape 4 : Planification de la fenêtre d'intervention (Exploitation)
     { to: 'Planifié', roles: ['EXPLOITATION'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   Planifié: [
     // Étape 5 : Sauvegarde et exécution du changement (Exploitation)
     { to: "En cours d'implémentation", roles: ['EXPLOITATION'] },
+    { to: 'Annulé', roles: ['CLIENT'] },
   ],
   "En cours d'implémentation": [
     // Étape 6 : Test et vérification post-changement (Exploitation)
@@ -107,13 +119,18 @@ const CHANGEMENT_TRANSITIONS = {
   'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
   Rejeté: [], // état final, motivé
   Clôturé: [], // état final
+  Annulé: [], // état final — annulation client, exclue du workflow (voir canTransition)
 };
 
 /**
  * Vérifie si la transition `from` -> `to` est autorisée pour `role`.
- * ADMIN passe toujours (supervision / correction manuelle).
+ * ADMIN passe toujours (supervision / correction manuelle), SAUF depuis
+ * un statut "Annulé" : une fois annulée par le client, une demande ou un
+ * changement est totalement figé — aucune transition, aucune modification,
+ * pour aucun rôle (traçabilité complète, mais plus aucune action possible).
  */
 function canTransition(transitions, from, to, role) {
+  if (from === 'Annulé') return false;
   if (role === 'ADMIN') return true;
   const options = transitions[from] || [];
   const match = options.find((o) => o.to === to);

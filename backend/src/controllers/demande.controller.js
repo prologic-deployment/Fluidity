@@ -85,18 +85,29 @@ const getDemandeById = async (req, res) => {
 
 /**
  * Mise à jour d'une demande (isolée par tenant).
+ * - Un CLIENT ne peut modifier que ses propres demandes (Task 4).
+ * - Une demande "Annulé" est figée : plus aucune modification, pour aucun rôle.
  */
 const updateDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
+
+    if (req.userRole === 'CLIENT' && demande.clientId !== req.userEmail) {
+      res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres demandes.' });
+      return;
+    }
+
+    if (demande.statut === 'Annulé') {
+      res.status(403).json({ message: 'Cette demande est annulée et ne peut plus être modifiée.' });
+      return;
+    }
+
+    demande.set(req.body);
+    await demande.save();
     res.status(200).json(demande);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -105,24 +116,23 @@ const updateDemande = async (req, res) => {
 
 /**
  * Suppression d'une demande (isolée par tenant).
- * Réservée au client propriétaire de la demande (clientId = son email),
- * ou à un ADMIN pour la supervision.
+ * Réservée à un ADMIN (Task 4 : les clients ne peuvent plus supprimer
+ * leurs demandes — ils les annulent via le workflow, voir
+ * changerStatutDemande / statut "Annulé").
  */
 const deleteDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (req.userRole !== 'ADMIN') {
+      res.status(403).json({ message: 'Seul un administrateur peut supprimer une demande.' });
+      return;
+    }
+
+    const demande = await Demande.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
 
-    const estProprietaire = req.userRole === 'CLIENT' && demande.clientId === req.userEmail;
-    if (!estProprietaire && req.userRole !== 'ADMIN') {
-      res.status(403).json({ message: 'Seul le client propriétaire de cette demande peut la supprimer.' });
-      return;
-    }
-
-    await demande.deleteOne();
     res.status(200).json({ message: 'Demande supprimée avec succès' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

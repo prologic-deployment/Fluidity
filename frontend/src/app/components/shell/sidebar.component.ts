@@ -26,36 +26,42 @@ interface SidebarGroup {
 export class SidebarComponent {
   user = this.auth.getUser();
   isAdmin = this.auth.isAdmin();
+  isClient = this.auth.isClient();
 
-  groups: SidebarGroup[] = [
-    {
-      label: 'Espace Services',
-      icon: 'grid',
-      open: true,
-      children: [
-        { label: 'Demandes', path: '/demandes' },
-        { label: 'Changements', path: '/changements' },
-      ],
-    },
-    {
-      label: 'Contrats',
-      icon: 'file',
-      open: true,
-      children: [
-        { label: 'Tous les contrats', path: '/contrats' },
-        { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
-      ].filter((c) => this.isAdmin || c.path === '/contrats'),
-    },
-    {
-      label: 'Clients',
-      icon: 'users',
-      open: true,
-      children: [
-        { label: 'Tous les clients', path: '/clients' },
-        { label: 'Nouveau client', path: '/clients/nouveau' },
-      ].filter((c) => this.isAdmin || c.path === '/clients'),
-    },
-  ];
+  private espaceServicesGroup: SidebarGroup = {
+    label: 'Espace Services',
+    icon: 'grid',
+    open: true,
+    children: [
+      { label: 'Demandes', path: '/demandes' },
+      { label: 'Changements', path: '/changements' },
+    ],
+  };
+
+  // Un compte CLIENT ne voit que "Espace Services" (Task 4 — permissions client)
+  groups: SidebarGroup[] = this.isClient
+    ? [this.espaceServicesGroup]
+    : [
+        this.espaceServicesGroup,
+        {
+          label: 'Contrats',
+          icon: 'file',
+          open: true,
+          children: [
+            { label: 'Tous les contrats', path: '/contrats' },
+            { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
+          ].filter((c) => this.isAdmin || c.path === '/contrats'),
+        },
+        {
+          label: 'Clients',
+          icon: 'users',
+          open: true,
+          children: [
+            { label: 'Tous les clients', path: '/clients' },
+            { label: 'Nouveau client', path: '/clients/nouveau' },
+          ].filter((c) => this.isAdmin || c.path === '/clients'),
+        },
+      ];
 
   constructor(private auth: AuthService, private router: Router) {}
 

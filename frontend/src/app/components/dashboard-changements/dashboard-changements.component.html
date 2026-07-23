@@ -123,12 +123,11 @@
             <td class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="isOwner(c)" (click)="$event.stopPropagation(); deleteChangement(c._id)" title="Supprimer"
+                <button *ngIf="canCancel(c)" (click)="$event.stopPropagation(); cancelChangement(c)" title="Annuler le changement"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                    <path d="M10 11v6M14 11v6"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="m15 9-6 6M9 9l6 6"></path>
                   </svg>
                 </button>
                 <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -268,13 +267,13 @@
       </div>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isOwner(c)">
-      <button (click)="deleteChangement(c._id)" class="btn-destructive">
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="canCancel(c)">
+      <button (click)="cancelChangement(c)" class="btn-outline text-destructive hover:text-destructive">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"></polyline>
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="m15 9-6 6M9 9l6 6"></path>
         </svg>
-        Supprimer le changement
+        Annuler le changement
       </button>
     </div>
   </ng-container>
