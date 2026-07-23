@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authMiddleware, requireRole } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireTenantAdmin } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createClient,
@@ -19,8 +19,8 @@ router.get('/', getAllClients);
 router.get('/:id', getClientById);
 
 // Écriture : réservée aux administrateurs
-router.post('/', requireRole('ADMIN'), validate(createClientSchema), createClient);
-router.patch('/:id', requireRole('ADMIN'), validate(updateClientSchema), updateClient);
-router.delete('/:id', requireRole('ADMIN'), deleteClient);
+router.post('/', requireTenantAdmin, validate(createClientSchema), createClient);
+router.patch('/:id', requireTenantAdmin, validate(updateClientSchema), updateClient);
+router.delete('/:id', requireTenantAdmin, deleteClient);
 
 module.exports = router;

@@ -90,8 +90,9 @@ const SpecificationsSchema = new Schema(
 
 const ChangementSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
-    clientId: { type: String, required: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    // Compte utilisateur (CLIENT) qui a soumis le changement — normalisation ObjectId
+    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     objetChangement: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },
@@ -100,7 +101,7 @@ const ChangementSchema = new Schema(
     fenetreIntervention: { type: Date, required: true },
     prerequisNecessaires: { type: String },
     planRetourArriere: { type: String, required: true },
-    contrat: { type: String, required: true },
+    contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },
     piecesJointes: [{ type: String }],
     typeChangement: {
       type: String,
@@ -114,6 +115,7 @@ const ChangementSchema = new Schema(
 );
 
 ChangementSchema.index({ tenantId: 1, createdAt: -1 });
+ChangementSchema.index({ tenantId: 1, requester: 1 });
 
 const Changement = mongoose.model('Changement', ChangementSchema);
 

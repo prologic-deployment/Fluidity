@@ -1,7 +1,8 @@
 const { z } = require('zod');
+const { objectId } = require('./common');
 
 const createContratSchema = z.object({
-  clientId: z.string().min(1, 'clientId requis'),
+  clientId: objectId('clientId (ObjectId du Client) requis'),
   reference: z.string().min(1, 'Référence requise'),
   intitule: z.string().min(1, 'Intitulé requis'),
   typeContrat: z.string().optional(),

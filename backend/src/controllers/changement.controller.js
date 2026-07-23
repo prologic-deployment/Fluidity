@@ -1,11 +1,16 @@
 const { Changement } = require('../models/changement.model');
+const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, CHANGEMENT_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
 
 /** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres changements. */
 const filtreProprietaire = (req) =>
-  req.userRole === 'CLIENT' ? { clientId: req.userEmail } : {};
+  req.userRole === 'CLIENT' ? { requester: req.userId } : {};
+
+/** Peuple les relations normalisées (compte demandeur + contrat) sur une requête. */
+const populateRefs = (query) =>
+  query.populate('requester', 'email role status').populate('contrat', 'reference intitule typeContrat');
 
 /**
  * Création d'un changement.
@@ -26,9 +31,16 @@ const createChangement = async (req, res) => {
       return;
     }
 
+    // Le contrat référencé doit exister au sein du même tenant
+    const contrat = await Contrat.findOne({ _id: req.body.contrat, tenantId: req.tenantId });
+    if (!contrat) {
+      res.status(400).json({ message: 'Contrat introuvable dans cet espace de travail.' });
+      return;
+    }
+
     const changement = new Changement({
       ...req.body,
-      clientId: req.userEmail,
+      requester: req.userId,
       tenantId: req.tenantId,
       statut: 'Soumis',
     });
@@ -43,10 +55,11 @@ const createChangement = async (req, res) => {
         ${renderBadge(changement.typeChangement, changement.typeChangement === 'Urgent' ? COLORS.destructive : changement.typeChangement === 'Majeur' ? COLORS.warning : COLORS.primary)}.</p>
         ${renderDetailsTable([
           { label: 'Objet', value: changement.objetChangement },
+          { label: 'Demandeur', value: req.userEmail },
           { label: 'Catégorie', value: `${changement.categorie} / ${changement.sousCategorie}` },
           { label: 'Environnement', value: changement.serviceEnvironnement },
           { label: "Fenêtre d'intervention", value: new Date(changement.fenetreIntervention).toLocaleString('fr-FR') },
-          { label: 'Contrat', value: changement.contrat },
+          { label: 'Contrat', value: `${contrat.reference} — ${contrat.intitule}` },
           { label: 'Plan de retour arrière', value: changement.planRetourArriere },
           { label: 'Description', value: changement.descriptionDetaillee },
         ])}`,
@@ -55,7 +68,7 @@ const createChangement = async (req, res) => {
     });
     sendSupportEmail(req.tenantId, `[Changement] ${changement.objetChangement}`, html).catch(console.error);
 
-    res.status(201).json(changement);
+    res.status(201).json(await populateRefs(Changement.findById(changement._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -67,7 +80,7 @@ const createChangement = async (req, res) => {
 const getAllChangements = async (req, res) => {
   try {
     // Un client ne liste que SES changements ; les autres rôles gardent la vue tenant.
-    const changements = await Changement.find({ tenantId: req.tenantId, ...filtreProprietaire(req) }).sort({ createdAt: -1 });
+    const changements = await populateRefs(Changement.find({ tenantId: req.tenantId, ...filtreProprietaire(req) })).sort({ createdAt: -1 });
     res.status(200).json(changements);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -79,7 +92,7 @@ const getAllChangements = async (req, res) => {
  */
 const getChangementById = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
+    const changement = await populateRefs(Changement.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) }));
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
@@ -107,10 +120,12 @@ const updateChangement = async (req, res) => {
       return;
     }
 
-    const changement = await Changement.findOneAndUpdate(
-      { _id: existant._id, tenantId: req.tenantId },
-      { $set: req.body },
-      { new: true, runValidators: true }
+    const changement = await populateRefs(
+      Changement.findOneAndUpdate(
+        { _id: existant._id, tenantId: req.tenantId },
+        { $set: req.body },
+        { new: true, runValidators: true }
+      )
     );
     res.status(200).json(changement);
   } catch (err) {
@@ -164,7 +179,7 @@ const annulerChangement = async (req, res) => {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
-    if (changement.clientId !== req.userEmail) {
+    if (String(changement.requester) !== String(req.userId)) {
       res.status(403).json({ message: 'Seul le client propriétaire de ce changement peut l\'annuler.' });
       return;
     }
@@ -188,7 +203,7 @@ const annulerChangement = async (req, res) => {
       icon: ICONS.exchange,
       heading: 'Changement annulé par le client',
       bodyHtml: `
-        <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a été annulé par le client ${changement.clientId}.</p>
+        <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a été annulé par le client ${req.userEmail}.</p>
         <p style="margin: 0;">
           ${renderBadge(statutPrecedent, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>

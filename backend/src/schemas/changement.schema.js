@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { objectId } = require('./common');
 
 /**
  * Nombre optionnel : convertit "" / null / undefined en `undefined`
@@ -38,7 +39,7 @@ const createChangementSchema = z.object({
   fenetreIntervention: z.coerce.date(),
   prerequisNecessaires: z.string().optional(),
   planRetourArriere: z.string().min(1, 'Plan de retour arrière requis'),
-  contrat: z.string().min(1, 'Contrat requis'),
+  contrat: objectId('Contrat (ObjectId) requis'),
   piecesJointes: z.array(z.string()).optional(),
   typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']),
   specifications: z

@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { objectId } = require('./common');
 
 const prioriteEnum = z.enum(['Standard', 'Élevée', 'Urgente']);
 
@@ -17,7 +18,7 @@ const createDemandeSchema = z.object({
   prioriteSouhaitee: prioriteEnum,
   dateSouhaiteeRealisation: z.coerce.date().optional(),
   informationsComplementaires: z.string().optional(),
-  contrat: z.string().min(1, 'Contrat requis'),
+  contrat: objectId('Contrat (ObjectId) requis'),
   piecesJointes: z.array(z.string()).optional(),
 });
 
