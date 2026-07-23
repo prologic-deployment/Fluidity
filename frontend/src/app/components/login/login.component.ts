@@ -36,7 +36,8 @@ export class LoginComponent {
     this.auth.login(this.form.value).subscribe({
       next: (res) => {
         this.auth.saveSession(res);
-        this.router.navigate(['/demandes']);
+        // Super Admin -> tableau de bord plateforme ; tout autre rôle -> workspace tenant
+        this.router.navigate([this.auth.isPlatformAdmin() ? '/plateforme/tenants' : '/demandes']);
       },
       error: (err) => {
         this.error = err.error?.message || 'Échec de la connexion';

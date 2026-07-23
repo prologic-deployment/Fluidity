@@ -1,12 +1,42 @@
 <aside class="flex h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-[#0b0a1f] via-[#131233] to-[#0b0a1f] text-slate-100">
-  <!-- Brand -->
+  <!-- Marque plateforme -->
   <div class="flex items-center gap-2.5 px-5 py-5">
     <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-lg shadow-indigo-900/40">
-      F
+      {{ isPlatformWorkspace ? platformName.charAt(0) : workspaceInitial }}
     </div>
     <div>
-      <p class="text-sm font-semibold tracking-tight text-white">Fluidity</p>
-      <p class="text-[11px] text-slate-400">Cloud Services Portal</p>
+      <p class="text-sm font-semibold tracking-tight text-white">{{ platformName }}</p>
+      <p class="text-[11px] text-slate-400">{{ platformTagline }}</p>
+    </div>
+  </div>
+
+  <!-- Badge workspace : le tenant d'où se trouve l'utilisateur est visible en permanence -->
+  <div class="mx-4 mb-1">
+    <div class="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5">
+      <ng-container *ngIf="tenant as t">
+        <img *ngIf="!isPlatformWorkspace && t.logoUrl" [src]="t.logoUrl" alt="Logo tenant"
+          class="h-7 w-7 rounded-md object-contain bg-white/90 p-0.5" />
+      </ng-container>
+      <div *ngIf="isPlatformWorkspace || !tenant?.logoUrl" class="flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold text-white"
+        [ngStyle]="{ background: 'linear-gradient(135deg,' + (tenant?.primaryColor || '#6366f1') + ',' + (tenant?.secondaryColor || '#8b5cf6') + ')' }">
+        {{ workspaceInitial }}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-xs font-semibold text-white">{{ isPlatformWorkspace ? 'Plateforme' : workspaceName }}</p>
+        <p class="truncate text-[10px] text-slate-400">
+          {{ isPlatformWorkspace ? 'Administration globale' : (tenant?.plan ? tenant?.plan + ' — espace de travail' : 'Espace de travail') }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bandeau impersonation -->
+  <div *ngIf="impersonation" class="mx-4 mb-1">
+    <div class="flex items-center justify-between rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2">
+      <p class="text-[10px] font-medium text-amber-200">Impersonation</p>
+      <button (click)="quitterImpersonation()" class="text-[10px] font-semibold text-amber-100 underline decoration-dotted hover:text-white">
+        Quitter
+      </button>
     </div>
   </div>
 
@@ -17,7 +47,6 @@
     <div *ngFor="let group of groups">
       <p class="side-group-label">{{ group.label }}</p>
 
-      <!-- Group with sub-items (multi-level) -->
       <ng-container *ngIf="group.children as children">
         <button *ngIf="children.length" type="button" (click)="toggle(group)"
           class="side-link w-full justify-between">
@@ -63,15 +92,15 @@
 
   <div class="mx-4 h-px bg-white/10"></div>
 
-  <!-- User card -->
+  <!-- Carte utilisateur -->
   <div class="p-4">
     <div class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
       <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white">
         {{ initials() }}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-medium text-white">{{ user?.role || 'Utilisateur' }}</p>
-        <p class="truncate text-[11px] text-slate-400">{{ user?.tenantId }}</p>
+        <p class="truncate text-xs font-medium text-white">{{ roleLabel() }}</p>
+        <p class="truncate text-[11px] text-slate-400">{{ user?.email }}</p>
       </div>
       <button (click)="logout()" title="Déconnexion"
         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
