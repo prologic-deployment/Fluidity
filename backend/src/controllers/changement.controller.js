@@ -46,7 +46,8 @@ const createChangement = async (req, res) => {
     });
     await changement.save();
 
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `Nouveau changement : ${changement.objetChangement}`,
       icon: ICONS.refresh,
       heading: 'Nouveau changement soumis',
@@ -198,7 +199,8 @@ const annulerChangement = async (req, res) => {
     changement.statut = 'Annulé';
     await changement.save();
 
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `Changement annulé : ${changement.objetChangement}`,
       icon: ICONS.exchange,
       heading: 'Changement annulé par le client',
@@ -248,7 +250,8 @@ const changerStatutChangement = async (req, res) => {
     changement.statut = nouveauStatut;
     await changement.save();
 
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `${changement.objetChangement} : ${statutActuel} → ${nouveauStatut}`,
       icon: ICONS.exchange,
       heading: 'Statut de changement mis à jour',

@@ -46,7 +46,8 @@ const createDemande = async (req, res) => {
     });
     await demande.save();
 
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `Nouvelle demande : ${demande.objet}`,
       icon: ICONS.fileCheck,
       heading: 'Nouvelle demande reçue',
@@ -196,7 +197,8 @@ const annulerDemande = async (req, res) => {
     demande.statut = 'Annulé';
     await demande.save();
 
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `Demande annulée : ${demande.objet}`,
       icon: ICONS.exchange,
       heading: 'Demande annulée par le client',
@@ -247,7 +249,8 @@ const changerStatutDemande = async (req, res) => {
     await demande.save();
 
     // Notification asynchrone (non bloquante) du changement de statut
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `${demande.objet} : ${statutActuel} → ${nouveauStatut}`,
       icon: ICONS.exchange,
       heading: 'Statut de demande mis à jour',

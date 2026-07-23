@@ -1,11 +1,13 @@
 /**
  * Moteur de workflow (cycle de vie des statuts) pour les Demandes et les
- * Changements, conforme aux tableaux "Statuts et cycle de vie" /
- * "Workflow de traitement" du cahier des charges.
+ * Changements — rôles entreprise multi-tenant :
+ *   AGENT  : traitement opérationnel (ex-Support N1 / Exploitation)
+ *   MANAGER: validation et pilotage (ex-Responsable Technique / Commercial)
+ *   CLIENT : action du demandeur (réponse, clôture, annulation)
  *
  * Chaque statut liste les transitions sortantes autorisées, et pour
- * chacune, les rôles habilités à l'exécuter. Le rôle ADMIN peut toujours
- * forcer n'importe quelle transition (supervision).
+ * chacune, les rôles habilités. PLATFORM_ADMIN et TENANT_ADMIN peuvent
+ * toujours forcer une transition (supervision), SAUF depuis « Annulé ».
  */
 
 // ---------------------------------------------------------------------
@@ -33,37 +35,37 @@ const DEMANDE_STATUTS_ANNULABLES = ['Ouverte', "En cours d'analyse", 'En attente
 const DEMANDE_TRANSITIONS = {
   Ouverte: [
     // Étape 2 : Qualification et vérification d'éligibilité (Support N1)
-    { to: "En cours d'analyse", roles: ['SUPPORT_N1'] },
+    { to: "En cours d'analyse", roles: ['AGENT'] },
   ],
   "En cours d'analyse": [
     // Étape 3 : Validation / approbation si requise -> transmis au Responsable Technique
-    { to: 'En attente de validation', roles: ['SUPPORT_N1'] },
+    { to: 'En attente de validation', roles: ['AGENT'] },
     // Cas simple ne nécessitant pas de validation : passage direct en réalisation
-    { to: "En cours de réalisation", roles: ['SUPPORT_N1'] },
+    { to: "En cours de réalisation", roles: ['AGENT'] },
     // Information complémentaire requise auprès du client
-    { to: 'En attente client', roles: ['SUPPORT_N1'] },
+    { to: 'En attente client', roles: ['AGENT'] },
     // Demande non éligible
-    { to: 'Rejetée', roles: ['SUPPORT_N1'] },
+    { to: 'Rejetée', roles: ['AGENT'] },
   ],
   'En attente de validation': [
-    { to: "En cours de réalisation", roles: ['RESPONSABLE_TECHNIQUE'] },
-    { to: 'Rejetée', roles: ['RESPONSABLE_TECHNIQUE'] },
+    { to: "En cours de réalisation", roles: ['MANAGER'] },
+    { to: 'Rejetée', roles: ['MANAGER'] },
   ],
   "En cours de réalisation": [
     // Étape 4 : Réalisation de la demande (Support N1/N2)
-    { to: 'Réalisée', roles: ['SUPPORT_N1'] },
-    { to: 'En attente client', roles: ['SUPPORT_N1'] },
+    { to: 'Réalisée', roles: ['AGENT'] },
+    { to: 'En attente client', roles: ['AGENT'] },
   ],
   'En attente client': [
     // Le client fournit l'information demandée -> reprise de l'analyse
-    { to: "En cours d'analyse", roles: ['CLIENT', 'SUPPORT_N1'] },
+    { to: "En cours d'analyse", roles: ['CLIENT', 'AGENT'] },
     // Clôture automatique après 2 jours ouvrés sans réponse (déclenchée manuellement ici, ou par un job planifié)
-    { to: 'Clôturée', roles: ['SUPPORT_N1'] },
+    { to: 'Clôturée', roles: ['AGENT'] },
   ],
   Rejetée: [], // état final, motivé
   Réalisée: [
     // Étape 5 : Confirmation et clôture (Client / Support N1)
-    { to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] },
+    { to: 'Clôturée', roles: ['CLIENT', 'AGENT'] },
   ],
   Clôturée: [], // état final
   Annulé: [], // état final : exclu du workflow, aucune action possible
@@ -96,32 +98,32 @@ const CHANGEMENT_STATUTS_ANNULABLES = ['Soumis', 'En attente de validation', 'Ap
 const CHANGEMENT_TRANSITIONS = {
   Soumis: [
     // Étape 2 : Évaluation du risque et de l'impact (Responsable Technique)
-    { to: 'En attente de validation', roles: ['RESPONSABLE_TECHNIQUE'] },
+    { to: 'En attente de validation', roles: ['MANAGER'] },
   ],
   'En attente de validation': [
     // Étape 3 : Validation selon le type de changement (Responsable Technique / Commercial)
-    { to: 'Approuvé', roles: ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'] },
-    { to: 'Rejeté', roles: ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'] },
+    { to: 'Approuvé', roles: ['MANAGER'] },
+    { to: 'Rejeté', roles: ['MANAGER'] },
   ],
   Approuvé: [
     // Étape 4 : Planification de la fenêtre d'intervention (Exploitation)
-    { to: 'Planifié', roles: ['EXPLOITATION'] },
+    { to: 'Planifié', roles: ['AGENT'] },
   ],
   Planifié: [
     // Étape 5 : Sauvegarde et exécution du changement (Exploitation)
-    { to: "En cours d'implémentation", roles: ['EXPLOITATION'] },
+    { to: "En cours d'implémentation", roles: ['AGENT'] },
   ],
   "En cours d'implémentation": [
     // Étape 6 : Test et vérification post-changement (Exploitation)
-    { to: 'Implémenté', roles: ['EXPLOITATION'] },
-    { to: 'Rollback', roles: ['EXPLOITATION'] },
+    { to: 'Implémenté', roles: ['AGENT'] },
+    { to: 'Rollback', roles: ['AGENT'] },
   ],
-  Rollback: [{ to: 'Clôturé', roles: ['EXPLOITATION'] }], // clôturé "échec"
+  Rollback: [{ to: 'Clôturé', roles: ['AGENT'] }], // clôturé "échec"
   Implémenté: [
     // Étape 7 : Revue post-implémentation et clôture (Responsable Technique)
-    { to: 'En revue post-implémentation', roles: ['RESPONSABLE_TECHNIQUE'] },
+    { to: 'En revue post-implémentation', roles: ['MANAGER'] },
   ],
-  'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
+  'En revue post-implémentation': [{ to: 'Clôturé', roles: ['MANAGER'] }],
   Rejeté: [], // état final, motivé
   Clôturé: [], // état final
   Annulé: [], // état final : exclu du workflow, aucune action possible
@@ -134,7 +136,7 @@ const CHANGEMENT_TRANSITIONS = {
  */
 function canTransition(transitions, from, to, role) {
   if (from === 'Annulé') return false;
-  if (role === 'ADMIN') return true;
+  if (role === 'PLATFORM_ADMIN' || role === 'TENANT_ADMIN') return true;
   const options = transitions[from] || [];
   const match = options.find((o) => o.to === to);
   return !!match && match.roles.includes(role);
@@ -147,7 +149,7 @@ function canTransition(transitions, from, to, role) {
 function availableTransitions(transitions, from, role) {
   if (from === 'Annulé') return [];
   const options = transitions[from] || [];
-  if (role === 'ADMIN') return options.map((o) => o.to);
+  if (role === 'PLATFORM_ADMIN' || role === 'TENANT_ADMIN') return options.map((o) => o.to);
   return options.filter((o) => o.roles.includes(role)).map((o) => o.to);
 }
 

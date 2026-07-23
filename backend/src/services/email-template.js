@@ -98,7 +98,8 @@ function renderHeroIcon(letter) {
 }
 
 /**
- * Enveloppe le contenu (déjà en HTML) dans le gabarit de marque Fluidity.
+ * Enveloppe le contenu (déjà en HTML) dans le gabarit de marque de la plateforme
+ * (white-label : la marque du tenant peut être injectée via `brandName`).
  * Mise en page fluide-hybride : identique sur web, bureau et mobile, avec
  * resserrement des marges/tailles de police sous 600px d'écran.
  *
@@ -109,10 +110,24 @@ function renderHeroIcon(letter) {
  * @param {string} options.bodyHtml - Corps du message (HTML déjà construit)
  * @param {string} [options.ctaLabel] - Libellé du bouton d'action (optionnel)
  * @param {string} [options.ctaUrl] - URL du bouton d'action (optionnel)
+ * @param {string} [options.brandName] - Marque affichée (défaut : nom de la plateforme)
+ * @param {string} [options.brandTagline] - Slogan affiché (défaut : slogan plateforme)
  */
-function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLabel, ctaUrl }) {
+const { PLATFORM_NAME, PLATFORM_TAGLINE } = require('../config/branding');
+
+function renderEmailLayout({
+  preheader = '',
+  icon = '',
+  heading,
+  bodyHtml,
+  ctaLabel,
+  ctaUrl,
+  brandName = PLATFORM_NAME,
+  brandTagline = PLATFORM_TAGLINE,
+}) {
   const heroIcon = renderHeroIcon(icon);
   const align = icon ? 'center' : 'left';
+  const brandInitial = (brandName || 'P').trim().charAt(0).toUpperCase();
 
   const cta =
     ctaLabel && ctaUrl
@@ -196,11 +211,11 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:34px; height:34px; background-color: rgba(255,255,255,0.18); border-radius: 9px; text-align:center; vertical-align:middle;">
-                    <span style="display:block; font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:16px; font-weight:700; line-height:34px;">F</span>
+                    <span style="display:block; font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:16px; font-weight:700; line-height:34px;">${brandInitial}</span>
                   </td>
                   <td style="padding-left: 11px;">
-                    <span style="font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:15px; font-weight:700;">Fluidity</span><br/>
-                    <span style="font-family: Arial, Helvetica, sans-serif; color:rgba(255,255,255,0.8); font-size:11px;">Cloud Services Management Portal</span>
+                    <span style="font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:15px; font-weight:700;">${brandName}</span><br/>
+                    <span style="font-family: Arial, Helvetica, sans-serif; color:rgba(255,255,255,0.8); font-size:11px;">${brandTagline}</span>
                   </td>
                 </tr>
               </table>
@@ -229,7 +244,7 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
           <tr>
             <td class="email-footer-pad" style="padding: 22px 8px 0;">
               <p class="email-muted" style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color:${COLORS.muted}; text-align:center; line-height:1.6;">
-                Cet email a été envoyé automatiquement par le portail Fluidity.<br/>Merci de ne pas y répondre directement.
+                Cet email a été envoyé automatiquement par ${brandName} via la plateforme ${PLATFORM_NAME}.<br/>Merci de ne pas y répondre directement.
               </p>
             </td>
           </tr>

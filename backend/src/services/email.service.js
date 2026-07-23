@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { PLATFORM_NAME, PLATFORM_LOG_TAG } = require('../config/branding');
 const { Utilisateur } = require('../models/user.model');
 const { renderEmailLayout, FRONTEND_URL, ICONS } = require('./email-template');
 let transporter = null;
@@ -34,7 +35,7 @@ const sendEmail = async (to, subject, html) => {
       html,
     });
   } catch (err) {
-    console.error("[Fluidity] Erreur lors de l'envoi de l'email :", err);
+    console.error(`${PLATFORM_LOG_TAG} Erreur lors de l'envoi de l'email :`, err);
   }
 };
 
@@ -45,35 +46,36 @@ const sendEmail = async (to, subject, html) => {
 const sendResetPasswordEmail = async (email, token) => {
   const link = `${FRONTEND_URL()}/reset-password?token=${token}`;
   const html = renderEmailLayout({
-    preheader: 'Réinitialisez votre mot de passe Fluidity (valable 1 heure).',
+    preheader: `Réinitialisez votre mot de passe ${PLATFORM_NAME} (valable 1 heure).`,
     icon: ICONS.lock,
     heading: 'Réinitialisation de votre mot de passe',
     bodyHtml: `
       <p style="margin: 0 0 10px;">Bonjour,</p>
-      <p style="margin: 0 0 10px;">Vous avez demandé la réinitialisation de votre mot de passe Fluidity.</p>
+      <p style="margin: 0 0 10px;">Vous avez demandé la réinitialisation de votre mot de passe.</p>
       <p style="margin: 0;">Cliquez sur le bouton ci-dessous pour en définir un nouveau. Ce lien est valable
       <strong>1 heure</strong>. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email
       en toute sécurité.</p>`,
     ctaLabel: 'Réinitialiser mon mot de passe',
     ctaUrl: link,
   });
-  await sendEmail(email, 'Réinitialisation de votre mot de passe Fluidity', html);
+  await sendEmail(email, `Réinitialisation de votre mot de passe ${PLATFORM_NAME}`, html);
 };
 
 /**
- * Notification asynchrone à l'équipe Support N1 (helpdesk).
+ * Notification asynchrone à l'équipe de traitement du tenant :
+ * Agents opérationnels + Tenant Admin (destinataires internes au tenant).
  */
 const sendSupportEmail = async (tenantId, subject, html) => {
   try {
-    // Email du helpdesk + utilisateurs SUPPORT_N1
     const recipients = [];
 
     const supportUsers = await Utilisateur.find({
       tenantId,
-      role: 'SUPPORT_N1',
+      role: { $in: ['AGENT', 'TENANT_ADMIN'] },
+      status: { $ne: 'suspended' },
     }).select('email');
 
-    recipients.push(...supportUsers.map(user => user.email));
+    recipients.push(...supportUsers.map((user) => user.email));
 
     // Suppression des doublons
     const uniqueRecipients = [...new Set(recipients.filter(Boolean))];
@@ -85,7 +87,7 @@ const sendSupportEmail = async (tenantId, subject, html) => {
     await sendEmail(uniqueRecipients.join(','), subject, html);
   } catch (err) {
     console.error(
-      '[Fluidity] Erreur lors de la notification du Support N1 :',
+      `${PLATFORM_LOG_TAG} Erreur lors de la notification de l'équipe de traitement :`,
       err
     );
   }
