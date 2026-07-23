@@ -1,14 +1,40 @@
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { Utilisateur } = require('../models/user.model');
+const { Tenant } = require('../models/tenant.model');
 const { sendResetPasswordEmail } = require('../services/email.service');
 
+/** Marque renvoyée au frontend pour afficher le workspace (white-label). */
+const tenantBranding = (tenant) =>
+  tenant
+    ? {
+        _id: tenant._id,
+        name: tenant.name,
+        type: tenant.type,
+        logoUrl: tenant.logoUrl,
+        faviconUrl: tenant.faviconUrl,
+        primaryColor: tenant.primaryColor,
+        secondaryColor: tenant.secondaryColor,
+        plan: tenant.plan,
+        timezone: tenant.timezone,
+        language: tenant.language,
+      }
+    : null;
+
 /**
- * Inscription d'un nouvel utilisateur (attribution du tenantId).
+ * Inscription d'un nouvel utilisateur (rattachement à un tenant existant).
+ * Réservée aux flux d'intégration ; la création d'utilisateurs se fait
+ * normalement via /api/users (Tenant Admin) ou /api/tenants (Super Admin).
  */
 const register = async (req, res) => {
   try {
     const { tenantId, email, password, role } = req.body;
+
+    const tenant = await Tenant.findOne({ _id: tenantId, status: 'active' });
+    if (!tenant) {
+      res.status(400).json({ message: 'Tenant invalide ou inactif' });
+      return;
+    }
 
     const existing = await Utilisateur.findOne({ email });
     if (existing) {
@@ -31,8 +57,8 @@ const register = async (req, res) => {
 };
 
 /**
- * Connexion : vérifie les identifiants et renvoie un JWT contenant
- * tenantId + userId + role.
+ * Connexion : vérifie les identifiants et renvoie un JWT + la marque du
+ * tenant (nom, logo, couleurs) pour construire l'expérience workspace.
  */
 const login = async (req, res) => {
   try {
@@ -50,10 +76,31 @@ const login = async (req, res) => {
       return;
     }
 
+    if (user.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
+      res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
+      return;
+    }
+
+    // Marque du workspace + blocage si le tenant est suspendu
+    let tenant = null;
+    if (user.tenantId) {
+      tenant = await Tenant.findById(user.tenantId);
+      if (!tenant || tenant.status === 'terminated') {
+        res.status(403).json({ message: 'Cet espace de travail n\'existe plus.' });
+        return;
+      }
+      if (tenant.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
+        res.status(403).json({
+          message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
+        });
+        return;
+      }
+    }
+
     const secret = process.env.JWT_SECRET;
     const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
     const token = jwt.sign(
-      { tenantId: user.tenantId, userId: user._id, role: user.role, email: user.email },
+      { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email },
       secret,
       { expiresIn }
     );
@@ -61,9 +108,11 @@ const login = async (req, res) => {
     res.status(200).json({
       token,
       userId: user._id,
-      tenantId: user.tenantId,
+      tenantId: user.tenantId || null,
       role: user.role,
       email: user.email,
+      status: user.status,
+      tenant: tenantBranding(tenant),
     });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -131,20 +180,20 @@ const resetPassword = async (req, res) => {
 };
 
 /**
- * Renvoie le profil de l'utilisateur authentifié (sans données sensibles).
+ * Renvoie le profil de l'utilisateur authentifié (+ sa marque de tenant),
+ * sans données sensibles. Utilisé par le frontend au rechargement.
  */
 const me = async (req, res) => {
   try {
-    const user = await Utilisateur.findOne({
-      _id: req.userId,
-      tenantId: req.tenantId,
-    }).select('-password -resetToken -resetTokenExpiry');
+    const filter = { _id: req.userId };
+    if (req.tenantId) filter.tenantId = req.tenantId;
+    const user = await Utilisateur.findOne(filter).select('-password -resetToken -resetTokenExpiry');
 
     if (!user) {
       res.status(404).json({ message: 'Utilisateur introuvable' });
       return;
     }
-    res.status(200).json(user);
+    res.status(200).json({ user, tenant: tenantBranding(req.tenant || null) });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }

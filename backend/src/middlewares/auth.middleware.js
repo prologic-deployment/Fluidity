@@ -1,11 +1,20 @@
 const jwt = require('jsonwebtoken');
+const { Utilisateur } = require('../models/user.model');
+const { Tenant } = require('../models/tenant.model');
 
 /**
- * Middleware d'authentification.
- * Vérifie le JWT présent dans l'en-tête "Authorization: Bearer <token>",
- * puis injecte req.tenantId, req.userId, req.userRole et req.userEmail.
+ * Middleware d'authentification + contexte tenant.
+ *
+ * 1. Vérifie le JWT ("Authorization: Bearer <token>") et injecte
+ *    req.tenantId, req.userId, req.userRole, req.userEmail.
+ * 2. Recharge l'utilisateur : un compte suspendu est immédiatement
+ *    bloqué (les JWT étant sans état, la DB fait foi).
+ * 3. Charge le Tenant : un tenant « suspended » ou « terminated » coupe
+ *    tout accès à ses utilisateurs (le Super Admin plateforme passe).
+ * 4. Impersonation : un PLATFORM_ADMIN peut agir "comme" un tenant via
+ *    l'en-tête `x-tenant-override: <tenantId>` (audit + support).
  */
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -21,10 +30,43 @@ const authMiddleware = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, secret);
-    req.tenantId = decoded.tenantId;
+    req.tenantId = decoded.tenantId || null;
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     req.userEmail = decoded.email;
+
+    // --- Vérification du compte (suspension temps réel) ---
+    const user = await Utilisateur.findById(req.userId).select('role status tenantId').lean();
+    if (!user) {
+      res.status(401).json({ message: 'Compte introuvable ou supprimé' });
+      return;
+    }
+    if (user.status === 'suspended' && req.userRole !== 'PLATFORM_ADMIN') {
+      res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
+      return;
+    }
+
+    // --- Impersonation (PLATFORM_ADMIN uniquement) ---
+    if (req.userRole === 'PLATFORM_ADMIN' && req.headers['x-tenant-override']) {
+      req.tenantId = req.headers['x-tenant-override'];
+      req.impersonated = true;
+    }
+
+    // --- Vérification du tenant ---
+    if (req.tenantId) {
+      const tenant = await Tenant.findById(req.tenantId).lean();
+      if (!tenant) {
+        res.status(401).json({ message: 'Tenant introuvable ou supprimé' });
+        return;
+      }
+      if (tenant.status !== 'active' && req.userRole !== 'PLATFORM_ADMIN') {
+        res.status(403).json({
+          message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
+        });
+        return;
+      }
+      req.tenant = tenant;
+    }
 
     next();
   } catch (err) {
@@ -32,11 +74,11 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = { authMiddleware, requireRole };
+module.exports = { authMiddleware, requireRole, requirePlatformAdmin, requireTenantAdmin };
 
 /**
  * Middleware de contrôle d'accès par rôle.
- * Usage : router.post('/', authMiddleware, requireRole('ADMIN'), handler)
+ * Usage : router.post('/', authMiddleware, requireRole('TENANT_ADMIN'), handler)
  */
 function requireRole(...roles) {
   return (req, res, next) => {
@@ -46,4 +88,14 @@ function requireRole(...roles) {
     }
     next();
   };
+}
+
+/** Routes réservées au Super Admin de la plateforme (hors tenant). */
+function requirePlatformAdmin(req, res, next) {
+  return requireRole('PLATFORM_ADMIN')(req, res, next);
+}
+
+/** Routes d'administration D'UN tenant (Tenant Admin, ou Super Admin en impersonation). */
+function requireTenantAdmin(req, res, next) {
+  return requireRole('PLATFORM_ADMIN', 'TENANT_ADMIN')(req, res, next);
 }
