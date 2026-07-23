@@ -2,9 +2,9 @@ import { CATEGORIES, SERVICES_ENVIRONNEMENT, SOUS_CATEGORIES } from './demande.m
 
 /**
  * Types de changement côté frontend — alignés sur l'enum backend
- * (backend/src/models/changement.model.js) : 'Normal' | 'Majeur' | 'Urgent'.
+ * (backend/src/models/changement.model.js) : 'Standard' | 'Majeur' | 'Urgent'.
  */
-export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
+export type TypeChangement = 'Standard' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
@@ -98,7 +98,7 @@ export interface Changement {
   updatedAt?: string;
 }
 
-export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
+export const TYPES_CHANGEMENT: TypeChangement[] = ['Standard', 'Majeur', 'Urgent'];
 
 /**
  * Listes partagées avec le module Demandes (même catalogue imposé) :

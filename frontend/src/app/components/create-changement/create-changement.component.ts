@@ -79,7 +79,7 @@ export class CreateChangementComponent implements OnInit {
       fenetreIntervention: ['', Validators.required],
       prerequisNecessaires: [''],
       planRetourArriere: ['', Validators.required],
-      typeChangement: ['Normal', Validators.required],
+      typeChangement: ['Standard', Validators.required],
       contrat: ['', Validators.required],
       general: this.fb.group({
         ressourcesConcernees: [''],

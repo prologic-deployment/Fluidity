@@ -41,7 +41,7 @@ export class DashboardChangementsComponent implements OnInit {
     'Rejeté',
     'Annulé',
   ];
-  readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
+  readonly typesFiltrables = ['Standard', 'Majeur', 'Urgent'];
 
   /** Statuts depuis lesquels le client propriétaire peut annuler son changement. */
   readonly statutsAnnulables = ['Soumis', 'En attente de validation', 'Approuvé', 'Planifié'];

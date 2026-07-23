@@ -40,7 +40,7 @@ const createChangementSchema = z.object({
   planRetourArriere: z.string().min(1, 'Plan de retour arrière requis'),
   contrat: z.string().min(1, 'Contrat requis'),
   piecesJointes: z.array(z.string()).optional(),
-  typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']),
+  typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']),
   specifications: z
     .object({
       general: z
@@ -135,7 +135,7 @@ const updateChangementSchema = z
     descriptionDetaillee: z.string().min(1).optional(),
     planRetourArriere: z.string().min(1).optional(),
     contrat: z.string().min(1).optional(),
-    typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']).optional(),
+    typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']).optional(),
     specifications: z.record(z.any()).optional(),
   })
   .partial();
