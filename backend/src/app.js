@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/auth.route');
+const tenantRoutes = require('./routes/tenant.route');
+const userRoutes = require('./routes/user.route');
 const demandeRoutes = require('./routes/demande.route');
 const changementRoutes = require('./routes/changement.route');
 const contratRoutes = require('./routes/contrat.route');
@@ -24,6 +26,8 @@ app.get('/health', (_req, res) => res.status(200).json({ status: 'OK' }));
 
 // Routes principales
 app.use('/api/auth', authRoutes);
+app.use('/api/tenants', tenantRoutes); // Super Admin — administration de la plateforme
+app.use('/api/users', userRoutes); // Tenant Admin — gestion des utilisateurs & licences
 app.use('/api/demandes', demandeRoutes);
 app.use('/api/changements', changementRoutes);
 app.use('/api/contrats', contratRoutes);
