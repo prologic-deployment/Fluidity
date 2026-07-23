@@ -138,7 +138,7 @@ const updateChangement = async (req, res) => {
  * Suppression d'un changement (isolé par tenant).
  * INTERDITE aux clients : ils utilisent l'annulation (PATCH /:id/annuler),
  * qui conserve le dossier en base avec le statut « Annulé ».
- * Réservée à un ADMIN pour la supervision.
+ * Réservée à un administrateur (TENANT_ADMIN / PLATFORM_ADMIN) pour la supervision.
  */
 const deleteChangement = async (req, res) => {
   try {
@@ -148,7 +148,7 @@ const deleteChangement = async (req, res) => {
       });
       return;
     }
-    if (req.userRole !== 'ADMIN') {
+    if (req.userRole !== 'TENANT_ADMIN' && req.userRole !== 'PLATFORM_ADMIN') {
       res.status(403).json({ message: 'Seul un administrateur peut supprimer un changement.' });
       return;
     }
