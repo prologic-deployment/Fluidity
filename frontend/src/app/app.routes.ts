@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
 import { platformGuard } from './guards/platform.guard';
+import { tenantAdminGuard } from './guards/tenant-admin.guard';
 import { LoginComponent } from './components/login/login.component';
 import { ResetPasswordComponent } from './components/reset-password/reset-password.component';
 import { ShellComponent } from './components/shell/shell.component';
@@ -14,6 +15,7 @@ import { CreateContratComponent } from './components/create-contrat/create-contr
 import { DashboardClientsComponent } from './components/dashboard-clients/dashboard-clients.component';
 import { CreateClientComponent } from './components/create-client/create-client.component';
 import { PlatformTenantsComponent } from './components/platform-tenants/platform-tenants.component';
+import { UsersDashboardComponent } from './components/users-dashboard/users-dashboard.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -33,6 +35,7 @@ export const routes: Routes = [
       { path: 'clients', component: DashboardClientsComponent },
       { path: 'clients/nouveau', component: CreateClientComponent, canActivate: [adminGuard] },
       { path: 'plateforme/tenants', component: PlatformTenantsComponent, canActivate: [platformGuard] },
+      { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard] },
     ],
   },
   { path: '**', redirectTo: 'login' },
