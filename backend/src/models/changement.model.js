@@ -3,13 +3,14 @@ const { Schema } = mongoose;
 
 const { CHANGEMENT_STATUTS } = require('../utils/workflow');
 
-/**
- * TypeChangement: 'Normal' | 'Majeur' | 'Urgent'
- * StatutChangement (cycle de vie complet, §2.3.4) :
- *   'Soumis' -> 'En attente de validation' -> 'Approuvé' -> 'Planifié'
- *   -> 'En cours d'implémentation' -> 'Implémenté' -> 'En revue post-implémentation'
- *   -> 'Clôturé' (+ 'Rollback' et 'Rejeté')
- */
+const DiskSchema = new Schema(
+  {
+    taille: { type: Number },
+    type: { type: String },
+    typeAutre: { type: String },
+  },
+  { _id: false }
+);
 
 const SpecificationsSchema = new Schema(
   {
@@ -22,8 +23,7 @@ const SpecificationsSchema = new Schema(
       os: { type: String },
       cpuCores: { type: Number },
       ramGo: { type: Number },
-      disqueNvmeGo: { type: Number },
-      disqueSasGo: { type: Number },
+      disques: [DiskSchema],
     },
     reseau: {
       vlan: { type: String },
@@ -33,7 +33,8 @@ const SpecificationsSchema = new Schema(
     },
     backup: {
       espaceBackupSupplementaireGo: { type: Number },
-      retentionSouhaitee: { type: String },
+      retentionNombre: { type: Number },
+      retentionPeriode: { type: String },
       licencesNecessaires: { type: String },
     },
   },
@@ -47,7 +48,9 @@ const ChangementSchema = new Schema(
     objetChangement: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },
+    serviceEnvironnementAutre: { type: String },
     categorie: { type: String, required: true },
+    categorieAutre: { type: String },
     sousCategorie: { type: String, required: true },
     fenetreIntervention: { type: Date, required: true },
     prerequisNecessaires: { type: String },
