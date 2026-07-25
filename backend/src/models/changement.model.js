@@ -81,7 +81,7 @@ const SpecificationsSchema = new Schema(
 
 const ChangementSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
     clientId: { type: String, required: true },
     objetChangement: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },

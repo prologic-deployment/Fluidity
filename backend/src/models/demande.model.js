@@ -13,7 +13,7 @@ const { DEMANDE_STATUTS } = require('../utils/workflow');
 
 const DemandeSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
     clientId: { type: String, required: true },
     objet: { type: String, required: true },
     typeDemande: { type: String, required: true },

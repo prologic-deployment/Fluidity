@@ -3,15 +3,30 @@ const bcrypt = require('bcryptjs');
 const { Schema } = mongoose;
 
 /**
- * Rôles possibles au sein d'un tenant :
- * 'CLIENT' | 'ADMIN' | 'SUPPORT_N1' | 'RESPONSABLE_TECHNIQUE'
- * | 'COMMERCIAL' | 'EXPLOITATION'
+ * Rôles possibles :
+ * 'SUPER_ADMIN' — propriétaire de la plateforme (multi-tenant, voir tenant.model.js)
+ * 'ADMIN' — administrateur d'un Tenant ("Tenant Admin"), gère uniquement son espace
+ * 'CLIENT' | 'SUPPORT_N1' | 'RESPONSABLE_TECHNIQUE' | 'COMMERCIAL' | 'EXPLOITATION'
+ *   — rôles métier classiques, opèrent strictement à l'intérieur d'un Tenant
  */
-const ROLES = ['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION'];
+const ROLES = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'CLIENT',
+  'SUPPORT_N1',
+  'RESPONSABLE_TECHNIQUE',
+  'COMMERCIAL',
+  'EXPLOITATION',
+];
 
 const UtilisateurSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
+    // Référence ObjectId vers Tenant (voir "DATABASE REFACTOR" — remplace
+    // l'ancien tenantId de type String). Un SUPER_ADMIN appartient au
+    // Tenant technique "Platform" (voir seed/tenant.seed.js) mais ses
+    // permissions ne sont jamais restreintes à ce tenant : les routes
+    // plateforme (requireRole('SUPER_ADMIN')) ne filtrent pas par tenantId.
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
     email: {
       type: String,
       required: true,
@@ -21,6 +36,7 @@ const UtilisateurSchema = new Schema(
     },
     password: { type: String, required: true },
     role: { type: String, enum: ROLES, default: 'CLIENT' },
+    statut: { type: String, enum: ['Actif', 'Suspendu'], default: 'Actif' },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
   },

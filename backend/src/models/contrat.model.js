@@ -10,7 +10,7 @@ const { Schema } = mongoose;
  */
 const ContratSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant', required: true },
     clientId: { type: String, required: true },
     reference: { type: String, required: true, trim: true },
     intitule: { type: String, required: true },
