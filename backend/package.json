@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/seed/run.js"
+    "seed": "node src/seed/run.js",
+    "migrate:tenants": "node src/migrations/001-string-tenant-to-objectid.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

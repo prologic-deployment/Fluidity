@@ -1,5 +1,6 @@
 const app = require('./app');
 const { connectDB } = require('./config/db.config');
+const { seedTenants } = require('./seed/tenant.seed');
 const { seedUsers } = require('./seed/user.seed');
 const { seedClients } = require('./seed/client.seed');
 const { seedContrats } = require('./seed/contrat.seed');
@@ -8,14 +9,17 @@ const PORT = process.env.PORT || 3000;
 
 /**
  * Bootstrap : connexion DB -> seed automatique (1ère exécution) -> écoute.
+ * L'ordre est important : les tenants doivent exister avant tout le reste
+ * (utilisateurs, clients, contrats référencent désormais un Tenant par
+ * ObjectId).
  */
 (async () => {
   try {
     await connectDB();
-    // Crée les utilisateurs, clients et contrats de démonstration automatiquement au 1er lancement
-    // await seedUsers();
-    // await seedClients();
-    // await seedContrats();
+    await seedTenants();
+    await seedUsers();
+    await seedClients();
+    await seedContrats();
     app.listen(PORT, () => {
       console.log(`[Fluidity] Serveur démarré sur le port ${PORT}`);
     });
