@@ -1,9 +1,18 @@
 export type StatutContrat = 'Actif' | 'Expiré' | 'Suspendu';
 
+/** Référence peuplée côté serveur : la fiche client rattachée au contrat. */
+export interface ClientRef {
+  _id: string;
+  nom: string;
+  email?: string;
+  statut?: string;
+}
+
 export interface Contrat {
   _id?: string;
   tenantId?: string;
-  clientId: string;
+  /** Client du contrat — ObjectId en écriture, peuplé en lecture (nom, email, statut). */
+  clientId: string | ClientRef;
   reference: string;
   intitule: string;
   typeContrat?: string;

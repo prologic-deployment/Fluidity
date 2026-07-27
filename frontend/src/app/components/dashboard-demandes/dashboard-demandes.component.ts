@@ -40,6 +40,9 @@ export class DashboardDemandesComponent implements OnInit {
   ];
   readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
 
+  /** Statuts depuis lesquels le client propriétaire peut annuler sa demande. */
+  readonly statutsAnnulables = ['Ouverte', "En cours d'analyse", 'En attente de validation', 'En attente client'];
+
   constructor(
     private demandeService: DemandeService,
     public auth: AuthService,
@@ -73,7 +76,7 @@ export class DashboardDemandesComponent implements OnInit {
       const matchTerm =
         !term ||
         d.objet.toLowerCase().includes(term) ||
-        d.clientId?.toLowerCase().includes(term) ||
+        this.requesterEmail(d).toLowerCase().includes(term) ||
         d.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
       const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
@@ -101,37 +104,76 @@ export class DashboardDemandesComponent implements OnInit {
     this.transitionError = null;
   }
 
-  /** Le client propriétaire peut agir sur sa propre demande (Task 4 : plus de suppression). */
-  isOwner(demande: Demande): boolean {
-    return this.auth.isClient() && demande.clientId === this.auth.getEmail();
+  /** Email du compte demandeur (référence ObjectId peuplée côté serveur). */
+  requesterEmail(demande: Demande): string {
+    const r = demande.requester;
+    if (r && typeof r === 'object') return r.email;
+    return (r as string) || '—';
   }
 
-  /** La demande peut-elle encore être annulée par son client propriétaire ? */
-  canCancel(demande: Demande): boolean {
-    return this.isOwner(demande) && availableTransitions(DEMANDE_TRANSITIONS, demande.statut, this.auth.getRole()).includes('Annulé');
+  /** Référence lisible du contrat rattaché (ObjectId peuplé en lecture). */
+  contratLabel(demande: Demande): string {
+    const c = demande.contrat;
+    if (c && typeof c === 'object') return c.reference;
+    return (c as string) || '—';
+  }
+
+  /** Le client connecté est le propriétaire de la demande. */
+  isOwner(demande: Demande): boolean {
+    if (!this.auth.isClient()) return false;
+    const r = demande.requester;
+    if (r && typeof r === 'object') {
+      return r._id === this.auth.getUserId() || r.email === this.auth.getEmail();
+    }
+    return r === this.auth.getUserId();
   }
 
   /**
-   * Annulation d'une demande par son client propriétaire (remplace la suppression,
-   * Task 4). La demande reste en base et visible dans l'historique, avec le statut
-   * "Annulé" — elle sort définitivement du workflow (aucune transition ultérieure
-   * possible, pour aucun rôle).
+   * Annulation possible uniquement : client propriétaire + statut précoce.
+   * (Un dossier « Annulé » est figé : aucune action n'est plus proposée.)
    */
-  async cancelDemande(demande: Demande): Promise<void> {
-    if (!demande._id) return;
+  isAnnulable(demande: Demande): boolean {
+    return this.isOwner(demande) && !!demande.statut && this.statutsAnnulables.includes(demande.statut);
+  }
+
+  /**
+   * « Annuler » remplace la suppression pour un client : le dossier reste en
+   * base, visible dans l'historique, et passe au statut « Annulé » (état final).
+   */
+  async annulerDemande(id: string | undefined): Promise<void> {
+    if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler cette demande ?',
-      message: "La demande sera marquée comme annulée et sortira définitivement du workflow. Elle reste consultable dans l'historique.",
+      message:
+        'La demande sera conservée dans l\'historique avec le statut « Annulé ». Cette action est définitive : aucune reprise ne sera possible.',
       confirmLabel: 'Annuler la demande',
       variant: 'destructive',
     });
     if (!ok) return;
-    this.demandeService.changerStatut(demande._id, 'Annulé').subscribe({
+    this.demandeService.annuler(id).subscribe({
       next: () => {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+    });
+  }
+
+  async cancelDemande(id: string | undefined): Promise<void> {
+    if (!id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Annuler cette demande ?',
+      message: 'La demande restera visible dans l\'historique mais ne pourra plus être traitée.',
+      confirmLabel: 'Annuler la demande',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.demandeService.cancel(id).subscribe({
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
     });
   }
 
@@ -184,7 +226,7 @@ export class DashboardDemandesComponent implements OnInit {
       case 'Rejetée':
         return 'badge-destructive';
       case 'Annulé':
-        return 'badge-secondary';
+        return 'badge-destructive';
       default:
         return 'badge-outline';
     }

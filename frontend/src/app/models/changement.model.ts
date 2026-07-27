@@ -1,19 +1,23 @@
-export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
+import { CATEGORIES, SERVICES_ENVIRONNEMENT, SOUS_CATEGORIES, ContratRef, RequesterRef } from './demande.model';
+
+/**
+ * Types de changement côté frontend — alignés sur l'enum backend
+ * (backend/src/models/changement.model.js) : 'Standard' | 'Majeur' | 'Urgent'.
+ */
+export type TypeChangement = 'Standard' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
   | 'En attente de validation'
   | 'Approuvé'
   | 'Planifié'
-  | 'En cours d\'implémentation'
+  | "En cours d'implémentation"
   | 'Rollback'
   | 'Implémenté'
   | 'En revue post-implémentation'
   | 'Rejeté'
-  | 'Clôturé'
-  | 'Annulé';
-
-export type DiskType = 'NVMe' | 'SAS' | 'SSD' | 'SATA';
+  | 'Annulé'
+  | 'Clôturé';
 
 export interface Specifications {
   general?: {
@@ -24,7 +28,8 @@ export interface Specifications {
     os?: string;
     cpuCores?: number;
     ramGo?: number;
-    disques?: { tailleGo?: number; type?: DiskType }[];
+    // Disques dynamiques : remplace les anciens champs fixes disqueNvmeGo / disqueSasGo
+    disques?: DisqueServeur[];
   };
   reseau?: {
     vlan?: string;
@@ -34,43 +39,48 @@ export interface Specifications {
   };
   backup?: {
     espaceBackupSupplementaireGo?: number;
+    /** Valeur canonique composée « <1-12> <période> », ex. « 6 Mois ». */
     retentionSouhaitee?: string;
     licencesNecessaires?: string;
   };
-  database?: {
+  // --- Sections supplémentaires affichées selon la catégorie choisie ---
+  baseDeDonnees?: {
     moteur?: string;
     version?: string;
-    instance?: string;
-    nomBaseDeDonnees?: string;
-  };
-  conteneurs?: {
-    nomConteneur?: string;
-    image?: string;
-    registry?: string;
-    namespace?: string;
+    tailleGo?: number;
   };
   stockage?: {
+    typeStockage?: string;
     capaciteGo?: number;
-    pointMontage?: string;
-    systemeFichiers?: string;
+    protocole?: string;
   };
-  securite?: {
-    regleFirewall?: string;
-    niveauSecurite?: string;
-    certificat?: string;
+  portailWeb?: {
+    domaine?: string;
+    sslRequis?: string;
+    technologie?: string;
+  };
+  conteneurs?: {
+    plateforme?: string;
+    nombreReplicas?: number;
+    cpuAlloue?: string;
+    memoireAllouee?: string;
   };
   iaGpu?: {
-    modeleGpu?: string;
-    versionCuda?: string;
-    vramGo?: number;
+    typeGpu?: string;
     nombreGpu?: number;
+    framework?: string;
+  };
+  securite?: {
+    perimetre?: string;
+    niveauCriticite?: string;
   };
 }
 
 export interface Changement {
   _id?: string;
   tenantId?: string;
-  clientId?: string; // dérivé côté serveur du compte authentifié à la création
+  /** Compte demandeur — dérivé côté serveur à la création, peuplé en lecture. */
+  requester?: RequesterRef | string;
   objetChangement: string;
   descriptionDetaillee: string;
   serviceEnvironnement: string;
@@ -80,7 +90,8 @@ export interface Changement {
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
-  contrat: string;
+  /** Contrat de rattachement — ObjectId en écriture, peuplé en lecture. */
+  contrat: string | ContratRef;
   piecesJointes?: string[];
   statut?: StatutChangement;
   specifications?: Specifications;
@@ -88,63 +99,51 @@ export interface Changement {
   updatedAt?: string;
 }
 
-export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
-
-export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = [
-  'Production',
-  'Pré-production',
-  'Test',
-  'Développement',
-  'UAT',
-  'Autre',
-];
-
-export const CATEGORIES_CHANGEMENT: string[] = [
-  'Réseau',
-  'Infrastructure',
-  'VM',
-  'Base de données',
-  'Portail web',
-  'Conteneurs',
-  'IA-GPU',
-  'Stockage',
-  'Sécurité',
-  'Sauvegarde',
-  'Autre',
-];
-
-export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = {
-  Réseau: ['Switch', 'Routeur', 'VLAN', 'VPN', 'Firewall', 'DNS', 'DHCP', 'WiFi', 'Proxy', 'Load Balancer', 'Autre'],
-  Infrastructure: ['Serveur physique', 'Rack', 'Baie', 'Climatisation', 'Monitoring', 'Alimentation', 'Autre'],
-  VM: ['Création VM', 'Extension ressources', 'Migration', 'Snapshot', 'Clone', 'Suppression', 'Autre'],
-  'Base de données': ['SQL Server', 'PostgreSQL', 'MySQL', 'Oracle', 'MongoDB', 'Backup', 'Restore', 'Performance', 'Autre'],
-  'Portail web': ['IIS', 'Apache', 'Nginx', 'Certificat SSL', 'DNS', 'API', 'Autre'],
-  Conteneurs: ['Docker', 'Docker Compose', 'Kubernetes', 'Helm', 'Registry', 'Autre'],
-  'IA-GPU': ['CUDA', 'GPU Allocation', 'TensorFlow', 'PyTorch', 'Drivers', 'Autre'],
-  Stockage: ['NAS', 'SAN', 'NFS', 'SMB', 'Capacity', 'Quotas', 'Autre'],
-  Sécurité: ['Antivirus', 'IAM', 'MFA', 'Firewall', 'Audit', 'Certificat', 'Autre'],
-  Sauvegarde: ['Backup', 'Restore', 'Replication', 'Archive', 'Veeam', 'Autre'],
-};
-
-export const DISK_TYPES: DiskType[] = ['NVMe', 'SAS', 'SSD', 'SATA'];
-
-export const RETENTION_UNITES: string[] = ['Jour(s)', 'Semaine(s)', 'Mois', 'Année(s)'];
+export const TYPES_CHANGEMENT: TypeChangement[] = ['Standard', 'Majeur', 'Urgent'];
 
 /**
- * Section(s) de spécifications techniques pertinentes selon la catégorie
- * sélectionnée (Task 3 : sections dynamiques). "Général" reste toujours
- * affichée quelle que soit la catégorie.
+ * Listes partagées avec le module Demandes (même catalogue imposé) :
+ * Service / Environnement, Catégories et Sous-catégories dynamiques,
+ * avec pour chacune l'entrée « Autre » qui ouvre un champ de précision.
  */
-export const CATEGORIE_SPEC_SECTIONS: Record<string, string[]> = {
+export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = SERVICES_ENVIRONNEMENT;
+
+export const CATEGORIES_CHANGEMENT: string[] = CATEGORIES;
+
+export const SOUS_CATEGORIES_CHANGEMENT: Record<string, string[]> = SOUS_CATEGORIES;
+
+/** Disque dynamique des Spécifications — Serveur : [capacité Go] + [type]. */
+export interface DisqueServeur {
+  capaciteGo: number;
+  type: string; // NVMe | SAS | SSD | HDD | SATA | Autre
+  typePrecision?: string; // précision libre quand type = 'Autre'
+}
+
+/** Types de disques proposés dans le dropdown. */
+export const TYPES_DISQUE: string[] = ['NVMe', 'SAS', 'SSD', 'HDD', 'SATA', 'Autre'];
+
+/** Périodes de rétention proposées (Spécifications — Sauvegarde). */
+export const RETENTION_PERIODES: string[] = ['Jour', 'Semaines', 'Mois', 'Années'];
+
+/** Nombres de rétention proposés (1 à 12). */
+export const RETENTION_NOMBRES: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+/** Motif IPv4 utilisé pour la validation des champs réseau. */
+export const IPV4_PATTERN = '^(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)){3}$';
+
+/**
+ * Sections de spécifications affichées dynamiquement selon la catégorie.
+ * 'general' est toujours affichée, quelle que soit la catégorie.
+ */
+export const SECTIONS_SPECIFICATIONS: Record<string, string[]> = {
   Réseau: ['reseau'],
   Infrastructure: ['serveur'],
   VM: ['serveur'],
-  'Base de données': ['database'],
-  'Portail web': ['serveur'],
+  'Base de données': ['baseDeDonnees'],
+  'Portail web': ['portailWeb'],
   Conteneurs: ['conteneurs'],
   'IA-GPU': ['iaGpu'],
   Stockage: ['stockage'],
   Sécurité: ['securite'],
   Sauvegarde: ['backup'],
-  Autre: [],
 };

@@ -119,11 +119,11 @@
             <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy hh:mm' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="canCancel(d)" (click)="$event.stopPropagation(); cancelDemande(d)" title="Annuler la demande"
+                <button *ngIf="isAnnulable(d)" (click)="$event.stopPropagation(); annulerDemande(d._id)" title="Annuler cette demande"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="m15 9-6 6M9 9l6 6"></path>
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="m5.6 5.6 12.8 12.8"></path>
                   </svg>
                 </button>
                 <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -152,8 +152,8 @@
 
     <div class="detail-grid">
       <div>
-        <p class="detail-label">Client</p>
-        <p class="detail-value">{{ d.clientId }}</p>
+        <p class="detail-label">Demandeur</p>
+        <p class="detail-value">{{ requesterEmail(d) }}</p>
       </div>
       <div>
         <p class="detail-label">Type de demande</p>
@@ -165,7 +165,7 @@
       </div>
       <div>
         <p class="detail-label">Contrat</p>
-        <p class="detail-value">{{ d.contrat }}</p>
+        <p class="detail-value">{{ contratLabel(d) }}</p>
       </div>
       
       <div>
@@ -206,11 +206,15 @@
       </div>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="canCancel(d)">
-      <button (click)="cancelDemande(d)" class="btn-outline text-destructive hover:text-destructive">
+    <p *ngIf="d.statut === 'Annulé'" class="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
+      Ce dossier est annulé : il reste visible dans l'historique mais ne suit plus aucun traitement et ne peut plus être modifié.
+    </p>
+
+    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isAnnulable(d)">
+      <button (click)="annulerDemande(d._id)" class="btn-destructive">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="m15 9-6 6M9 9l6 6"></path>
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="m5.6 5.6 12.8 12.8"></path>
         </svg>
         Annuler la demande
       </button>

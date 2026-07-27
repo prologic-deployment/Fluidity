@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { objectId } = require('./common');
 
 /**
  * Nombre optionnel : convertit "" / null / undefined en `undefined`
@@ -9,12 +10,25 @@ const optionalNumber = z.preprocess(
   z.coerce.number().optional()
 );
 
-/** Chaîne IPv4 optionnelle : vide -> undefined, sinon doit respecter le format IPv4. */
-const IPV4_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;
-const optionalIPv4 = z.preprocess(
+/**
+ * IPv4 strict (chaque octet 0-255), ex. 192.168.1.10.
+ * Appliqué à Adresse IP, Masque de sous-réseau et Passerelle.
+ */
+const IPV4_REGEX = /^(25[0-5]|2[0-4]\d|1\d\d|0?[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|0?[1-9]?\d)){3}$/;
+const optionalIpv4 = z.preprocess(
   (v) => (v === '' || v === null || v === undefined ? undefined : v),
   z.string().regex(IPV4_REGEX, 'Adresse IPv4 invalide').optional()
 );
+
+/** Disque dynamique : [capacité Go] + [type] (+ précision libre si 'Autre'). */
+const disqueSchema = z.object({
+  capaciteGo: z.coerce.number().min(1, 'Capacité requise (Go)'),
+  type: z.string().min(1, 'Type de disque requis'),
+  typePrecision: z.string().optional(),
+});
+
+/** Rétention canonique "<nombre> <période>", ex. "6 Mois". */
+const RETENTION_REGEX = /^([1-9]|1[0-2]) (Jour|Semaines|Mois|Années)$/;
 
 const createChangementSchema = z.object({
   objetChangement: z.string().min(1, 'Objet du changement requis'),
@@ -25,9 +39,9 @@ const createChangementSchema = z.object({
   fenetreIntervention: z.coerce.date(),
   prerequisNecessaires: z.string().optional(),
   planRetourArriere: z.string().min(1, 'Plan de retour arrière requis'),
-  contrat: z.string().min(1, 'Contrat requis'),
+  contrat: objectId('Contrat (ObjectId) requis'),
   piecesJointes: z.array(z.string()).optional(),
-  typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']),
+  typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']),
   specifications: z
     .object({
       general: z
@@ -42,67 +56,69 @@ const createChangementSchema = z.object({
           os: z.string().optional(),
           cpuCores: optionalNumber,
           ramGo: optionalNumber,
-          disques: z
-            .array(
-              z.object({
-                tailleGo: optionalNumber,
-                type: z.enum(['NVMe', 'SAS', 'SSD', 'SATA']).optional(),
-              })
-            )
-            .optional(),
+          // Remplace disqueNvmeGo / disqueSasGo : liste dynamique de disques
+          disques: z.array(disqueSchema).optional(),
         })
         .optional(),
       reseau: z
         .object({
           vlan: z.string().optional(),
-          adresseIp: optionalIPv4,
-          masqueSousReseau: optionalIPv4,
-          passerelle: optionalIPv4,
+          adresseIp: optionalIpv4,
+          masqueSousReseau: optionalIpv4,
+          passerelle: optionalIpv4,
         })
         .optional(),
       backup: z
         .object({
           espaceBackupSupplementaireGo: optionalNumber,
-          retentionSouhaitee: z.string().optional(),
+          retentionSouhaitee: z
+            .string()
+            .regex(RETENTION_REGEX, 'Rétention attendue au format « <1-12> <Jour|Semaines|Mois|Années> »')
+            .optional(),
           licencesNecessaires: z.string().optional(),
         })
         .optional(),
-      database: z
+      // --- Sections supplémentaires affichées selon la catégorie choisie ---
+      baseDeDonnees: z
         .object({
           moteur: z.string().optional(),
           version: z.string().optional(),
-          instance: z.string().optional(),
-          nomBaseDeDonnees: z.string().optional(),
-        })
-        .optional(),
-      conteneurs: z
-        .object({
-          nomConteneur: z.string().optional(),
-          image: z.string().optional(),
-          registry: z.string().optional(),
-          namespace: z.string().optional(),
+          tailleGo: optionalNumber,
         })
         .optional(),
       stockage: z
         .object({
+          typeStockage: z.string().optional(),
           capaciteGo: optionalNumber,
-          pointMontage: z.string().optional(),
-          systemeFichiers: z.string().optional(),
+          protocole: z.string().optional(),
         })
         .optional(),
-      securite: z
+      portailWeb: z
         .object({
-          regleFirewall: z.string().optional(),
-          niveauSecurite: z.string().optional(),
-          certificat: z.string().optional(),
+          domaine: z.string().optional(),
+          sslRequis: z.string().optional(),
+          technologie: z.string().optional(),
+        })
+        .optional(),
+      conteneurs: z
+        .object({
+          plateforme: z.string().optional(),
+          nombreReplicas: optionalNumber,
+          cpuAlloue: z.string().optional(),
+          memoireAllouee: z.string().optional(),
         })
         .optional(),
       iaGpu: z
         .object({
-          modeleGpu: z.string().optional(),
-          versionCuda: z.string().optional(),
-          vramGo: optionalNumber,
+          typeGpu: z.string().optional(),
           nombreGpu: optionalNumber,
+          framework: z.string().optional(),
+        })
+        .optional(),
+      securite: z
+        .object({
+          perimetre: z.string().optional(),
+          niveauCriticite: z.string().optional(),
         })
         .optional(),
     })
@@ -120,7 +136,7 @@ const updateChangementSchema = z
     descriptionDetaillee: z.string().min(1).optional(),
     planRetourArriere: z.string().min(1).optional(),
     contrat: z.string().min(1).optional(),
-    typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']).optional(),
+    typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']).optional(),
     specifications: z.record(z.any()).optional(),
   })
   .partial();

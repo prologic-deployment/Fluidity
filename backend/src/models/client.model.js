@@ -4,16 +4,14 @@ const { Schema } = mongoose;
 /**
  * StatutClient: 'Actif' | 'Inactif'
  *
- * Un Client représente un compte/entreprise cliente de Fluidity, créé par
- * un ADMIN. Son `email` est la clé de rattachement utilisée par les
- * Contrats (`Contrat.clientId`) ainsi que par les Demandes/Changements
- * soumis par l'utilisateur CLIENT correspondant (`req.userEmail`) — un
- * Client et le compte Utilisateur qui se connecte en son nom partagent
- * donc le même email au sein d'un tenant.
+ * Un Client représente un compte/entreprise cliente D'UN TENANT (jamais
+ * de la plateforme), géré par le Tenant Admin. Les Contrats y font
+ * référence via `Contrat.clientId` (ObjectId) et l'utilisateur CLIENT qui
+ * se connecte en son nom partage le même `email` au sein du tenant.
  */
 const ClientSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
     email: {
       type: String,
       required: true,

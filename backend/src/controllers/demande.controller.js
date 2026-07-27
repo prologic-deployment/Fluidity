@@ -1,7 +1,16 @@
 const { Demande } = require('../models/demande.model');
+const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
-const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
+const { DEMANDE_TRANSITIONS, DEMANDE_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
+
+/** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres demandes. */
+const filtreProprietaire = (req) =>
+  req.userRole === 'CLIENT' ? { requester: req.userId } : {};
+
+/** Peuple les relations normalisées (compte demandeur + contrat) sur une requête. */
+const populateRefs = (query) =>
+  query.populate('requester', 'email role status').populate('contrat', 'reference intitule typeContrat');
 
 /**
  * Création d'une demande.
@@ -22,15 +31,23 @@ const createDemande = async (req, res) => {
       return;
     }
 
+    // Le contrat référencé doit exister au sein du même tenant
+    const contrat = await Contrat.findOne({ _id: req.body.contrat, tenantId: req.tenantId });
+    if (!contrat) {
+      res.status(400).json({ message: 'Contrat introuvable dans cet espace de travail.' });
+      return;
+    }
+
     const demande = new Demande({
       ...req.body,
-      clientId: req.userEmail,
+      requester: req.userId,
       tenantId: req.tenantId,
       statut: 'Ouverte',
     });
     await demande.save();
 
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `Nouvelle demande : ${demande.objet}`,
       icon: ICONS.fileCheck,
       heading: 'Nouvelle demande reçue',
@@ -39,17 +56,18 @@ const createDemande = async (req, res) => {
         ${renderBadge(demande.prioriteSouhaitee, demande.prioriteSouhaitee === 'Urgente' ? COLORS.destructive : demande.prioriteSouhaitee === 'Élevée' ? COLORS.warning : COLORS.primary)}.</p>
         ${renderDetailsTable([
           { label: 'Objet', value: demande.objet },
+          { label: 'Demandeur', value: req.userEmail },
           { label: 'Type', value: demande.typeDemande },
           { label: 'Catégorie', value: `${demande.categorie} / ${demande.sousCategorie}` },
           { label: 'Environnement', value: demande.serviceEnvironnement },
-          { label: 'Contrat', value: demande.contrat },
+          { label: 'Contrat', value: `${contrat.reference} — ${contrat.intitule}` },
           { label: 'Description', value: demande.descriptionDetaillee },
         ])}`,
       ctaLabel: 'Voir les demandes',
       ctaUrl: `${FRONTEND_URL()}/demandes`,
     });
     sendSupportEmail(req.tenantId, `[Demande] ${demande.objet}`, html).catch(console.error);
-    res.status(201).json(demande);
+    res.status(201).json(await populateRefs(Demande.findById(demande._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -60,7 +78,8 @@ const createDemande = async (req, res) => {
  */
 const getAllDemandes = async (req, res) => {
   try {
-    const demandes = await Demande.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
+    // Un client ne liste que SES demandes ; les autres rôles gardent la vue tenant.
+    const demandes = await populateRefs(Demande.find({ tenantId: req.tenantId, ...filtreProprietaire(req) })).sort({ createdAt: -1 });
     res.status(200).json(demandes);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -68,11 +87,11 @@ const getAllDemandes = async (req, res) => {
 };
 
 /**
- * Détail d'une demande (isolée par tenant).
+ * Détail d'une demande (isolée par tenant + propriété client).
  */
 const getDemandeById = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const demande = await populateRefs(Demande.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) }));
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
@@ -84,30 +103,29 @@ const getDemandeById = async (req, res) => {
 };
 
 /**
- * Mise à jour d'une demande (isolée par tenant).
- * - Un CLIENT ne peut modifier que ses propres demandes (Task 4).
- * - Une demande "Annulé" est figée : plus aucune modification, pour aucun rôle.
+ * Mise à jour d'une demande (isolée par tenant + propriété client).
+ * - Un CLIENT ne peut modifier que SES demandes.
+ * - Une demande « Annulé » n'est plus modifiable par personne.
  */
 const updateDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
-    if (!demande) {
+    const existante = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
+    if (!existante) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
-
-    if (req.userRole === 'CLIENT' && demande.clientId !== req.userEmail) {
-      res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres demandes.' });
+    if (existante.statut === 'Annulé') {
+      res.status(409).json({ message: 'Cette demande est annulée : aucune modification n\'est possible.' });
       return;
     }
 
-    if (demande.statut === 'Annulé') {
-      res.status(403).json({ message: 'Cette demande est annulée et ne peut plus être modifiée.' });
-      return;
-    }
-
-    demande.set(req.body);
-    await demande.save();
+    const demande = await populateRefs(
+      Demande.findOneAndUpdate(
+        { _id: existante._id, tenantId: req.tenantId },
+        { $set: req.body },
+        { new: true, runValidators: true }
+      )
+    );
     res.status(200).json(demande);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -116,24 +134,87 @@ const updateDemande = async (req, res) => {
 
 /**
  * Suppression d'une demande (isolée par tenant).
- * Réservée à un ADMIN (Task 4 : les clients ne peuvent plus supprimer
- * leurs demandes — ils les annulent via le workflow, voir
- * changerStatutDemande / statut "Annulé").
+ * INTERDITE aux clients : ils utilisent l'annulation (PATCH /:id/annuler),
+ * qui conserve le dossier en base avec le statut « Annulé ».
+ * Réservée à un administrateur (TENANT_ADMIN / PLATFORM_ADMIN) pour la supervision.
  */
 const deleteDemande = async (req, res) => {
   try {
-    if (req.userRole !== 'ADMIN') {
+    if (req.userRole === 'CLIENT') {
+      res.status(403).json({
+        message: 'La suppression est interdite pour un client. Utilisez « Annuler » : le dossier reste conservé avec le statut « Annulé ».',
+      });
+      return;
+    }
+    if (req.userRole !== 'TENANT_ADMIN' && req.userRole !== 'PLATFORM_ADMIN') {
       res.status(403).json({ message: 'Seul un administrateur peut supprimer une demande.' });
       return;
     }
 
-    const demande = await Demande.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
 
+    await demande.deleteOne();
     res.status(200).json({ message: 'Demande supprimée avec succès' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
+/**
+ * Annulation d'une demande par le client propriétaire (remplace la suppression).
+ * - Réservé au rôle CLIENT propriétaire du dossier
+ * - Possible uniquement depuis un statut précoce (DEMANDE_STATUTS_ANNULABLES)
+ * - Le dossier RESTE en base, visible dans l'historique, avec statut « Annulé »
+ * - Un dossier annulé sort du workflow : plus aucune action possible
+ */
+const annulerDemande = async (req, res) => {
+  try {
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!demande) {
+      res.status(404).json({ message: 'Demande introuvable' });
+      return;
+    }
+    if (String(demande.requester) !== String(req.userId)) {
+      res.status(403).json({ message: 'Seul le client propriétaire de cette demande peut l\'annuler.' });
+      return;
+    }
+    if (demande.statut === 'Annulé') {
+      res.status(409).json({ message: 'Cette demande est déjà annulée.' });
+      return;
+    }
+    if (!DEMANDE_STATUTS_ANNULABLES.includes(demande.statut)) {
+      res.status(409).json({
+        message: `Cette demande ne peut plus être annulée depuis le statut « ${demande.statut} ». Annulation possible depuis : ${DEMANDE_STATUTS_ANNULABLES.join(', ')}.`,
+      });
+      return;
+    }
+
+    const statutPrecedent = demande.statut;
+    demande.statut = 'Annulé';
+    await demande.save();
+
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
+      preheader: `Demande annulée : ${demande.objet}`,
+      icon: ICONS.exchange,
+      heading: 'Demande annulée par le client',
+      bodyHtml: `
+        <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a été annulée par le client ${req.userEmail}.</p>
+        <p style="margin: 0;">
+          ${renderBadge(statutPrecedent, COLORS.muted)}
+          <span style="color:#94a3b8; margin: 0 6px;">→</span>
+          ${renderBadge('Annulé', COLORS.destructive)}
+        </p>`,
+      ctaLabel: 'Voir les demandes',
+      ctaUrl: `${FRONTEND_URL()}/demandes`,
+    });
+    sendSupportEmail(req.tenantId, `[Demande] Annulée — ${demande.objet}`, html).catch(console.error);
+
+    res.status(200).json(demande);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -168,7 +249,8 @@ const changerStatutDemande = async (req, res) => {
     await demande.save();
 
     // Notification asynchrone (non bloquante) du changement de statut
-    const html = renderEmailLayout({
+    const brandName = req.tenant?.name;
+    const html = renderEmailLayout({ brandName,
       preheader: `${demande.objet} : ${statutActuel} → ${nouveauStatut}`,
       icon: ICONS.exchange,
       heading: 'Statut de demande mis à jour',
@@ -197,5 +279,6 @@ module.exports = {
   getDemandeById,
   updateDemande,
   deleteDemande,
+  annulerDemande,
   changerStatutDemande,
 };

@@ -1,0 +1,228 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-900/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Utilisateurs</h1>
+          <p class="text-sm text-muted-foreground">Comptes, rôles et licences de votre espace de travail.</p>
+        </div>
+      </div>
+      <button (click)="openCreate()" class="btn-primary transition-transform hover:scale-[1.03]">
+        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Nouvel utilisateur
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="info" class="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">{{ info }}</p>
+
+    <!-- Licences -->
+    <div *ngIf="licence" class="card mb-6 animate-fade-in-up">
+      <div class="card-content py-4">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <p class="text-sm font-medium">Licences utilisées</p>
+            <p class="text-xs text-muted-foreground">
+              {{ licence.activeUsers }}/{{ licence.maxUsers }} sièges actifs — {{ licence.remainingUsers }} restant{{ licence.remainingUsers > 1 ? 's' : '' }}
+            </p>
+          </div>
+          <span class="badge-secondary"><span class="badge-dot"></span>Abonnement</span>
+        </div>
+        <div class="h-2 w-full rounded-full bg-muted overflow-hidden">
+          <div class="h-full rounded-full transition-all"
+            [ngClass]="licensePct() >= 100 ? 'bg-destructive' : licensePct() >= 75 ? 'bg-amber-500' : 'bg-indigo-500'"
+            [style.width.%]="licensePct()"></div>
+        </div>
+        <p *ngIf="licence.remainingUsers <= 0" class="mt-2 text-xs text-destructive">
+          Limite de licences atteinte : augmentez votre abonnement ou suspendez un compte pour créer un nouvel utilisateur.
+        </p>
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="toolbar">
+      <div class="search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un email, un département..." class="search-input" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <select [(ngModel)]="roleFiltre" class="filter-select">
+        <option value="">Tous les rôles</option>
+        <option *ngFor="let r of roles" [value]="r">{{ roleLabel(r) }}</option>
+      </select>
+      <select [(ngModel)]="statutFiltre" class="filter-select">
+        <option value="">Tous les statuts</option>
+        <option value="active">Actif</option>
+        <option value="invited">Invité</option>
+        <option value="suspended">Suspendu</option>
+      </select>
+    </div>
+
+    <!-- Chargement -->
+    <div *ngIf="loading" class="table-wrap">
+      <div class="p-2">
+        <div *ngFor="let i of [1,2,3]" class="flex items-center gap-4 px-4 py-4 border-b border-border last:border-0">
+          <div class="skeleton h-8 w-8 rounded-md"></div>
+          <div class="skeleton h-4 w-48"></div>
+          <div class="skeleton h-5 w-20 rounded-full"></div>
+          <div class="skeleton h-5 w-16 rounded-full"></div>
+          <div class="skeleton h-4 w-28 ml-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredUsers().length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">
+        Aucun utilisateur ne correspond à ces critères.
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredUsers().length > 0" class="table-wrap animate-fade-in-up">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Rôle</th>
+            <th>Département</th>
+            <th>Statut</th>
+            <th>Créé le</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of filteredUsers()" class="group">
+            <td>
+              <div class="flex items-center gap-3">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white">
+                  {{ userInitial(u) }}
+                </div>
+                <div>
+                  <p class="font-medium">
+                    {{ u.email }}
+                    <span *ngIf="isSelf(u)" class="ml-1 text-xs text-muted-foreground">(vous)</span>
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge-secondary"><span class="badge-dot"></span>{{ roleLabel(u.role) }}</span></td>
+            <td class="text-muted-foreground">{{ u.department || '—' }}</td>
+            <td>
+              <span [ngClass]="statutClass(u.status)"><span class="badge-dot"></span>{{ statutLabel(u.status) }}</span>
+            </td>
+            <td class="text-muted-foreground">{{ u.createdAt | date: 'dd/MM/yyyy' }}</td>
+            <td>
+              <div class="flex items-center justify-end gap-1">
+                <button (click)="openEdit(u)" class="btn-icon-sm" title="Modifier le rôle / département">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                  </svg>
+                </button>
+                <button (click)="toggleStatus(u)" class="btn-icon-sm" [disabled]="isSelf(u)"
+                  [title]="u.status === 'suspended' ? 'Réactiver le compte' : 'Suspendre le compte'">
+                  <svg *ngIf="u.status !== 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M10 15V9M14 15V9"></path>
+                  </svg>
+                  <svg *ngIf="u.status === 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="6 3 20 12 6 21 6 3"></polygon>
+                  </svg>
+                </button>
+                <button (click)="resetPassword(u)" class="btn-icon-sm" title="Envoyer un lien de réinitialisation du mot de passe">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                  </svg>
+                </button>
+                <button (click)="supprimer(u)" class="btn-icon-sm text-destructive" [disabled]="isSelf(u)" title="Supprimer le compte">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Modal création -->
+<app-modal [open]="showCreate" [title]="'Nouvel utilisateur'" [subtitle]="'Créer un compte dans votre espace (consomme un siège de licence)'" (closed)="closeCreate()">
+  <form [formGroup]="createForm" (ngSubmit)="submitCreate()" class="space-y-4">
+    <p *ngIf="formError" class="alert-destructive">{{ formError }}</p>
+
+    <div>
+      <label class="field-label" for="user-email">Email <span class="text-destructive">*</span></label>
+      <input id="user-email" type="email" formControlName="email" class="input" placeholder="prenom.nom@entreprise.com" />
+    </div>
+
+    <div>
+      <label class="field-label" for="user-password">Mot de passe provisoire <span class="text-destructive">*</span></label>
+      <input id="user-password" type="password" formControlName="password" class="input" placeholder="6 caractères minimum" />
+      <p class="mt-1 text-xs text-muted-foreground">L'utilisateur pourra le modifier via « Mot de passe oublié ».</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="field-label" for="user-role">Rôle <span class="text-destructive">*</span></label>
+        <select id="user-role" formControlName="role" class="select">
+          <option *ngFor="let r of roles" [value]="r">{{ roleLabel(r) }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="user-dept">Département</label>
+        <input id="user-dept" type="text" formControlName="department" class="input" placeholder="Support, Finance..." />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <button type="button" (click)="closeCreate()" class="btn-outline">Annuler</button>
+      <button type="submit" [disabled]="submitting" class="btn-primary">
+        {{ submitting ? 'Création...' : 'Créer le compte' }}
+      </button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Modal édition -->
+<app-modal [open]="!!editing" [title]="editing?.email || ''" [subtitle]="'Rôle et département du compte'" (closed)="closeEdit()">
+  <form [formGroup]="editForm" (ngSubmit)="submitEdit()" class="space-y-4">
+    <p *ngIf="formError" class="alert-destructive">{{ formError }}</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="field-label" for="edit-role">Rôle <span class="text-destructive">*</span></label>
+        <select id="edit-role" formControlName="role" class="select">
+          <option *ngFor="let r of roles" [value]="r">{{ roleLabel(r) }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="edit-dept">Département</label>
+        <input id="edit-dept" type="text" formControlName="department" class="input" placeholder="Support, Finance..." />
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-2">
+      <button type="button" (click)="closeEdit()" class="btn-outline">Annuler</button>
+      <button type="submit" [disabled]="submitting" class="btn-primary">
+        {{ submitting ? 'Enregistrement...' : 'Enregistrer' }}
+      </button>
+    </div>
+  </form>
+</app-modal>

@@ -122,7 +122,8 @@
           <div class="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 text-xs">
             <div>
               <p class="text-muted-foreground">Client</p>
-              <p class="mt-0.5 font-medium text-foreground truncate">{{ c.clientId }}</p>
+              <p class="mt-0.5 font-medium text-foreground truncate">{{ clientNom(c) }}</p>
+              <p *ngIf="clientEmail(c)" class="text-[11px] text-muted-foreground truncate">{{ clientEmail(c) }}</p>
             </div>
             <div>
               <p class="text-muted-foreground">Type</p>
@@ -167,7 +168,9 @@
     <div class="detail-grid">
       <div>
         <p class="detail-label">Client</p>
-        <p class="detail-value">{{ c.clientId }}</p>
+        <p class="detail-value">
+          {{ clientNom(c) }}<span *ngIf="clientEmail(c)" class="text-muted-foreground"> — {{ clientEmail(c) }}</span>
+        </p>
       </div>
       <div>
         <p class="detail-label">Référence</p>

@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authMiddleware, requireRole } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireTenantAdmin } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createContrat,
@@ -20,8 +20,8 @@ router.get('/', getAllContrats);
 router.get('/:id', getContratById);
 
 // Écriture : réservée aux administrateurs ("l'admin peut ouvrir un contrat pour un client")
-router.post('/', requireRole('ADMIN'), validate(createContratSchema), createContrat);
-router.patch('/:id', requireRole('ADMIN'), validate(updateContratSchema), updateContrat);
-router.delete('/:id', requireRole('ADMIN'), deleteContrat);
+router.post('/', requireTenantAdmin, validate(createContratSchema), createContrat);
+router.patch('/:id', requireTenantAdmin, validate(updateContratSchema), updateContrat);
+router.delete('/:id', requireTenantAdmin, deleteContrat);
 
 module.exports = router;

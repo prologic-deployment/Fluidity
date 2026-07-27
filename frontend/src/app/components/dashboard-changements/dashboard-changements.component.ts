@@ -41,7 +41,10 @@ export class DashboardChangementsComponent implements OnInit {
     'Rejeté',
     'Annulé',
   ];
-  readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
+  readonly typesFiltrables = ['Standard', 'Majeur', 'Urgent'];
+
+  /** Statuts depuis lesquels le client propriétaire peut annuler son changement. */
+  readonly statutsAnnulables = ['Soumis', 'En attente de validation', 'Approuvé', 'Planifié'];
 
   constructor(
     private changementService: ChangementService,
@@ -75,7 +78,7 @@ export class DashboardChangementsComponent implements OnInit {
       const matchTerm =
         !term ||
         c.objetChangement.toLowerCase().includes(term) ||
-        c.clientId?.toLowerCase().includes(term) ||
+        this.requesterEmail(c).toLowerCase().includes(term) ||
         c.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
@@ -108,37 +111,76 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  /** Le client propriétaire peut agir sur son propre changement (Task 4 : plus de suppression). */
-  isOwner(changement: Changement): boolean {
-    return this.auth.isClient() && changement.clientId === this.auth.getEmail();
+  /** Email du compte demandeur (référence ObjectId peuplée côté serveur). */
+  requesterEmail(changement: Changement): string {
+    const r = changement.requester;
+    if (r && typeof r === 'object') return r.email;
+    return (r as string) || '—';
   }
 
-  /** Le changement peut-il encore être annulé par son client propriétaire ? */
-  canCancel(changement: Changement): boolean {
-    return this.isOwner(changement) && availableTransitions(CHANGEMENT_TRANSITIONS, changement.statut, this.auth.getRole()).includes('Annulé');
+  /** Référence lisible du contrat rattaché (ObjectId peuplé en lecture). */
+  contratLabel(changement: Changement): string {
+    const ct = changement.contrat;
+    if (ct && typeof ct === 'object') return ct.reference;
+    return (ct as string) || '—';
+  }
+
+  /** Le client connecté est le propriétaire du changement. */
+  isOwner(changement: Changement): boolean {
+    if (!this.auth.isClient()) return false;
+    const r = changement.requester;
+    if (r && typeof r === 'object') {
+      return r._id === this.auth.getUserId() || r.email === this.auth.getEmail();
+    }
+    return r === this.auth.getUserId();
   }
 
   /**
-   * Annulation d'un changement par son client propriétaire (remplace la suppression,
-   * Task 4). Le changement reste en base et visible dans l'historique, avec le statut
-   * "Annulé" — il sort définitivement du workflow (aucune transition ultérieure
-   * possible, pour aucun rôle).
+   * Annulation possible uniquement : client propriétaire + statut précoce.
+   * (Un dossier « Annulé » est figé : aucune action n'est plus proposée.)
    */
-  async cancelChangement(changement: Changement): Promise<void> {
-    if (!changement._id) return;
+  isAnnulable(changement: Changement): boolean {
+    return this.isOwner(changement) && !!changement.statut && this.statutsAnnulables.includes(changement.statut);
+  }
+
+  /**
+   * « Annuler » remplace la suppression pour un client : le dossier reste en
+   * base, visible dans l'historique, et passe au statut « Annulé » (état final).
+   */
+  async annulerChangement(id: string | undefined): Promise<void> {
+    if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler ce changement ?',
-      message: "Le changement sera marqué comme annulé et sortira définitivement du workflow. Il reste consultable dans l'historique.",
+      message:
+        'Le changement sera conservé dans l\'historique avec le statut « Annulé ». Cette action est définitive : aucune reprise ne sera possible.',
       confirmLabel: 'Annuler le changement',
       variant: 'destructive',
     });
     if (!ok) return;
-    this.changementService.changerStatut(changement._id, 'Annulé').subscribe({
+    this.changementService.annuler(id).subscribe({
       next: () => {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+    });
+  }
+
+  async cancelChangement(id: string | undefined): Promise<void> {
+    if (!id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Annuler ce changement ?',
+      message: 'Le changement restera visible dans l\'historique mais ne pourra plus être traité.',
+      confirmLabel: 'Annuler le changement',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.changementService.cancel(id).subscribe({
+      next: () => {
+        this.load();
+        this.closeDetails();
+      },
+      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
     });
   }
 
@@ -189,7 +231,7 @@ export class DashboardChangementsComponent implements OnInit {
       case 'Rejeté':
         return 'badge-destructive';
       case 'Annulé':
-        return 'badge-secondary';
+        return 'badge-destructive';
       default:
         return 'badge-outline';
     }

@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
 import { ContratService } from '../../services/contrat.service';
-import { AuthService } from '../../services/auth.service';
 import {
   PRIORITES,
   CATEGORIES,
@@ -41,7 +40,6 @@ export class CreateDemandeComponent implements OnInit {
     private fb: FormBuilder,
     private demandeService: DemandeService,
     private contratService: ContratService,
-    private auth: AuthService,
     private router: Router
   ) {}
 
@@ -69,12 +67,14 @@ export class CreateDemandeComponent implements OnInit {
     // Catégorie "Autre" : plus de liste de sous-catégories, la sous-catégorie devient elle-même
     // un champ libre obligatoire (categorieAutre + sousCategorieAutre)
     this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
+      const estAutre = cat === AUTRE;
       this.sousCategories = SOUS_CATEGORIES[cat] || [];
       this.form.get('sousCategorie')?.setValue('');
       this.form.get('sousCategorieAutre')?.setValue('');
-      this.setValidator(this.form.get('categorieAutre'), cat === AUTRE);
-      this.setValidator(this.form.get('sousCategorie'), cat !== AUTRE);
-      this.setValidator(this.form.get('sousCategorieAutre'), cat === AUTRE);
+      if (!estAutre) this.resetControl(this.form.get('categorieAutre')); // masqué => réinitialisé
+      this.setValidator(this.form.get('categorieAutre'), estAutre);
+      this.setValidator(this.form.get('sousCategorie'), !estAutre);
+      this.setValidator(this.form.get('sousCategorieAutre'), estAutre);
     });
 
     // "Autre" activé sur Sous-catégorie (cas d'une catégorie normale) : précision obligatoire
@@ -83,17 +83,25 @@ export class CreateDemandeComponent implements OnInit {
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
-    // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
-    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
+    // Contrats proposés : pour un compte CLIENT, le serveur filtre
+    // automatiquement ses propres contrats (restriction côté serveur).
+    this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
   }
 
-  /** Abonne un contrôle "Autre" pour qu'il devienne obligatoire quand la valeur sélectionnée est "Autre". */
+  /**
+   * Abonne un contrôle "Autre" : le champ de précision devient obligatoire
+   * quand "Autre" est sélectionné, et il est masqué + réinitialisé dès qu'une
+   * autre valeur est choisie.
+   */
   private toggleAutreValidator(controlName: string, autreControlName: string): void {
     this.form.get(controlName)?.valueChanges.subscribe((val: string) => {
-      this.setValidator(this.form.get(autreControlName), val === AUTRE);
+      const autre = this.form.get(autreControlName);
+      const required = val === AUTRE;
+      if (!required) this.resetControl(autre);
+      this.setValidator(autre, required);
     });
   }
 
@@ -101,6 +109,13 @@ export class CreateDemandeComponent implements OnInit {
     if (!control) return;
     control.setValidators(required ? [Validators.required] : []);
     control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  /** Vide un champ masqué et efface son état de validation. */
+  private resetControl(control: any): void {
+    if (!control) return;
+    control.setValue('', { emitEvent: false });
+    control.markAsUntouched();
   }
 
   onPiecesJointesChange(files: UploadedFile[]): void {
@@ -116,7 +131,7 @@ export class CreateDemandeComponent implements OnInit {
     const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
     const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
 
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
+    // Le demandeur (requester) est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Demande = {
       objet: raw.objet,
       typeDemande: raw.typeDemande === AUTRE ? raw.typeDemandeAutre : raw.typeDemande,

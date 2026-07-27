@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const { CHANGEMENT_STATUTS } = require('../utils/workflow');
 
 /**
- * TypeChangement: 'Normal' | 'Majeur' | 'Urgent'
+ * TypeChangement: 'Standard' | 'Majeur' | 'Urgent'
  * StatutChangement (cycle de vie complet, §2.3.4) :
  *   'Soumis' -> 'En attente de validation' -> 'Approuvé' -> 'Planifié'
  *   -> 'En cours d'implémentation' -> 'Implémenté' -> 'En revue post-implémentation'
@@ -25,14 +25,16 @@ const SpecificationsSchema = new Schema(
       os: { type: String },
       cpuCores: { type: Number },
       ramGo: { type: Number },
-      // Liste extensible de disques (taille + type), remplace les anciens
-      // champs fixes disqueNvmeGo / disqueSasGo pour supporter tout type de disque.
+      // Disques dynamiques : paires [capacité Go] + [type] (NVMe/SAS/SSD/HDD/SATA/Autre)
       disques: [
-        {
-          _id: false,
-          tailleGo: { type: Number },
-          type: { type: String, enum: DISK_TYPES },
-        },
+        new Schema(
+          {
+            capaciteGo: { type: Number, required: true },
+            type: { type: String, required: true },
+            typePrecision: { type: String }, // précision libre quand type = 'Autre'
+          },
+          { _id: false }
+        ),
       ],
     },
     reseau: {
@@ -81,8 +83,9 @@ const SpecificationsSchema = new Schema(
 
 const ChangementSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
-    clientId: { type: String, required: true },
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    // Compte utilisateur (CLIENT) qui a soumis le changement — normalisation ObjectId
+    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     objetChangement: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },
@@ -91,11 +94,11 @@ const ChangementSchema = new Schema(
     fenetreIntervention: { type: Date, required: true },
     prerequisNecessaires: { type: String },
     planRetourArriere: { type: String, required: true },
-    contrat: { type: String, required: true },
+    contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },
     piecesJointes: [{ type: String }],
     typeChangement: {
       type: String,
-      enum: ['Normal', 'Majeur', 'Urgent'],
+      enum: ['Standard', 'Majeur', 'Urgent'],
       required: true,
     },
     statut: { type: String, enum: CHANGEMENT_STATUTS, default: 'Soumis' },
@@ -105,6 +108,7 @@ const ChangementSchema = new Schema(
 );
 
 ChangementSchema.index({ tenantId: 1, createdAt: -1 });
+ChangementSchema.index({ tenantId: 1, requester: 1 });
 
 const Changement = mongoose.model('Changement', ChangementSchema);
 
