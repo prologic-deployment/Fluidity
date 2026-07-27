@@ -12,12 +12,6 @@ const { Utilisateur } = require('../models/user.model');
  *   et « Nova Systems » (2 comptes CLIENT par tenant : propriétaire / autrui)
  */
 const seedUsers = async (tenants = {}) => {
-  const count = await Utilisateur.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} utilisateur(s) existant(s) — seed ignoré.`);
-    return;
-  }
-
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
   if (!fluidity || !nova) {
@@ -43,11 +37,24 @@ const seedUsers = async (tenants = {}) => {
     { tenantId: nova._id, email: 'viewer@nova-systems.dev', password: 'Password123!', role: 'VIEWER', department: 'Audit' },
   ];
 
+  // Additif et idempotent : chaque compte n'est créé que si son email est
+  // absent — relancer le seed complète une base existante (ex. anciens
+  // jeux moins fournis) sans jamais toucher aux comptes déjà présents.
+  let created = 0;
+  let existing = 0;
   for (const u of demoUsers) {
+    const found = await Utilisateur.findOne({ email: u.email });
+    if (found) {
+      existing += 1;
+      continue;
+    }
     await new Utilisateur({ ...u, tenantId: u.tenantId || undefined, status: 'active' }).save();
+    created += 1;
   }
 
-  console.log(`[Seed] ${demoUsers.length} utilisateurs de démonstration créés dans db.utilisateurs.`);
+  console.log(
+    `[Seed] Utilisateurs de démonstration : ${created} créé(s), ${existing} déjà présent(s) dans db.utilisateurs.`
+  );
 };
 
 module.exports = { seedUsers };

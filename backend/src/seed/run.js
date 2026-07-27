@@ -17,6 +17,10 @@ const { seedChangements } = require('./changement.seed');
  * tous les statuts des deux workflows (demandes et changements), tous les
  * types/états de contrats et toutes les sections de spécifications.
  *
+ * ADDITIF et idempotent : relancer le seed sur une base existante complète
+ * UNIQUEMENT les éléments manquants (comptes, fiches, contrats, jeux de
+ * tickets par tenant vide) — les données existantes ne sont jamais altérées.
+ *
  * Pour migrer des données EXISTANTES (legacy String IDs vers ObjectIds),
  * utiliser : npm run migrate
  */

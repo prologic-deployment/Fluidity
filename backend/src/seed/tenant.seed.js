@@ -36,20 +36,27 @@ const demoTenants = [
 ];
 
 /**
- * Insère les tenants de démonstration UNIQUEMENT si la collection est
- * vide (idempotent). Renvoie la map { nom -> Tenant } pour enchaîner les
- * seeds dépendants (utilisateurs, clients, contrats).
+ * Insère les tenants de démonstration manquants (additif, idempotent :
+ * chaque tenant n'est créé que s'il n'existe pas déjà). Renvoie la map
+ * { nom -> Tenant } pour enchaîner les seeds dépendants (utilisateurs,
+ * clients, contrats, demandes, changements).
  */
 const seedTenants = async () => {
-  const count = await Tenant.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} tenant(s) existant(s) — seed ignoré.`);
-    return mapTenants();
+  let created = 0;
+  for (const t of demoTenants) {
+    const exists = await Tenant.findOne({ name: t.name });
+    if (!exists) {
+      await Tenant.create(t);
+      created += 1;
+    }
   }
-
-  await Tenant.insertMany(demoTenants);
-  console.log(`[Seed] ${demoTenants.length} tenants de démonstration créés (Fluidity, Nova Systems).`);
-  return mapTenants();
+  const all = await mapTenants();
+  console.log(
+    created > 0
+      ? `[Seed] ${created} tenant(s) de démonstration créé(s) (${Object.keys(all).join(', ')}).`
+      : '[Seed] Tenants de démonstration déjà présents — aucun ajout.'
+  );
+  return all;
 };
 
 /** Map { nom -> document Tenant } des tenants présents en base. */

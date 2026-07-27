@@ -16,12 +16,6 @@ const { Contrat } = require('../models/contrat.model');
  * Les statuts sont injectés directement (données de démo) — jamais en production.
  */
 const seedChangements = async (tenants = {}) => {
-  const count = await Changement.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} changement(s) existant(s) — seed ignoré.`);
-    return;
-  }
-
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
   if (!fluidity || !nova) {
@@ -296,9 +290,21 @@ const seedChangements = async (tenants = {}) => {
     },
   ];
 
-  await Changement.insertMany(demoChangements);
+  // Additif et idempotent PAR TENANT (même règle que les demandes).
+  let created = 0;
+  for (const tenant of [fluidity, nova]) {
+    const existing = await Changement.countDocuments({ tenantId: tenant._id });
+    if (existing > 0) continue;
+    const docs = demoChangements.filter((c) => String(c.tenantId) === String(tenant._id));
+    if (docs.length) {
+      await Changement.insertMany(docs);
+      created += docs.length;
+    }
+  }
   console.log(
-    `[Seed] ${demoChangements.length} changements de démonstration créés dans db.changements (tous les statuts + toutes les sections de specs).`
+    created > 0
+      ? `[Seed] ${created} changements de démonstration créés dans db.changements (tous les statuts + toutes les sections de specs).`
+      : '[Seed] Changements de démonstration déjà présents — aucun ajout.'
   );
 };
 

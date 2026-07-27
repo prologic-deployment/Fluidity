@@ -5,12 +5,6 @@ const { Client } = require('../models/client.model');
  * alignés sur les comptes CLIENT de démo (même email dans le tenant).
  */
 const seedClients = async (tenants = {}) => {
-  const count = await Client.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} client(s) existant(s) — seed ignoré.`);
-    return;
-  }
-
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
   if (!fluidity || !nova) {
@@ -45,8 +39,22 @@ const seedClients = async (tenants = {}) => {
     },
   ];
 
-  await Client.insertMany(demoClients);
-  console.log(`[Seed] ${demoClients.length} clients de démonstration créés dans db.clients.`);
+  // Additif et idempotent : chaque fiche n'est créée que si l'email est
+  // absent du tenant (index unique (tenantId, email)).
+  let created = 0;
+  let existing = 0;
+  for (const c of demoClients) {
+    const found = await Client.findOne({ tenantId: c.tenantId, email: c.email });
+    if (found) {
+      existing += 1;
+      continue;
+    }
+    await Client.create(c);
+    created += 1;
+  }
+  console.log(
+    `[Seed] Clients de démonstration : ${created} créé(s), ${existing} déjà présent(s) dans db.clients.`
+  );
 };
 
 module.exports = { seedClients };

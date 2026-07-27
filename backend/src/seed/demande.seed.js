@@ -16,12 +16,6 @@ const { Contrat } = require('../models/contrat.model');
  * réel du workflow) — jamais en production.
  */
 const seedDemandes = async (tenants = {}) => {
-  const count = await Demande.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} demande(s) existante(s) — seed ignoré.`);
-    return;
-  }
-
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
   if (!fluidity || !nova) {
@@ -219,8 +213,24 @@ const seedDemandes = async (tenants = {}) => {
     },
   ];
 
-  await Demande.insertMany(demoDemandes);
-  console.log(`[Seed] ${demoDemandes.length} demandes de démonstration créées dans db.demandes (tous les statuts du workflow).`);
+  // Additif et idempotent PAR TENANT : le jeu de démo d'un tenant n'est
+  // inséré que si ce tenant n'a encore AUCUNE demande — jamais de doublon
+  // au fil des relances, et les données réelles ne sont jamais touchées.
+  let created = 0;
+  for (const tenant of [fluidity, nova]) {
+    const existing = await Demande.countDocuments({ tenantId: tenant._id });
+    if (existing > 0) continue;
+    const docs = demoDemandes.filter((d) => String(d.tenantId) === String(tenant._id));
+    if (docs.length) {
+      await Demande.insertMany(docs);
+      created += docs.length;
+    }
+  }
+  console.log(
+    created > 0
+      ? `[Seed] ${created} demandes de démonstration créées dans db.demandes (tous les statuts du workflow).`
+      : '[Seed] Demandes de démonstration déjà présentes — aucun ajout.'
+  );
 };
 
 module.exports = { seedDemandes };

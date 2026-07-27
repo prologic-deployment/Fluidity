@@ -5,12 +5,6 @@ const { Client } = require('../models/client.model');
  * Contrats de démonstration, liés aux clients de démo par ObjectId.
  */
 const seedContrats = async (tenants = {}) => {
-  const count = await Contrat.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} contrat(s) existant(s) — seed ignoré.`);
-    return;
-  }
-
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
   if (!fluidity || !nova) {
@@ -100,8 +94,22 @@ const seedContrats = async (tenants = {}) => {
     },
   ].filter((c) => c.clientId);
 
-  await Contrat.insertMany(demoContrats);
-  console.log(`[Seed] ${demoContrats.length} contrats de démonstration créés dans db.contrats.`);
+  // Additif et idempotent : chaque contrat n'est créé que si sa référence
+  // est absente du tenant (index unique (tenantId, reference)).
+  let created = 0;
+  let existing = 0;
+  for (const c of demoContrats) {
+    const found = await Contrat.findOne({ tenantId: c.tenantId, reference: c.reference });
+    if (found) {
+      existing += 1;
+      continue;
+    }
+    await Contrat.create(c);
+    created += 1;
+  }
+  console.log(
+    `[Seed] Contrats de démonstration : ${created} créé(s), ${existing} déjà présent(s) dans db.contrats.`
+  );
 };
 
 module.exports = { seedContrats };
