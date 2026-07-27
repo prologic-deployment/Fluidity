@@ -30,13 +30,22 @@ requête Mongoose (lecture/écriture) est systématiquement filtrée par ce `ten
 
 ```bash
 git clone <repo> && cd Fluidity
-git checkout C-work
+git checkout A2-work
 
 # Backend
 cd backend
-cp .env.example .env   # renseigner MONGO_URI, JWT_SECRET, SMTP_*
+cp .env.example .env   # renseigner MONGO_URI (préférez 127.0.0.1) et JWT_SECRET
 npm install
-npm run dev            # http://localhost:3000 — seed auto au 1er lancement
+
+# Si la base contient des données d'une ANCIENNE version (String IDs, rôles
+# ADMIN/SUPPORT_N1...) : convertir UNE FOIS, idempotent
+npm run migrate
+
+# Données de démonstration (additif et idempotent : relançable à volonté,
+# ne complète que ce qui manque, sans toucher aux données existantes)
+npm run seed
+
+npm run dev            # http://localhost:3000  (/health expose l'état MongoDB)
 
 # Frontend (autre terminal)
 cd ../frontend
@@ -44,29 +53,34 @@ npm install
 ng serve                # http://localhost:4200
 ```
 
-Au premier démarrage du backend, `db.utilisateurs` et `db.contrats` sont **peuplés
-automatiquement** (idempotent — ne s'exécute que si les collections sont vides).
-
 ### Comptes de démonstration (mot de passe : `Password123!`)
-| Email | Rôle | Tenant |
+
+| Email | Rôle | Espace |
 |---|---|---|
-| admin@fluidity.dev | ADMIN | tenant-001 |
-| client@fluidity.dev | CLIENT | tenant-001 |
-| support@fluidity.dev | SUPPORT_N1 | tenant-001 |
-| responsable@fluidity.dev | RESPONSABLE_TECHNIQUE | tenant-001 |
-| commercial@fluidity.dev | COMMERCIAL | tenant-001 |
-| exploitation@fluidity.dev | EXPLOITATION | tenant-001 |
-| client2@fluidity.dev | CLIENT | tenant-002 (isolation tenant) |
+| superadmin@servicedesk.dev | PLATFORM_ADMIN (Super Admin) | Plateforme (hors tenant) |
+| admin@fluidity.dev | TENANT_ADMIN | Fluidity |
+| agent@fluidity.dev | AGENT (traitement) | Fluidity |
+| manager@fluidity.dev | MANAGER (validation) | Fluidity |
+| client@fluidity.dev / client2@fluidity.dev | CLIENT (2 comptes) | Fluidity |
+| viewer@fluidity.dev | VIEWER (lecture seule) | Fluidity |
+| nova-admin@nova-systems.dev | TENANT_ADMIN | Nova Systems |
+| agent@ / manager@ / client@ / viewer@nova-systems.dev | rôles identiques | Nova Systems |
 
-### Contrats de démonstration
-`CTR-2026-001`, `CTR-2026-002` (tenant-001 / client@fluidity.dev) et `CTR-2026-101`
-(tenant-002 / client2@fluidity.dev), utilisés pour peupler les listes déroulantes "Contrat"
-des formulaires Demande / Changement.
+Le jeu de démo couvre **tous les workflows** : les 9 statuts des demandes et les 11 statuts
+des changements sont représentés dans chaque tenant, ainsi que toutes les sections de
+spécifications (disques dynamiques, IPv4, rétention...), 7 contrats (Actif/Expiré/Suspendu)
+et 3 fiches clients alignées sur les comptes CLIENT.
 
-### Clients de démonstration
-`Atlas Industries` (tenant-001, client@fluidity.dev) et `Nova Systems` (tenant-002,
-client2@fluidity.dev) — mêmes emails que les comptes CLIENT de démonstration ci-dessus, pour
-que les contrats de démo s'y rattachent correctement.
+### Dépannage (latence / connexion impossible)
+
+| Symptôme | Cause probable | Solution |
+|---|---|---|
+| API muette plusieurs secondes puis erreur | `mongod` arrêté ou port incorrect | Démarrer MongoDB ; le backend répond désormais **503 immédiat** tant que la base est coupée (`GET /health` → `db: "down"`) |
+| Échec de connexion MongoDB au démarrage | `localhost` résolu en IPv6 `::1` | Utiliser `mongodb://127.0.0.1:27017/fluidity` (voir `.env.example`) |
+| `403` « ancienne version des données » | Comptes hérités non convertis | Exécuter `npm run migrate` |
+| Emails absents, erreurs SMTP | SMTP non configuré | Normal en dev : les emails sont désactivés sans vrai `SMTP_HOST` (un seul avertissement au démarrage) |
+| Certains comptes démo « introuvables » | Seed jamais (re)lancé sur base partielle | `npm run seed` — additif, complète les comptes manquants |
+
 
 ## 3. Journal des évolutions
 

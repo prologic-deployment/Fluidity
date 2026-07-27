@@ -3,6 +3,15 @@ const { PLATFORM_NAME, PLATFORM_LOG_TAG } = require('../config/branding');
 const { Utilisateur } = require('../models/user.model');
 const { renderEmailLayout, FRONTEND_URL, ICONS } = require('./email-template');
 let transporter = null;
+let smtpWarned = false;
+
+/**
+ * SMTP activé uniquement si configuré avec un vrai hôte. Un .env copié-collé
+ * depuis l'exemple (smtp.example.com) ne doit PAS déclencher de tentatives de
+ * connexion à un domaine factice (erreurs répétées et pauses DNS en dev).
+ */
+const smtpConfigured = () =>
+  !!process.env.SMTP_HOST && process.env.SMTP_HOST !== 'smtp.example.com';
 
 /**
  * Renvoie (et met en cache) le transporteur Nodemailer configuré via SMTP.
@@ -24,9 +33,21 @@ const getTransporter = () => {
 
 /**
  * Envoi générique d'un email. Les erreurs sont simplement journalisées
- * (opération non bloquante vis-à-vis de l'appelant).
+ * (opération non bloquante vis-à-vis de l'appelant). Sans configuration SMTP
+ * réelle, l'envoi est ignoré silencieusement (avertissement unique au premier
+ * email) : la plateforme reste pleinement utilisable en développement.
  */
 const sendEmail = async (to, subject, html) => {
+  if (!smtpConfigured()) {
+    if (!smtpWarned) {
+      console.warn(
+        `${PLATFORM_LOG_TAG} SMTP non configuré (SMTP_HOST) — les emails sont désactivés. ` +
+          'Configurez le serveur SMTP dans .env pour les activer.'
+      );
+      smtpWarned = true;
+    }
+    return;
+  }
   try {
     await getTransporter().sendMail({
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
