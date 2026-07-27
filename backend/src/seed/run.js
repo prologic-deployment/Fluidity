@@ -4,11 +4,18 @@ const { seedTenants } = require('./tenant.seed');
 const { seedUsers } = require('./user.seed');
 const { seedClients } = require('./client.seed');
 const { seedContrats } = require('./contrat.seed');
+const { seedDemandes } = require('./demande.seed');
+const { seedChangements } = require('./changement.seed');
 
 /**
  * Script autonome de seed : se connecte, insère les tenants, utilisateurs,
- * clients et contrats de démonstration si les collections sont vides, puis
- * se déconnecte. Usage : npm run seed
+ * clients, contrats, demandes et changements de démonstration si les
+ * collections sont vides, puis se déconnecte. Usage : npm run seed
+ *
+ * Le jeu de démonstration couvre TOUT le périmètre testable de la
+ * plateforme : 2 tenants isolés avec leurs marques, tous les rôles métier,
+ * tous les statuts des deux workflows (demandes et changements), tous les
+ * types/états de contrats et toutes les sections de spécifications.
  *
  * Pour migrer des données EXISTANTES (legacy String IDs vers ObjectIds),
  * utiliser : npm run migrate
@@ -20,6 +27,8 @@ const { seedContrats } = require('./contrat.seed');
     await seedUsers(tenants);
     await seedClients(tenants);
     await seedContrats(tenants);
+    await seedDemandes(tenants);
+    await seedChangements(tenants);
   } catch (err) {
     console.error('[Seed] Échec du seed :', err);
     process.exitCode = 1;

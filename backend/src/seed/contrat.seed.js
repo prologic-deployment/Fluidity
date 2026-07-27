@@ -19,8 +19,10 @@ const seedContrats = async (tenants = {}) => {
   }
 
   const atlas = await Client.findOne({ tenantId: fluidity._id, email: 'client@fluidity.dev' });
+  const helios = await Client.findOne({ tenantId: fluidity._id, email: 'client2@fluidity.dev' });
   const novaRetail = await Client.findOne({ tenantId: nova._id, email: 'client@nova-systems.dev' });
 
+  // Types et statuts variés pour tester filtres et listes (Actif/Expiré/Suspendu)
   const demoContrats = [
     {
       tenantId: fluidity._id,
@@ -44,6 +46,38 @@ const seedContrats = async (tenants = {}) => {
       description: 'Hébergement dédié avec SLA renforcé.',
     },
     {
+      tenantId: fluidity._id,
+      clientId: atlas?._id,
+      reference: 'CTR-2025-009',
+      intitule: 'Maintenance applicative legacy',
+      typeContrat: 'Développement',
+      statut: 'Expiré',
+      dateDebut: new Date('2025-01-01'),
+      dateFin: new Date('2025-12-31'),
+      description: 'Ancien contrat de maintenance, conservé pour historique.',
+    },
+    {
+      tenantId: fluidity._id,
+      clientId: helios?._id,
+      reference: 'CTR-2026-020',
+      intitule: 'Sécurité SOC 24/7',
+      typeContrat: 'Sécurité',
+      statut: 'Actif',
+      dateDebut: new Date('2026-04-01'),
+      dateFin: new Date('2027-03-31'),
+      description: 'Supervision sécurité continue et réponse à incidents.',
+    },
+    {
+      tenantId: fluidity._id,
+      clientId: helios?._id,
+      reference: 'CTR-2026-021',
+      intitule: 'Support N1 externalisé',
+      typeContrat: 'Support',
+      statut: 'Suspendu',
+      dateDebut: new Date('2026-05-01'),
+      description: 'Contrat suspendu en attente de renégociation.',
+    },
+    {
       tenantId: nova._id,
       clientId: novaRetail?._id,
       reference: 'CTR-2026-101',
@@ -52,6 +86,17 @@ const seedContrats = async (tenants = {}) => {
       statut: 'Actif',
       dateDebut: new Date('2026-03-01'),
       description: 'Audit et supervision sécurité continue (tenant isolé).',
+    },
+    {
+      tenantId: nova._id,
+      clientId: novaRetail?._id,
+      reference: 'CTR-2025-050',
+      intitule: 'Hébergement mutualisé',
+      typeContrat: 'Hébergement',
+      statut: 'Expiré',
+      dateDebut: new Date('2025-06-01'),
+      dateFin: new Date('2026-05-31'),
+      description: 'Ancien hébergement mutualisé, remplacé par le contrat sécurité.',
     },
   ].filter((c) => c.clientId);
 

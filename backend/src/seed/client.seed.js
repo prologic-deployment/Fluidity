@@ -28,6 +28,14 @@ const seedClients = async (tenants = {}) => {
       statut: 'Actif',
     },
     {
+      tenantId: fluidity._id,
+      email: 'client2@fluidity.dev',
+      nom: 'Helios Distribution',
+      telephone: '+216 71 444 555',
+      adresse: 'Ariana, Tunisie',
+      statut: 'Actif',
+    },
+    {
       tenantId: nova._id,
       email: 'client@nova-systems.dev',
       nom: 'Nova Retail',
