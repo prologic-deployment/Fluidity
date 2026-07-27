@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
-const { Utilisateur } = require('../models/user.model');
+const mongoose = require('mongoose');
+const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
+
+/** Message d'aide quand la session/le compte provient de données pré-multi-tenant. */
+const LEGACY_MESSAGE =
+  'Ce compte provient d’une ancienne version des données (identifiants hérités, rôles obsolètes). ' +
+  'Exécutez « npm run migrate » côté backend pour convertir les données, puis reconnectez-vous.';
 
 /**
  * Middleware d'authentification + contexte tenant.
@@ -45,6 +51,10 @@ const authMiddleware = async (req, res, next) => {
       res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
       return;
     }
+    if (!ROLES.includes(user.role)) {
+      res.status(403).json({ message: LEGACY_MESSAGE });
+      return;
+    }
 
     // --- Impersonation (PLATFORM_ADMIN uniquement) ---
     if (req.userRole === 'PLATFORM_ADMIN' && req.headers['x-tenant-override']) {
@@ -54,6 +64,12 @@ const authMiddleware = async (req, res, next) => {
 
     // --- Vérification du tenant ---
     if (req.tenantId) {
+      // Données héritées (tenantId texte, ex. « tenant-001 ») : guider la
+      // migration au lieu d'une erreur de cast illisible.
+      if (!mongoose.isValidObjectId(req.tenantId)) {
+        res.status(403).json({ message: LEGACY_MESSAGE });
+        return;
+      }
       const tenant = await Tenant.findById(req.tenantId).lean();
       if (!tenant) {
         res.status(401).json({ message: 'Tenant introuvable ou supprimé' });

@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
-const { Utilisateur } = require('../models/user.model');
+const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 const { sendResetPasswordEmail } = require('../services/email.service');
+
+/** Message d'aide quand le compte provient de données pré-multi-tenant. */
+const LEGACY_MESSAGE =
+  'Ce compte provient d’une ancienne version des données (identifiants hérités, rôles obsolètes). ' +
+  'Exécutez « npm run migrate » côté backend pour convertir les données, puis reconnectez-vous.';
 
 /** Marque renvoyée au frontend pour afficher le workspace (white-label). */
 const tenantBranding = (tenant) =>
@@ -78,6 +84,14 @@ const login = async (req, res) => {
 
     if (user.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
       res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
+      return;
+    }
+
+    // Compte issu de données pré-multi-tenant (rôle obsolète ou tenantId
+    // texte) : guider explicitement vers `npm run migrate` plutôt qu'une
+    // erreur 500 illisible (CastError) — cause fréquente de « connexion impossible ».
+    if (!ROLES.includes(user.role) || (user.tenantId && !mongoose.isValidObjectId(user.tenantId))) {
+      res.status(403).json({ message: LEGACY_MESSAGE });
       return;
     }
 
