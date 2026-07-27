@@ -1,7 +1,14 @@
-import { Component } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService, Impersonation } from '../../services/auth.service';
+import { Subject, takeUntil } from 'rxjs';
+import { AuthService, Impersonation, SessionUser } from '../../services/auth.service';
 import { TenantBranding } from '../../models/tenant.model';
 import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
 
@@ -17,41 +24,70 @@ interface SidebarGroup {
   open: boolean;
 }
 
+/**
+ * Barre latérale du shell.
+ *
+ * Le modèle de navigation (groupes, utilisateur, tenant, impersonation) est
+ * construit UNE FOIS puis reconstruit uniquement quand la session change
+ * (connexion, déconnexion, impersonation) via `AuthService.sessionChanged$`.
+ *
+ * Ne jamais recréer ces structures dans un getter appelé par le template :
+ * avec `*ngFor`, une nouvelle identité de tableau à chaque détection de
+ * changements force Angular à détruire puis recréer toutes les vues, chaque
+ * réattache de listener replanifie un cycle zone.js → boucle infinie de
+ * change detection (gel du navigateur, « Script terminated by timeout »).
+ */
 @Component({
   selector: 'app-sidebar',
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: './sidebar.component.html',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit, OnDestroy {
   platformName = PLATFORM_NAME;
   platformTagline = PLATFORM_TAGLINE;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  // --- Modèle de vue stable (identités d'objets préservées entre deux CD) ---
+  user: SessionUser | null = null;
+  tenant: TenantBranding | null = null;
+  impersonation: Impersonation | null = null;
+  groups: SidebarGroup[] = [];
 
-  get user() {
-    return this.auth.getUser();
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
+    // BehaviorSubject → émission immédiate : construction initiale du modèle,
+    // puis reconstruction uniquement à chaque mutation de session.
+    this.auth.sessionChanged$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.refreshModel();
+      this.cdr.markForCheck();
+    });
   }
 
-  /** Marque du workspace courant (tenant de la session, ou impersonation). */
-  get tenant(): TenantBranding | null {
-    return this.auth.getTenant();
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
+
+  // --- Accesseurs dérivés du modèle stable (primitifs uniquement) -----------
 
   get isPlatformAdmin(): boolean {
-    return this.auth.isPlatformAdmin();
+    return this.user?.role === 'PLATFORM_ADMIN';
   }
 
   get isTenantAdmin(): boolean {
-    return this.auth.isTenantAdmin();
+    return this.user?.role === 'TENANT_ADMIN';
   }
 
   get isClient(): boolean {
-    return this.auth.isClient();
-  }
-
-  get impersonation(): Impersonation | null {
-    return this.auth.getImpersonation();
+    return this.user?.role === 'CLIENT';
   }
 
   /** Nom affiché dans l'en-tête workspace (tenant impersonné en priorité). */
@@ -67,8 +103,17 @@ export class SidebarComponent {
     return this.isPlatformAdmin && !this.impersonation;
   }
 
+  // --- Construction du modèle ----------------------------------------------
+
+  private refreshModel(): void {
+    this.user = this.auth.getUser();
+    this.tenant = this.auth.getTenant();
+    this.impersonation = this.auth.getImpersonation();
+    this.groups = this.buildGroups();
+  }
+
   /** Groupes de navigation selon le rôle — le serveur reste l'autorité. */
-  get groups(): SidebarGroup[] {
+  private buildGroups(): SidebarGroup[] {
     const groups: SidebarGroup[] = [];
 
     if (this.isPlatformAdmin) {
@@ -136,6 +181,17 @@ export class SidebarComponent {
     }
 
     return groups;
+  }
+
+  // --- Interactions ---------------------------------------------------------
+
+  /** Identités stables pour le diffing ngFor (évite tout re-render inutile). */
+  trackGroup(_index: number, group: SidebarGroup): string {
+    return group.label;
+  }
+
+  trackChild(_index: number, child: SidebarChild): string {
+    return child.path;
   }
 
   toggle(group: SidebarGroup): void {

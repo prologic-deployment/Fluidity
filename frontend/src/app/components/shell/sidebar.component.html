@@ -18,7 +18,7 @@
           class="h-7 w-7 rounded-md object-contain bg-white/90 p-0.5" />
       </ng-container>
       <div *ngIf="isPlatformWorkspace || !tenant?.logoUrl" class="flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold text-white"
-        [ngStyle]="{ background: 'linear-gradient(135deg,' + (tenant?.primaryColor || '#6366f1') + ',' + (tenant?.secondaryColor || '#8b5cf6') + ')' }">
+        [style.background]="'linear-gradient(135deg,' + (tenant?.primaryColor || '#6366f1') + ',' + (tenant?.secondaryColor || '#8b5cf6') + ')'">
         {{ workspaceInitial }}
       </div>
       <div class="min-w-0 flex-1">
@@ -44,7 +44,7 @@
 
   <!-- Navigation -->
   <nav class="flex-1 overflow-y-auto px-3 py-2">
-    <div *ngFor="let group of groups">
+    <div *ngFor="let group of groups; trackBy: trackGroup">
       <p class="side-group-label">{{ group.label }}</p>
 
       <ng-container *ngIf="group.children as children">
@@ -78,7 +78,7 @@
         <div class="overflow-hidden transition-all duration-200"
           [style.maxHeight]="group.open ? (children.length * 40 + 8) + 'px' : '0px'">
           <div class="pt-1 pb-2 space-y-0.5">
-            <a *ngFor="let child of children" [routerLink]="child.path"
+            <a *ngFor="let child of children; trackBy: trackChild" [routerLink]="child.path"
               routerLinkActive="side-sublink-active" [routerLinkActiveOptions]="{ exact: true }"
               class="side-sublink">
               <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>

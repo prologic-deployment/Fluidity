@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TenantBranding } from '../models/tenant.model';
 import { ROLE_LABELS } from '../models/user.model';
@@ -41,7 +41,20 @@ const IMPERSONATION_KEY = 'servicedesk_impersonation';
 export class AuthService {
   private readonly baseUrl = `${environment.apiUrl}/auth`;
 
+  /**
+   * Émis à chaque mutation de la session locale (connexion, déconnexion,
+   * début/fin d'impersonation). Permet aux vues de reconstruire leur modèle
+   * uniquement quand la session change réellement (et pas à chaque détection
+   * de changements).
+   */
+  private readonly sessionSubject = new BehaviorSubject<void>(undefined);
+  readonly sessionChanged$: Observable<void> = this.sessionSubject.asObservable();
+
   constructor(private http: HttpClient) {}
+
+  private notifySessionChanged(): void {
+    this.sessionSubject.next();
+  }
 
   login(payload: LoginPayload): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/login`, payload);
@@ -73,6 +86,7 @@ export class AuthService {
       localStorage.removeItem(TENANT_KEY);
     }
     localStorage.removeItem(IMPERSONATION_KEY); // toute impersonation précédente est purgée
+    this.notifySessionChanged();
   }
 
   logout(): void {
@@ -80,6 +94,7 @@ export class AuthService {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
     localStorage.removeItem(IMPERSONATION_KEY);
+    this.notifySessionChanged();
   }
 
   getToken(): string | null {
@@ -142,6 +157,7 @@ export class AuthService {
 
   setImpersonation(imp: Impersonation): void {
     localStorage.setItem(IMPERSONATION_KEY, JSON.stringify(imp));
+    this.notifySessionChanged();
   }
 
   getImpersonation(): Impersonation | null {
@@ -151,6 +167,7 @@ export class AuthService {
 
   clearImpersonation(): void {
     localStorage.removeItem(IMPERSONATION_KEY);
+    this.notifySessionChanged();
   }
 
   isImpersonating(): boolean {
