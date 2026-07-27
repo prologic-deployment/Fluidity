@@ -11,7 +11,6 @@ const { CHANGEMENT_STATUTS } = require('../utils/workflow');
  *   -> 'Clôturé' (+ 'Rollback' et 'Rejeté')
  */
 
-const DISK_TYPES = ['NVMe', 'SAS', 'SSD', 'SATA'];
 const IPV4_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;
 
 const SpecificationsSchema = new Schema(
@@ -48,34 +47,37 @@ const SpecificationsSchema = new Schema(
       retentionSouhaitee: { type: String },
       licencesNecessaires: { type: String },
     },
-    // Sections additionnelles, affichées côté formulaire selon la catégorie sélectionnée
-    database: {
+    // Sections additionnelles, affichées côté formulaire selon la catégorie
+    // sélectionnée (miroir du schéma Zod et des FormGroups Angular).
+    baseDeDonnees: {
       moteur: { type: String }, // SQL Server, PostgreSQL, MySQL, Oracle, MongoDB...
       version: { type: String },
-      instance: { type: String },
-      nomBaseDeDonnees: { type: String },
-    },
-    conteneurs: {
-      nomConteneur: { type: String },
-      image: { type: String },
-      registry: { type: String },
-      namespace: { type: String },
+      tailleGo: { type: Number },
     },
     stockage: {
+      typeStockage: { type: String },
       capaciteGo: { type: Number },
-      pointMontage: { type: String },
-      systemeFichiers: { type: String }, // NFS, SMB, ext4, XFS...
+      protocole: { type: String }, // NFS, SMB, iSCSI...
     },
-    securite: {
-      regleFirewall: { type: String },
-      niveauSecurite: { type: String }, // Standard, Élevé, Critique...
-      certificat: { type: String },
+    portailWeb: {
+      domaine: { type: String },
+      sslRequis: { type: String }, // 'Oui' | 'Non'
+      technologie: { type: String },
+    },
+    conteneurs: {
+      plateforme: { type: String }, // Docker, Kubernetes...
+      nombreReplicas: { type: Number },
+      cpuAlloue: { type: String },
+      memoireAllouee: { type: String },
     },
     iaGpu: {
-      modeleGpu: { type: String },
-      versionCuda: { type: String },
-      vramGo: { type: Number },
+      typeGpu: { type: String }, // NVIDIA A100, H100...
       nombreGpu: { type: Number },
+      framework: { type: String }, // TensorFlow, PyTorch...
+    },
+    securite: {
+      perimetre: { type: String },
+      niveauCriticite: { type: String }, // Standard, Élevé, Critique...
     },
   },
   { _id: false }

@@ -137,32 +137,6 @@ export class CreateChangementComponent implements OnInit {
         perimetre: [''],
         niveauCriticite: [''],
       }),
-      database: this.fb.group({
-        moteur: [''],
-        version: [''],
-        instance: [''],
-        nomBaseDeDonnees: [''],
-      }),
-    });
-
-    // "Autre" activé sur Service/Environnement : rend le champ de précision obligatoire
-    this.toggleAutreValidator('serviceEnvironnement', 'serviceEnvironnementAutre');
-
-    // Catégorie "Autre" : plus de liste de sous-catégories, la sous-catégorie devient elle-même
-    // un champ libre obligatoire (categorieAutre + sousCategorieAutre)
-    this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
-      this.sousCategories = SOUS_CATEGORIES_CHANGEMENT[cat] || [];
-      this.form.get('sousCategorie')?.setValue('');
-      this.form.get('sousCategorieAutre')?.setValue('');
-      this.setValidator(this.form.get('categorieAutre'), cat === AUTRE);
-      this.setValidator(this.form.get('sousCategorie'), cat !== AUTRE);
-      this.setValidator(this.form.get('sousCategorieAutre'), cat === AUTRE);
-    });
-
-    // "Autre" activé sur Sous-catégorie (cas d'une catégorie normale) : précision obligatoire
-    this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
-      if (this.form.get('categorie')?.value === AUTRE) return; // déjà géré ci-dessus
-      this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
     // "Autre" sur Service / Environnement : champ de précision obligatoire,

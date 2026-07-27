@@ -58,11 +58,6 @@
               </select>
             </div>
             <div>
-              <label class="field-label">Fenêtre d'intervention</label>
-              <input formControlName="fenetreIntervention" type="datetime-local" class="input" />
-              <p *ngIf="form.get('fenetreIntervention')?.invalid && form.get('fenetreIntervention')?.touched" class="field-error">Champ requis.</p>
-            </div>
-            <div>
               <label class="field-label">Catégorie</label>
               <select formControlName="categorie" class="select">
                 <option value="" disabled>Sélectionner...</option>
