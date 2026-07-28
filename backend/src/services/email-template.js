@@ -1,9 +1,10 @@
 /**
- * Gabarit d'email HTML partagé, aligné sur l'identité visuelle de
- * l'application (dégradé indigo → violet, badge "F", coins arrondis,
- * badges à point de couleur, tableau de détail façon "carte"). Écrit en
- * HTML "email-safe" avec plusieurs contraintes de compatibilité, pour un
- * rendu cohérent sur webmail, client de bureau ET mobile :
+ * Gabarit d'email HTML partagé, aligné sur l'identité visuelle de la
+ * plateforme (dégradé indigo → violet par défaut, personnalisable par
+ * Tenant — voir §"WHITE LABEL SUPPORT" : nom, logo, couleurs), coins
+ * arrondis, badges à point de couleur, tableau de détail façon "carte".
+ * Écrit en HTML "email-safe" avec plusieurs contraintes de compatibilité,
+ * pour un rendu cohérent sur webmail, client de bureau ET mobile :
  *
  * 1. Aucun SVG. Beaucoup de clients mail (Outlook desktop en tête) ne
  *    rendent pas les SVG inline : ils affichent un cadre vide. Les
@@ -58,13 +59,30 @@ const BRAND_GRADIENT = `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.v
 // Déclaration CSS prête à l'emploi : couleur unie PUIS dégradé, pour repli propre.
 const BRAND_BG_DECLARATION = `background-color: ${BRAND_SOLID}; background: ${BRAND_GRADIENT};`;
 
+const DEFAULT_BRAND_NAME = 'ServiceHub';
+const DEFAULT_TAGLINE = 'Enterprise Multi-Tenant Service Portal';
+
 const FRONTEND_URL = () => process.env.FRONTEND_URL || 'http://localhost:4200';
+
+/**
+ * Résout la déclaration CSS de fond de marque (couleur unie + dégradé de
+ * repli, voir note de compatibilité en tête de fichier) pour un tenant
+ * donné. `tenantColors` est optionnel : à défaut, on retombe sur la
+ * palette générique de la plateforme (voir DEFAULT_BRAND_NAME) — utilisée
+ * notamment pour les emails plateforme (Super Admin) qui ne sont
+ * rattachés à aucun tenant particulier.
+ */
+function resolveBrandBg(tenantColors) {
+  const primary = tenantColors?.primaryColor || COLORS.primary;
+  const secondary = tenantColors?.secondaryColor || COLORS.violet;
+  return `background-color: ${primary}; background: linear-gradient(135deg, ${primary} 0%, ${secondary} 100%);`;
+}
 
 /**
  * Badge circulaire "hero" (lettre en gras, pas de SVG) qui chevauche
  * légèrement le bas du bandeau de marque, centré au-dessus du titre.
  */
-function renderHeroIcon(letter) {
+function renderHeroIcon(letter, brandBg) {
   if (!letter) return '';
   return `
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -81,7 +99,7 @@ function renderHeroIcon(letter) {
                       <table role="presentation" cellpadding="0" cellspacing="0">
                         <tr>
                           <td align="center" valign="middle"
-                            style="width:30px; height:30px; border-radius:9px; ${BRAND_BG_DECLARATION}">
+                            style="width:30px; height:30px; border-radius:9px; ${brandBg}">
                             <span style="display:block; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:30px; font-weight:700; color:#ffffff;">${letter}</span>
                           </td>
                         </tr>
@@ -98,9 +116,11 @@ function renderHeroIcon(letter) {
 }
 
 /**
- * Enveloppe le contenu (déjà en HTML) dans le gabarit de marque Fluidity.
- * Mise en page fluide-hybride : identique sur web, bureau et mobile, avec
- * resserrement des marges/tailles de police sous 600px d'écran.
+ * Enveloppe le contenu (déjà en HTML) dans le gabarit de marque — celle du
+ * Tenant expéditeur si fournie (voir `brand`), sinon la marque générique
+ * de la plateforme (support "white-label", voir Tenant.logoUrl/primaryColor/
+ * secondaryColor). Mise en page fluide-hybride : identique sur web, bureau
+ * et mobile, avec resserrement des marges/tailles de police sous 600px.
  *
  * @param {Object} options
  * @param {string} options.preheader - Texte d'aperçu (invisible, avant le corps)
@@ -109,9 +129,17 @@ function renderHeroIcon(letter) {
  * @param {string} options.bodyHtml - Corps du message (HTML déjà construit)
  * @param {string} [options.ctaLabel] - Libellé du bouton d'action (optionnel)
  * @param {string} [options.ctaUrl] - URL du bouton d'action (optionnel)
+ * @param {Object} [options.brand] - Marque du Tenant expéditeur : { name, logoUrl, primaryColor, secondaryColor }
  */
-function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLabel, ctaUrl }) {
-  const heroIcon = renderHeroIcon(icon);
+function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLabel, ctaUrl, brand }) {
+  const brandName = brand?.name || DEFAULT_BRAND_NAME;
+  const brandLetter = brandName.trim().charAt(0).toUpperCase() || 'S';
+  const brandBg = resolveBrandBg(brand);
+  const brandLogo = brand?.logoUrl
+    ? `<img src="${brand.logoUrl}" alt="${brandName}" width="34" height="34" style="display:block; border-radius:9px; object-fit:cover;" />`
+    : `<span style="display:block; font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:16px; font-weight:700; line-height:34px;">${brandLetter}</span>`;
+
+  const heroIcon = renderHeroIcon(icon, brandBg);
   const align = icon ? 'center' : 'left';
 
   const cta =
@@ -119,7 +147,7 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
       ? `
     <table role="presentation" cellpadding="0" cellspacing="0" align="${icon ? 'center' : 'left'}" style="margin: 24px auto 4px;">
       <tr>
-        <td align="center" style="border-radius: 8px; ${BRAND_BG_DECLARATION}">
+        <td align="center" style="border-radius: 8px; ${brandBg}">
           <a href="${ctaUrl}" target="_blank"
             class="email-cta-btn"
             style="display:inline-block; padding: 12px 26px; font-family: Arial, Helvetica, sans-serif; font-size: 14px; font-weight: 700;
@@ -144,7 +172,7 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
 <!--[if mso]>
 <style>
   table, td { border-collapse: collapse; }
-  .email-fallback-bg { background-color: ${BRAND_SOLID} !important; }
+  .email-fallback-bg { background-color: ${brand?.primaryColor || COLORS.primary} !important; }
 </style>
 <![endif]-->
 <style>
@@ -190,17 +218,17 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
       <td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="email-wrapper" style="max-width: 560px;">
 
-          <!-- Bandeau de marque -->
+          <!-- Bandeau de marque (Tenant expéditeur, ou plateforme générique) -->
           <tr>
-            <td align="center" class="email-band-pad" style="${BRAND_BG_DECLARATION} padding: 22px 32px; border-radius: 16px 16px 0 0;">
+            <td align="center" class="email-band-pad" style="${brandBg} padding: 22px 32px; border-radius: 16px 16px 0 0;">
               <table role="presentation" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="width:34px; height:34px; background-color: rgba(255,255,255,0.18); border-radius: 9px; text-align:center; vertical-align:middle;">
-                    <span style="display:block; font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:16px; font-weight:700; line-height:34px;">F</span>
+                    ${brandLogo}
                   </td>
                   <td style="padding-left: 11px;">
-                    <span style="font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:15px; font-weight:700;">Fluidity</span><br/>
-                    <span style="font-family: Arial, Helvetica, sans-serif; color:rgba(255,255,255,0.8); font-size:11px;">Cloud Services Management Portal</span>
+                    <span style="font-family: Arial, Helvetica, sans-serif; color:#ffffff; font-size:15px; font-weight:700;">${brandName}</span><br/>
+                    <span style="font-family: Arial, Helvetica, sans-serif; color:rgba(255,255,255,0.8); font-size:11px;">${DEFAULT_TAGLINE}</span>
                   </td>
                 </tr>
               </table>
@@ -229,7 +257,7 @@ function renderEmailLayout({ preheader = '', icon = '', heading, bodyHtml, ctaLa
           <tr>
             <td class="email-footer-pad" style="padding: 22px 8px 0;">
               <p class="email-muted" style="margin:0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color:${COLORS.muted}; text-align:center; line-height:1.6;">
-                Cet email a été envoyé automatiquement par le portail Fluidity.<br/>Merci de ne pas y répondre directement.
+                Cet email a été envoyé automatiquement par ${brandName}.<br/>Merci de ne pas y répondre directement.
               </p>
             </td>
           </tr>
@@ -279,4 +307,24 @@ const ICONS = {
   exchange: 'S', // changement de Statut
 };
 
-module.exports = { renderEmailLayout, renderBadge, renderDetailsTable, FRONTEND_URL, COLORS, ICONS };
+/** Construit l'objet `brand` attendu par renderEmailLayout à partir d'un document Tenant (ou null). */
+function brandFromTenant(tenant) {
+  if (!tenant) return undefined;
+  return {
+    name: tenant.name,
+    logoUrl: tenant.logoUrl,
+    primaryColor: tenant.primaryColor,
+    secondaryColor: tenant.secondaryColor,
+  };
+}
+
+module.exports = {
+  renderEmailLayout,
+  renderBadge,
+  renderDetailsTable,
+  FRONTEND_URL,
+  COLORS,
+  ICONS,
+  DEFAULT_BRAND_NAME,
+  brandFromTenant,
+};

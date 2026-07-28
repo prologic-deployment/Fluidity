@@ -1,12 +1,14 @@
 <aside class="flex h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-[#0b0a1f] via-[#131233] to-[#0b0a1f] text-slate-100">
   <!-- Brand -->
   <div class="flex items-center gap-2.5 px-5 py-5">
-    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-lg shadow-indigo-900/40">
-      F
+    <img *ngIf="tenant?.logoUrl" [src]="tenant?.logoUrl" [alt]="tenant?.name"
+      class="h-8 w-8 shrink-0 rounded-lg object-cover shadow-lg shadow-indigo-900/40" />
+    <div *ngIf="!tenant?.logoUrl" class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-lg shadow-indigo-900/40">
+      {{ (tenant?.name || 'Platform').slice(0, 1).toUpperCase() }}
     </div>
-    <div>
-      <p class="text-sm font-semibold tracking-tight text-white">Fluidity</p>
-      <p class="text-[11px] text-slate-400">Cloud Services Portal</p>
+    <div class="min-w-0">
+      <p class="truncate text-sm font-semibold tracking-tight text-white">{{ tenant?.name || 'Espace Plateforme' }}</p>
+      <p class="text-[11px] text-slate-400">{{ isSuperAdmin ? 'Super Admin' : 'Enterprise Service Portal' }}</p>
     </div>
   </div>
 
@@ -63,6 +65,17 @@
 
   <div class="mx-4 h-px bg-white/10"></div>
 
+  <!-- Indicateur d'utilisation des licences (Tenant Admin uniquement) -->
+  <div *ngIf="isAdmin && tenant?.maxUsers" class="px-4 pt-3">
+    <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+      <span>Licences utilisées</span>
+      <span>{{ tenant?.activeUsers }} / {{ tenant?.maxUsers }}</span>
+    </div>
+    <div class="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+      <div class="h-full rounded-full bg-gradient-to-r from-indigo-400 to-violet-500" [style.width.%]="licenseRatio()"></div>
+    </div>
+  </div>
+
   <!-- User card -->
   <div class="p-4">
     <div class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
@@ -70,8 +83,8 @@
         {{ initials() }}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-medium text-white">{{ user?.role || 'Utilisateur' }}</p>
-        <p class="truncate text-[11px] text-slate-400">{{ user?.tenantId }}</p>
+        <p class="truncate text-xs font-medium text-white">{{ user?.email || 'Utilisateur' }}</p>
+        <p class="truncate text-[11px] text-slate-400">{{ user?.role }}</p>
       </div>
       <button (click)="logout()" title="Déconnexion"
         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white">

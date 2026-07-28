@@ -1,6 +1,7 @@
 const { Changement } = require('../models/changement.model');
+const { Tenant } = require('../models/tenant.model');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS, brandFromTenant } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
 /**
@@ -30,6 +31,7 @@ const createChangement = async (req, res) => {
     });
     await changement.save();
 
+    const tenant = await Tenant.findById(req.tenantId).select('name logoUrl primaryColor secondaryColor');
     const html = renderEmailLayout({
       preheader: `Nouveau changement : ${changement.objetChangement}`,
       icon: ICONS.refresh,
@@ -47,6 +49,7 @@ const createChangement = async (req, res) => {
           { label: 'Description', value: changement.descriptionDetaillee },
         ])}`,
       ctaLabel: 'Voir les changements',
+      brand: brandFromTenant(tenant),
       ctaUrl: `${FRONTEND_URL()}/changements`,
     });
     sendSupportEmail(req.tenantId, `[Changement] ${changement.objetChangement}`, html).catch(console.error);
@@ -169,6 +172,7 @@ const changerStatutChangement = async (req, res) => {
     changement.statut = nouveauStatut;
     await changement.save();
 
+    const tenantForEmail = await Tenant.findById(req.tenantId).select('name logoUrl primaryColor secondaryColor');
     const html = renderEmailLayout({
       preheader: `${changement.objetChangement} : ${statutActuel} → ${nouveauStatut}`,
       icon: ICONS.exchange,
@@ -183,6 +187,7 @@ const changerStatutChangement = async (req, res) => {
         <p style="margin: 0; font-size: 13px; color: #64748b;">Transition effectuée par le rôle <strong>${req.userRole}</strong>.</p>`,
       ctaLabel: 'Voir les changements',
       ctaUrl: `${FRONTEND_URL()}/changements`,
+      brand: brandFromTenant(tenantForEmail),
     });
     sendSupportEmail(req.tenantId, `[Changement] Statut mis à jour — ${changement.objetChangement}`, html).catch(console.error);
 

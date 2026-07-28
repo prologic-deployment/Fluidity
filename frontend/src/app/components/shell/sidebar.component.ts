@@ -25,8 +25,10 @@ interface SidebarGroup {
 })
 export class SidebarComponent {
   user = this.auth.getUser();
+  tenant = this.auth.getTenant();
   isAdmin = this.auth.isAdmin();
   isClient = this.auth.isClient();
+  isSuperAdmin = this.auth.isSuperAdmin();
 
   private espaceServicesGroup: SidebarGroup = {
     label: 'Espace Services',
@@ -38,8 +40,19 @@ export class SidebarComponent {
     ],
   };
 
-  // Un compte CLIENT ne voit que "Espace Services" (Task 4 — permissions client)
-  groups: SidebarGroup[] = this.isClient
+  private platformGroup: SidebarGroup = {
+    label: 'Plateforme',
+    icon: 'grid',
+    open: true,
+    children: [{ label: 'Tenants', path: '/plateforme/tenants' }],
+  };
+
+  // Un SUPER_ADMIN opère au-dessus de l'isolation multi-tenant : il ne voit
+  // que l'espace plateforme, jamais l'espace métier d'un tenant.
+  // Un compte CLIENT ne voit que "Espace Services" (permissions client).
+  groups: SidebarGroup[] = this.isSuperAdmin
+    ? [this.platformGroup]
+    : this.isClient
     ? [this.espaceServicesGroup]
     : [
         this.espaceServicesGroup,
@@ -75,7 +88,14 @@ export class SidebarComponent {
   }
 
   initials(): string {
+    if (this.tenant?.name) return this.tenant.name.slice(0, 2).toUpperCase();
     const email = this.user?.role || 'U';
     return email.slice(0, 2).toUpperCase();
+  }
+
+  /** Pourcentage de licences utilisées par le tenant courant (visible du Tenant Admin). */
+  licenseRatio(): number {
+    if (!this.tenant?.maxUsers) return 0;
+    return Math.min(100, Math.round(((this.tenant.activeUsers || 0) / this.tenant.maxUsers) * 100));
   }
 }

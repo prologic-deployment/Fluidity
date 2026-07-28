@@ -102,6 +102,8 @@ const login = async (req, res) => {
     const tenantId = tenant?._id?.toString();
     const token = jwt.sign({ tenantId, userId: user._id, role: user.role, email: user.email }, secret, { expiresIn });
 
+    const activeUsers = tenant ? await Utilisateur.countDocuments({ tenantId: tenant._id, statut: 'Actif' }) : undefined;
+
     res.status(200).json({
       token,
       userId: user._id,
@@ -121,6 +123,7 @@ const login = async (req, res) => {
             plan: tenant.plan,
             status: tenant.status,
             maxUsers: tenant.maxUsers,
+            activeUsers,
           }
         : null,
     });
@@ -137,7 +140,7 @@ const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await Utilisateur.findOne({ email });
+    const user = await Utilisateur.findOne({ email }).populate('tenantId', 'name logoUrl primaryColor secondaryColor');
     // Réponse neutre pour ne pas révéler l'existence de l'email
     if (!user) {
       res.status(200).json({
@@ -151,8 +154,8 @@ const forgotPassword = async (req, res) => {
     user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
     await user.save();
 
-    // Envoi asynchrone (ne bloque pas la réponse HTTP)
-    sendResetPasswordEmail(email, token).catch(console.error);
+    // Envoi asynchrone (ne bloque pas la réponse HTTP), à la marque du Tenant
+    sendResetPasswordEmail(email, token, user.tenantId).catch(console.error);
 
     res.status(200).json({
       message: "Si l'email existe, un lien de réinitialisation a été envoyé",

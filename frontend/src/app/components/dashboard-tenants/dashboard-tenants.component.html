@@ -1,0 +1,165 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-900/20">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Tenants de la plateforme</h1>
+          <p class="text-sm text-muted-foreground">Espace Super Admin — gestion des entreprises abonnées.</p>
+        </div>
+      </div>
+      <a routerLink="/plateforme/tenants/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
+        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        Nouveau tenant
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <!-- Statistiques plateforme -->
+    <div *ngIf="stats" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="card">
+        <div class="card-content pt-5 pb-4">
+          <p class="text-2xl font-semibold tracking-tight">{{ stats.totalTenants }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">Tenants au total</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content pt-5 pb-4">
+          <p class="text-2xl font-semibold tracking-tight text-success">{{ stats.activeTenants }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">Actifs</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content pt-5 pb-4">
+          <p class="text-2xl font-semibold tracking-tight text-warning">{{ stats.suspendedTenants }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">Suspendus</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content pt-5 pb-4">
+          <p class="text-2xl font-semibold tracking-tight">{{ stats.trialTenants }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">En période d'essai</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-content pt-5 pb-4">
+          <p class="text-2xl font-semibold tracking-tight">{{ stats.totalUsers }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">Utilisateurs (tous tenants)</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barre de filtres -->
+    <div class="toolbar">
+      <div class="search-field">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35"></path>
+        </svg>
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un tenant, un email..." class="search-input" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <select [(ngModel)]="statutFiltre" class="filter-select">
+        <option value="">Tous les statuts</option>
+        <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
+      </select>
+
+      <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
+        Réinitialiser
+      </button>
+    </div>
+
+    <div *ngIf="loading" class="table-wrap">
+      <div class="p-2">
+        <div *ngFor="let i of [1,2,3]" class="flex items-center gap-4 px-4 py-4 border-b border-border last:border-0">
+          <div class="skeleton h-4 w-40"></div>
+          <div class="skeleton h-4 w-48"></div>
+          <div class="skeleton h-5 w-20 rounded-full"></div>
+          <div class="skeleton h-4 w-24 ml-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loading && filteredTenants().length > 0" class="table-wrap animate-fade-in-up scroll-smooth">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tenant</th>
+            <th>Type</th>
+            <th>Plan</th>
+            <th>Licences</th>
+            <th>Statut</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of filteredTenants()" class="table-row-clickable group" (click)="viewDetails(t)">
+            <td class="font-medium">
+              {{ t.name }}
+              <div class="text-xs font-normal text-muted-foreground">{{ t.email }}</div>
+            </td>
+            <td class="text-muted-foreground">{{ t.type }}</td>
+            <td class="text-muted-foreground">{{ t.plan }}</td>
+            <td class="text-muted-foreground">{{ t.activeUsers }} / {{ t.maxUsers }}</td>
+            <td><span [class]="statutClass(t.status)"><span class="badge-dot"></span>{{ t.status }}</span></td>
+            <td class="text-right">
+              <svg class="table-row-chevron h-4 w-4 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p *ngIf="!loading && tenants.length > 0" class="mt-3 text-xs text-muted-foreground">
+      {{ filteredTenants().length }} sur {{ tenants.length }} tenant(s) affiché(s)
+    </p>
+  </main>
+</div>
+
+<app-modal [open]="!!selected" [title]="selected?.name || ''" [subtitle]="selected?.slug || ''" (closed)="closeDetails()">
+  <ng-container *ngIf="selected as t">
+    <div class="flex flex-wrap gap-2 mb-5">
+      <span [class]="statutClass(t.status)"><span class="badge-dot"></span>{{ t.status }}</span>
+      <span class="badge-outline">{{ t.plan }}</span>
+      <span class="badge-outline">{{ t.type }}</span>
+    </div>
+
+    <div class="detail-grid">
+      <div><p class="detail-label">Email</p><p class="detail-value">{{ t.email }}</p></div>
+      <div><p class="detail-label">Téléphone</p><p class="detail-value">{{ t.phone || '—' }}</p></div>
+      <div><p class="detail-label">Adresse</p><p class="detail-value">{{ t.address || '—' }}</p></div>
+      <div><p class="detail-label">Site web</p><p class="detail-value">{{ t.website || '—' }}</p></div>
+      <div><p class="detail-label">Licences</p><p class="detail-value">{{ t.activeUsers }} / {{ t.maxUsers }} utilisateurs</p></div>
+      <div><p class="detail-label">Langue / Fuseau</p><p class="detail-value">{{ t.language }} / {{ t.timezone }}</p></div>
+    </div>
+
+    <!-- Barre d'utilisation des licences -->
+    <div class="mt-4">
+      <div class="h-2 w-full rounded-full bg-muted overflow-hidden">
+        <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-600" [style.width.%]="licenseRatio(t)"></div>
+      </div>
+    </div>
+
+    <div class="flex justify-end gap-2 pt-6 mt-6 border-t border-border">
+      <button *ngIf="t.status !== 'Suspended'" (click)="suspend(t)" class="btn-outline">Suspendre</button>
+      <button *ngIf="t.status === 'Suspended'" (click)="activate(t)" class="btn-outline">Réactiver</button>
+      <button (click)="remove(t)" class="btn-destructive">Supprimer</button>
+    </div>
+  </ng-container>
+</app-modal>

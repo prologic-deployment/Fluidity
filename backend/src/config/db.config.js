@@ -18,9 +18,9 @@ const connectDB = async () => {
   }
   try {
     await mongoose.connect(uri);
-    console.log('[Fluidity] MongoDB connecté avec succès');
+    console.log('[Platform] MongoDB connecté avec succès');
   } catch (error) {
-    console.error('[Fluidity] Échec de connexion MongoDB :', error);
+    console.error('[Platform] Échec de connexion MongoDB :', error);
     process.exit(1);
   }
 };

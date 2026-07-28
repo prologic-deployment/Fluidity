@@ -3,18 +3,47 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface TenantBranding {
+  id: string;
+  name: string;
+  slug: string;
+  type: 'Company' | 'Individual';
+  logoUrl?: string;
+  faviconUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  plan: string;
+  status: string;
+  maxUsers: number;
+  activeUsers?: number;
+}
+
 export interface AuthResponse {
   token: string;
   userId: string;
   tenantId: string;
   role: string;
   email: string;
+  tenant: TenantBranding | null;
 }
 
 export interface LoginPayload {
   email: string;
   password: string;
 }
+
+export interface SessionUser {
+  userId: string;
+  tenantId: string;
+  role: string;
+  email: string;
+  tenant: TenantBranding | null;
+}
+
+// Clés de stockage génériques (la plateforme accueille plusieurs tenants,
+// Fluidity n'en est qu'un parmi d'autres — voir "REMOVE FLUIDITY REFERENCES").
+const TOKEN_KEY = 'portal_token';
+const USER_KEY = 'portal_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -35,25 +64,25 @@ export class AuthService {
   }
 
   saveSession(res: AuthResponse): void {
-    localStorage.setItem('fluidity_token', res.token);
+    localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(
-      'fluidity_user',
-      JSON.stringify({ userId: res.userId, tenantId: res.tenantId, role: res.role, email: res.email })
+      USER_KEY,
+      JSON.stringify({ userId: res.userId, tenantId: res.tenantId, role: res.role, email: res.email, tenant: res.tenant })
     );
   }
 
   logout(): void {
-    localStorage.removeItem('fluidity_token');
-    localStorage.removeItem('fluidity_user');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   }
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('fluidity_token');
+    return !!localStorage.getItem(TOKEN_KEY);
   }
 
   /** Utilisateur courant (décodé depuis la session locale), ou null. */
-  getUser(): { userId: string; tenantId: string; role: string; email: string } | null {
-    const raw = localStorage.getItem('fluidity_user');
+  getUser(): SessionUser | null {
+    const raw = localStorage.getItem(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   }
 
@@ -63,6 +92,15 @@ export class AuthService {
 
   getEmail(): string | null {
     return this.getUser()?.email ?? null;
+  }
+
+  /** Branding + informations d'abonnement du tenant courant (null pour un Super Admin). */
+  getTenant(): TenantBranding | null {
+    return this.getUser()?.tenant ?? null;
+  }
+
+  isSuperAdmin(): boolean {
+    return this.getRole() === 'SUPER_ADMIN';
   }
 
   isAdmin(): boolean {

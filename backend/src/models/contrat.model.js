@@ -4,9 +4,9 @@ const { Schema } = mongoose;
 /**
  * StatutContrat: 'Actif' | 'Expiré' | 'Suspendu'
  *
- * Un Contrat représente un contrat client-Fluidity. Il est créé par un
- * ADMIN et sert de référence pour les Demandes et les Changements
- * (listes déroulantes "Contrat" alimentées par ce modèle).
+ * Un Contrat représente un contrat entre un Tenant et l'un de ses clients,
+ * créé par un ADMIN et sert de référence pour les Demandes et les
+ * Changements (listes déroulantes "Contrat" alimentées par ce modèle).
  */
 const ContratSchema = new Schema(
   {

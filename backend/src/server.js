@@ -21,9 +21,9 @@ const PORT = process.env.PORT || 3000;
     await seedClients();
     await seedContrats();
     app.listen(PORT, () => {
-      console.log(`[Fluidity] Serveur démarré sur le port ${PORT}`);
+      console.log(`[Platform] Serveur démarré sur le port ${PORT}`);
     });
   } catch (err) {
-    console.error('[Fluidity] Impossible de démarrer le serveur :', err);
+    console.error('[Platform] Impossible de démarrer le serveur :', err);
   }
 })();
