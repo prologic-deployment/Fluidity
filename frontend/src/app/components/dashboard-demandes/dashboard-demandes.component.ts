@@ -1,32 +1,28 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ReactiveFormsModule } from '@angular/forms';
 import { DemandeService } from '../../services/demande.service';
-import { Demande } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
-import { ModalComponent } from '../shared/modal.component';
+import { Demande, StatutDemande } from '../../models/demande.model';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
-import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
+import { RouterLink } from '@angular/router';
+import { WorkflowActionsComponent } from '../shared/workflow-actions.component';
 
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, WorkflowActionsComponent],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
   demandes: Demande[] = [];
-  loading = false;
+  filteredDemandes: Demande[] = [];
+  selectedDemande: Demande | null = null;
+  loading = true;
   error: string | null = null;
-  selected: Demande | null = null;
-  transitionLoading = false;
-  transitionError: string | null = null;
 
-  searchTerm = '';
-  statutFiltre = '';
-  prioriteFiltre = '';
-
+  recherche = '';
+  statutFiltre: string = '';
   readonly statutsFiltrables = [
     'Ouverte',
     "En cours d'analyse",
@@ -36,13 +32,15 @@ export class DashboardDemandesComponent implements OnInit {
     'Réalisée',
     'Clôturée',
     'Rejetée',
+    'Annulée',
   ];
-  readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
+
+  sortKey: keyof Demande = 'createdAt';
+  sortAsc = false;
 
   constructor(
     private demandeService: DemandeService,
-    public auth: AuthService,
-    private router: Router,
+    private auth: AuthService,
     private confirmDialog: ConfirmDialogService
   ) {}
 
@@ -52,57 +50,112 @@ export class DashboardDemandesComponent implements OnInit {
 
   load(): void {
     this.loading = true;
-    this.error = null;
     this.demandeService.getAll().subscribe({
       next: (data) => {
         this.demandes = data;
+        this.applyFilters();
         this.loading = false;
       },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des demandes.';
+      error: () => {
+        this.error = 'Impossible de charger les demandes.';
         this.loading = false;
       },
     });
   }
 
-  /** Liste filtrée (recherche texte + statut + priorité), la plus récente en premier. */
-  filteredDemandes(): Demande[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.demandes.filter((d) => {
-      const matchTerm =
-        !term ||
-        d.objet.toLowerCase().includes(term) ||
-        d.clientId?.toLowerCase().includes(term) ||
-        d.categorie.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
-      const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
-      return matchTerm && matchStatut && matchPriorite;
+  applyFilters(): void {
+    let result = [...this.demandes];
+    if (this.recherche.trim()) {
+      const q = this.recherche.toLowerCase();
+      result = result.filter(
+        (d) =>
+          d.objet?.toLowerCase().includes(q) ||
+          d.typeDemande?.toLowerCase().includes(q) ||
+          d.statut?.toLowerCase().includes(q)
+      );
+    }
+    if (this.statutFiltre) {
+      result = result.filter((d) => d.statut === this.statutFiltre);
+    }
+    result.sort((a, b) => {
+      const va = a[this.sortKey] ?? '';
+      const vb = b[this.sortKey] ?? '';
+      if (va < vb) return this.sortAsc ? -1 : 1;
+      if (va > vb) return this.sortAsc ? 1 : -1;
+      return 0;
     });
+    this.filteredDemandes = result;
   }
 
-  hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre);
+  onSearchChange(): void {
+    this.applyFilters();
   }
 
-  resetFilters(): void {
-    this.searchTerm = '';
-    this.statutFiltre = '';
-    this.prioriteFiltre = '';
+  onStatutChange(): void {
+    this.applyFilters();
   }
 
-  viewDetails(demande: Demande): void {
-    this.selected = demande;
-    this.transitionError = null;
+  toggleSort(key: keyof Demande): void {
+    if (this.sortKey === key) {
+      this.sortAsc = !this.sortAsc;
+    } else {
+      this.sortKey = key;
+      this.sortAsc = true;
+    }
+    this.applyFilters();
+  }
+
+  sortIcon(key: keyof Demande): string {
+    if (this.sortKey !== key) return '↕';
+    return this.sortAsc ? '↑' : '↓';
+  }
+
+  openDetails(demande: Demande): void {
+    this.selectedDemande = demande;
   }
 
   closeDetails(): void {
-    this.selected = null;
-    this.transitionError = null;
+    this.selectedDemande = null;
   }
 
-  /** Seul le client propriétaire de la demande peut la supprimer (ADMIN excepté). */
+  isAdmin(): boolean {
+    return this.auth.isAdmin();
+  }
+
+  /** Seul le client propriétaire de la demande peut agir (ADMIN excepté). */
   isOwner(demande: Demande): boolean {
     return this.auth.isClient() && demande.clientId === this.auth.getEmail();
+  }
+
+  canCancel(demande: Demande): boolean {
+    return this.isOwner(demande) && demande.statut !== 'Annulée';
+  }
+
+  canDelete(demande: Demande): boolean {
+    return !this.auth.isClient() && (this.auth.isAdmin() || demande.clientId === this.auth.getEmail());
+  }
+
+  statutClass(statut: StatutDemande | undefined): string {
+    switch (statut) {
+      case 'Ouverte':
+        return 'badge-default';
+      case 'En cours de réalisation':
+        return 'badge-blue';
+      case 'En attente de validation':
+        return 'badge-yellow';
+      case 'En attente client':
+        return 'badge-orange';
+      case 'Réalisée':
+        return 'badge-green';
+      case 'Clôturée':
+        return 'badge-muted';
+      case 'Rejetée':
+        return 'badge-destructive';
+      case 'Annulée':
+        return 'badge-muted';
+      default:
+        return 'badge-default';
+    }
   }
 
   async deleteDemande(id: string | undefined): Promise<void> {
@@ -127,7 +180,7 @@ export class DashboardDemandesComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler cette demande ?',
-      message: 'La demande restera visible dans l\'historique mais ne pourra plus être traitée.',
+      message: "La demande restera visible dans l'historique mais ne pourra plus être traitée.",
       confirmLabel: 'Annuler la demande',
       variant: 'destructive',
     });
@@ -137,70 +190,7 @@ export class DashboardDemandesComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+      error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
     });
-  }
-
-  /** Statuts vers lesquels le rôle courant peut faire transiter la demande sélectionnée. */
-  prochainesEtapes(): string[] {
-    if (!this.selected) return [];
-    return availableTransitions(DEMANDE_TRANSITIONS, this.selected.statut, this.auth.getRole());
-  }
-
-  changerStatut(nouveauStatut: string): void {
-    if (!this.selected?._id) return;
-    this.transitionLoading = true;
-    this.transitionError = null;
-    this.demandeService.changerStatut(this.selected._id, nouveauStatut).subscribe({
-      next: (updated) => {
-        this.selected = updated;
-        this.transitionLoading = false;
-        this.load();
-      },
-      error: (err) => {
-        this.transitionError = err.error?.message || 'Transition refusée.';
-        this.transitionLoading = false;
-      },
-    });
-  }
-
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
-  }
-
-  /** Retourne la classe de badge (shadcn) selon le statut. */
-  statutClass(statut?: string): string {
-    switch (statut) {
-      case 'Ouverte':
-        return 'badge-outline';
-      case 'En cours d\'analyse':
-        return 'badge-secondary';
-      case 'En attente de validation':
-        return 'badge-secondary';
-      case 'En cours de réalisation':
-        return 'badge-warning';
-      case 'En attente client':
-        return 'badge-warning';
-      case 'Réalisée':
-        return 'badge-success';
-      case 'Clôturée':
-        return 'badge-secondary';
-      case 'Rejetée':
-        return 'badge-destructive';
-      default:
-        return 'badge-outline';
-    }
-  }
-
-  prioriteClass(priorite?: string): string {
-    switch (priorite) {
-      case 'Urgente':
-        return 'badge-destructive';
-      case 'Élevée':
-        return 'badge-warning';
-      default:
-        return 'badge-outline';
-    }
   }
 }

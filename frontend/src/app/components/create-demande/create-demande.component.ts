@@ -47,8 +47,11 @@ export class CreateDemandeComponent implements OnInit {
     this.form = this.fb.group({
       objet: ['', Validators.required],
       typeDemande: ['', Validators.required],
+      typeDemandeAutre: [''],
       serviceEnvironnement: ['', Validators.required],
+      serviceEnvironnementAutre: [''],
       categorie: ['', Validators.required],
+      categorieAutre: [''],
       sousCategorie: ['', Validators.required],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
       prioriteSouhaitee: ['Standard', Validators.required],
@@ -56,10 +59,44 @@ export class CreateDemandeComponent implements OnInit {
       contrat: ['', Validators.required],
     });
 
-    // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
+    // Contrats du client connecté uniquement
     this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
+    });
+
+    // Watch typeDemande changes
+    this.form.get('typeDemande')?.valueChanges.subscribe((val) => {
+      if (val !== 'Autre') {
+        this.form.get('typeDemandeAutre')?.setValue('');
+        this.form.get('typeDemandeAutre')?.clearValidators();
+      } else {
+        this.form.get('typeDemandeAutre')?.setValidators(Validators.required);
+      }
+      this.form.get('typeDemandeAutre')?.updateValueAndValidity();
+    });
+
+    // Watch serviceEnvironnement changes
+    this.form.get('serviceEnvironnement')?.valueChanges.subscribe((val) => {
+      if (val !== 'Autre') {
+        this.form.get('serviceEnvironnementAutre')?.setValue('');
+        this.form.get('serviceEnvironnementAutre')?.clearValidators();
+      } else {
+        this.form.get('serviceEnvironnementAutre')?.setValidators(Validators.required);
+      }
+      this.form.get('serviceEnvironnementAutre')?.updateValueAndValidity();
+    });
+
+    // Watch categorie changes
+    this.form.get('categorie')?.valueChanges.subscribe((val) => {
+      if (val !== 'Autre') {
+        this.form.get('categorieAutre')?.setValue('');
+        this.form.get('categorieAutre')?.clearValidators();
+      } else {
+        this.form.get('categorieAutre')?.setValidators(Validators.required);
+      }
+      this.form.get('categorieAutre')?.updateValueAndValidity();
+      this.onCategorieChange();
     });
   }
 
@@ -73,18 +110,32 @@ export class CreateDemandeComponent implements OnInit {
     this.form.get('sousCategorie')?.setValue('');
   }
 
+  isTypeAutre(): boolean {
+    return this.form.get('typeDemande')?.value === 'Autre';
+  }
+
+  isServiceAutre(): boolean {
+    return this.form.get('serviceEnvironnement')?.value === 'Autre';
+  }
+
+  isCategorieAutre(): boolean {
+    return this.form.get('categorie')?.value === 'Autre';
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
     const raw = this.form.value;
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Demande = {
       objet: raw.objet,
       typeDemande: raw.typeDemande,
+      typeDemandeAutre: raw.typeDemande === 'Autre' ? raw.typeDemandeAutre : undefined,
       serviceEnvironnement: raw.serviceEnvironnement,
+      serviceEnvironnementAutre: raw.serviceEnvironnement === 'Autre' ? raw.serviceEnvironnementAutre : undefined,
       categorie: raw.categorie,
+      categorieAutre: raw.categorie === 'Autre' ? raw.categorieAutre : undefined,
       sousCategorie: raw.sousCategorie,
       descriptionDetaillee: raw.descriptionDetaillee,
       prioriteSouhaitee: raw.prioriteSouhaitee,

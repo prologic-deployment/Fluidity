@@ -1,33 +1,28 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ReactiveFormsModule } from '@angular/forms';
 import { ChangementService } from '../../services/changement.service';
-import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
-import { ModalComponent } from '../shared/modal.component';
+import { Changement, StatutChangement } from '../../models/changement.model';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
-import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
+import { RouterLink } from '@angular/router';
+import { WorkflowActionsComponent } from '../shared/workflow-actions.component';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, WorkflowActionsComponent],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
   changements: Changement[] = [];
-  loading = false;
+  filteredChangements: Changement[] = [];
+  selectedChangement: Changement | null = null;
+  loading = true;
   error: string | null = null;
-  active = 'changements';
-  selected: Changement | null = null;
-  transitionLoading = false;
-  transitionError: string | null = null;
 
-  searchTerm = '';
-  statutFiltre = '';
-  typeFiltre = '';
-
+  recherche = '';
+  statutFiltre: string = '';
   readonly statutsFiltrables = [
     'Soumis',
     'En attente de validation',
@@ -39,13 +34,15 @@ export class DashboardChangementsComponent implements OnInit {
     'Rollback',
     'Clôturé',
     'Rejeté',
+    'Annulé',
   ];
-  readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
+
+  sortKey: keyof Changement = 'createdAt';
+  sortAsc = false;
 
   constructor(
     private changementService: ChangementService,
-    public auth: AuthService,
-    private router: Router,
+    private auth: AuthService,
     private confirmDialog: ConfirmDialogService
   ) {}
 
@@ -55,61 +52,118 @@ export class DashboardChangementsComponent implements OnInit {
 
   load(): void {
     this.loading = true;
-    this.error = null;
     this.changementService.getAll().subscribe({
       next: (data) => {
         this.changements = data;
+        this.applyFilters();
         this.loading = false;
       },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des changements.';
+      error: () => {
+        this.error = 'Impossible de charger les changements.';
         this.loading = false;
       },
     });
   }
 
-  filteredChangements(): Changement[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.changements.filter((c) => {
-      const matchTerm =
-        !term ||
-        c.objetChangement.toLowerCase().includes(term) ||
-        c.clientId?.toLowerCase().includes(term) ||
-        c.categorie.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
-      const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
-      return matchTerm && matchStatut && matchType;
+  applyFilters(): void {
+    let result = [...this.changements];
+    if (this.recherche.trim()) {
+      const q = this.recherche.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.objetChangement?.toLowerCase().includes(q) ||
+          c.typeChangement?.toLowerCase().includes(q) ||
+          c.statut?.toLowerCase().includes(q)
+      );
+    }
+    if (this.statutFiltre) {
+      result = result.filter((c) => c.statut === this.statutFiltre);
+    }
+    result.sort((a, b) => {
+      const va = a[this.sortKey] ?? '';
+      const vb = b[this.sortKey] ?? '';
+      if (va < vb) return this.sortAsc ? -1 : 1;
+      if (va > vb) return this.sortAsc ? 1 : -1;
+      return 0;
     });
+    this.filteredChangements = result;
   }
 
-  hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre);
+  onSearchChange(): void {
+    this.applyFilters();
   }
 
-  resetFilters(): void {
-    this.searchTerm = '';
-    this.statutFiltre = '';
-    this.typeFiltre = '';
+  onStatutChange(): void {
+    this.applyFilters();
   }
 
-  viewDetails(changement: Changement): void {
-    this.selected = changement;
-    this.transitionError = null;
+  toggleSort(key: keyof Changement): void {
+    if (this.sortKey === key) {
+      this.sortAsc = !this.sortAsc;
+    } else {
+      this.sortKey = key;
+      this.sortAsc = true;
+    }
+    this.applyFilters();
+  }
+
+  sortIcon(key: keyof Changement): string {
+    if (this.sortKey !== key) return '↕';
+    return this.sortAsc ? '↑' : '↓';
+  }
+
+  openDetails(changement: Changement): void {
+    this.selectedChangement = changement;
   }
 
   closeDetails(): void {
-    this.selected = null;
-    this.transitionError = null;
+    this.selectedChangement = null;
   }
 
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
+  isAdmin(): boolean {
+    return this.auth.isAdmin();
   }
 
-  /** Seul le client propriétaire du changement peut le supprimer (ADMIN excepté). */
+  /** Seul le client propriétaire du changement peut agir (ADMIN excepté). */
   isOwner(changement: Changement): boolean {
     return this.auth.isClient() && changement.clientId === this.auth.getEmail();
+  }
+
+  canCancel(changement: Changement): boolean {
+    return this.isOwner(changement) && changement.statut !== 'Annulé';
+  }
+
+  canDelete(changement: Changement): boolean {
+    return !this.auth.isClient() && (this.auth.isAdmin() || changement.clientId === this.auth.getEmail());
+  }
+
+  statutClass(statut: StatutChangement | undefined): string {
+    switch (statut) {
+      case 'Soumis':
+        return 'badge-default';
+      case 'En attente de validation':
+        return 'badge-yellow';
+      case 'Approuvé':
+        return 'badge-green';
+      case 'Planifié':
+        return 'badge-blue';
+      case "En cours d'implémentation":
+        return 'badge-blue';
+      case 'Implémenté':
+        return 'badge-green';
+      case 'En revue post-implémentation':
+        return 'badge-orange';
+      case 'Rollback':
+        return 'badge-destructive';
+      case 'Clôturé':
+        return 'badge-muted';
+      case 'Rejeté':
+        return 'badge-destructive';
+      case 'Annulé':
+        return 'badge-muted';
+      default:
+        return 'badge-default';
+    }
   }
 
   async deleteChangement(id: string | undefined): Promise<void> {
@@ -134,7 +188,7 @@ export class DashboardChangementsComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler ce changement ?',
-      message: 'Le changement restera visible dans l\'historique mais ne pourra plus être traité.',
+      message: "Le changement restera visible dans l'historique mais ne pourra plus être traité.",
       confirmLabel: 'Annuler le changement',
       variant: 'destructive',
     });
@@ -144,68 +198,7 @@ export class DashboardChangementsComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+      error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
     });
-  }
-
-  /** Statuts vers lesquels le rôle courant peut faire transiter le changement sélectionné. */
-  prochainesEtapes(): string[] {
-    if (!this.selected) return [];
-    return availableTransitions(CHANGEMENT_TRANSITIONS, this.selected.statut, this.auth.getRole());
-  }
-
-  changerStatut(nouveauStatut: string): void {
-    if (!this.selected?._id) return;
-    this.transitionLoading = true;
-    this.transitionError = null;
-    this.changementService.changerStatut(this.selected._id, nouveauStatut).subscribe({
-      next: (updated) => {
-        this.selected = updated;
-        this.transitionLoading = false;
-        this.load();
-      },
-      error: (err) => {
-        this.transitionError = err.error?.message || 'Transition refusée.';
-        this.transitionLoading = false;
-      },
-    });
-  }
-
-  statutClass(statut?: string): string {
-    switch (statut) {
-      case 'Soumis':
-        return 'badge-outline';
-      case 'En attente de validation':
-        return 'badge-secondary';
-      case 'Approuvé':
-        return 'badge-secondary';
-      case 'Planifié':
-        return 'badge-secondary';
-      case "En cours d'implémentation":
-        return 'badge-warning';
-      case 'Rollback':
-        return 'badge-destructive';
-      case 'Implémenté':
-        return 'badge-success';
-      case 'En revue post-implémentation':
-        return 'badge-warning';
-      case 'Clôturé':
-        return 'badge-secondary';
-      case 'Rejeté':
-        return 'badge-destructive';
-      default:
-        return 'badge-outline';
-    }
-  }
-
-  typeClass(type?: string): string {
-    switch (type) {
-      case 'Urgent':
-        return 'badge-destructive';
-      case 'Majeur':
-        return 'badge-warning';
-      default:
-        return 'badge-outline';
-    }
   }
 }

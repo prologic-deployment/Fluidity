@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators, FormArray } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
@@ -10,6 +10,9 @@ import {
   SOUS_CATEGORIES_CHANGEMENT,
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
+  DISK_TYPES,
+  RETENTION_NOMBRES,
+  RETENTION_PERIODES,
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
@@ -27,6 +30,9 @@ export class CreateChangementComponent implements OnInit {
   typesChangement = TYPES_CHANGEMENT;
   categories = CATEGORIES_CHANGEMENT;
   servicesEnvironnement = SERVICES_ENVIRONNEMENT_CHANGEMENT;
+  diskTypes = DISK_TYPES;
+  retentionNombres = RETENTION_NOMBRES;
+  retentionPeriodes = RETENTION_PERIODES;
   sousCategories: string[] = [];
   contrats: Contrat[] = [];
   piecesJointes: UploadedFile[] = [];
@@ -46,7 +52,9 @@ export class CreateChangementComponent implements OnInit {
       objetChangement: ['', Validators.required],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
       serviceEnvironnement: ['', Validators.required],
+      serviceEnvironnementAutre: [''],
       categorie: ['', Validators.required],
+      categorieAutre: [''],
       sousCategorie: ['', Validators.required],
       prerequisNecessaires: [''],
       planRetourArriere: ['', Validators.required],
@@ -54,15 +62,13 @@ export class CreateChangementComponent implements OnInit {
       contrat: ['', Validators.required],
       general: this.fb.group({
         ressourcesConcernees: [''],
-        // environnement: [''],
         commentaire: [''],
       }),
       serveur: this.fb.group({
         os: [''],
         cpuCores: [null],
         ramGo: [null],
-        disqueNvmeGo: [null],
-        disqueSasGo: [null],
+        disques: this.fb.array([]),
       }),
       reseau: this.fb.group({
         vlan: [''],
@@ -72,12 +78,12 @@ export class CreateChangementComponent implements OnInit {
       }),
       backup: this.fb.group({
         espaceBackupSupplementaireGo: [null],
-        retentionSouhaitee: [''],
+        retentionNombre: [null],
+        retentionPeriode: [''],
         licencesNecessaires: [''],
       }),
     });
 
-    // Contrats du client connecté uniquement (un changement est toujours créé en son nom)
     this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
@@ -135,7 +141,32 @@ export class CreateChangementComponent implements OnInit {
     this.form.get('sousCategorie')?.setValue('');
   }
 
-  /** Retire les champs vides/null pour ne pas polluer le payload. */
+  isServiceAutre(): boolean {
+    return this.form.get('serviceEnvironnement')?.value === 'Autre';
+  }
+
+  isCategorieAutre(): boolean {
+    return this.form.get('categorie')?.value === 'Autre';
+  }
+
+  showServeurSpecs(): boolean {
+    const cat = this.form.get('categorie')?.value;
+    return cat === 'VM' || cat === 'Infrastructure';
+  }
+
+  showReseauSpecs(): boolean {
+    return this.form.get('categorie')?.value === 'Réseau';
+  }
+
+  showBackupSpecs(): boolean {
+    return this.form.get('categorie')?.value === 'Sauvegarde';
+  }
+
+  isDiskTypeAutre(index: number): boolean {
+    const disque = this.disquesArray.at(index) as FormGroup;
+    return disque.get('type')?.value === 'Autre';
+  }
+
   private clean(obj: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
     for (const key of Object.keys(obj)) {
@@ -144,6 +175,10 @@ export class CreateChangementComponent implements OnInit {
       out[key] = v;
     }
     return out;
+  }
+
+  private cleanArray(arr: any[]): any[] {
+    return arr.map(item => this.clean(item)).filter(item => Object.keys(item).length > 0);
   }
 
   submit(): void {
@@ -168,12 +203,13 @@ export class CreateChangementComponent implements OnInit {
     if (Object.keys(reseau).length) specifications.reseau = reseau;
     if (Object.keys(backup).length) specifications.backup = backup;
 
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Changement = {
       objetChangement: raw.objetChangement,
       descriptionDetaillee: raw.descriptionDetaillee,
-      // serviceEnvironnement: raw.serviceEnvironnement,
+      serviceEnvironnement: raw.serviceEnvironnement,
+      serviceEnvironnementAutre: raw.serviceEnvironnement === 'Autre' ? raw.serviceEnvironnementAutre : undefined,
       categorie: raw.categorie,
+      categorieAutre: raw.categorie === 'Autre' ? raw.categorieAutre : undefined,
       sousCategorie: raw.sousCategorie,
       prerequisNecessaires: raw.prerequisNecessaires || undefined,
       planRetourArriere: raw.planRetourArriere,
