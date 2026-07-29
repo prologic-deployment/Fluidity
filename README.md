@@ -415,5 +415,46 @@ la palette sombre reprend les couleurs de la sidebar (fond `#0b0a1f`, carte `#15
 pour la réinitialisation de mot de passe et toutes les notifications Demande/Changement
 (création et changement de statut).
 
+### Étape 14 — Transformation en plateforme SaaS multi-tenant white-label (branche `C2-work`)
+Refonte architecturale majeure : l'application cesse d'être un logiciel pensé uniquement pour
+Fluidity et devient une plateforme générique où n'importe quelle entreprise (ou un individu)
+peut disposer de son propre espace de travail isolé. **Fluidity devient elle-même un Tenant
+parmi d'autres.** Nouvelle hiérarchie : `Plateforme (Super Admin) → Tenant → Utilisateurs →
+Clients → Contrats → Demandes / Changements`.
+
+- **Nouveau modèle `Tenant`** (`db.tenants`) : identité, branding white-label (logo, favicon,
+  couleur primaire/secondaire, signature email), coordonnées, plan/abonnement, `maxUsers`,
+  statut (`Active`/`Suspended`/`Trial`/`Cancelled`), fuseau horaire, langue.
+- **`tenantId` converti de `String` vers `ObjectId` (`ref: 'Tenant'`)** sur tous les modèles
+  métier (Utilisateur, Client, Contrat, Demande, Changement) — fin des identifiants de tenant
+  en chaîne libre dupliquée, relations normalisées, `populate()` utilisable partout.
+- **Nouveau rôle `SUPER_ADMIN`** (propriétaire de la plateforme, opère au-dessus de
+  l'isolation multi-tenant) ; `ADMIN` devient explicitement le "Tenant Admin" (comportement
+  inchangé). Module plateforme dédié (`/api/tenants`, Super Admin uniquement) : CRUD complet,
+  suspension/activation, statistiques globales.
+- **Limites de licences appliquées** : un Tenant ne peut jamais dépasser son nombre
+  d'utilisateurs actifs achetés (`Tenant.maxUsers`), vérifié à l'inscription.
+- **Connexion tenant-aware** : le login renvoie désormais la marque du Tenant (nom, logo,
+  couleurs, plan, licences) en plus du JWT, pour un rendu white-label immédiat ; bloque la
+  connexion si le tenant ou le compte est suspendu.
+- **Frontend adapté (pas redessiné)** : sidebar à bandeau de marque dynamique (logo/nom du
+  Tenant), indicateur d'utilisation des licences pour le Tenant Admin, nouvel espace
+  "Plateforme" (gestion des Tenants) visible uniquement du Super Admin, branding générique
+  "ServiceHub" sur les pages Connexion/Réinitialisation (qui précèdent l'identification du
+  tenant).
+- **Emails à la marque du Tenant expéditeur** (white-label réel, pas un simple renommage) :
+  chaque email (réinitialisation, nouvelle Demande/Changement, changement de statut) reprend
+  le nom/logo/couleurs du Tenant concerné, avec repli sur une identité plateforme générique.
+- **Script de migration** (`backend/src/migrations/001-string-tenant-to-objectid.js`, idempotent,
+  supporte `--dry-run`) pour convertir une base existante (ancien schéma `tenantId` en chaîne)
+  sans perte de données, en mappant explicitement `tenant-001` vers un Tenant nommé "Fluidity".
+- Seeders réécrits pour créer de vrais documents Tenant (`Platform`, `Fluidity`, `Northwind
+  Digital`) avant tout le reste.
+- **Recommandations pour la suite** (hors scope de cette itération, documentées en détail dans
+  le rapport de livraison associé à la branche `C2-work`) : alignement du vocabulaire des
+  statuts sur les standards de ticketing d'entreprise, renommage des rôles métier vers la
+  hiérarchie RBAC demandée (Manager/Agent/Viewer), suppression en cascade optionnelle d'un
+  Tenant, impersonation Super Admin, gestion des départements.
+
 ---
 *Ce README est mis à jour à chaque nouvelle étape réalisée sur le projet.*
