@@ -4,7 +4,7 @@ const { Schema } = mongoose;
 const { CHANGEMENT_STATUTS } = require('../utils/workflow');
 
 /**
- * TypeChangement: 'Normal' | 'Majeur' | 'Urgent'
+ * TypeChangement: 'Standard' | 'Majeur' | 'Urgent'
  * StatutChangement (cycle de vie complet, §2.3.4) :
  *   'Soumis' -> 'En attente de validation' -> 'Approuvé' -> 'Planifié'
  *   -> 'En cours d'implémentation' -> 'Implémenté' -> 'En revue post-implémentation'
@@ -71,7 +71,7 @@ const SpecificationsSchema = new Schema(
     },
     iaGpu: {
       modeleGpu: { type: String },
-      versionCuda: { type: String },
+      // versionCuda: { type: String },
       vramGo: { type: Number },
       nombreGpu: { type: Number },
     },
@@ -88,14 +88,14 @@ const ChangementSchema = new Schema(
     serviceEnvironnement: { type: String, required: true },
     categorie: { type: String, required: true },
     sousCategorie: { type: String, required: true },
-    fenetreIntervention: { type: Date, required: true },
+    // fenetreIntervention: { type: Date, required: true },
     prerequisNecessaires: { type: String },
     planRetourArriere: { type: String, required: true },
     contrat: { type: String, required: true },
     piecesJointes: [{ type: String }],
     typeChangement: {
       type: String,
-      enum: ['Normal', 'Majeur', 'Urgent'],
+      enum: ['Standard', 'Majeur', 'Urgent'],
       required: true,
     },
     statut: { type: String, enum: CHANGEMENT_STATUTS, default: 'Soumis' },

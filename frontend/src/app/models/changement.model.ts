@@ -1,4 +1,4 @@
-export type TypeChangement = 'Normal' | 'Majeur' | 'Urgent';
+export type TypeChangement = 'Standard' | 'Majeur' | 'Urgent';
 
 export type StatutChangement =
   | 'Soumis'
@@ -61,7 +61,7 @@ export interface Specifications {
   };
   iaGpu?: {
     modeleGpu?: string;
-    versionCuda?: string;
+    // versionCuda?: string;
     vramGo?: number;
     nombreGpu?: number;
   };
@@ -76,7 +76,7 @@ export interface Changement {
   serviceEnvironnement: string;
   categorie: string;
   sousCategorie: string;
-  fenetreIntervention: string;
+  // fenetreIntervention: string;
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
@@ -88,7 +88,7 @@ export interface Changement {
   updatedAt?: string;
 }
 
-export const TYPES_CHANGEMENT: TypeChangement[] = ['Normal', 'Majeur', 'Urgent'];
+export const TYPES_CHANGEMENT: TypeChangement[] = ['Standard', 'Majeur', 'Urgent'];
 
 export const SERVICES_ENVIRONNEMENT_CHANGEMENT: string[] = [
   'Production',

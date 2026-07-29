@@ -41,7 +41,7 @@ const createChangement = async (req, res) => {
           { label: 'Objet', value: changement.objetChangement },
           { label: 'Catégorie', value: `${changement.categorie} / ${changement.sousCategorie}` },
           { label: 'Environnement', value: changement.serviceEnvironnement },
-          { label: "Fenêtre d'intervention", value: new Date(changement.fenetreIntervention).toLocaleString('fr-FR') },
+          // { label: "Fenêtre d'intervention", value: new Date(changement.fenetreIntervention).toLocaleString('fr-FR') },
           { label: 'Contrat', value: changement.contrat },
           { label: 'Plan de retour arrière', value: changement.planRetourArriere },
           { label: 'Description', value: changement.descriptionDetaillee },

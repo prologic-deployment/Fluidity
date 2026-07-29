@@ -22,12 +22,12 @@ const createChangementSchema = z.object({
   serviceEnvironnement: z.string().min(1, 'Service / Environnement requis'),
   categorie: z.string().min(1, 'Catégorie requise'),
   sousCategorie: z.string().min(1, 'Sous-catégorie requise'),
-  fenetreIntervention: z.coerce.date(),
+  // fenetreIntervention: z.coerce.date(),
   prerequisNecessaires: z.string().optional(),
   planRetourArriere: z.string().min(1, 'Plan de retour arrière requis'),
   contrat: z.string().min(1, 'Contrat requis'),
   piecesJointes: z.array(z.string()).optional(),
-  typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']),
+  typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']),
   specifications: z
     .object({
       general: z
@@ -100,7 +100,7 @@ const createChangementSchema = z.object({
       iaGpu: z
         .object({
           modeleGpu: z.string().optional(),
-          versionCuda: z.string().optional(),
+          // versionCuda: z.string().optional(),
           vramGo: optionalNumber,
           nombreGpu: optionalNumber,
         })
@@ -120,7 +120,7 @@ const updateChangementSchema = z
     descriptionDetaillee: z.string().min(1).optional(),
     planRetourArriere: z.string().min(1).optional(),
     contrat: z.string().min(1).optional(),
-    typeChangement: z.enum(['Normal', 'Majeur', 'Urgent']).optional(),
+    typeChangement: z.enum(['Standard', 'Majeur', 'Urgent']).optional(),
     specifications: z.record(z.any()).optional(),
   })
   .partial();

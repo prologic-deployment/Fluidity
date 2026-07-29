@@ -57,11 +57,11 @@
                 <option *ngFor="let t of typesChangement" [value]="t">{{ t }}</option>
               </select>
             </div>
-            <div>
+            <!-- <div>
               <label class="field-label">Fenêtre d'intervention</label>
               <input formControlName="fenetreIntervention" type="datetime-local" class="input" />
               <p *ngIf="form.get('fenetreIntervention')?.invalid && form.get('fenetreIntervention')?.touched" class="field-error">Champ requis.</p>
-            </div>
+            </div> -->
             <div>
               <label class="field-label">Catégorie</label>
               <select formControlName="categorie" class="select">
@@ -487,18 +487,18 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="field-label">Modèle GPU</label>
-              <input formControlName="modeleGpu" type="text" class="input" placeholder="ex: NVIDIA A100" />
+              <input formControlName="modeleGpu" type="text" class="input" placeholder="ex: NVIDIA A10" />
             </div>
-            <div>
+            <!-- <div>
               <label class="field-label">Version CUDA</label>
               <input formControlName="versionCuda" type="text" class="input" />
-            </div>
+            </div> -->
             <div>
               <label class="field-label">VRAM (Go)</label>
               <input formControlName="vramGo" type="number" min="0" class="input" />
             </div>
             <div>
-              <label class="field-label">Nombre de GPU</label>
+              <label class="field-label">Capacité de GPU</label>
               <input formControlName="nombreGpu" type="number" min="0" class="input" />
             </div>
           </div>

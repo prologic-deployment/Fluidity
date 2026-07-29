@@ -41,7 +41,7 @@ export class DashboardChangementsComponent implements OnInit {
     'Rejeté',
     'Annulé',
   ];
-  readonly typesFiltrables = ['Normal', 'Majeur', 'Urgent'];
+  readonly typesFiltrables = ['Standard', 'Majeur', 'Urgent'];
 
   constructor(
     private changementService: ChangementService,
