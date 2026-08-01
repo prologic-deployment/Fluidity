@@ -50,23 +50,44 @@ automatiquement** (idempotent — ne s'exécute que si les collections sont vide
 ### Comptes de démonstration (mot de passe : `Password123!`)
 | Email | Rôle | Tenant |
 |---|---|---|
-| admin@fluidity.dev | ADMIN | tenant-001 |
-| client@fluidity.dev | CLIENT | tenant-001 |
-| support@fluidity.dev | SUPPORT_N1 | tenant-001 |
-| responsable@fluidity.dev | RESPONSABLE_TECHNIQUE | tenant-001 |
-| commercial@fluidity.dev | COMMERCIAL | tenant-001 |
-| exploitation@fluidity.dev | EXPLOITATION | tenant-001 |
-| client2@fluidity.dev | CLIENT | tenant-002 (isolation tenant) |
+| superadmin@platform.dev | SUPER_ADMIN | Platform (technique) |
+| admin@fluidity.dev | ADMIN | Fluidity |
+| client@fluidity.dev | CLIENT | Fluidity |
+| support@fluidity.dev | SUPPORT_N1 | Fluidity |
+| responsable@fluidity.dev | RESPONSABLE_TECHNIQUE | Fluidity |
+| commercial@fluidity.dev | COMMERCIAL | Fluidity |
+| exploitation@fluidity.dev | EXPLOITATION | Fluidity |
+| admin@northwind-digital.dev | ADMIN | Northwind Digital |
+| client2@fluidity.dev | CLIENT | Northwind Digital (isolation tenant) |
 
 ### Contrats de démonstration
-`CTR-2026-001`, `CTR-2026-002` (tenant-001 / client@fluidity.dev) et `CTR-2026-101`
-(tenant-002 / client2@fluidity.dev), utilisés pour peupler les listes déroulantes "Contrat"
-des formulaires Demande / Changement.
+`CTR-2026-001`, `CTR-2026-002` (tenant Fluidity / client@fluidity.dev) et `CTR-2026-101`
+(tenant Northwind Digital / client2@fluidity.dev), utilisés pour peupler les listes
+déroulantes "Contrat" des formulaires Demande / Changement.
 
 ### Clients de démonstration
-`Atlas Industries` (tenant-001, client@fluidity.dev) et `Nova Systems` (tenant-002,
-client2@fluidity.dev) — mêmes emails que les comptes CLIENT de démonstration ci-dessus, pour
-que les contrats de démo s'y rattachent correctement.
+`Atlas Industries` (tenant "Fluidity", client@fluidity.dev) et `Nova Systems` (tenant
+"Northwind Digital", client2@fluidity.dev) — mêmes emails que les comptes CLIENT de
+démonstration ci-dessus, pour que les contrats de démo s'y rattachent correctement.
+
+### Demandes et changements de démonstration
+Pour pouvoir tester le workflow et les transitions entre rôles sans rien créer à la main,
+`db.demandes` et `db.changements` sont peuplées d'un enregistrement par statut du cycle de vie
+(voir §2.2.2/§2.3.4), essentiellement sur le tenant "Fluidity" (+ deux enregistrements sur
+"Northwind Digital" pour vérifier l'isolation) :
+- **Demandes** : une par statut — `Ouverte`, `En cours d'analyse`, `En attente de validation`,
+  `En cours de réalisation`, `En attente client`, `Réalisée`, `Clôturée`, `Rejetée`, `Annulé`.
+- **Changements** : une par statut — `Soumis`, `En attente de validation`, `Approuvé`,
+  `Planifié`, `En cours d'implémentation`, `Implémenté`, `En revue post-implémentation`,
+  `Rollback`, `Clôturé`, `Rejeté`, `Annulé` — avec des exemples de spécifications techniques
+  couvrant toutes les sections dynamiques (Serveur/disques, Réseau/IPv4, Sauvegarde, Base de
+  données, Conteneurs, Stockage, Sécurité, IA-GPU).
+
+Concrètement : connectez-vous avec `support@fluidity.dev` pour voir une demande "Ouverte" à
+qualifier, `responsable@fluidity.dev` pour une demande/un changement "En attente de
+validation" à approuver, `exploitation@fluidity.dev` pour un changement "Approuvé" à
+planifier, ou `client@fluidity.dev` pour annuler une demande active ou clôturer une demande
+"Réalisée".
 
 ## 3. Journal des évolutions
 
@@ -345,6 +366,71 @@ passée en **fluide-hybride** pour un rendu cohérent quel que soit le client :
 - Vérifié par un chargement réel de `app.js` (routes clients/uploads incluses) et un
   `ng build` complet sans erreur.
 
+### Étape 14 — Transformation en plateforme SaaS multi-tenant white-label (branche `C2-work`)
+Refonte architecturale majeure : l'application cesse d'être un logiciel pensé uniquement pour
+Fluidity et devient une plateforme générique où n'importe quelle entreprise (ou un individu)
+peut disposer de son propre espace de travail isolé. **Fluidity devient elle-même un Tenant
+parmi d'autres.** Nouvelle hiérarchie : `Plateforme (Super Admin) → Tenant → Utilisateurs →
+Clients → Contrats → Demandes / Changements`.
+
+- **Nouveau modèle `Tenant`** (`db.tenants`) : identité, branding white-label (logo, favicon,
+  couleur primaire/secondaire, signature email), coordonnées, plan/abonnement, `maxUsers`,
+  statut (`Active`/`Suspended`/`Trial`/`Cancelled`), fuseau horaire, langue.
+- **`tenantId` converti de `String` vers `ObjectId` (`ref: 'Tenant'`)** sur tous les modèles
+  métier (Utilisateur, Client, Contrat, Demande, Changement) — fin des identifiants de tenant
+  en chaîne libre dupliquée, relations normalisées, `populate()` utilisable partout.
+- **Nouveau rôle `SUPER_ADMIN`** (propriétaire de la plateforme, opère au-dessus de
+  l'isolation multi-tenant) ; `ADMIN` devient explicitement le "Tenant Admin" (comportement
+  inchangé). Module plateforme dédié (`/api/tenants`, Super Admin uniquement) : CRUD complet,
+  suspension/activation, statistiques globales.
+- **Limites de licences appliquées** : un Tenant ne peut jamais dépasser son nombre
+  d'utilisateurs actifs achetés (`Tenant.maxUsers`), vérifié à l'inscription.
+- **Connexion tenant-aware** : le login renvoie désormais la marque du Tenant (nom, logo,
+  couleurs, plan, licences) en plus du JWT, pour un rendu white-label immédiat ; bloque la
+  connexion si le tenant ou le compte est suspendu.
+- **Frontend adapté (pas redessiné)** : sidebar à bandeau de marque dynamique (logo/nom du
+  Tenant), indicateur d'utilisation des licences pour le Tenant Admin, nouvel espace
+  "Plateforme" (gestion des Tenants) visible uniquement du Super Admin, branding générique
+  "ServiceHub" sur les pages Connexion/Réinitialisation (qui précèdent l'identification du
+  tenant).
+- **Emails à la marque du Tenant expéditeur** (white-label réel, pas un simple renommage) :
+  chaque email (réinitialisation, nouvelle Demande/Changement, changement de statut) reprend
+  le nom/logo/couleurs du Tenant concerné, avec repli sur une identité plateforme générique.
+- **Script de migration** (`backend/src/migrations/001-string-tenant-to-objectid.js`, idempotent,
+  supporte `--dry-run`) pour convertir une base existante (ancien schéma `tenantId` en chaîne)
+  sans perte de données, en mappant explicitement `tenant-001` vers un Tenant nommé "Fluidity".
+- Seeders réécrits pour créer de vrais documents Tenant (`Platform`, `Fluidity`, `Northwind
+  Digital`) avant tout le reste.
+- **Recommandations pour la suite** (hors scope de cette itération, documentées en détail dans
+  le rapport de livraison associé à la branche `C2-work`) : alignement du vocabulaire des
+  statuts sur les standards de ticketing d'entreprise, renommage des rôles métier vers la
+  hiérarchie RBAC demandée (Manager/Agent/Viewer), suppression en cascade optionnelle d'un
+  Tenant, impersonation Super Admin, gestion des départements.
+
+
+### Étape 15 — Seeders de démonstration complets (Demandes/Changements sur tout le cycle de vie)
+Jusqu'ici, seuls les tenants/utilisateurs/clients/contrats étaient peuplés automatiquement —
+`db.demandes` et `db.changements` restaient vides au premier lancement, rendant impossible le
+test des transitions de workflow sans tout créer à la main.
+- Nouveaux `seed/demande.seed.js` (11 demandes) et `seed/changement.seed.js` (13 changements) :
+  **un enregistrement par statut** du cycle de vie complet (§2.2.2/§2.3.4), majoritairement sur
+  le tenant "Fluidity" (+ deux enregistrements sur "Northwind Digital" pour vérifier
+  l'isolation). Permet de se connecter avec n'importe quel compte de démo et de voir
+  immédiatement un enregistrement dans l'état pertinent pour tester son action (ex :
+  `support@fluidity.dev` a une demande "Ouverte" à qualifier, `exploitation@fluidity.dev` a un
+  changement "Approuvé" à planifier, `client@fluidity.dev` peut annuler une demande active).
+- Les changements de démonstration couvrent aussi les nouvelles sections de spécifications
+  dynamiques (Serveur avec liste de disques, Réseau avec adresses IPv4 valides, Sauvegarde,
+  Base de données, Conteneurs, Stockage, Sécurité, IA-GPU) pour vérifier leur affichage dans la
+  modale de détail.
+- `server.js` / `seed/run.js` mis à jour (ordre : tenants → utilisateurs → clients → contrats →
+  demandes → changements).
+- Vérifié par validation Mongoose hors connexion (`validateSync()` sur chaque document généré,
+  sans base de données) : les 24 documents sont valides et couvrent bien la totalité des
+  statuts des deux workflows.
+- README : comptes de démonstration et sections Contrats/Clients corrigés (référençaient encore
+  les anciens identifiants `tenant-001`/`tenant-002` au lieu des noms de Tenant réels).
+
 ## 4. Système de design (design system)
 
 Cette section documente l'identité visuelle complète de Fluidity, construite entièrement en
@@ -414,47 +500,6 @@ arrondis, badges à point de couleur (`renderBadge`), encart de détail en carte
 la palette sombre reprend les couleurs de la sidebar (fond `#0b0a1f`, carte `#151330`). Utilisé
 pour la réinitialisation de mot de passe et toutes les notifications Demande/Changement
 (création et changement de statut).
-
-### Étape 14 — Transformation en plateforme SaaS multi-tenant white-label (branche `C2-work`)
-Refonte architecturale majeure : l'application cesse d'être un logiciel pensé uniquement pour
-Fluidity et devient une plateforme générique où n'importe quelle entreprise (ou un individu)
-peut disposer de son propre espace de travail isolé. **Fluidity devient elle-même un Tenant
-parmi d'autres.** Nouvelle hiérarchie : `Plateforme (Super Admin) → Tenant → Utilisateurs →
-Clients → Contrats → Demandes / Changements`.
-
-- **Nouveau modèle `Tenant`** (`db.tenants`) : identité, branding white-label (logo, favicon,
-  couleur primaire/secondaire, signature email), coordonnées, plan/abonnement, `maxUsers`,
-  statut (`Active`/`Suspended`/`Trial`/`Cancelled`), fuseau horaire, langue.
-- **`tenantId` converti de `String` vers `ObjectId` (`ref: 'Tenant'`)** sur tous les modèles
-  métier (Utilisateur, Client, Contrat, Demande, Changement) — fin des identifiants de tenant
-  en chaîne libre dupliquée, relations normalisées, `populate()` utilisable partout.
-- **Nouveau rôle `SUPER_ADMIN`** (propriétaire de la plateforme, opère au-dessus de
-  l'isolation multi-tenant) ; `ADMIN` devient explicitement le "Tenant Admin" (comportement
-  inchangé). Module plateforme dédié (`/api/tenants`, Super Admin uniquement) : CRUD complet,
-  suspension/activation, statistiques globales.
-- **Limites de licences appliquées** : un Tenant ne peut jamais dépasser son nombre
-  d'utilisateurs actifs achetés (`Tenant.maxUsers`), vérifié à l'inscription.
-- **Connexion tenant-aware** : le login renvoie désormais la marque du Tenant (nom, logo,
-  couleurs, plan, licences) en plus du JWT, pour un rendu white-label immédiat ; bloque la
-  connexion si le tenant ou le compte est suspendu.
-- **Frontend adapté (pas redessiné)** : sidebar à bandeau de marque dynamique (logo/nom du
-  Tenant), indicateur d'utilisation des licences pour le Tenant Admin, nouvel espace
-  "Plateforme" (gestion des Tenants) visible uniquement du Super Admin, branding générique
-  "ServiceHub" sur les pages Connexion/Réinitialisation (qui précèdent l'identification du
-  tenant).
-- **Emails à la marque du Tenant expéditeur** (white-label réel, pas un simple renommage) :
-  chaque email (réinitialisation, nouvelle Demande/Changement, changement de statut) reprend
-  le nom/logo/couleurs du Tenant concerné, avec repli sur une identité plateforme générique.
-- **Script de migration** (`backend/src/migrations/001-string-tenant-to-objectid.js`, idempotent,
-  supporte `--dry-run`) pour convertir une base existante (ancien schéma `tenantId` en chaîne)
-  sans perte de données, en mappant explicitement `tenant-001` vers un Tenant nommé "Fluidity".
-- Seeders réécrits pour créer de vrais documents Tenant (`Platform`, `Fluidity`, `Northwind
-  Digital`) avant tout le reste.
-- **Recommandations pour la suite** (hors scope de cette itération, documentées en détail dans
-  le rapport de livraison associé à la branche `C2-work`) : alignement du vocabulaire des
-  statuts sur les standards de ticketing d'entreprise, renommage des rôles métier vers la
-  hiérarchie RBAC demandée (Manager/Agent/Viewer), suppression en cascade optionnelle d'un
-  Tenant, impersonation Super Admin, gestion des départements.
 
 ---
 *Ce README est mis à jour à chaque nouvelle étape réalisée sur le projet.*
