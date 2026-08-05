@@ -103,7 +103,6 @@
             <th>Objet</th>
             <th>Catégorie</th>
             <th>Type</th>
-            <th>Fenêtre d'intervention</th>
             <th>Statut</th>
             <th>Date</th>
             <th class="text-right">Actions</th>
@@ -116,7 +115,6 @@
             <td>
               <span [class]="typeClass(c.typeChangement)"><span class="badge-dot"></span>{{ c.typeChangement }}</span>
             </td>
-            <td class="text-muted-foreground">{{ c.fenetreIntervention | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td>
               <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
             </td>
@@ -166,10 +164,6 @@
       <div>
         <p class="detail-label">Contrat</p>
         <p class="detail-value">{{ contratLabel(c) }}</p>
-      </div>
-      <div>
-        <p class="detail-label">Fenêtre d'intervention</p>
-        <p class="detail-value">{{ c.fenetreIntervention | date: 'dd/MM/yyyy HH:mm' }}</p>
       </div>
     </div>
 

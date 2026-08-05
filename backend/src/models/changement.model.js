@@ -93,7 +93,8 @@ const ChangementSchema = new Schema(
     serviceEnvironnement: { type: String, required: true },
     categorie: { type: String, required: true },
     sousCategorie: { type: String, required: true },
-    fenetreIntervention: { type: Date, required: true },
+    // NB : la « fenêtre d'intervention souhaitée » n'est plus collectée (formulaire simplifié).
+    // Les documents existants conservent leur champ fenetreIntervention historique s'il existe.
     prerequisNecessaires: { type: String },
     planRetourArriere: { type: String, required: true },
     contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },

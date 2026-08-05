@@ -48,7 +48,6 @@ const seedChangements = async (tenants = {}) => {
         'Passage de la VM shop-prod-01 de 4 vCPU / 16 Go à 8 vCPU / 32 Go pour absorber le trafic ' +
         'des soldes. Sanction de ressources validée sur le cluster.',
       serviceEnvironnement: 'Production', categorie: 'VM', sousCategorie: 'Extension ressources',
-      fenetreIntervention: new Date('2026-07-31T21:00:00.000Z'),
       prerequisNecessaires: 'Snapshot préalable + validation du gel applicatif.',
       planRetourArriere: 'Retour au snapshot Veeam et redémarrage des services en cas d\'anomalie.',
       typeChangement: 'Standard', contrat: ctrAtlas._id,
@@ -70,7 +69,6 @@ const seedChangements = async (tenants = {}) => {
         'Création du VLAN 240 dédié aux équipements IoT de l\'entrepôt, isolé du LAN bureautique, ' +
         'avec DHCP géré et ACL inter-VLAN restrictives.',
       serviceEnvironnement: 'Pré-production', categorie: 'Réseau', sousCategorie: 'VLAN',
-      fenetreIntervention: new Date('2026-08-02T18:00:00.000Z'),
       planRetourArriere: 'Suppression du VLAN 240 et retour à la configuration switch sauvegardée.',
       typeChangement: 'Majeur', contrat: ctrHelios._id,
       specifications: {
@@ -86,7 +84,6 @@ const seedChangements = async (tenants = {}) => {
         'Fermeture des ports non utilisés exposés en DMZ et restriction SSH aux seules IP du ' +
         'bastion, conformément aux recommandations de l\'audit sécurité.',
       serviceEnvironnement: 'Production', categorie: 'Sécurité', sousCategorie: 'Firewall',
-      fenetreIntervention: new Date('2026-08-01T22:30:00.000Z'),
       prerequisNecessaires: 'Export de la configuration actuelle + validation des flux métier.',
       planRetourArriere: 'Réimport de la configuration pare-feu exportée avant intervention.',
       typeChangement: 'Urgent', contrat: ctrAtlas._id,
@@ -102,8 +99,7 @@ const seedChangements = async (tenants = {}) => {
       descriptionDetaillee:
         'Migration de l\'instance PostgreSQL mutualisée de reporting vers la version 16 avec ' +
         'pg_upgrade, puis analyse des performances.',
-      serviceEnvironnement: 'Pré-production', categorie: 'Base de données', sousCategorie: 'PostgreSQL',
-      fenetreIntervention: new Date('2026-08-05T20:00:00.000Z'),
+      serviceEnvironnement: 'Pré-production', categorie: 'VM', sousCategorie: 'Autre',
       prerequisNecessaires: 'Dump logique complet + arrêt des connecteurs BI.',
       planRetourArriere: 'Restauration du dump sur l\'instance d\'origine et reconfiguration BI.',
       typeChangement: 'Majeur', contrat: ctrHelios._id,
@@ -120,7 +116,6 @@ const seedChangements = async (tenants = {}) => {
         'Ajout de 4 To sur le volume NAS dédié aux sauvegardes locales, avec mise à jour des quotas ' +
         'par département.',
       serviceEnvironnement: 'Production', categorie: 'Stockage', sousCategorie: 'Extension capacité',
-      fenetreIntervention: new Date('2026-08-06T19:00:00.000Z'),
       planRetourArriere: 'Retour aux quotas initiaux : l\'extension elle-même est sans risque.',
       typeChangement: 'Standard', contrat: ctrAtlas._id,
       specifications: {
@@ -135,8 +130,7 @@ const seedChangements = async (tenants = {}) => {
       descriptionDetaillee:
         'Bascule des 6 conteneurs applicatifs du serveur legacy vers le cluster K8s mutualisé ' +
         '(namespace dédié, registry privée, probes de santé).',
-      serviceEnvironnement: 'Production', categorie: 'Conteneurs', sousCategorie: 'Kubernetes',
-      fenetreIntervention: new Date('2026-07-27T20:00:00.000Z'),
+      serviceEnvironnement: 'Production', categorie: 'VM', sousCategorie: 'Migration VM',
       prerequisNecessaires: 'Images poussées dans la registry privée + secrets migrés.',
       planRetourArriere: 'Réactivation des services Docker legacy conservés à l\'arrêt à chaud.',
       typeChangement: 'Majeur', contrat: ctrHelios._id,
@@ -152,8 +146,7 @@ const seedChangements = async (tenants = {}) => {
       descriptionDetaillee:
         'Le déploiement du portail clients v3 a provoqué des erreurs 500 sur le parcours de ' +
         'connexion. Le plan de retour arrière a été exécuté avec succès.',
-      serviceEnvironnement: 'Production', categorie: 'Portail web', sousCategorie: 'Déploiement',
-      fenetreIntervention: new Date('2026-07-20T21:00:00.000Z'),
+      serviceEnvironnement: 'Production', categorie: 'VM', sousCategorie: 'Autre',
       planRetourArriere: 'Réactivation de la version v2 (blue/green).',
       typeChangement: 'Urgent', contrat: ctrAtlas._id,
       specifications: {
@@ -169,7 +162,6 @@ const seedChangements = async (tenants = {}) => {
         'Mise à disposition de 2 GPU partagés sur le nœud gpu-01 pour le service de recommandation ' +
         'logistique (drivers CUDA 12.4).',
       serviceEnvironnement: 'Développement', categorie: 'IA-GPU', sousCategorie: 'GPU Allocation',
-      fenetreIntervention: new Date('2026-07-25T09:00:00.000Z'),
       planRetourArriere: 'Libération de l\'allocation GPU et arrêt du conteneur d\'inférence.',
       typeChangement: 'Standard', contrat: ctrHelios._id,
       specifications: {
@@ -185,7 +177,6 @@ const seedChangements = async (tenants = {}) => {
         'Passage de la politique de rétention Veeam de 3 à 6 mois pour les VM financières, avec ' +
         'extension de l\'espace de sauvegarde associé.',
       serviceEnvironnement: 'Production', categorie: 'Sauvegarde', sousCategorie: 'Retention',
-      fenetreIntervention: new Date('2026-07-22T20:00:00.000Z'),
       planRetourArriere: 'Retour à la rétention initiale de 3 mois (purge des points excédentaires).',
       typeChangement: 'Majeur', contrat: ctrAtlas2._id,
       specifications: {
@@ -201,7 +192,6 @@ const seedChangements = async (tenants = {}) => {
         'Provision d\'une VM de développement (4 vCPU / 16 Go / 100 Go NVMe) dans le VLAN de test ' +
         'pour l\'équipe mobile.',
       serviceEnvironnement: 'Développement', categorie: 'VM', sousCategorie: 'Création VM',
-      fenetreIntervention: new Date('2026-07-10T14:00:00.000Z'),
       planRetourArriere: 'Suppression de la VM et libération de l\'adresse IP.',
       typeChangement: 'Standard', contrat: ctrHelios._id,
       specifications: {
@@ -217,7 +207,6 @@ const seedChangements = async (tenants = {}) => {
         'Demande de wildcard DNS *.atlas-services.tn pointant vers l\'IP publique du frontal. ' +
         'Rejeté par le comité sécurité : exposition trop large, entrées nominatives requises.',
       serviceEnvironnement: 'Production', categorie: 'Réseau', sousCategorie: 'DNS',
-      fenetreIntervention: new Date('2026-07-18T18:00:00.000Z'),
       planRetourArriere: 'Suppression de l\'entrée wildcard.',
       typeChangement: 'Majeur', contrat: ctrAtlas._id,
       specifications: {
@@ -233,7 +222,6 @@ const seedChangements = async (tenants = {}) => {
         'Suppression de la VM demo-com-01 devenue inutile. Annulé par le client : la démonstration ' +
         'est reconduite pour un mois.',
       serviceEnvironnement: 'Test', categorie: 'VM', sousCategorie: 'Suppression VM',
-      fenetreIntervention: new Date('2026-07-15T17:00:00.000Z'),
       planRetourArriere: 'Restauration du snapshot de la veille.',
       typeChangement: 'Standard', contrat: ctrHelios._id,
       specifications: {
@@ -250,7 +238,6 @@ const seedChangements = async (tenants = {}) => {
         'Établissement d\'un tunnel IPsec entre notre firewall de siège (Sfax) et le VPC hébergé, ' +
         'avec routage des sous-réseaux administratifs.',
       serviceEnvironnement: 'Production', categorie: 'Réseau', sousCategorie: 'VPN',
-      fenetreIntervention: new Date('2026-08-03T21:00:00.000Z'),
       prerequisNecessaires: 'Clés pré-partagées échangées par canal sécurisé.',
       planRetourArriere: 'Suppression du tunnel et retour au routage initial.',
       typeChangement: 'Majeur', contrat: ctrNova._id,
@@ -265,8 +252,7 @@ const seedChangements = async (tenants = {}) => {
       descriptionDetaillee:
         'Déploiement de nouvelles sondes de monitoring sur les hyperviseurs, avec bascule des ' +
         'alertes vers le nouveau tableau de bord.',
-      serviceEnvironnement: 'Production', categorie: 'Infrastructure', sousCategorie: 'Monitoring',
-      fenetreIntervention: new Date('2026-08-04T20:00:00.000Z'),
+      serviceEnvironnement: 'Production', categorie: 'VM', sousCategorie: 'Autre',
       planRetourArriere: 'Réactivation des anciennes sondes conservées en parallèle 7 jours.',
       typeChangement: 'Standard', contrat: ctrNova._id,
       specifications: {
@@ -280,7 +266,6 @@ const seedChangements = async (tenants = {}) => {
         'Alignement de la politique de rétention des sauvegardes de l\'ERP sur les exigences ' +
         'légales de conservation comptable.',
       serviceEnvironnement: 'Production', categorie: 'Sauvegarde', sousCategorie: 'Backup configuration',
-      fenetreIntervention: new Date('2026-06-28T22:00:00.000Z'),
       planRetourArriere: 'Retour à la rétention initiale.',
       typeChangement: 'Standard', contrat: ctrNova._id,
       specifications: {

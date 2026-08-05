@@ -36,7 +36,6 @@ const createChangementSchema = z.object({
   serviceEnvironnement: z.string().min(1, 'Service / Environnement requis'),
   categorie: z.string().min(1, 'Catégorie requise'),
   sousCategorie: z.string().min(1, 'Sous-catégorie requise'),
-  fenetreIntervention: z.coerce.date(),
   prerequisNecessaires: z.string().optional(),
   planRetourArriere: z.string().min(1, 'Plan de retour arrière requis'),
   contrat: objectId('Contrat (ObjectId) requis'),

@@ -74,7 +74,6 @@ export class CreateChangementComponent implements OnInit {
       categorieAutre: [''],
       sousCategorie: ['', Validators.required],
       sousCategorieAutre: [''],
-      fenetreIntervention: ['', Validators.required],
       prerequisNecessaires: [''],
       planRetourArriere: ['', Validators.required],
       typeChangement: ['Standard', Validators.required],
@@ -107,26 +106,10 @@ export class CreateChangementComponent implements OnInit {
         { validators: [retentionCompleteValidator] }
       ),
       // --- Sections supplémentaires affichées selon la catégorie choisie ---
-      baseDeDonnees: this.fb.group({
-        moteur: [''],
-        version: [''],
-        tailleGo: [null],
-      }),
       stockage: this.fb.group({
         typeStockage: [''],
         capaciteGo: [null],
         protocole: [''],
-      }),
-      portailWeb: this.fb.group({
-        domaine: [''],
-        sslRequis: [''],
-        technologie: [''],
-      }),
-      conteneurs: this.fb.group({
-        plateforme: [''],
-        nombreReplicas: [null],
-        cpuAlloue: [''],
-        memoireAllouee: [''],
       }),
       iaGpu: this.fb.group({
         typeGpu: [''],
@@ -244,7 +227,7 @@ export class CreateChangementComponent implements OnInit {
 
   /** Clés des sections réellement envoyées : general + sections visibles. */
   private sectionsVisibles(): string[] {
-    return ['general', 'serveur', 'reseau', 'backup', 'baseDeDonnees', 'stockage', 'portailWeb', 'conteneurs', 'iaGpu', 'securite'].filter(
+    return ['general', 'serveur', 'reseau', 'backup', 'stockage', 'iaGpu', 'securite'].filter(
       (s) => this.showSection(s)
     );
   }
@@ -308,7 +291,6 @@ export class CreateChangementComponent implements OnInit {
         raw.serviceEnvironnement === AUTRE ? raw.serviceEnvironnementAutre : raw.serviceEnvironnement,
       categorie,
       sousCategorie,
-      fenetreIntervention: new Date(raw.fenetreIntervention).toISOString(),
       prerequisNecessaires: raw.prerequisNecessaires || undefined,
       planRetourArriere: raw.planRetourArriere,
       typeChangement: raw.typeChangement,

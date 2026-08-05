@@ -59,7 +59,6 @@ const createChangement = async (req, res) => {
           { label: 'Demandeur', value: req.userEmail },
           { label: 'Catégorie', value: `${changement.categorie} / ${changement.sousCategorie}` },
           { label: 'Environnement', value: changement.serviceEnvironnement },
-          { label: "Fenêtre d'intervention", value: new Date(changement.fenetreIntervention).toLocaleString('fr-FR') },
           { label: 'Contrat', value: `${contrat.reference} — ${contrat.intitule}` },
           { label: 'Plan de retour arrière', value: changement.planRetourArriere },
           { label: 'Description', value: changement.descriptionDetaillee },

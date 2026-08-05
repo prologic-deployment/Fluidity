@@ -44,6 +44,9 @@ export interface Specifications {
     licencesNecessaires?: string;
   };
   // --- Sections supplémentaires affichées selon la catégorie choisie ---
+  // Les sections baseDeDonnees / portailWeb / conteneurs ne sont plus proposées
+  // à la création (catégories simplifiées) mais restent lues/affichées pour les
+  // enregistrements existants qui les portent.
   baseDeDonnees?: {
     moteur?: string;
     version?: string;
@@ -86,7 +89,6 @@ export interface Changement {
   serviceEnvironnement: string;
   categorie: string;
   sousCategorie: string;
-  fenetreIntervention: string;
   prerequisNecessaires?: string;
   planRetourArriere: string;
   typeChangement: TypeChangement;
@@ -137,11 +139,7 @@ export const IPV4_PATTERN = '^(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)(\\.(25[0-5
  */
 export const SECTIONS_SPECIFICATIONS: Record<string, string[]> = {
   Réseau: ['reseau'],
-  Infrastructure: ['serveur'],
   VM: ['serveur'],
-  'Base de données': ['baseDeDonnees'],
-  'Portail web': ['portailWeb'],
-  Conteneurs: ['conteneurs'],
   'IA-GPU': ['iaGpu'],
   Stockage: ['stockage'],
   Sécurité: ['securite'],
