@@ -1,0 +1,49 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-6 py-5">
+      <h1 class="text-xl font-semibold tracking-tight">Mon profil</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">Votre compte et vos paramètres de sécurité.</p>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-6 py-8 space-y-6">
+
+    <!-- Carte compte -->
+    <section class="card animate-fade-in-up">
+      <div class="card-header-tinted">
+        <div class="form-section-header">
+          <div class="form-section-icon">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Compte</h2>
+            <p class="card-description">Informations de votre session.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card-content pt-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <p class="detail-label">Email</p>
+            <p class="detail-value">{{ email }}</p>
+          </div>
+          <div>
+            <p class="detail-label">Rôle</p>
+            <p class="detail-value">{{ roleLabel }}</p>
+          </div>
+          <div>
+            <p class="detail-label">Espace de travail</p>
+            <p class="detail-value">{{ workspaceName }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sécurité : double authentification -->
+    <app-two-factor-settings></app-two-factor-settings>
+
+  </main>
+</div>

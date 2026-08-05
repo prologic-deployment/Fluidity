@@ -121,7 +121,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: 'Plateforme',
         icon: 'grid',
         open: true,
-        children: [{ label: 'Tenants', path: '/plateforme/tenants' }],
+        children: [
+          { label: 'Tenants', path: '/plateforme/tenants' },
+          { label: 'Mon profil', path: '/profil' },
+        ],
       };
       groups.push(plateforme);
     }
@@ -135,6 +138,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         children: [
           { label: 'Demandes', path: '/demandes' },
           { label: 'Changements', path: '/changements' },
+          { label: 'Mon profil', path: '/profil' },
         ],
       });
 

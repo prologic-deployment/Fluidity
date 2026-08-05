@@ -1,0 +1,187 @@
+<!-- Section « Double authentification » du profil -->
+<section class="card animate-fade-in-up">
+  <div class="card-header-tinted">
+    <div class="form-section-header">
+      <div class="form-section-icon">
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="m9 12 2 2 4-4"></path>
+        </svg>
+      </div>
+      <div>
+        <h2 class="card-title">Two-Factor Authentication</h2>
+        <p class="card-description">
+          Une couche de sécurité supplémentaire : un code temporaire (TOTP, RFC 6238) exigé à chaque
+          connexion, compatible Google Authenticator, Microsoft Authenticator et Authy.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-content pt-6 space-y-4">
+    <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
+
+    <!-- Chargement -->
+    <div *ngIf="loading" class="flex items-center gap-3 py-2 text-sm text-muted-foreground">
+      <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+      </svg>
+      Chargement de l'état de sécurité...
+    </div>
+
+    <ng-container *ngIf="!loading && status">
+
+      <!-- ============ ÉTAT : DÉSACTIVÉE ============ -->
+      <div *ngIf="!status.enabled && !setupView" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <span class="h-1.5 w-1.5 rounded-full bg-current opacity-60"></span>
+            Désactivée
+          </span>
+          <p class="text-sm text-muted-foreground max-w-md">
+            Protégez votre compte : après votre mot de passe, un code à 6 chiffres de votre
+            application d'authentification sera demandé à chaque connexion.
+          </p>
+        </div>
+        <button type="button" (click)="startSetup()" class="btn-primary shrink-0">
+          <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Activer la double authentification
+        </button>
+      </div>
+
+      <!-- ============ ACTIVATION : QR + CLÉ + VÉRIFICATION ============ -->
+      <div *ngIf="setupView" class="space-y-5">
+        <ol class="space-y-1 text-sm text-muted-foreground list-decimal list-inside">
+          <li>Scannez ce QR code avec <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong> ou <strong>Authy</strong>.</li>
+          <li>Saisissez le code à 6 chiffres affiché par l'application.</li>
+        </ol>
+
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <!-- QR code (affiché uniquement pendant le setup) -->
+          <div class="rounded-xl border border-border bg-white p-3 shadow-sm">
+            <img [src]="qrCode" alt="QR code de configuration Google/Microsoft Authenticator" width="220" height="220" class="block" />
+          </div>
+
+          <div class="flex-1 space-y-4 w-full">
+            <!-- Clé manuelle -->
+            <div>
+              <p class="field-label">Impossible de scanner ? Saisie manuelle</p>
+              <div class="flex items-center gap-2">
+                <code class="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm tracking-[0.2em] select-all">
+                  {{ manualKeyVisible ? manualKey : '•••• •••• •••• •••• •••• •••• •••• ••••' }}
+                </code>
+                <button type="button" (click)="manualKeyVisible = !manualKeyVisible" class="btn-outline btn-sm">
+                  {{ manualKeyVisible ? 'Masquer' : 'Afficher' }}
+                </button>
+              </div>
+              <p class="mt-1 text-xs text-muted-foreground">
+                Choisissez « Saisir une clé de configuration » dans votre application, puis copiez ce code.
+              </p>
+            </div>
+
+            <!-- Code de vérification -->
+            <form [formGroup]="verifyForm" (ngSubmit)="confirmSetup()" class="space-y-3">
+              <div>
+                <label class="field-label">Entrez le code de vérification à 6 chiffres</label>
+                <input type="text" formControlName="code" class="input max-w-[220px] tracking-[0.35em] font-mono"
+                  placeholder="123456" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
+                <p *ngIf="verifyForm.get('code')?.invalid && verifyForm.get('code')?.touched" class="field-error">
+                  Code à 6 chiffres requis.
+                </p>
+              </div>
+              <div class="flex gap-3">
+                <button type="submit" [disabled]="verifying" class="btn-primary">
+                  {{ verifying ? 'Vérification...' : 'Vérifier et activer' }}
+                </button>
+                <button type="button" (click)="cancelSetup()" [disabled]="verifying" class="btn-outline">Annuler</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CODES DE SECOURS (affichés UNE seule fois) ============ -->
+      <div *ngIf="backupCodes" class="rounded-xl border border-amber-400/40 bg-amber-50 p-4 space-y-3">
+        <div class="flex items-start gap-2.5">
+          <svg class="h-5 w-5 text-amber-600 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <path d="M12 9v4"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+          <div>
+            <p class="text-sm font-semibold text-amber-900">Double authentification activée — conservez vos codes de secours</p>
+            <p class="text-xs text-amber-800 mt-0.5">
+              Ces {{ backupCodes.length }} codes remplacent votre téléphone (usage unique chacun).
+              <strong>Ils ne seront plus jamais affichés</strong> : copiez-les et rangez-les en lieu sûr.
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <code *ngFor="let code of backupCodes"
+            class="rounded-md border border-amber-300/60 bg-white px-2 py-1.5 text-center font-mono text-xs tracking-wider">
+            {{ code }}
+          </code>
+        </div>
+        <div class="flex gap-3">
+          <button type="button" (click)="copyBackupCodes()" class="btn-outline btn-sm">
+            {{ backupCopied ? 'Copiés ✓' : 'Copier les codes' }}
+          </button>
+          <button type="button" (click)="acknowledgeBackupCodes()" class="btn-outline btn-sm">
+            J'ai conservé mes codes
+          </button>
+        </div>
+      </div>
+
+      <!-- ============ ÉTAT : ACTIVÉE ============ -->
+      <div *ngIf="status.enabled && !backupCodes" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              Activée
+            </span>
+            <div class="text-sm text-muted-foreground">
+              <p>
+                Votre compte exige un code OTP à chaque connexion
+                <span *ngIf="status.createdAt">— activée le {{ status.createdAt | date: 'dd/MM/yyyy' }}</span>.
+              </p>
+              <p class="text-xs mt-0.5">{{ status.backupCodesRemaining }} code(s) de secours restant(s).</p>
+            </div>
+          </div>
+          <button *ngIf="!disableView" type="button" (click)="startDisable()" class="btn-outline shrink-0">
+            Désactiver la double authentification
+          </button>
+        </div>
+
+        <!-- Désactivation : preuve requise -->
+        <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()"
+          class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+          <p class="text-sm font-medium">Confirmez la désactivation</p>
+          <p class="text-xs text-muted-foreground">
+            Pour votre sécurité, prouvez votre identité : mot de passe <em>ou</em> code d'authentification valide.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Mot de passe du compte</label>
+              <input type="password" formControlName="password" class="input" autocomplete="current-password" />
+            </div>
+            <div>
+              <label class="field-label">ou code d'authentification</label>
+              <input type="text" formControlName="code" class="input tracking-[0.2em] font-mono"
+                placeholder="123456 ou XXXX-XXXX" maxlength="9" />
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button type="submit" [disabled]="disabling" class="btn-primary">
+              {{ disabling ? 'Désactivation...' : 'Confirmer la désactivation' }}
+            </button>
+            <button type="button" (click)="cancelDisable()" [disabled]="disabling" class="btn-outline">Annuler</button>
+          </div>
+        </form>
+      </div>
+
+    </ng-container>
+  </div>
+</section>

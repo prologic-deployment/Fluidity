@@ -32,6 +32,27 @@ export interface Impersonation {
   name: string;
 }
 
+/** Réponse du login quand le compte a la 2FA activée : défi OTP avant session. */
+export interface TwoFactorRequired {
+  requiresTwoFactor: true;
+  twoFactorToken: string;
+  expiresInMinutes: number;
+}
+
+/** État 2FA du compte courant (jamais de secret côté API). */
+export interface TwoFactorStatus {
+  enabled: boolean;
+  verified: boolean;
+  createdAt: string | null;
+  backupCodesRemaining: number;
+}
+
+/** Éléments affichés UNIQUEMENT pendant la configuration (QR + clé manuelle). */
+export interface TwoFactorSetup {
+  qrCode: string; // data URL du QR — généré à la volée, jamais stocké
+  manualKey: string; // saisie manuelle dans l'application d'authentification
+}
+
 const TOKEN_KEY = 'servicedesk_token';
 const USER_KEY = 'servicedesk_user';
 const TENANT_KEY = 'servicedesk_tenant';
@@ -56,8 +77,41 @@ export class AuthService {
     this.sessionSubject.next();
   }
 
-  login(payload: LoginPayload): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/login`, payload);
+  login(payload: LoginPayload): Observable<AuthResponse | TwoFactorRequired> {
+    return this.http.post<AuthResponse | TwoFactorRequired>(`${this.baseUrl}/login`, payload);
+  }
+
+  /** La réponse du login est-elle un défi second facteur (et non une session) ? */
+  isTwoFactorRequired(res: AuthResponse | TwoFactorRequired): res is TwoFactorRequired {
+    return (res as TwoFactorRequired).requiresTwoFactor === true;
+  }
+
+  /** Second facteur de connexion : jeton temporaire + code OTP (ou code de secours). */
+  verifyTwoFactorLogin(twoFactorToken: string, code: string): Observable<AuthResponse & { backupCodeUsed?: boolean }> {
+    return this.http.post<AuthResponse & { backupCodeUsed?: boolean }>(`${this.baseUrl}/2fa/verify-login`, {
+      twoFactorToken,
+      code,
+    });
+  }
+
+  // --- Gestion de SA propre double authentification (utilisateur connecté) ---
+
+  twoFactorStatus(): Observable<TwoFactorStatus> {
+    return this.http.get<TwoFactorStatus>(`${this.baseUrl}/2fa/status`);
+  }
+
+  twoFactorSetup(): Observable<TwoFactorSetup> {
+    return this.http.post<TwoFactorSetup>(`${this.baseUrl}/2fa/setup`, {});
+  }
+
+  /** Confirme le premier OTP : active la 2FA et renvoie les codes de secours (une fois). */
+  twoFactorVerifySetup(code: string): Observable<{ message: string; backupCodes: string[] }> {
+    return this.http.post<{ message: string; backupCodes: string[] }>(`${this.baseUrl}/2fa/verify-setup`, { code });
+  }
+
+  /** Désactive la 2FA — preuve requise : mot de passe OU code d'authentification. */
+  twoFactorDisable(payload: { password?: string; code?: string }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/2fa/disable`, payload);
   }
 
   me(): Observable<{ user: SessionUser & Record<string, unknown>; tenant: TenantBranding | null }> {

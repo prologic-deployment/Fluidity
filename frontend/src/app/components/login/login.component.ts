@@ -35,6 +35,11 @@ export class LoginComponent {
     this.error = null;
     this.auth.login(this.form.value).subscribe({
       next: (res) => {
+        // Compte avec 2FA activée : défi OTP avant d'émettre la session
+        if (this.auth.isTwoFactorRequired(res)) {
+          this.router.navigate(['/login/verification'], { state: { twoFactorToken: res.twoFactorToken } });
+          return;
+        }
         this.auth.saveSession(res);
         // Super Admin -> tableau de bord plateforme ; tout autre rôle -> workspace tenant
         this.router.navigate([this.auth.isPlatformAdmin() ? '/plateforme/tenants' : '/demandes']);
