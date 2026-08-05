@@ -67,6 +67,16 @@ const UtilisateurSchema = new Schema(
     department: { type: String, default: '' },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
+
+    // --- Double authentification TOTP (RFC 6238) — optionnelle, désactivée par défaut ---
+    // Le secret est CHIFFRÉ (AES-256-GCM, crypto.util) — jamais stocké en clair.
+    // select: false => jamais renvoyé par les requêtes par défaut (aucune fuite API).
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: null, select: false },
+    twoFactorVerified: { type: Boolean, default: false },
+    twoFactorCreatedAt: { type: Date, default: null },
+    // Codes de secours (SHA-256, usage unique, consommés à la validation)
+    twoFactorBackupCodes: { type: [String], default: [], select: false },
   },
   { timestamps: true }
 );

@@ -63,8 +63,50 @@ const register = async (req, res) => {
 };
 
 /**
- * Connexion : vérifie les identifiants et renvoie un JWT + la marque du
- * tenant (nom, logo, couleurs) pour construire l'expérience workspace.
+ * Émet la session complète (JWT + profil + marque tenant) — facteur commun de
+ * la connexion classique et de la validation du second facteur (2FA), pour ne
+ * pas dupliquer la logique d'émission.
+ */
+const issueSession = (res, user, tenant, extras = {}) => {
+  const secret = process.env.JWT_SECRET;
+  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  const token = jwt.sign(
+    { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email },
+    secret,
+    { expiresIn }
+  );
+
+  res.status(200).json({
+    token,
+    userId: user._id,
+    tenantId: user.tenantId || null,
+    role: user.role,
+    email: user.email,
+    status: user.status,
+    tenant: tenantBranding(tenant),
+    ...extras,
+  });
+};
+
+/**
+ * Jeton temporaire « second facteur » (5 min) : preuve que le mot de passe
+ * est correct, en attente du code OTP. Ne sert JAMAIS de session.
+ */
+const TWO_FACTOR_PURPOSE = '2fa-login';
+const signTwoFactorToken = (userId) =>
+  jwt.sign({ purpose: TWO_FACTOR_PURPOSE, userId }, process.env.JWT_SECRET, { expiresIn: '5m' });
+
+const verifyTwoFactorToken = (token) => {
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  if (decoded?.purpose !== TWO_FACTOR_PURPOSE) throw new Error('Jeton 2FA invalide');
+  return decoded.userId;
+};
+
+/**
+ * Connexion : vérifie les identifiants puis —
+ *   - compte SANS 2FA : session JWT classique ;
+ *   - compte AVEC 2FA : jeton temporaire (5 min), la session n'est émise
+ *     qu'après POST /api/auth/2fa/verify-login avec un code OTP valide.
  */
 const login = async (req, res) => {
   try {
@@ -111,23 +153,18 @@ const login = async (req, res) => {
       }
     }
 
-    const secret = process.env.JWT_SECRET;
-    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
-    const token = jwt.sign(
-      { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email },
-      secret,
-      { expiresIn }
-    );
+    // Double authentification activée : le mot de passe est prouvé, mais la
+    // session attend le code OTP — jeton temporaire à usage unique (5 min).
+    if (user.twoFactorEnabled && user.twoFactorVerified) {
+      res.status(200).json({
+        requiresTwoFactor: true,
+        twoFactorToken: signTwoFactorToken(user._id),
+        expiresInMinutes: 5,
+      });
+      return;
+    }
 
-    res.status(200).json({
-      token,
-      userId: user._id,
-      tenantId: user.tenantId || null,
-      role: user.role,
-      email: user.email,
-      status: user.status,
-      tenant: tenantBranding(tenant),
-    });
+    issueSession(res, user, tenant);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -213,4 +250,14 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { register, login, forgotPassword, resetPassword, me };
+module.exports = {
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
+  me,
+  // Réutilisés par le contrôleur 2FA (pas de logique d'émission dupliquée)
+  issueSession,
+  signTwoFactorToken,
+  verifyTwoFactorToken,
+};

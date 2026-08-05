@@ -36,6 +36,14 @@ const authMiddleware = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, secret);
+
+    // Les jetons à usage spécifique (ex. défi 2FA, 5 min) ne sont JAMAIS des
+    // sessions : tout jeton portant une mention « purpose » est rejeté ici.
+    if (decoded.purpose) {
+      res.status(401).json({ message: 'Ce jeton ne peut pas servir de session.' });
+      return;
+    }
+
     req.tenantId = decoded.tenantId || null;
     req.userId = decoded.userId;
     req.userRole = decoded.role;

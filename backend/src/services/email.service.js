@@ -114,4 +114,44 @@ const sendSupportEmail = async (tenantId, subject, html) => {
   }
 };
 
-module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail };
+/**
+ * Notification de sécurité : la double authentification vient d'être activée.
+ */
+const sendTwoFactorEnabledEmail = async (email) => {
+  const html = renderEmailLayout({
+    preheader: `La double authentification est activée sur votre compte ${PLATFORM_NAME}.`,
+    icon: ICONS.lock,
+    heading: 'Double authentification activée',
+    bodyHtml: `
+      <p style="margin: 0 0 10px;">Bonjour,</p>
+      <p style="margin: 0 0 10px;">La double authentification (2FA) a été <strong>activée</strong> sur votre compte.
+      Votre application d'authentification vous demandera désormais un code à 6 chiffres à chaque connexion.</p>
+      <p style="margin: 0;">Si vous n'êtes pas à l'origine de cette action, contactez immédiatement votre
+      administrateur et réinitialisez votre mot de passe.</p>`,
+    ctaLabel: 'Accéder à mon espace',
+    ctaUrl: FRONTEND_URL(),
+  });
+  await sendEmail(email, `Double authentification activée — ${PLATFORM_NAME}`, html);
+};
+
+/**
+ * Notification de sécurité : la double authentification vient d'être désactivée.
+ */
+const sendTwoFactorDisabledEmail = async (email) => {
+  const html = renderEmailLayout({
+    preheader: `La double authentification a été désactivée sur votre compte ${PLATFORM_NAME}.`,
+    icon: ICONS.lock,
+    heading: 'Double authentification désactivée',
+    bodyHtml: `
+      <p style="margin: 0 0 10px;">Bonjour,</p>
+      <p style="margin: 0 0 10px;">La double authentification (2FA) a été <strong>désactivée</strong> sur votre compte.
+      Votre mot de passe suffit désormais pour vous connecter.</p>
+      <p style="margin: 0;">Si vous n'êtes pas à l'origine de cette action, contactez immédiatement votre
+      administrateur et réinitialisez votre mot de passe.</p>`,
+    ctaLabel: 'Accéder à mon espace',
+    ctaUrl: FRONTEND_URL(),
+  });
+  await sendEmail(email, `Double authentification désactivée — ${PLATFORM_NAME}`, html);
+};
+
+module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail, sendTwoFactorEnabledEmail, sendTwoFactorDisabledEmail };

@@ -1,6 +1,6 @@
 const { Utilisateur } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
-const { sendResetPasswordEmail } = require('../services/email.service');
+const { sendResetPasswordEmail, sendTwoFactorDisabledEmail } = require('../services/email.service');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -13,7 +13,8 @@ const { v4: uuidv4 } = require('uuid');
  * - les licences du tenant limitent le nombre d'utilisateurs actifs
  */
 
-const SANS_SECRETS = '-password -resetToken -resetTokenExpiry';
+// Aucune donnée sensible exposée : mot de passe, jetons, SECRET 2FA et codes de secours
+const SANS_SECRETS = '-password -resetToken -resetTokenExpiry -twoFactorSecret -twoFactorBackupCodes';
 
 /** Tenant cible de l'opération (soit le tenant du JWT, soit un tenant explicite pour le Super Admin). */
 const resolveTargetTenant = async (req, res) => {
@@ -148,10 +149,22 @@ const updateUser = async (req, res) => {
       }
     }
 
-    const { role, department, status } = req.body;
+    const { role, department, status, resetTwoFactor } = req.body;
     if (role !== undefined) user.role = role;
     if (department !== undefined) user.department = department;
     if (status !== undefined) user.status = status;
+
+    // Réinitialisation 2FA par l'admin (compte verrouillé / téléphone perdu).
+    // L'admin ne voit JAMAIS le secret : il invalide simplement la configuration,
+    // l'utilisateur la recréera lui-même depuis son profil.
+    if (resetTwoFactor === true) {
+      user.twoFactorEnabled = false;
+      user.twoFactorSecret = null;
+      user.twoFactorVerified = false;
+      user.twoFactorCreatedAt = null;
+      user.twoFactorBackupCodes = [];
+      sendTwoFactorDisabledEmail(user.email).catch(console.error);
+    }
     await user.save();
 
     const clean = await Utilisateur.findById(user._id).select(SANS_SECRETS);

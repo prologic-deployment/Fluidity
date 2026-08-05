@@ -20,6 +20,8 @@ const updateUserSchema = z
     role: z.enum(['TENANT_ADMIN', 'MANAGER', 'AGENT', 'CLIENT', 'VIEWER']).optional(),
     department: z.string().optional(),
     status: z.enum(['invited', 'active', 'suspended']).optional(),
+    /** Réinitialisation 2FA par l'admin (jamais de secret exposé). */
+    resetTwoFactor: z.literal(true).optional(),
   })
   .partial();
 
