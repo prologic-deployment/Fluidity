@@ -46,7 +46,7 @@ const seedDemandes = async (tenants = {}) => {
     {
       tenantId: fluidity._id, requester: atlas._id, statut: 'Ouverte',
       objet: 'Extension des ressources de la VM e-commerce',
-      typeDemande: 'Extension de ressources', serviceEnvironnement: 'Production',
+      typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'VM', sousCategorie: 'Extension ressources',
       descriptionDetaillee:
         'La VM hébergeant la boutique en ligne sature en période de soldes (CPU > 90 %). ' +
@@ -70,7 +70,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: fluidity._id, requester: atlas._id, statut: "En cours d'analyse",
       objet: 'Restauration de la base PostgreSQL de recette',
       typeDemande: 'Support technique', serviceEnvironnement: 'Test',
-      categorie: 'Base de données', sousCategorie: 'Backup DB',
+      categorie: 'Sauvegarde', sousCategorie: 'Restore',
       descriptionDetaillee:
         'Suite à un script de migration erroné en recette, nous avons besoin d\'une restauration ' +
         'de la base recette_ecommerce à l\'état du 24/07 02h00 (sauvegarde quotidienne Veeam).',
@@ -91,8 +91,8 @@ const seedDemandes = async (tenants = {}) => {
     {
       tenantId: fluidity._id, requester: atlas._id, statut: 'En attente de validation',
       objet: 'Ajout d\'un second serveur physique au cluster',
-      typeDemande: 'Extension de ressources', serviceEnvironnement: 'Production',
-      categorie: 'Infrastructure', sousCategorie: 'Serveur physique',
+      typeDemande: 'Support technique', serviceEnvironnement: 'Production',
+      categorie: 'VM', sousCategorie: 'Extension ressources',
       descriptionDetaillee:
         'Le cluster de virtualisation atteint 85 % de capacité. Nous demandons l\'ajout d\'un hôte ' +
         'supplémentaire (devis matériel validé avec le commercial le 18/07).',
@@ -104,7 +104,7 @@ const seedDemandes = async (tenants = {}) => {
     {
       tenantId: fluidity._id, requester: atlas._id, statut: 'En cours de réalisation',
       objet: 'Extension du volume SAN /data de 2 To',
-      typeDemande: 'Extension de ressources', serviceEnvironnement: 'Production',
+      typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'Stockage', sousCategorie: 'Extension capacité',
       descriptionDetaillee:
         'Le volume /data des rapports BI atteint 92 %. Extension de 2 To sur la baie SAN existante ' +
@@ -116,7 +116,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: fluidity._id, requester: helios._id, statut: 'En cours de réalisation',
       objet: 'Renouvellement du certificat SSL du portail clients',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
-      categorie: 'Portail web', sousCategorie: 'SSL',
+      categorie: 'Sécurité', sousCategorie: 'Certificat',
       descriptionDetaillee:
         'Le certificat du portail clients.helios.tn expire le 02/08. Merci de déployer le nouveau ' +
         'certificat (fourni par notre autorité) sur le frontal Nginx.',
@@ -160,7 +160,7 @@ const seedDemandes = async (tenants = {}) => {
     {
       tenantId: fluidity._id, requester: helios._id, statut: 'Rejetée',
       objet: 'Allocation de 8 GPU pour entraînement IA intensif',
-      typeDemande: 'Extension de ressources', serviceEnvironnement: 'Développement',
+      typeDemande: 'Support technique', serviceEnvironnement: 'Développement',
       categorie: 'IA-GPU', sousCategorie: 'GPU Allocation',
       descriptionDetaillee:
         'Nous souhaitons 8 GPU A100 pendant 3 mois pour l\'entraînement de notre modèle de ' +
@@ -195,7 +195,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: nova._id, requester: novaClient._id, statut: "En cours d'analyse",
       objet: 'Mise à jour du cluster Kubernetes en 1.30',
       typeDemande: 'Support technique', serviceEnvironnement: 'Pré-production',
-      categorie: 'Conteneurs', sousCategorie: 'Kubernetes',
+      categorie: 'VM', sousCategorie: 'Autre',
       descriptionDetaillee:
         'Merci de planifier la mise à niveau du cluster K8s de pré-production vers la 1.30 et de ' +
         'vérifier la compatibilité de nos charts Helm.',
@@ -205,7 +205,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: nova._id, requester: novaClient._id, statut: 'Réalisée',
       objet: 'Rapport de capacité du dernier trimestre',
       typeDemande: "Demande d'information", serviceEnvironnement: 'Production',
-      categorie: 'Infrastructure', sousCategorie: 'Monitoring',
+      categorie: 'VM', sousCategorie: 'Autre',
       descriptionDetaillee:
         'Nous souhaitons le rapport de consommation (CPU/RAM/stockage) de nos VM pour préparer ' +
         'le budget 2027.',
