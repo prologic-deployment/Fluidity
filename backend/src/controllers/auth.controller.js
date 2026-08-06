@@ -83,6 +83,10 @@ const issueSession = (res, user, tenant, extras = {}) => {
     role: user.role,
     email: user.email,
     status: user.status,
+    // Identité d'affichage (topbar, sidebar, menu profil) — jamais de secret
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    avatarUrl: user.avatarUrl || null,
     tenant: tenantBranding(tenant),
     ...extras,
   });
@@ -250,12 +254,41 @@ const me = async (req, res) => {
   }
 };
 
+/**
+ * Mise à jour de SON propre profil (PATCH /api/auth/profile).
+ * Liste blanche appliquée par le schéma zod : email, rôle, statut, tenant et
+ * champs 2FA ne peuvent pas être modifiés par cette route.
+ */
+const updateProfile = async (req, res) => {
+  try {
+    const user = await Utilisateur.findById(req.userId);
+    if (!user) {
+      res.status(404).json({ message: 'Utilisateur introuvable' });
+      return;
+    }
+
+    const champs = ['firstName', 'lastName', 'phone', 'jobTitle', 'bio', 'address', 'avatarUrl', 'timezone', 'language'];
+    for (const champ of champs) {
+      if (req.body[champ] !== undefined) user[champ] = req.body[champ];
+    }
+    await user.save();
+
+    const clean = await Utilisateur.findById(user._id).select(
+      '-password -resetToken -resetTokenExpiry -twoFactorSecret -twoFactorBackupCodes'
+    );
+    res.status(200).json({ message: 'Profil mis à jour', user: clean });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
 module.exports = {
   register,
   login,
   forgotPassword,
   resetPassword,
   me,
+  updateProfile,
   // Réutilisés par le contrôleur 2FA (pas de logique d'émission dupliquée)
   issueSession,
   signTwoFactorToken,

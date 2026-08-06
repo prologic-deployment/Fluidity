@@ -68,6 +68,17 @@ const UtilisateurSchema = new Schema(
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
 
+    // --- Informations de profil (éditables par l'utilisateur lui-même, § profil) ---
+    firstName: { type: String, default: '', trim: true },
+    lastName: { type: String, default: '', trim: true },
+    phone: { type: String, default: '', trim: true },
+    jobTitle: { type: String, default: '', trim: true },
+    bio: { type: String, default: '' },
+    address: { type: String, default: '' },
+    avatarUrl: { type: String, default: null },
+    timezone: { type: String, default: 'Africa/Tunis' },
+    language: { type: String, default: 'fr' },
+
     // --- Double authentification TOTP (RFC 6238) — optionnelle, désactivée par défaut ---
     // Le secret est CHIFFRÉ (AES-256-GCM, crypto.util) — jamais stocké en clair.
     // select: false => jamais renvoyé par les requêtes par défaut (aucune fuite API).

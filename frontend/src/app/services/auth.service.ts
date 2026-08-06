@@ -12,6 +12,10 @@ export interface AuthResponse {
   role: string;
   email: string;
   status?: string;
+  /** Identité d'affichage (depuis § profil) — jamais de données sensibles. */
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
   tenant?: TenantBranding | null;
 }
 
@@ -25,6 +29,10 @@ export interface SessionUser {
   tenantId: string | null;
   role: string;
   email: string;
+  /** Identité d'affichage (topbar/sidebar) — synchronisée après édition du profil. */
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string | null;
 }
 
 export interface Impersonation {
@@ -120,6 +128,32 @@ export class AuthService {
     );
   }
 
+  /** Mise à jour de SON propre profil (liste blanche côté serveur : ni email, ni rôle). */
+  updateProfile(payload: Record<string, unknown>): Observable<{ message: string; user: SessionUser & Record<string, unknown> }> {
+    return this.http.patch<{ message: string; user: SessionUser & Record<string, unknown> }>(
+      `${this.baseUrl}/profile`,
+      payload
+    );
+  }
+
+  /**
+   * Synchronise l'identité d'affichage stockée en session (prénom, nom, avatar)
+   * après une réponse serveur — émet sessionChanged$ : topbar et sidebar
+   * reflètent immédiatement la nouvelle photo / le nouveau nom.
+   */
+  syncSessionUser(user: { firstName?: unknown; lastName?: unknown; avatarUrl?: unknown }): void {
+    const current = this.getUser();
+    if (!current) return;
+    const next: SessionUser = {
+      ...current,
+      firstName: user.firstName !== undefined ? (user.firstName as string) : current.firstName,
+      lastName: user.lastName !== undefined ? (user.lastName as string) : current.lastName,
+      avatarUrl: user.avatarUrl as string | null,
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(next));
+    this.notifySessionChanged();
+  }
+
   forgotPassword(email: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/forgot-password`, { email });
   }
@@ -132,7 +166,15 @@ export class AuthService {
     localStorage.setItem(TOKEN_KEY, res.token);
     localStorage.setItem(
       USER_KEY,
-      JSON.stringify({ userId: res.userId, tenantId: res.tenantId, role: res.role, email: res.email })
+      JSON.stringify({
+        userId: res.userId,
+        tenantId: res.tenantId,
+        role: res.role,
+        email: res.email,
+        firstName: res.firstName || '',
+        lastName: res.lastName || '',
+        avatarUrl: res.avatarUrl || null,
+      } as SessionUser)
     );
     if (res.tenant) {
       localStorage.setItem(TENANT_KEY, JSON.stringify(res.tenant));
