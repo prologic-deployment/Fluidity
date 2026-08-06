@@ -1,0 +1,56 @@
+<!-- Barre horizontale sticky : [☰/fil d'Ariane] ......... [avatar + nom ▾] -->
+<header
+  class="sticky top-0 z-30 flex h-14 w-full items-center gap-3 border-b border-border
+    bg-card/80 px-4 backdrop-blur-md sm:px-5 shadow-[0_1px_4px_0_rgba(15,23,42,0.06)]"
+>
+  <!-- Bouton hamburger : mobile/tablette uniquement -->
+  <button
+    type="button"
+    (click)="menuToggle.emit()"
+    class="btn-icon-sm lg:hidden text-muted-foreground hover:bg-accent hover:text-foreground"
+    [attr.aria-expanded]="mobileMenuOpen"
+    aria-label="Ouvrir le menu de navigation"
+  >
+    <svg *ngIf="!mobileMenuOpen" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="4" y1="6" x2="20" y2="6"></line>
+      <line x1="4" y1="12" x2="20" y2="12"></line>
+      <line x1="4" y1="18" x2="20" y2="18"></line>
+    </svg>
+    <svg *ngIf="mobileMenuOpen" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+
+  <!-- Marque : visible uniquement quand la sidebar est cachée (mobile) -->
+  <a routerLink="/demandes" class="flex items-center gap-2 lg:hidden">
+    <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-bold text-white shadow">
+      {{ platformName.charAt(0) }}
+    </span>
+    <span class="text-sm font-semibold tracking-tight">{{ platformName }}</span>
+  </a>
+
+  <!-- Fil d'Ariane / titre de page -->
+  <div class="hidden min-w-0 items-center gap-2 sm:flex">
+    <span class="truncate text-sm font-medium text-foreground">{{ pageTitle$ | async }}</span>
+  </div>
+
+  <div class="flex-1"></div>
+
+  <!-- Zone utilisateur (menu profil ajouté à l'étape suivante) -->
+  <a
+    routerLink="/profile"
+    class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent group"
+    title="Mon profil"
+  >
+    <span
+      class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full
+        bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-bold text-white
+        ring-2 ring-transparent transition-all group-hover:ring-primary/30"
+    >
+      <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="h-full w-full object-cover" />
+      <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
+    </span>
+    <span class="hidden max-w-[160px] truncate text-sm font-medium md:block">{{ displayName }}</span>
+  </a>
+</header>
