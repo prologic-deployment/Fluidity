@@ -103,6 +103,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
     return this.isPlatformAdmin && !this.impersonation;
   }
 
+  /** Photo de profil de l'utilisateur (session locale), sinon placeholder initiales. */
+  get avatarUrl(): string | null {
+    return (this.user as { avatarUrl?: string } | null)?.avatarUrl || null;
+  }
+
   // --- Construction du modèle ----------------------------------------------
 
   private refreshModel(): void {
@@ -121,15 +126,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: 'Plateforme',
         icon: 'grid',
         open: true,
-        children: [
-          { label: 'Tenants', path: '/plateforme/tenants' },
-          { label: 'Mon profil', path: '/profil' },
-        ],
+        children: [{ label: 'Tenants', path: '/plateforme/tenants' }],
       };
       groups.push(plateforme);
     }
 
     // Workspace tenant : visible pour tout rôle tenant, ou Super Admin en impersonation
+    // NB : « Mon profil » n'est plus ici — accessible via le menu du profil (topbar).
     if (!this.isPlatformAdmin || this.impersonation) {
       groups.push({
         label: 'Espace Services',
@@ -138,7 +141,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
         children: [
           { label: 'Demandes', path: '/demandes' },
           { label: 'Changements', path: '/changements' },
-          { label: 'Mon profil', path: '/profil' },
         ],
       });
 
