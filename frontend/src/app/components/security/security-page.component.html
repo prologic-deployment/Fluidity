@@ -9,7 +9,192 @@
   </header>
 
   <main class="max-w-4xl mx-auto px-6 py-8 space-y-6">
-    <!-- Double authentification (implémentation TOTP existante, réutilisée) -->
-    <app-two-factor-settings></app-two-factor-settings>
+
+    <!-- ==================== MOT DE PASSE ==================== -->
+    <section class="card animate-fade-in-up">
+      <div class="card-header-tinted">
+        <div class="form-section-header">
+          <div class="form-section-icon">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Mot de passe</h2>
+            <p class="card-description">Changez-le régulièrement — 6 caractères minimum.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-content pt-6">
+        <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Mot de passe actuel</label>
+              <div class="field-group">
+                <input [type]="showCurrent ? 'text' : 'password'" formControlName="currentPassword"
+                  class="input pr-10" autocomplete="current-password" />
+                <button type="button" (click)="showCurrent = !showCurrent" [attr.aria-label]="showCurrent ? 'Masquer' : 'Afficher'"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors">
+                  <svg *ngIf="!showCurrent" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg *ngIf="showCurrent" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+              <p *ngIf="passwordForm.get('currentPassword')?.invalid && passwordForm.get('currentPassword')?.touched" class="field-error">Champ requis.</p>
+            </div>
+
+            <div></div>
+
+            <div>
+              <label class="field-label">Nouveau mot de passe</label>
+              <div class="field-group">
+                <input [type]="showNew ? 'text' : 'password'" formControlName="newPassword"
+                  class="input pr-10" autocomplete="new-password" />
+                <button type="button" (click)="showNew = !showNew" [attr.aria-label]="showNew ? 'Masquer' : 'Afficher'"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors">
+                  <svg *ngIf="!showNew" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg *ngIf="showNew" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+              <p *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" class="field-error">
+                6 caractères minimum.
+              </p>
+
+              <!-- Jauge de robustesse -->
+              <div *ngIf="newPasswordValue" class="mt-2 space-y-1">
+                <div class="flex h-1.5 gap-1">
+                  <span *ngFor="let step of [1, 2, 3, 4]" class="h-full flex-1 rounded-full transition-colors duration-300"
+                    [ngClass]="strengthScore >= step
+                      ? (strengthScore <= 1 ? 'bg-destructive' : strengthScore === 2 ? 'bg-warning' : 'bg-success')
+                      : 'bg-muted'"></span>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  Robustesse : <strong>{{ strengthLabel }}</strong> — mélangez majuscules, chiffres et symboles.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label">Confirmer le nouveau mot de passe</label>
+              <div class="field-group">
+                <input [type]="showConfirm ? 'text' : 'password'" formControlName="confirmPassword"
+                  class="input pr-10" autocomplete="new-password" />
+                <button type="button" (click)="showConfirm = !showConfirm" [attr.aria-label]="showConfirm ? 'Masquer' : 'Afficher'"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground transition-colors">
+                  <svg *ngIf="!showConfirm" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg *ngIf="showConfirm" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+              <p *ngIf="passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched" class="field-error">
+                Les deux mots de passe ne correspondent pas.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex justify-end border-t border-border pt-4">
+            <button type="submit" [disabled]="savingPassword || passwordForm.invalid && passwordForm.pristine" class="btn-primary">
+              {{ savingPassword ? 'Modification...' : 'Modifier le mot de passe' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ==================== DOUBLE AUTHENTIFICATION (implémentation existante) ==================== -->
+    <app-two-factor-settings class="stagger-1 animate-fade-in-up"></app-two-factor-settings>
+
+    <!-- ==================== CARTES « PRÊT POUR LA SUITE » ==================== -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Activité récente de connexion -->
+      <section class="card animate-fade-in-up stagger-2">
+        <div class="card-content pt-6 space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold">Activité de connexion récente</h3>
+          </div>
+          <p class="text-sm text-muted-foreground">
+            Le journal des connexions (date, appareil, localisation) sera affiché ici dès que le
+            service d'audit sera disponible côté API.
+          </p>
+          <span class="badge-secondary">Bientôt disponible</span>
+        </div>
+      </section>
+
+      <!-- Appareils connectés -->
+      <section class="card animate-fade-in-up stagger-3">
+        <div class="card-content pt-6 space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="2"></rect>
+                <path d="M12 18h.01"></path>
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold">Appareils connectés</h3>
+          </div>
+          <div class="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
+              <span class="h-1.5 w-1.5 rounded-full bg-current"></span>Cette session
+            </span>
+            <p class="truncate text-sm text-muted-foreground">{{ currentDevice }}</p>
+          </div>
+          <p class="text-xs text-muted-foreground">
+            La gestion multi-appareils (révocation à distance) suivra avec le service de sessions.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Recommandations de sécurité -->
+    <section class="card animate-fade-in-up stagger-4">
+      <div class="card-content pt-6 space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="form-section-icon">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
+          <h3 class="text-sm font-semibold">Recommandations de sécurité</h3>
+        </div>
+        <ul class="space-y-2">
+          <li *ngFor="let rec of recommendations" class="flex items-start gap-2.5 text-sm">
+            <svg *ngIf="rec.ok" class="h-4 w-4 shrink-0 text-success mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            <svg *ngIf="!rec.ok" class="h-4 w-4 shrink-0 text-warning mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <path d="M12 9v4"></path><path d="M12 17h.01"></path>
+            </svg>
+            <span class="text-muted-foreground">{{ rec.text }}</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
   </main>
 </div>

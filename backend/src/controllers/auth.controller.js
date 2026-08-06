@@ -282,6 +282,39 @@ const updateProfile = async (req, res) => {
   }
 };
 
+/**
+ * Changement de SON mot de passe (connecté) : exige le mot de passe actuel.
+ * Le hashage est assuré par le hook pre-save du modèle.
+ */
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await Utilisateur.findById(req.userId);
+    if (!user) {
+      res.status(404).json({ message: 'Utilisateur introuvable' });
+      return;
+    }
+
+    const valid = await user.comparePassword(currentPassword);
+    if (!valid) {
+      res.status(401).json({ message: 'Mot de passe actuel incorrect' });
+      return;
+    }
+    if (currentPassword === newPassword) {
+      res.status(400).json({ message: 'Le nouveau mot de passe doit être différent de l’actuel' });
+      return;
+    }
+
+    user.password = newPassword; // hashé via le hook pre-save
+    await user.save();
+
+    res.status(200).json({ message: 'Mot de passe modifié avec succès' });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -289,6 +322,7 @@ module.exports = {
   resetPassword,
   me,
   updateProfile,
+  changePassword,
   // Réutilisés par le contrôleur 2FA (pas de logique d'émission dupliquée)
   issueSession,
   signTwoFactorToken,

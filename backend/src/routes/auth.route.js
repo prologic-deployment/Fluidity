@@ -1,5 +1,13 @@
 const { Router } = require('express');
-const { register, login, forgotPassword, resetPassword, me, updateProfile } = require('../controllers/auth.controller');
+const {
+  register,
+  login,
+  forgotPassword,
+  resetPassword,
+  me,
+  updateProfile,
+  changePassword,
+} = require('../controllers/auth.controller');
 const {
   getStatus,
   setup,
@@ -15,6 +23,7 @@ const {
   forgotPasswordSchema,
   resetPasswordSchema,
   updateProfileSchema,
+  changePasswordSchema,
 } = require('../schemas/auth.schema');
 const {
   twoFactorVerifySetupSchema,
@@ -31,6 +40,8 @@ router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 router.get('/me', authMiddleware, me);
 // Profil : chaque utilisateur met à jour UNIQUEMENT le sien (liste blanche zod)
 router.patch('/profile', authMiddleware, validate(updateProfileSchema), updateProfile);
+// Sécurité : changement de mot de passe avec preuve du mot de passe actuel
+router.post('/change-password', authMiddleware, validate(changePasswordSchema), changePassword);
 
 // --- Double authentification (2FA) — l'utilisateur gère SA propre config ---
 router.get('/2fa/status', authMiddleware, getStatus);

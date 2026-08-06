@@ -128,6 +128,11 @@ export class AuthService {
     );
   }
 
+  /** Changement de SON mot de passe (preuve : mot de passe actuel). */
+  changePassword(payload: { currentPassword: string; newPassword: string }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/change-password`, payload);
+  }
+
   /** Mise à jour de SON propre profil (liste blanche côté serveur : ni email, ni rôle). */
   updateProfile(payload: Record<string, unknown>): Observable<{ message: string; user: SessionUser & Record<string, unknown> }> {
     return this.http.patch<{ message: string; user: SessionUser & Record<string, unknown> }>(
