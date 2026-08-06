@@ -4,6 +4,16 @@
   <meta charset="utf-8" />
   <title>ServiceDesk — Enterprise Service Portal</title>
   <base href="/" />
+  <!-- Thème avant premier rendu : aucune « flash » clair/sombre au chargement -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('servicedesk_theme');
+        var dark = t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Plateforme SaaS multi-tenant de gestion des services — ServiceDesk" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -1,8 +1,9 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, Observable, startWith } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 import { PLATFORM_NAME } from '../../branding';
 
 /**
@@ -52,7 +53,62 @@ export class TopbarComponent {
     map((url) => this.labelFor(url))
   );
 
-  constructor(private router: Router, private auth: AuthService) {}
+  /** État du menu profil déroulant (haut droite). */
+  menuOpen = false;
+
+  /** Thème courant pour l'icône Lune/Soleil du menu. */
+  readonly isDark$: Observable<boolean>;
+
+  constructor(
+    private router: Router,
+    private auth: AuthService,
+    private theme: ThemeService
+  ) {
+    this.isDark$ = this.theme.dark$;
+  }
+
+  // --- Menu profil -----------------------------------------------------------
+
+  toggleMenu(event: MouseEvent): void {
+    event.stopPropagation();
+    this.menuOpen = !this.menuOpen;
+  }
+
+  closeMenu(): void {
+    this.menuOpen = false;
+  }
+
+  /** Clic n'importe où hors du menu : fermeture. */
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.closeMenu();
+  }
+
+  /** ESC : fermeture (accessibilité clavier). */
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.closeMenu();
+  }
+
+  toggleTheme(event: MouseEvent): void {
+    event.stopPropagation(); // le menu reste ouvert pour montrer le basculement
+    this.theme.toggle();
+  }
+
+  navigate(path: string): void {
+    this.closeMenu();
+    this.router.navigate([path]);
+  }
+
+  logout(): void {
+    this.closeMenu();
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
+
+  get roleLabel(): string {
+    return this.auth.roleLabel();
+  }
 
   private labelFor(url: string): string {
     const clean = url.split('?')[0];

@@ -37,20 +37,109 @@
 
   <div class="flex-1"></div>
 
-  <!-- Zone utilisateur (menu profil ajouté à l'étape suivante) -->
-  <a
-    routerLink="/profile"
-    class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent group"
-    title="Mon profil"
-  >
-    <span
-      class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full
-        bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-bold text-white
-        ring-2 ring-transparent transition-all group-hover:ring-primary/30"
+  <!-- Menu profil déroulant : avatar + nom + chevron -->
+  <div class="relative">
+    <button
+      type="button"
+      (click)="toggleMenu($event)"
+      class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent group"
+      aria-haspopup="menu"
+      [attr.aria-expanded]="menuOpen"
+      aria-label="Menu du compte"
     >
-      <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="h-full w-full object-cover" />
-      <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
-    </span>
-    <span class="hidden max-w-[160px] truncate text-sm font-medium md:block">{{ displayName }}</span>
-  </a>
+      <span
+        class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full
+          bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-bold text-white
+          ring-2 ring-transparent transition-all group-hover:ring-primary/30"
+      >
+        <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="h-full w-full object-cover" />
+        <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
+      </span>
+      <span class="hidden max-w-[160px] truncate text-sm font-medium md:block">{{ displayName }}</span>
+      <svg
+        class="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200"
+        [class.rotate-180]="menuOpen"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </button>
+
+    <!-- Panneau déroulant -->
+    <div
+      *ngIf="menuOpen"
+      (click)="$event.stopPropagation()"
+      class="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right animate-scale-in
+        overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10"
+      role="menu"
+    >
+      <!-- En-tête utilisateur -->
+      <div class="flex items-center gap-3 border-b border-border bg-gradient-to-br from-primary/[0.06] to-violet-500/[0.05] px-4 py-3.5">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow">
+          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="" class="h-full w-full object-cover" />
+          <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-sm font-semibold text-foreground">{{ displayName }}</p>
+          <p class="truncate text-xs text-muted-foreground">{{ userEmail }}</p>
+          <span class="badge-outline mt-1">{{ roleLabel }}</span>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <nav class="p-1.5">
+        <button type="button" role="menuitem" (click)="navigate('/profile')"
+          class="menu-item">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Profil
+        </button>
+
+        <button type="button" role="menuitem" (click)="navigate('/profile/security')"
+          class="menu-item">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          Sécurité
+        </button>
+
+        <button type="button" role="menuitem" (click)="toggleTheme($event)"
+          class="menu-item">
+          <svg *ngIf="!(isDark$ | async)" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg *ngIf="isDark$ | async" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 4.93l1.41-1.41"></path>
+          </svg>
+          <span class="flex-1 text-left">Mode sombre</span>
+          <span
+            class="relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200"
+            [class.bg-primary]="(isDark$ | async)"
+            [class.bg-slate-300]="!(isDark$ | async)"
+          >
+            <span
+              class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200"
+              [class.translate-x-4]="(isDark$ | async)"
+              [class.translate-x-0.5]="!(isDark$ | async)"
+            ></span>
+          </span>
+        </button>
+      </nav>
+
+      <div class="border-t border-border p-1.5">
+        <button type="button" role="menuitem" (click)="logout()"
+          class="menu-item text-destructive hover:!bg-destructive/10 hover:!text-destructive">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Déconnexion
+        </button>
+      </div>
+    </div>
+  </div>
 </header>

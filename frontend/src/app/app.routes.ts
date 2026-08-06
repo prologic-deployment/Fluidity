@@ -18,6 +18,7 @@ import { CreateClientComponent } from './components/create-client/create-client.
 import { PlatformTenantsComponent } from './components/platform-tenants/platform-tenants.component';
 import { UsersDashboardComponent } from './components/users-dashboard/users-dashboard.component';
 import { ProfilComponent } from './components/profil/profil.component';
+import { SecurityPageComponent } from './components/security/security-page.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -39,7 +40,10 @@ export const routes: Routes = [
       { path: 'clients/nouveau', component: CreateClientComponent, canActivate: [adminGuard] },
       { path: 'plateforme/tenants', component: PlatformTenantsComponent, canActivate: [platformGuard] },
       { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard] },
-      { path: 'profil', component: ProfilComponent },
+      // Profil : /profile est la route canonique ; /profil (historique) redirige dessus
+      { path: 'profile', component: ProfilComponent },
+      { path: 'profil', redirectTo: 'profile' },
+      { path: 'profile/security', component: SecurityPageComponent },
     ],
   },
   { path: '**', redirectTo: 'login' },
