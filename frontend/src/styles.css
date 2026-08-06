@@ -28,6 +28,50 @@
     --radius: 0.75rem;
   }
 
+  /* ---------- Mode sombre (toggle via ThemeService, classe .dark sur <html>) ----------
+     Palette « ardoise indigo » en continuité avec l'identité de la sidebar :
+     mêmes teintes, luminosités inversées, contrastes AA préservés. */
+  .dark {
+    --background: 224 47% 7%;
+    --foreground: 210 40% 96%;
+    --card: 224 39% 10%;
+    --card-foreground: 210 40% 96%;
+    --primary: 243 80% 70%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 223 33% 16%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 223 33% 14%;
+    --muted-foreground: 218 15% 65%;
+    --accent: 243 45% 19%;
+    --accent-foreground: 243 75% 84%;
+    --destructive: 0 74% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 142 55% 48%;
+    --success-foreground: 222 47% 9%;
+    --warning: 32 95% 55%;
+    --warning-foreground: 222 47% 9%;
+    --border: 223 30% 18%;
+    --input: 223 30% 21%;
+    --ring: 243 75% 70%;
+  }
+
+  /* Transition douce pendant le basculement (400 ms, ajoutée par ThemeService).
+     Cible uniquement les propriétés de couleur — zéro impact layout. */
+  .theme-animating,
+  .theme-animating::before,
+  .theme-animating::after,
+  .theme-animating *,
+  .theme-animating *::before,
+  .theme-animating *::after {
+    transition:
+      background-color 0.4s ease,
+      border-color 0.4s ease,
+      color 0.4s ease,
+      fill 0.4s ease,
+      stroke 0.4s ease,
+      box-shadow 0.4s ease !important;
+  }
+
   * {
     @apply border-border;
   }
@@ -199,6 +243,9 @@
   }
   .card-hover {
     @apply hover:shadow-lg hover:shadow-slate-200/60 hover:border-primary/30 hover:-translate-y-0.5;
+  }
+  .dark .card-hover {
+    @apply hover:shadow-black/40;
   }
   .card-header {
     @apply flex flex-col space-y-1 p-6;

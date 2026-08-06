@@ -103,16 +103,16 @@
       </div>
 
       <!-- ============ CODES DE SECOURS (affichés UNE seule fois) ============ -->
-      <div *ngIf="backupCodes" class="rounded-xl border border-amber-400/40 bg-amber-50 p-4 space-y-3">
+      <div *ngIf="backupCodes" class="rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-400/10 dark:border-amber-300/30 p-4 space-y-3">
         <div class="flex items-start gap-2.5">
-          <svg class="h-5 w-5 text-amber-600 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="h-5 w-5 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
             <path d="M12 9v4"></path>
             <path d="M12 17h.01"></path>
           </svg>
           <div>
-            <p class="text-sm font-semibold text-amber-900">Double authentification activée — conservez vos codes de secours</p>
-            <p class="text-xs text-amber-800 mt-0.5">
+            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Double authentification activée — conservez vos codes de secours</p>
+            <p class="text-xs text-amber-800 dark:text-amber-300/80 mt-0.5">
               Ces {{ backupCodes.length }} codes remplacent votre téléphone (usage unique chacun).
               <strong>Ils ne seront plus jamais affichés</strong> : copiez-les et rangez-les en lieu sûr.
             </p>
@@ -120,7 +120,7 @@
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
           <code *ngFor="let code of backupCodes"
-            class="rounded-md border border-amber-300/60 bg-white px-2 py-1.5 text-center font-mono text-xs tracking-wider">
+            class="rounded-md border border-amber-300/60 bg-white dark:bg-amber-400/10 dark:border-amber-300/30 dark:text-amber-200 px-2 py-1.5 text-center font-mono text-xs tracking-wider">
             {{ code }}
           </code>
         </div>
