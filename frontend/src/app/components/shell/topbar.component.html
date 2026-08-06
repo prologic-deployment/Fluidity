@@ -23,7 +23,7 @@
   </button>
 
   <!-- Marque : visible uniquement quand la sidebar est cachée (mobile) -->
-  <a routerLink="/demandes" class="flex items-center gap-2 lg:hidden">
+  <a [routerLink]="brandLink" class="flex items-center gap-2 lg:hidden">
     <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-bold text-white shadow">
       {{ platformName.charAt(0) }}
     </span>
@@ -69,8 +69,8 @@
     <div
       *ngIf="menuOpen"
       (click)="$event.stopPropagation()"
-      class="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right animate-scale-in
-        overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10"
+      class="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1rem)] origin-top-right animate-scale-in
+        overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10 dark:shadow-black/40"
       role="menu"
     >
       <!-- En-tête utilisateur -->

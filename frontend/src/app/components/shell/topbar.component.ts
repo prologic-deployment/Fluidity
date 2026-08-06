@@ -118,6 +118,11 @@ export class TopbarComponent {
     return 'Accueil';
   }
 
+  /** Destination du logo mobile selon le rôle (comme après connexion). */
+  get brandLink(): string {
+    return this.auth.isPlatformAdmin() ? '/plateforme/tenants' : '/demandes';
+  }
+
   get userEmail(): string {
     return this.auth.getEmail() || '';
   }
