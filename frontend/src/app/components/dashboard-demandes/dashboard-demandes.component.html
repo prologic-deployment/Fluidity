@@ -104,6 +104,11 @@
           <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p }}</option>
         </select>
 
+        <select *ngIf="clientsFiltres.length > 1" [(ngModel)]="clientFiltre" class="filter-select">
+          <option value="">Tous les clients</option>
+          <option *ngFor="let cl of clientsFiltres" [value]="cl">{{ cl }}</option>
+        </select>
+
         <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
           <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
           Réinitialiser
@@ -161,27 +166,76 @@
       <table class="table">
         <thead>
           <tr>
-            <th>Objet</th>
-            <th>Catégorie</th>
-            <th>Environnement</th>
-            <th>Priorité</th>
-            <th>Statut</th>
-            <th>Date de création</th>
+            <th [attr.aria-sort]="triColonne === 'objet' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
+              <button type="button" class="th-sort" (click)="trierPar('objet')">
+                Objet
+                <svg [ngClass]="triColonne === 'objet' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path [attr.d]="triColonne === 'objet' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
+                </svg>
+              </button>
+            </th>
+            <th [attr.aria-sort]="triColonne === 'client' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
+              <button type="button" class="th-sort" (click)="trierPar('client')">
+                Client
+                <svg [ngClass]="triColonne === 'client' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path [attr.d]="triColonne === 'client' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
+                </svg>
+              </button>
+            </th>
+            <th class="hidden md:table-cell" [attr.aria-sort]="triColonne === 'categorie' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
+              <button type="button" class="th-sort" (click)="trierPar('categorie')">
+                Catégorie
+                <svg [ngClass]="triColonne === 'categorie' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path [attr.d]="triColonne === 'categorie' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
+                </svg>
+              </button>
+            </th>
+            <th class="hidden xl:table-cell">Environnement</th>
+            <th [attr.aria-sort]="triColonne === 'priorite' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
+              <button type="button" class="th-sort" (click)="trierPar('priorite')">
+                Priorité
+                <svg [ngClass]="triColonne === 'priorite' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path [attr.d]="triColonne === 'priorite' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
+                </svg>
+              </button>
+            </th>
+            <th [attr.aria-sort]="triColonne === 'statut' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
+              <button type="button" class="th-sort" (click)="trierPar('statut')">
+                Statut
+                <svg [ngClass]="triColonne === 'statut' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path [attr.d]="triColonne === 'statut' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
+                </svg>
+              </button>
+            </th>
+            <th class="hidden lg:table-cell" [attr.aria-sort]="triColonne === 'date' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
+              <button type="button" class="th-sort" (click)="trierPar('date')">
+                Date de création
+                <svg [ngClass]="triColonne === 'date' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path [attr.d]="triColonne === 'date' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
+                </svg>
+              </button>
+            </th>
             <th class="text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let d of filteredDemandes()" class="table-row-clickable group" (click)="viewDetails(d)">
-            <td class="font-medium">{{ d.objet }}</td>
-            <td class="text-muted-foreground">{{ d.categorie }} / {{ d.sousCategorie }}</td>
-            <td class="text-muted-foreground">{{ d.serviceEnvironnement }}</td>
+            <td class="font-medium">
+              <p class="max-w-[260px] truncate" [title]="d.objet">{{ d.objet }}</p>
+            </td>
+            <td>
+              <p class="font-medium">{{ clientNom(d) }}</p>
+              <p class="text-xs text-muted-foreground">{{ requesterEmail(d) }}</p>
+            </td>
+            <td class="text-muted-foreground hidden md:table-cell">{{ d.categorie }} / {{ d.sousCategorie }}</td>
+            <td class="text-muted-foreground hidden xl:table-cell">{{ d.serviceEnvironnement }}</td>
             <td>
               <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee }}</span>
             </td>
             <td>
               <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
             </td>
-            <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy hh:mm' }}</td>
+            <td class="text-muted-foreground hidden lg:table-cell">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
                 <button *ngIf="isAnnulable(d)" (click)="$event.stopPropagation(); annulerDemande(d._id)" title="Annuler cette demande"
@@ -261,92 +315,149 @@
   </main>
 </div>
 
-<!-- Modal de détail -->
-<app-modal [open]="!!selected" [title]="selected?.objet || ''" [subtitle]="selected?.categorie + ' / ' + selected?.sousCategorie" (closed)="closeDetails()">
+<!-- Modal de détail (élargie : lecture confortable de toutes les informations) -->
+<app-modal size="xl" [open]="!!selected" [title]="selected?.objet || ''" [subtitle]="selected?.categorie + ' / ' + selected?.sousCategorie" (closed)="closeDetails()">
   <ng-container *ngIf="selected as d">
-    <div class="flex flex-wrap gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
       <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>Priorité : {{ d.prioriteSouhaitee }}</span>
     </div>
 
-    <!-- Frise de progression du workflow -->
-    <div class="mb-6 rounded-xl border border-border bg-muted/30 px-4 py-4">
-      <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Progression</p>
-      <app-workflow-stepper
-        [steps]="pisteWorkflow"
-        [current]="etapeCourante(d.statut)"
-        [offTrack]="statutHorsPiste(d.statut)"
-      ></app-workflow-stepper>
-    </div>
+    <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <!-- Colonne principale -->
+      <div class="min-w-0 space-y-5">
+        <!-- Frise de progression du workflow -->
+        <section class="rounded-xl border border-border bg-muted/30 px-4 py-4">
+          <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Progression du workflow</p>
+          <app-workflow-stepper
+            [steps]="pisteWorkflow"
+            [current]="etapeCourante(d.statut)"
+            [offTrack]="statutHorsPiste(d.statut)"
+          ></app-workflow-stepper>
+        </section>
 
-    <div class="detail-grid">
-      <div>
-        <p class="detail-label">Demandeur</p>
-        <p class="detail-value">{{ requesterEmail(d) }}</p>
-      </div>
-      <div>
-        <p class="detail-label">Type de demande</p>
-        <p class="detail-value">{{ d.typeDemande }}</p>
-      </div>
-      <div>
-        <p class="detail-label">Service / Environnement</p>
-        <p class="detail-value">{{ d.serviceEnvironnement }}</p>
-      </div>
-      <div>
-        <p class="detail-label">Contrat</p>
-        <p class="detail-value">{{ contratLabel(d) }}</p>
-      </div>
-      
-      <div>
-        <p class="detail-label">Créée le</p>
-        <p class="detail-value">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-      </div>
-    </div>
+        <!-- Informations générales -->
+        <section>
+          <p class="detail-section-title">Informations générales</p>
+          <div class="detail-grid">
+            <div>
+              <p class="detail-label">Type de demande</p>
+              <p class="detail-value">{{ d.typeDemande }}</p>
+            </div>
+            <div>
+              <p class="detail-label">Service / Environnement</p>
+              <p class="detail-value">{{ d.serviceEnvironnement }}</p>
+            </div>
+            <div>
+              <p class="detail-label">Contrat</p>
+              <p class="detail-value">{{ contratLabel(d) }}</p>
+            </div>
+            <div *ngIf="d.dateSouhaiteeRealisation">
+              <p class="detail-label">Réalisation souhaitée</p>
+              <p class="detail-value">{{ d.dateSouhaiteeRealisation | date: 'dd/MM/yyyy' }}</p>
+            </div>
+          </div>
+        </section>
 
-    <p class="detail-section-title">Description</p>
-    <p class="detail-value whitespace-pre-line">{{ d.descriptionDetaillee }}</p>
+        <!-- Description -->
+        <section>
+          <p class="detail-section-title">Description détaillée</p>
+          <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ d.descriptionDetaillee }}</p>
+        </section>
 
-    <ng-container *ngIf="d.informationsComplementaires">
-      <p class="detail-section-title">Informations complémentaires</p>
-      <p class="detail-value whitespace-pre-line">{{ d.informationsComplementaires }}</p>
-    </ng-container>
+        <section *ngIf="d.informationsComplementaires">
+          <p class="detail-section-title">Informations complémentaires</p>
+          <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ d.informationsComplementaires }}</p>
+        </section>
 
-    <ng-container *ngIf="d.piecesJointes?.length">
-      <p class="detail-section-title">Pièces jointes</p>
-      <ul class="space-y-1">
-        <li *ngFor="let p of d.piecesJointes">
-          <a [href]="p | urlUpload" target="_blank" rel="noopener" class="btn-link break-all">{{ p }}</a>
-        </li>
-      </ul>
-    </ng-container>
+        <!-- Pièces jointes -->
+        <section *ngIf="d.piecesJointes?.length">
+          <p class="detail-section-title">Pièces jointes ({{ d.piecesJointes?.length }})</p>
+          <ul class="grid gap-2 sm:grid-cols-2">
+            <li *ngFor="let p of d.piecesJointes">
+              <a [href]="p | urlUpload" target="_blank" rel="noopener"
+                class="flex items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 text-sm transition-colors hover:border-primary/40 hover:bg-primary/5">
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                <span class="min-w-0 flex-1 truncate" [title]="nomPieceJointe(p)">{{ nomPieceJointe(p) }}</span>
+                <svg class="h-3.5 w-3.5 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+      </div>
 
-    <ng-container *ngIf="prochainesEtapes().length">
-      <p class="detail-section-title">Faire avancer le workflow</p>
-      <p *ngIf="transitionError" class="alert-destructive mb-3">{{ transitionError }}</p>
-      <div class="flex flex-wrap gap-2">
-        <button *ngFor="let etape of prochainesEtapes()" [disabled]="transitionLoading"
-          (click)="changerStatut(etape)"
-          class="btn-outline btn-sm transition-transform hover:scale-[1.03]">
-          <svg *ngIf="transitionLoading" class="h-3.5 w-3.5 mr-1.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+      <!-- Rail latéral : client, chronologie, actions -->
+      <aside class="space-y-4 lg:pl-5 lg:border-l lg:border-border">
+        <!-- Client -->
+        <section class="rounded-xl border border-border px-4 py-3.5">
+          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Client</p>
+          <div class="flex items-center gap-2.5">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              {{ clientNom(d).charAt(0).toUpperCase() }}
+            </span>
+            <div class="min-w-0">
+              <p class="truncate text-sm font-semibold" [title]="clientNom(d)">{{ clientNom(d) }}</p>
+              <p class="truncate text-xs text-muted-foreground">{{ requesterEmail(d) }}</p>
+            </div>
+          </div>
+          <p *ngIf="ficheClient(d)?.statut" class="mt-2">
+            <span class="badge-secondary !text-[10px]">Fiche {{ ficheClient(d)?.statut | lowercase }}</span>
+          </p>
+        </section>
+
+        <!-- Chronologie -->
+        <section class="rounded-xl border border-border px-4 py-3.5">
+          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Chronologie</p>
+          <ul class="space-y-2 text-xs">
+            <li class="flex items-start gap-2">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-success"></span>
+              <div>
+                <p class="font-medium">Créée le</p>
+                <p class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy à HH:mm' }}</p>
+              </div>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
+              <div>
+                <p class="font-medium">Dernière mise à jour</p>
+                <p class="text-muted-foreground">{{ d.updatedAt | date: 'dd/MM/yyyy à HH:mm' }}</p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Actions workflow -->
+        <section *ngIf="prochainesEtapes().length" class="rounded-xl border border-border px-4 py-3.5">
+          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faire avancer</p>
+          <p *ngIf="transitionError" class="alert-destructive mb-3">{{ transitionError }}</p>
+          <div class="flex flex-col gap-1.5">
+            <button *ngFor="let etape of prochainesEtapes()" [disabled]="transitionLoading"
+              (click)="changerStatut(etape)"
+              class="btn-outline btn-sm w-full justify-start transition-transform hover:scale-[1.02]">
+              <svg *ngIf="transitionLoading" class="h-3.5 w-3.5 mr-1.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+              </svg>
+              <span *ngIf="!transitionLoading">→ {{ etape }}</span>
+            </button>
+          </div>
+        </section>
+
+        <button *ngIf="isAnnulable(d)" (click)="annulerDemande(d._id)" class="btn-destructive w-full justify-center">
+          <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="m5.6 5.6 12.8 12.8"></path>
           </svg>
-          <span *ngIf="!transitionLoading">→ {{ etape }}</span>
+          Annuler la demande
         </button>
-      </div>
-    </ng-container>
+      </aside>
+    </div>
 
     <p *ngIf="d.statut === 'Annulé'" class="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
       Ce dossier est annulé : il reste visible dans l'historique mais ne suit plus aucun traitement et ne peut plus être modifié.
     </p>
-
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="isAnnulable(d)">
-      <button (click)="annulerDemande(d._id)" class="btn-destructive">
-        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9"></circle>
-          <path d="m5.6 5.6 12.8 12.8"></path>
-        </svg>
-        Annuler la demande
-      </button>
-    </div>
   </ng-container>
 </app-modal>

@@ -8,9 +8,20 @@ const { DEMANDE_TRANSITIONS, DEMANDE_STATUTS_ANNULABLES, canTransition, availabl
 const filtreProprietaire = (req) =>
   req.userRole === 'CLIENT' ? { requester: req.userId } : {};
 
-/** Peuple les relations normalisées (compte demandeur + contrat) sur une requête. */
+/**
+ * Peuple les relations normalisées (compte demandeur + contrat) sur une
+ * requête. Le demandeur expose son identité ET sa fiche société cliente
+ * (clientId peuplé : nom raison sociale) — alimente la colonne « Client »
+ * des listes et la fiche « Client » des modales de détail.
+ */
 const populateRefs = (query) =>
-  query.populate('requester', 'email role status').populate('contrat', 'reference intitule typeContrat');
+  query
+    .populate({
+      path: 'requester',
+      select: 'email role status firstName lastName clientId',
+      populate: { path: 'clientId', select: 'nom email statut' },
+    })
+    .populate('contrat', 'reference intitule typeContrat');
 
 /**
  * Création d'une demande.

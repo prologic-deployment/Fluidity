@@ -10,6 +10,7 @@ import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
+import { requesterEmail, requesterClientNom, requesterClientFiche, nomFichierDepuisUrl, RequesterRef } from '../../utils/requester.util';
 
 @Component({
   selector: 'app-dashboard-demandes',
@@ -28,6 +29,15 @@ export class DashboardDemandesComponent implements OnInit {
   searchTerm = '';
   statutFiltre = '';
   prioriteFiltre = '';
+  /** Filtre « Client » (raison sociale du demandeur — colonne dédiée). */
+  clientFiltre = '';
+  /** Clients distincts présents dans la liste — reconstruit au chargement
+   *  (jamais dans un getter : identité de tableau stable pour le template). */
+  clientsFiltres: string[] = [];
+
+  // --- Tri des colonnes (clic sur l'en-tête : bascule asc/desc) --------------
+  triColonne: 'objet' | 'client' | 'categorie' | 'priorite' | 'statut' | 'date' = 'date';
+  triDirection: 1 | -1 = -1; // date la plus récente d'abord par défaut
 
   readonly statutsFiltrables = [
     'Ouverte',
@@ -84,6 +94,9 @@ export class DashboardDemandesComponent implements OnInit {
     this.demandeService.getAll().subscribe({
       next: (data) => {
         this.demandes = data;
+        this.clientsFiltres = [...new Set(data.map((d) => this.clientNom(d)).filter((n) => n && n !== '—'))].sort(
+          (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })
+        );
         this.loading = false;
       },
       error: (err) => {
@@ -93,29 +106,75 @@ export class DashboardDemandesComponent implements OnInit {
     });
   }
 
-  /** Liste filtrée (recherche texte + statut + priorité), la plus récente en premier. */
+  /** Liste filtrée (recherche texte + statut + priorité + client) puis triée
+   *  selon la colonne active (par défaut : date de création décroissante). */
   filteredDemandes(): Demande[] {
     const term = this.searchTerm.trim().toLowerCase();
-    return this.demandes.filter((d) => {
-      const matchTerm =
-        !term ||
-        d.objet.toLowerCase().includes(term) ||
-        this.requesterEmail(d).toLowerCase().includes(term) ||
-        d.categorie.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
-      const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
-      return matchTerm && matchStatut && matchPriorite;
-    });
+    return this.demandes
+      .filter((d) => {
+        const matchTerm =
+          !term ||
+          d.objet.toLowerCase().includes(term) ||
+          this.requesterEmail(d).toLowerCase().includes(term) ||
+          this.clientNom(d).toLowerCase().includes(term) ||
+          d.categorie.toLowerCase().includes(term);
+        const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
+        const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
+        const matchClient = !this.clientFiltre || this.clientNom(d) === this.clientFiltre;
+        return matchTerm && matchStatut && matchPriorite && matchClient;
+      })
+      .sort((a, b) => this.comparer(a, b));
   }
 
+  /** Clic sur un en-tête triable : nouvelle colonne -> sens naturel, sinon bascule. */
+  trierPar(colonne: typeof this.triColonne): void {
+    if (this.triColonne === colonne) {
+      this.triDirection = this.triDirection === 1 ? -1 : 1;
+      return;
+    }
+    this.triColonne = colonne;
+    this.triDirection = colonne === 'date' ? -1 : 1;
+  }
+
+  /** Comparateur multi-critères (insensible aux accents pour le texte). */
+  private comparer(a: Demande, b: Demande): number {
+    let v = 0;
+    switch (this.triColonne) {
+      case 'objet':
+        v = (a.objet || '').localeCompare(b.objet || '', 'fr', { sensitivity: 'base' });
+        break;
+      case 'client':
+        v = this.clientNom(a).localeCompare(this.clientNom(b), 'fr', { sensitivity: 'base' });
+        break;
+      case 'categorie':
+        v = (a.categorie || '').localeCompare(b.categorie || '', 'fr', { sensitivity: 'base' });
+        break;
+      case 'priorite':
+        v = (DashboardDemandesComponent.RANG_PRIORITE[a.prioriteSouhaitee] || 0)
+          - (DashboardDemandesComponent.RANG_PRIORITE[b.prioriteSouhaitee] || 0);
+        break;
+      case 'statut':
+        v = (a.statut || '').localeCompare(b.statut || '', 'fr', { sensitivity: 'base' });
+        break;
+      case 'date':
+        v = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        break;
+    }
+    return v * this.triDirection;
+  }
+
+  /** Ordre métier des priorités pour le tri (Standard < Élevée < Urgente). */
+  private static readonly RANG_PRIORITE: Record<string, number> = { Standard: 1, Élevée: 2, Urgente: 3 };
+
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre);
+    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre || this.clientFiltre);
   }
 
   resetFilters(): void {
     this.searchTerm = '';
     this.statutFiltre = '';
     this.prioriteFiltre = '';
+    this.clientFiltre = '';
   }
 
   // --- Cartes de synthèse -----------------------------------------------------
@@ -176,9 +235,25 @@ export class DashboardDemandesComponent implements OnInit {
 
   /** Email du compte demandeur (référence ObjectId peuplée côté serveur). */
   requesterEmail(demande: Demande): string {
-    const r = demande.requester;
-    if (r && typeof r === 'object') return r.email;
-    return (r as string) || '—';
+    return requesterEmail(demande.requester);
+  }
+
+  /**
+   * Raison sociale du client du dossier (colonne « Client ») : fiche société
+   * rattachée peuplée côté serveur, sinon identité du compte demandeur.
+   */
+  clientNom(demande: Demande): string {
+    return requesterClientNom(demande.requester);
+  }
+
+  /** Courriel de la fiche société si présente (complément de la colonne Client). */
+  ficheClient(demande: Demande) {
+    return requesterClientFiche(demande.requester as RequesterRef);
+  }
+
+  /** Nom lisible d'une pièce jointe (URL -> nom de fichier décodé). */
+  nomPieceJointe(url: string): string {
+    return nomFichierDepuisUrl(url);
   }
 
   /** Référence lisible du contrat rattaché (ObjectId peuplé en lecture). */

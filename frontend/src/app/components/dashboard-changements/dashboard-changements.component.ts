@@ -10,6 +10,7 @@ import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
+import { requesterEmail, requesterClientNom, requesterClientFiche, nomFichierDepuisUrl, RequesterRef } from '../../utils/requester.util';
 
 @Component({
   selector: 'app-dashboard-changements',
@@ -29,6 +30,15 @@ export class DashboardChangementsComponent implements OnInit {
   searchTerm = '';
   statutFiltre = '';
   typeFiltre = '';
+  /** Filtre « Client » (raison sociale du demandeur — colonne dédiée). */
+  clientFiltre = '';
+  /** Clients distincts présents dans la liste — reconstruit au chargement
+   *  (jamais dans un getter : identité de tableau stable pour le template). */
+  clientsFiltres: string[] = [];
+
+  // --- Tri des colonnes (clic sur l'en-tête : bascule asc/desc) --------------
+  triColonne: 'objet' | 'client' | 'type' | 'categorie' | 'statut' | 'date' = 'date';
+  triDirection: 1 | -1 = -1; // date la plus récente d'abord par défaut
 
   readonly statutsFiltrables = [
     'Soumis',
@@ -88,6 +98,9 @@ export class DashboardChangementsComponent implements OnInit {
     this.changementService.getAll().subscribe({
       next: (data) => {
         this.changements = data;
+        this.clientsFiltres = [...new Set(data.map((c) => this.clientNom(c)).filter((n) => n && n !== '—'))].sort(
+          (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })
+        );
         this.loading = false;
       },
       error: (err) => {
@@ -97,22 +110,68 @@ export class DashboardChangementsComponent implements OnInit {
     });
   }
 
+  /** Liste filtrée (recherche texte + statut + type + client) puis triée
+   *  selon la colonne active (par défaut : date de création décroissante). */
   filteredChangements(): Changement[] {
     const term = this.searchTerm.trim().toLowerCase();
-    return this.changements.filter((c) => {
-      const matchTerm =
-        !term ||
-        c.objetChangement.toLowerCase().includes(term) ||
-        this.requesterEmail(c).toLowerCase().includes(term) ||
-        c.categorie.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
-      const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
-      return matchTerm && matchStatut && matchType;
-    });
+    return this.changements
+      .filter((c) => {
+        const matchTerm =
+          !term ||
+          c.objetChangement.toLowerCase().includes(term) ||
+          this.requesterEmail(c).toLowerCase().includes(term) ||
+          this.clientNom(c).toLowerCase().includes(term) ||
+          c.categorie.toLowerCase().includes(term);
+        const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
+        const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
+        const matchClient = !this.clientFiltre || this.clientNom(c) === this.clientFiltre;
+        return matchTerm && matchStatut && matchType && matchClient;
+      })
+      .sort((a, b) => this.comparer(a, b));
   }
 
+  /** Clic sur un en-tête triable : nouvelle colonne -> sens naturel, sinon bascule. */
+  trierPar(colonne: typeof this.triColonne): void {
+    if (this.triColonne === colonne) {
+      this.triDirection = this.triDirection === 1 ? -1 : 1;
+      return;
+    }
+    this.triColonne = colonne;
+    this.triDirection = colonne === 'date' ? -1 : 1;
+  }
+
+  /** Comparateur multi-critères (insensible aux accents pour le texte). */
+  private comparer(a: Changement, b: Changement): number {
+    let v = 0;
+    switch (this.triColonne) {
+      case 'objet':
+        v = (a.objetChangement || '').localeCompare(b.objetChangement || '', 'fr', { sensitivity: 'base' });
+        break;
+      case 'client':
+        v = this.clientNom(a).localeCompare(this.clientNom(b), 'fr', { sensitivity: 'base' });
+        break;
+      case 'type':
+        v = (DashboardChangementsComponent.RANG_TYPE[a.typeChangement] || 0)
+          - (DashboardChangementsComponent.RANG_TYPE[b.typeChangement] || 0);
+        break;
+      case 'categorie':
+        v = (a.categorie || '').localeCompare(b.categorie || '', 'fr', { sensitivity: 'base' });
+        break;
+      case 'statut':
+        v = (a.statut || '').localeCompare(b.statut || '', 'fr', { sensitivity: 'base' });
+        break;
+      case 'date':
+        v = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        break;
+    }
+    return v * this.triDirection;
+  }
+
+  /** Ordre métier des types pour le tri (Standard < Majeur < Urgent). */
+  private static readonly RANG_TYPE: Record<string, number> = { Standard: 1, Majeur: 2, Urgent: 3 };
+
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre);
+    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre || this.clientFiltre);
   }
 
   resetFilters(): void {
@@ -184,9 +243,25 @@ export class DashboardChangementsComponent implements OnInit {
 
   /** Email du compte demandeur (référence ObjectId peuplée côté serveur). */
   requesterEmail(changement: Changement): string {
-    const r = changement.requester;
-    if (r && typeof r === 'object') return r.email;
-    return (r as string) || '—';
+    return requesterEmail(changement.requester);
+  }
+
+  /**
+   * Raison sociale du client du dossier (colonne « Client ») : fiche société
+   * rattachée peuplée côté serveur, sinon identité du compte demandeur.
+   */
+  clientNom(changement: Changement): string {
+    return requesterClientNom(changement.requester);
+  }
+
+  /** Courriel de la fiche société si présente (complément de la colonne Client). */
+  ficheClient(changement: Changement) {
+    return requesterClientFiche(changement.requester as RequesterRef);
+  }
+
+  /** Nom lisible d'une pièce jointe (URL -> nom de fichier décodé). */
+  nomPieceJointe(url: string): string {
+    return nomFichierDepuisUrl(url);
   }
 
   /** Référence lisible du contrat rattaché (ObjectId peuplé en lecture). */

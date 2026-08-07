@@ -38,12 +38,29 @@ export interface Demande {
 
 export const PRIORITES: PrioriteDemande[] = ['Standard', 'Élevée', 'Urgente'];
 
-/** Référence peuplée côté serveur : le compte utilisateur demandeur. */
+/** Fiche société cliente rattachée au demandeur (peuplée côté serveur). */
+export interface RequesterClientRef {
+  _id: string;
+  nom: string;
+  email?: string;
+  statut?: string;
+}
+
+/**
+ * Référence peuplée côté serveur : le compte demandeur du dossier.
+ * `clientId` (fiche société peuplée) fournit la raison sociale affichée
+ * dans la colonne « Client » ; `nom`/`firstName`/`lastName` couvrent tous
+ * les types de principals.
+ */
 export interface RequesterRef {
   _id: string;
   email: string;
   role?: string;
   status?: string;
+  nom?: string;
+  firstName?: string;
+  lastName?: string;
+  clientId?: RequesterClientRef | string | null;
 }
 
 /** Référence peuplée côté serveur : le contrat de rattachement du dossier. */

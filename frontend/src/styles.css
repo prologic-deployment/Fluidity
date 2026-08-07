@@ -367,6 +367,17 @@
     @apply inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold h-5 min-w-[20px] px-1.5;
   }
 
+  /* ---------- En-têtes de colonnes triables ---------- */
+  .th-sort {
+    @apply inline-flex items-center gap-1 text-left uppercase tracking-wide text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground cursor-pointer select-none;
+  }
+  .th-sort svg {
+    @apply h-3 w-3 shrink-0 transition-opacity duration-150;
+  }
+  .th-sort .tri-inactif {
+    @apply opacity-25;
+  }
+
   /* ---------- Skeleton (chargement) ---------- */
   .skeleton {
     @apply relative overflow-hidden rounded-md bg-muted;
