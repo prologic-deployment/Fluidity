@@ -91,6 +91,6 @@ export const SOUS_CATEGORIES: Record<string, string[]> = {
   VM: ['Création VM', 'Extension ressources', 'Migration VM', 'Suppression VM', 'Snapshot', 'Clone', 'Autre'],
   'IA-GPU': ['GPU Allocation', 'Drivers', 'Autre'],
   Stockage: ['NAS', 'SAN', 'Volume', 'Extension capacité', 'NFS', 'SMB', 'Quotas', 'Autre'],
-  Sécurité: ['Antivirus', 'Audit', 'Firewall', 'IAM', 'MFA', 'Certificat', 'Autre'],
+  Sécurité: ['Audit', 'Firewall', 'Certificat', 'Autre'],
   Sauvegarde: ['Backup configuration', 'Restore', 'Retention', 'Réplication', 'Archivage', 'Veeam', 'Autre'],
 };

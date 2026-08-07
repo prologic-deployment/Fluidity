@@ -81,7 +81,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: fluidity._id, requester: helios._id, statut: "En cours d'analyse",
       objet: 'Activation du MFA sur tous les accès administrateurs',
       typeDemande: "Modification d'accès", serviceEnvironnement: 'Production',
-      categorie: 'Sécurité', sousCategorie: 'MFA',
+      categorie: 'Sécurité', sousCategorie: 'Autre',
       descriptionDetaillee:
         'Dans le cadre de notre audit ISO 27001, merci d\'activer l\'authentification multifacteur ' +
         'pour les 6 comptes administrateurs de l\'infrastructure hébergée.',
@@ -150,7 +150,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: fluidity._id, requester: atlas._id, statut: 'Clôturée',
       objet: 'Création d\'un compte de service pour le reporting',
       typeDemande: 'Création de compte', serviceEnvironnement: 'Production',
-      categorie: 'Sécurité', sousCategorie: 'IAM',
+      categorie: 'Sécurité', sousCategorie: 'Autre',
       descriptionDetaillee:
         'Création d\'un compte de service en lecture seule pour l\'outil de reporting Power BI ' +
         '(accès base de données analytique uniquement).',
