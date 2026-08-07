@@ -1,12 +1,11 @@
-export type AppRole = 'PLATFORM_ADMIN' | 'TENANT_ADMIN' | 'MANAGER' | 'AGENT' | 'CLIENT' | 'VIEWER';
+/**
+ * Rôles des UTILISATEURS INTERNES uniquement. Un « client » n'est pas un
+ * rôle utilisateur : l'entité commerciale Client porte son propre accès
+ * portail (models/client.model) — refonte d'architecture (plus aucun
+ * Utilisateur de rôle CLIENT, voir backend utils/principals).
+ */
+export type AppRole = 'PLATFORM_ADMIN' | 'TENANT_ADMIN' | 'MANAGER' | 'AGENT' | 'VIEWER';
 export type UserStatus = 'invited' | 'active' | 'suspended';
-
-/** Fiche « société cliente » peuplée côté serveur (comptes CLIENT uniquement). */
-export interface ClientRef {
-  _id: string;
-  nom: string;
-  statut?: string;
-}
 
 export interface AppUser {
   _id?: string;
@@ -15,12 +14,6 @@ export interface AppUser {
   role: AppRole;
   status?: UserStatus;
   department?: string;
-  /**
-   * Comptes CLIENT uniquement : fiche société de rattachement (propriétaire
-   * des contrats visibles). ObjectId en écriture, fiche peuplée en lecture.
-   * null = compte portail sans société rattachée (aucun contrat visible).
-   */
-  clientId?: string | ClientRef | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -31,7 +24,7 @@ export interface LicenseInfo {
   remainingUsers: number;
 }
 
-export const APP_ROLES: AppRole[] = ['TENANT_ADMIN', 'MANAGER', 'AGENT', 'CLIENT', 'VIEWER'];
+export const APP_ROLES: AppRole[] = ['TENANT_ADMIN', 'MANAGER', 'AGENT', 'VIEWER'];
 
 export const ROLE_LABELS: Record<string, string> = {
   PLATFORM_ADMIN: 'Super Admin',

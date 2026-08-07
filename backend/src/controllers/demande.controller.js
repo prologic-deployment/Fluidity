@@ -9,19 +9,16 @@ const filtreProprietaire = (req) =>
   req.userRole === 'CLIENT' ? { requester: req.userId } : {};
 
 /**
- * Peuple les relations normalisées (compte demandeur + contrat) sur une
- * requête. Le demandeur expose son identité ET sa fiche société cliente
- * (clientId peuplé : nom raison sociale) — alimente la colonne « Client »
- * des listes et la fiche « Client » des modales de détail.
+ * Peuple les relations normalisées (demandeur + contrat) sur une requête.
+ * Le demandeur est peuplé dynamiquement selon `requesterModel` : fiche
+ * Client (accès portail — nom, email, statut) ou Utilisateur historique
+ * (email) — alimente la colonne « Client » des listes et la fiche client
+ * des modales de détail.
  */
 const populateRefs = (query) =>
   query
-    .populate({
-      path: 'requester',
-      select: 'email role status firstName lastName clientId',
-      populate: { path: 'clientId', select: 'nom email statut' },
-    })
-    .populate('contrat', 'reference intitule typeContrat');
+    .populate('requester', 'email nom telephone statut role status firstName lastName')
+    .populate('contrat', 'reference intitule typeContrat clientId');
 
 /**
  * Création d'une demande.
@@ -42,16 +39,22 @@ const createDemande = async (req, res) => {
       return;
     }
 
-    // Le contrat référencé doit exister au sein du même tenant
+    // Le contrat référencé doit exister au sein du même tenant ET appartenir
+    // à la fiche du client connecté (jamais le contrat d'un autre client).
     const contrat = await Contrat.findOne({ _id: req.body.contrat, tenantId: req.tenantId });
     if (!contrat) {
       res.status(400).json({ message: 'Contrat introuvable dans cet espace de travail.' });
+      return;
+    }
+    if (req.userClientId && String(contrat.clientId) !== String(req.userClientId)) {
+      res.status(403).json({ message: 'Ce contrat n’appartient pas à votre fiche client.' });
       return;
     }
 
     const demande = new Demande({
       ...req.body,
       requester: req.userId,
+      requesterModel: 'Client', // principal portail — l'entité commerciale
       tenantId: req.tenantId,
       statut: 'Ouverte',
     });

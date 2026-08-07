@@ -10,7 +10,7 @@ import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
-import { requesterEmail, requesterClientNom, requesterClientFiche, nomFichierDepuisUrl, RequesterRef } from '../../utils/requester.util';
+import { requesterEmail, requesterClientNom, requesterStatut, nomFichierDepuisUrl } from '../../utils/requester.util';
 
 @Component({
   selector: 'app-dashboard-changements',
@@ -254,9 +254,9 @@ export class DashboardChangementsComponent implements OnInit {
     return requesterClientNom(changement.requester);
   }
 
-  /** Courriel de la fiche société si présente (complément de la colonne Client). */
-  ficheClient(changement: Changement) {
-    return requesterClientFiche(changement.requester as RequesterRef);
+  /** Statut de la fiche cliente du demandeur (badge « Fiche » de la modale). */
+  statutClient(changement: Changement): string | null {
+    return requesterStatut(changement.requester);
   }
 
   /** Nom lisible d'une pièce jointe (URL -> nom de fichier décodé). */

@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService, TwoFactorStatus, LoginActivityItem } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -48,12 +49,24 @@ export class SecurityPageComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
-    private toast: ToastService
+    private toast: ToastService,
+    private router: Router
   ) {
     const ua = navigator.userAgent;
     const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
     const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
     this.currentDevice = `${browser}${os ? ' · ' + os : ''}`;
+  }
+
+  /** Principal CLIENT (accès portail) : pas de 2FA interne — seuls le mot
+   *  de passe et le journal d'activité s'appliquent à son compte. */
+  get estClientPortail(): boolean {
+    return this.auth.isClient();
+  }
+
+  /** Accès provisionné : changement de mot de passe obligatoire (bannière). */
+  get changementObligatoire(): boolean {
+    return this.auth.mustChangePassword();
   }
 
   ngOnInit(): void {
@@ -65,10 +78,12 @@ export class SecurityPageComponent implements OnInit {
       },
       { validators: [this.passwordsMatchValidator] }
     );
-    this.auth.twoFactorStatus().subscribe({
-      next: (status) => (this.twoFactorStatus = status),
-      error: () => (this.twoFactorStatus = null),
-    });
+    if (!this.estClientPortail) {
+      this.auth.twoFactorStatus().subscribe({
+        next: (status) => (this.twoFactorStatus = status),
+        error: () => (this.twoFactorStatus = null),
+      });
+    }
     this.chargerActivite(1);
   }
 
@@ -149,11 +164,19 @@ export class SecurityPageComponent implements OnInit {
     }
     this.savingPassword = true;
     const { currentPassword, newPassword } = this.passwordForm.value;
+    const etaitProvisoire = this.auth.mustChangePassword();
     this.auth.changePassword({ currentPassword, newPassword }).subscribe({
       next: () => {
         this.savingPassword = false;
         this.passwordForm.reset();
         this.toast.success('Mot de passe modifié avec succès.');
+        if (etaitProvisoire) {
+          // Obligation levée côté serveur : synchroniser la session puis
+          // ouvrir l'accès à l'application (la garde de route s'appuie dessus).
+          this.auth.patchSessionUser({ mustChangePassword: false });
+          this.toast.success('Votre accès est désormais actif — bienvenue !');
+          this.router.navigate(['/demandes']);
+        }
       },
       error: (err) => {
         this.savingPassword = false;

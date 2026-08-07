@@ -37,6 +37,15 @@ export function requesterClientNom(requester: RequesterRef | string | undefined)
   return requester.email ? requester.email.split('@')[0] : '—';
 }
 
+/**
+ * Statut de la fiche cliente associée au demandeur : porté directement par
+ * le principal Client (portail), repli sur l'ancienne fiche rattachée.
+ */
+export function requesterStatut(requester: RequesterRef | string | undefined): string | null {
+  if (!requester || typeof requester !== 'object') return null;
+  return requester.statut || requesterClientFiche(requester)?.statut || null;
+}
+
 /** Nom de fichier déduit d'une URL de pièce jointe (affichage lisible). */
 export function nomFichierDepuisUrl(url: string): string {
   try {

@@ -1,0 +1,25 @@
+/**
+ * Principals de la plateforme — QUI s'authentifie.
+ *
+ *   UTILISATEUR : compte interne (modèle Utilisateur, rôle RBAC dans ROLES :
+ *                 PLATFORM_ADMIN / TENANT_ADMIN / MANAGER / AGENT / VIEWER).
+ *   CLIENT      : accès portail de l'entité commerciale Client (modèle
+ *                 Client — raison sociale, contrats, demandes). Depuis la
+ *                 refonte d'architecture, un client N'EST PLUS un
+ *                 Utilisateur avec role='CLIENT' : l'identité portail vit
+ *                 dans la fiche Client elle-même.
+ *
+ * ROLE_PORTAIL ('CLIENT') reste la valeur de « rôle effectif » portée par
+ * les jetons des principals CLIENT : elle alimente les règles de workflow
+ * et les requireRole existants SANS faire de CLIENT un rôle Utilisateur.
+ */
+const PRINCIPAL_UTILISATEUR = 'UTILISATEUR';
+const PRINCIPAL_CLIENT = 'CLIENT';
+
+/** Rôle effectif des principals CLIENT (jetons, workflow, requireRole). */
+const ROLE_PORTAIL = 'CLIENT';
+
+/** Le principal de la requête est-il un accès portail client ? */
+const estPrincipalClient = (req) => req.principalType === PRINCIPAL_CLIENT;
+
+module.exports = { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL, estPrincipalClient };

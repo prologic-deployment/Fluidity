@@ -1,5 +1,5 @@
 const { Demande } = require('../models/demande.model');
-const { Utilisateur } = require('../models/user.model');
+const { Client } = require('../models/client.model');
 const { Contrat } = require('../models/contrat.model');
 
 /**
@@ -23,11 +23,11 @@ const seedDemandes = async (tenants = {}) => {
     return;
   }
 
-  // Comptes CLIENT demandeurs (requester, ObjectId)
+  // Fiches Client demandeuses (requester — l'entité porte son accès portail)
   const [atlas, helios, novaClient] = await Promise.all([
-    Utilisateur.findOne({ email: 'client@fluidity.dev' }),
-    Utilisateur.findOne({ email: 'client2@fluidity.dev' }),
-    Utilisateur.findOne({ email: 'client@nova-systems.dev' }),
+    Client.findOne({ tenantId: fluidity._id, email: 'client@fluidity.dev' }),
+    Client.findOne({ tenantId: fluidity._id, email: 'client2@fluidity.dev' }),
+    Client.findOne({ tenantId: nova._id, email: 'client@nova-systems.dev' }),
   ]);
   // Contrats actifs de rattachement (ObjectId)
   const [ctrAtlas, ctrAtlas2, ctrHelios, ctrNova] = await Promise.all([
@@ -44,7 +44,7 @@ const seedDemandes = async (tenants = {}) => {
   const demoDemandes = [
     // --- Statut : Ouverte (actions AGENT disponibles) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Ouverte',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Ouverte',
       objet: 'Extension des ressources de la VM e-commerce',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'VM', sousCategorie: 'Extension ressources',
@@ -56,7 +56,7 @@ const seedDemandes = async (tenants = {}) => {
       informationsComplementaires: 'Fenêtre préférée : nuit du jeudi au vendredi.',
     },
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Ouverte',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Ouverte',
       objet: 'Ouverture de flux HTTPS vers notre API partenaire',
       typeDemande: "Modification d'accès", serviceEnvironnement: 'Production',
       categorie: 'Réseau', sousCategorie: 'Autre',
@@ -67,7 +67,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : En cours d'analyse (AGENT peut valider/réaliser/rejeter) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: "En cours d'analyse",
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: "En cours d'analyse",
       objet: 'Restauration de la base PostgreSQL de recette',
       typeDemande: 'Support technique', serviceEnvironnement: 'Test',
       categorie: 'Sauvegarde', sousCategorie: 'Restore',
@@ -78,7 +78,7 @@ const seedDemandes = async (tenants = {}) => {
       dateSouhaiteeRealisation: new Date('2026-07-28'),
     },
     {
-      tenantId: fluidity._id, requester: helios._id, statut: "En cours d'analyse",
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: "En cours d'analyse",
       objet: 'Activation du MFA sur tous les accès administrateurs',
       typeDemande: "Modification d'accès", serviceEnvironnement: 'Production',
       categorie: 'Sécurité', sousCategorie: 'Autre',
@@ -89,7 +89,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : En attente de validation (action MANAGER) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'En attente de validation',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'En attente de validation',
       objet: 'Ajout d\'un second serveur physique au cluster',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'VM', sousCategorie: 'Extension ressources',
@@ -102,7 +102,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : En cours de réalisation ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'En cours de réalisation',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'En cours de réalisation',
       objet: 'Extension du volume SAN /data de 2 To',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'Stockage', sousCategorie: 'Extension capacité',
@@ -113,7 +113,7 @@ const seedDemandes = async (tenants = {}) => {
       dateSouhaiteeRealisation: new Date('2026-07-27'),
     },
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'En cours de réalisation',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'En cours de réalisation',
       objet: 'Renouvellement du certificat SSL du portail clients',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'Sécurité', sousCategorie: 'Certificat',
@@ -124,7 +124,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : En attente client (CLIENT peut répondre / AGENT peut clôturer) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'En attente client',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'En attente client',
       objet: 'Création d\'un VLAN isolé pour l\'environnement IoT',
       typeDemande: "Modification d'accès", serviceEnvironnement: 'Pré-production',
       categorie: 'Réseau', sousCategorie: 'VLAN',
@@ -136,7 +136,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : Réalisée (CLIENT peut clôturer) ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Réalisée',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Réalisée',
       objet: 'Snapshot avant mise à jour de l\'ERP',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'VM', sousCategorie: 'Snapshot',
@@ -147,7 +147,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : Clôturée (historique complet) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Clôturée',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Clôturée',
       objet: 'Création d\'un compte de service pour le reporting',
       typeDemande: 'Création de compte', serviceEnvironnement: 'Production',
       categorie: 'Sécurité', sousCategorie: 'Autre',
@@ -158,7 +158,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : Rejetée (historique, éligibilité refusée) ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Rejetée',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Rejetée',
       objet: 'Allocation de 8 GPU pour entraînement IA intensif',
       typeDemande: 'Support technique', serviceEnvironnement: 'Développement',
       categorie: 'IA-GPU', sousCategorie: 'GPU Allocation',
@@ -170,7 +170,7 @@ const seedDemandes = async (tenants = {}) => {
     },
     // --- Statut : Annulé (figé, historique conservé) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Annulé',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Annulé',
       objet: 'Restauration d\'un fichier supprimé par erreur',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'Sauvegarde', sousCategorie: 'Restore',
@@ -182,7 +182,7 @@ const seedDemandes = async (tenants = {}) => {
 
     // ================= Tenant « Nova Systems » (isolation) =================
     {
-      tenantId: nova._id, requester: novaClient._id, statut: 'Ouverte',
+      tenantId: nova._id, requester: novaClient._id, requesterModel: 'Client', statut: 'Ouverte',
       objet: 'Intermittences réseau sur le site principal',
       typeDemande: 'Support technique', serviceEnvironnement: 'Production',
       categorie: 'Réseau', sousCategorie: 'Routage',
@@ -192,7 +192,7 @@ const seedDemandes = async (tenants = {}) => {
       prioriteSouhaitee: 'Élevée', contrat: ctrNova._id,
     },
     {
-      tenantId: nova._id, requester: novaClient._id, statut: "En cours d'analyse",
+      tenantId: nova._id, requester: novaClient._id, requesterModel: 'Client', statut: "En cours d'analyse",
       objet: 'Mise à jour du cluster Kubernetes en 1.30',
       typeDemande: 'Support technique', serviceEnvironnement: 'Pré-production',
       categorie: 'VM', sousCategorie: 'Autre',
@@ -202,7 +202,7 @@ const seedDemandes = async (tenants = {}) => {
       prioriteSouhaitee: 'Standard', contrat: ctrNova._id,
     },
     {
-      tenantId: nova._id, requester: novaClient._id, statut: 'Réalisée',
+      tenantId: nova._id, requester: novaClient._id, requesterModel: 'Client', statut: 'Réalisée',
       objet: 'Rapport de capacité du dernier trimestre',
       typeDemande: "Demande d'information", serviceEnvironnement: 'Production',
       categorie: 'VM', sousCategorie: 'Autre',

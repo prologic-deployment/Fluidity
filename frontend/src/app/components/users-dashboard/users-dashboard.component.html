@@ -117,15 +117,6 @@
                     {{ u.email }}
                     <span *ngIf="isSelf(u)" class="ml-1 text-xs text-muted-foreground">(vous)</span>
                   </p>
-                  <p *ngIf="u.role === 'CLIENT' && clientNom(u)" class="flex items-center gap-1 text-xs text-muted-foreground">
-                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path>
-                    </svg>
-                    {{ clientNom(u) }}
-                  </p>
-                  <p *ngIf="u.role === 'CLIENT' && !clientNom(u)" class="text-xs italic text-muted-foreground/70">
-                    Aucune société rattachée
-                  </p>
                 </div>
               </div>
             </td>
@@ -198,16 +189,7 @@
         <label class="field-label" for="user-dept">Département</label>
         <input id="user-dept" type="text" formControlName="department" class="input" placeholder="Support, Finance..." />
       </div>
-      <div *ngIf="createForm.get('role')?.value === 'CLIENT'" class="md:col-span-2">
-        <label class="field-label" for="user-client">Société cliente (rattachement)</label>
-        <select id="user-client" formControlName="clientId" class="select">
-          <option value="">— Aucune / rattachement automatique par email —</option>
-          <option *ngFor="let c of clients" [value]="c._id">{{ c.nom }} ({{ c.email }})</option>
-        </select>
-        <p class="mt-1 text-xs text-muted-foreground">
-          Détermine les contrats visibles par ce compte portail. À défaut, la fiche de même email est utilisée si elle existe.
-        </p>
-      </div>
+
     </div>
 
     <div class="flex justify-end gap-2 pt-2">
@@ -235,16 +217,7 @@
         <label class="field-label" for="edit-dept">Département</label>
         <input id="edit-dept" type="text" formControlName="department" class="input" placeholder="Support, Finance..." />
       </div>
-      <div *ngIf="editForm.get('role')?.value === 'CLIENT'" class="md:col-span-2">
-        <label class="field-label" for="edit-client">Société cliente (rattachement)</label>
-        <select id="edit-client" formControlName="clientId" class="select">
-          <option value="">— Aucune société rattachée —</option>
-          <option *ngFor="let c of clients" [value]="c._id">{{ c.nom }} ({{ c.email }})</option>
-        </select>
-        <p class="mt-1 text-xs text-muted-foreground">
-          Détermine les contrats visibles par ce compte portail. Quitter le rôle Client détache automatiquement la société.
-        </p>
-      </div>
+
     </div>
 
     <div class="flex justify-end gap-2 pt-2">

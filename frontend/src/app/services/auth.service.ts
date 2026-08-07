@@ -10,12 +10,19 @@ export interface AuthResponse {
   userId: string;
   tenantId: string | null;
   role: string;
+  /** Type de principal : 'UTILISATEUR' (interne) | 'CLIENT' (accès portail). */
+  principalType?: string;
   email: string;
   status?: string;
   /** Identité d'affichage (depuis § profil) — jamais de données sensibles. */
   firstName?: string;
   lastName?: string;
+  /** Raison sociale affichée pour les principals CLIENT (portail). */
+  displayName?: string;
   avatarUrl?: string | null;
+  /** Accès provisionné par l'admin : le client DOIT changer son mot de passe
+   *  provisoire avant d'utiliser l'application (flag de session). */
+  mustChangePassword?: boolean;
   tenant?: TenantBranding | null;
 }
 
@@ -28,11 +35,17 @@ export interface SessionUser {
   userId: string;
   tenantId: string | null;
   role: string;
+  /** 'UTILISATEUR' (défaut) | 'CLIENT' — le compte est-il un accès portail ? */
+  principalType?: string;
   email: string;
   /** Identité d'affichage (topbar/sidebar) — synchronisée après édition du profil. */
   firstName?: string;
   lastName?: string;
+  /** Raison sociale affichée (principals CLIENT). */
+  displayName?: string;
   avatarUrl?: string | null;
+  /** Le principal doit remplacer son mot de passe provisoire (bloquant). */
+  mustChangePassword?: boolean;
 }
 
 export interface Impersonation {
@@ -180,13 +193,22 @@ export class AuthService {
   syncSessionUser(user: { firstName?: unknown; lastName?: unknown; avatarUrl?: unknown }): void {
     const current = this.getUser();
     if (!current) return;
-    const next: SessionUser = {
-      ...current,
+    this.patchSessionUser({
       firstName: user.firstName !== undefined ? (user.firstName as string) : current.firstName,
       lastName: user.lastName !== undefined ? (user.lastName as string) : current.lastName,
       avatarUrl: user.avatarUrl as string | null,
-    };
-    localStorage.setItem(USER_KEY, JSON.stringify(next));
+    });
+  }
+
+  /**
+   * Applique un patch à la session locale (identité, drapeaux d'accès…) et
+   * émet sessionChanged$ — topbar/sidebar/gardes reflètent immédiatement le
+   * nouvel état (ex. mustChangePassword levé après changement de mot de passe).
+   */
+  patchSessionUser(patch: Partial<SessionUser>): void {
+    const current = this.getUser();
+    if (!current) return;
+    localStorage.setItem(USER_KEY, JSON.stringify({ ...current, ...patch } as SessionUser));
     this.notifySessionChanged();
   }
 
@@ -206,10 +228,13 @@ export class AuthService {
         userId: res.userId,
         tenantId: res.tenantId,
         role: res.role,
+        principalType: res.principalType || 'UTILISATEUR',
         email: res.email,
         firstName: res.firstName || '',
         lastName: res.lastName || '',
+        displayName: res.displayName || undefined,
         avatarUrl: res.avatarUrl || null,
+        mustChangePassword: !!res.mustChangePassword,
       } as SessionUser)
     );
     if (res.tenant) {
@@ -273,8 +298,14 @@ export class AuthService {
     return this.isPlatformAdmin() || this.isTenantAdmin();
   }
 
+  /** Le compte courant est-il un accès portail client ? */
   isClient(): boolean {
-    return this.getRole() === 'CLIENT';
+    return this.getRole() === 'CLIENT' || this.getUser()?.principalType === 'CLIENT';
+  }
+
+  /** Le principal doit-il remplacer son mot de passe provisoire (bloquant) ? */
+  mustChangePassword(): boolean {
+    return this.getUser()?.mustChangePassword === true;
   }
 
   isViewer(): boolean {

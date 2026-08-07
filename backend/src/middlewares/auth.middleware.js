@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
+const { Client } = require('../models/client.model');
+const { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL } = require('../utils/principals');
 
 /** Message d'aide quand la session/le compte provient de données pré-multi-tenant. */
 const LEGACY_MESSAGE =
@@ -12,8 +14,12 @@ const LEGACY_MESSAGE =
  * Middleware d'authentification + contexte tenant.
  *
  * 1. Vérifie le JWT ("Authorization: Bearer <token>") et injecte
- *    req.tenantId, req.userId, req.userRole, req.userEmail.
- * 2. Recharge l'utilisateur : un compte suspendu est immédiatement
+ *    req.tenantId, req.userId, req.userRole, req.userEmail, req.principalType.
+ *    Deux types de principals (utils/principals) :
+ *      UTILISATEUR — compte interne (rôle RBAC dans ROLES) ;
+ *      CLIENT      — accès portail de l'entité Client (rôle effectif ROLE_PORTAIL
+ *                    dans le jeton ; req.userClientId = sa propre fiche).
+ * 2. Recharge le principal : un compte suspendu/inactif est immédiatement
  *    bloqué (les JWT étant sans état, la DB fait foi).
  * 3. Charge le Tenant : un tenant « suspended » ou « terminated » coupe
  *    tout accès à ses utilisateurs (le Super Admin plateforme passe).
@@ -52,23 +58,39 @@ const authMiddleware = async (req, res, next) => {
     // (mise en évidence dans le journal d'activité de connexion).
     req.tokenIat = decoded.iat || null;
 
-    // --- Vérification du compte (suspension temps réel) ---
-    const user = await Utilisateur.findById(req.userId).select('role status tenantId clientId').lean();
-    if (!user) {
-      res.status(401).json({ message: 'Compte introuvable ou supprimé' });
-      return;
+    req.principalType = decoded.principal === PRINCIPAL_CLIENT ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR;
+
+    // --- Principal CLIENT (accès portail de l'entité commerciale) ---
+    if (req.principalType === PRINCIPAL_CLIENT) {
+      const client = await Client.findById(req.userId).select('email tenantId statut mustChangePassword').lean();
+      if (!client) {
+        res.status(401).json({ message: 'Compte introuvable ou supprimé' });
+        return;
+      }
+      if (client.statut !== 'Actif') {
+        res.status(403).json({ message: 'Ce compte est inactif. Contactez votre administrateur.' });
+        return;
+      }
+      req.userRole = ROLE_PORTAIL;
+      req.userClientId = client._id;
+      req.mustChangePassword = !!client.mustChangePassword;
+    } else {
+      // --- Vérification du compte interne (suspension temps réel) ---
+      const user = await Utilisateur.findById(req.userId).select('role status tenantId').lean();
+      if (!user) {
+        res.status(401).json({ message: 'Compte introuvable ou supprimé' });
+        return;
+      }
+      if (user.status === 'suspended' && req.userRole !== 'PLATFORM_ADMIN') {
+        res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
+        return;
+      }
+      if (!ROLES.includes(user.role)) {
+        res.status(403).json({ message: LEGACY_MESSAGE });
+        return;
+      }
+      req.userClientId = null;
     }
-    if (user.status === 'suspended' && req.userRole !== 'PLATFORM_ADMIN') {
-      res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
-      return;
-    }
-    if (!ROLES.includes(user.role)) {
-      res.status(403).json({ message: LEGACY_MESSAGE });
-      return;
-    }
-    // Rattachement métier éventuel (comptes CLIENT) : référence canonique
-    // vers la fiche société — utilisée pour restreindre les contrats visibles.
-    req.userClientId = user.clientId || null;
 
     // --- Impersonation (PLATFORM_ADMIN uniquement) ---
     if (req.userRole === 'PLATFORM_ADMIN' && req.headers['x-tenant-override']) {
@@ -104,7 +126,44 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-module.exports = { authMiddleware, requireRole, requirePlatformAdmin, requireTenantAdmin };
+/**
+ * N'autorise que les comptes internes (jamais un principal CLIENT portail) —
+ * ex. configuration 2FA, réservée aux Utilisateurs.
+ */
+function requireUtilisateurInterne(req, res, next) {
+  if (req.principalType === PRINCIPAL_CLIENT) {
+    res.status(403).json({ message: 'Cette fonctionnalité est réservée aux utilisateurs internes.' });
+    return;
+  }
+  next();
+}
+
+module.exports = {
+  authMiddleware,
+  requireRole,
+  requirePlatformAdmin,
+  requireTenantAdmin,
+  requireUtilisateurInterne,
+  requirePasswordChanged,
+};
+
+/**
+ * Accès interdit tant que le principal utilise un mot de passe provisoire
+ * généré par l'administrateur (mustChangePassword) — la première action de
+ * son accès portail doit être d'en choisir un définitif.
+ */
+function requirePasswordChanged(req, res, next) {
+  if (req.principalType === PRINCIPAL_CLIENT && req.mustChangePassword) {
+    res.status(403).json({
+      code: 'MOT_DE_PASSE_PROVISOIRE',
+      message:
+        'Vous devez définir un nouveau mot de passe avant d’accéder à l’application. ' +
+        'Rendez-vous dans votre page Sécurité.',
+    });
+    return;
+  }
+  next();
+}
 
 /**
  * Middleware de contrôle d'accès par rôle.

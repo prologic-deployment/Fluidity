@@ -8,7 +8,7 @@
  *   Demande/Changement.clientId (email) -> requester (ObjectId Utilisateur)
  *   Demande/Changement.contrat (réf.)   -> ObjectId Contrat
  *   Contrat.clientId (email)            -> ObjectId Client
- *   Utilisateur CLIENT (email ~ fiche)  -> clientId ObjectId (lien explicite)
+ *   Utilisateur role CLIENT           -> identité portail de la fiche Client
  *
  * Le script est IDEMPOTENT : chaque document déjà migré est ignoré.
  * Aucune donnée n'est perdue — uniquement des conversions in-place.
@@ -19,7 +19,7 @@ const mongoose = require('mongoose');
 const { connectDB } = require('../config/db.config');
 const { Tenant } = require('../models/tenant.model');
 const { LEGACY_ROLE_MAP } = require('../models/user.model');
-const { backfillClientAccountLinks } = require('../utils/client-link.util');
+const { migrerComptesClients } = require('../utils/client-account-migration.util');
 
 /** tenantId historiques -> tenant SaaS (création si absent). */
 const LEGACY_TENANT_NAMES = {
@@ -174,10 +174,13 @@ const migrateToMultiTenancy = async () => {
   await migrateContrats(db);
   await migrateDossiers(db, 'demandes');
   await migrateDossiers(db, 'changements');
-  // Lien explicite compte CLIENT -> fiche société (clientId ObjectId),
-  // en remplacement du rapprochement implicite par email (idempotent).
-  const lies = await backfillClientAccountLinks();
-  console.log(`[Migration] comptes CLIENT rattachés à une fiche société (clientId) : ${lies}.`);
+  // Comptes historiques « Utilisateur role=CLIENT » -> identité portail
+  // de la fiche Client (hash transplanté, dossiers réassignés — idempotent).
+  const conv = await migrerComptesClients();
+  console.log(
+    `[Migration] comptes CLIENT convertis en accès portail : ${conv.convertis} ` +
+      `(${conv.fichesCreees} fiche(s) créée(s), ${conv.dossiersReassignes} dossier(s) réassigné(s)).`
+  );
   console.log('[Migration] === Migration multi-tenant terminée ===');
   return map;
 };

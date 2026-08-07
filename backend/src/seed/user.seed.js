@@ -8,8 +8,9 @@ const { Utilisateur } = require('../models/user.model');
  * des workflows (création CLIENT -> traitement AGENT -> validation MANAGER ->
  * supervision TENANT_ADMIN) et de l'isolation inter-tenants :
  * - superadmin@servicedesk.dev  : Super Admin plateforme (hors tenant)
- * - TENANT_ADMIN / AGENT / MANAGER / CLIENT / VIEWER dans « Fluidity »
- *   et « Nova Systems » (2 comptes CLIENT par tenant : propriétaire / autrui)
+ * - TENANT_ADMIN / AGENT / MANAGER / VIEWER dans « Fluidity » et
+ *   « Nova Systems ». Les accès portail ne sont PLUS des utilisateurs :
+ *   ils vivent sur les fiches Client (seedClients — même email/mot de passe).
  */
 const seedUsers = async (tenants = {}) => {
   const fluidity = tenants['Fluidity'];
@@ -26,14 +27,11 @@ const seedUsers = async (tenants = {}) => {
     { tenantId: fluidity._id, email: 'admin@fluidity.dev', password: 'Password123!', role: 'TENANT_ADMIN', department: 'Direction' },
     { tenantId: fluidity._id, email: 'agent@fluidity.dev', password: 'Password123!', role: 'AGENT', department: 'Support' },
     { tenantId: fluidity._id, email: 'manager@fluidity.dev', password: 'Password123!', role: 'MANAGER', department: 'Technique' },
-    { tenantId: fluidity._id, email: 'client@fluidity.dev', password: 'Password123!', role: 'CLIENT', department: '' },
-    { tenantId: fluidity._id, email: 'client2@fluidity.dev', password: 'Password123!', role: 'CLIENT', department: '' },
     { tenantId: fluidity._id, email: 'viewer@fluidity.dev', password: 'Password123!', role: 'VIEWER', department: 'Finance' },
     // Tenant « Nova Systems » (isolation inter-tenants)
     { tenantId: nova._id, email: 'nova-admin@nova-systems.dev', password: 'Password123!', role: 'TENANT_ADMIN', department: 'Direction' },
     { tenantId: nova._id, email: 'agent@nova-systems.dev', password: 'Password123!', role: 'AGENT', department: 'Exploitation' },
     { tenantId: nova._id, email: 'manager@nova-systems.dev', password: 'Password123!', role: 'MANAGER', department: 'Technique' },
-    { tenantId: nova._id, email: 'client@nova-systems.dev', password: 'Password123!', role: 'CLIENT', department: '' },
     { tenantId: nova._id, email: 'viewer@nova-systems.dev', password: 'Password123!', role: 'VIEWER', department: 'Audit' },
   ];
 

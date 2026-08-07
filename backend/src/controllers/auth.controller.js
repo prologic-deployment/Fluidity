@@ -6,6 +6,8 @@ const { Tenant } = require('../models/tenant.model');
 const { sendResetPasswordEmail } = require('../services/email.service');
 const { supprimerFichierUpload } = require('../utils/upload-file.util');
 const { enregistrerActivite } = require('../utils/login-activity.util');
+const { Client } = require('../models/client.model');
+const { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL } = require('../utils/principals');
 
 /** Message d'aide quand le compte provient de données pré-multi-tenant. */
 const LEGACY_MESSAGE =
@@ -70,10 +72,22 @@ const register = async (req, res) => {
  * pas dupliquer la logique d'émission.
  */
 const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
+  // Deux types de principals (utils/principals) : UTILISATEUR (compte interne,
+  // rôle RBAC) ou CLIENT (accès portail de l'entité commerciale — rôle effectif
+  // ROLE_PORTAIL dans le jeton, jamais un rôle Utilisateur).
+  const estClient = contexte.principalType === PRINCIPAL_CLIENT;
+  const role = estClient ? ROLE_PORTAIL : user.role;
+
   const secret = process.env.JWT_SECRET;
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
   const token = jwt.sign(
-    { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email },
+    {
+      tenantId: user.tenantId || null,
+      userId: user._id,
+      role,
+      email: user.email,
+      principal: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
+    },
     secret,
     { expiresIn }
   );
@@ -82,6 +96,7 @@ const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
     enregistrerActivite(contexte.req, {
       userId: user._id,
       tenantId: user.tenantId || null,
+      principalType: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
       succes: true,
       mfaUtilise: !!contexte.mfaUtilise,
       sessionIat: jwt.decode(token)?.iat || null,
@@ -92,13 +107,18 @@ const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
     token,
     userId: user._id,
     tenantId: user.tenantId || null,
-    role: user.role,
+    role,
+    principalType: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
     email: user.email,
-    status: user.status,
+    status: estClient ? (user.statut === 'Actif' ? 'active' : 'inactive') : user.status,
     // Identité d'affichage (topbar, sidebar, menu profil) — jamais de secret
-    firstName: user.firstName || '',
-    lastName: user.lastName || '',
-    avatarUrl: user.avatarUrl || null,
+    firstName: estClient ? '' : user.firstName || '',
+    lastName: estClient ? '' : user.lastName || '',
+    // Raison sociale du client portail (nom d'affichage de la sidebar/topbar)
+    displayName: estClient ? user.nom : undefined,
+    avatarUrl: estClient ? null : user.avatarUrl || null,
+    // Accès provisionné par l'admin : changement obligatoire à la 1re connexion
+    mustChangePassword: estClient ? !!user.mustChangePassword : false,
     tenant: tenantBranding(tenant),
     ...extras,
   });
@@ -119,6 +139,80 @@ const verifyTwoFactorToken = (token) => {
 };
 
 /**
+ * Connexion d'un accès PORTAIL CLIENT (l'entité commerciale qui porte son
+ * identité — plus aucun Utilisateur role='CLIENT').
+ *
+ * L'email d'un client n'est unique qu'AU SEIN d'un tenant : plusieurs
+ * fiches de tenants différents peuvent partager le même email. On résout
+ * l'ambiguïté par le mot de passe (les accès sont générés aléatoirement) —
+ * exactement UNE fiche doit correspondre.
+ *
+ * @returns {Promise<boolean>} true si la réponse a été écrite (tentative
+ *   attribuable à une fiche), false si aucune fiche ne porte cet email.
+ */
+const loginClient = async (req, res, email, password) => {
+  const candidats = await Client.find({ email }).select('+password');
+  if (!candidats.length) return false;
+
+  const correspondances = [];
+  for (const fiche of candidats) {
+    // eslint-disable-next-line no-await-in-loop
+    if (await fiche.comparePassword(password)) correspondances.push(fiche);
+  }
+  if (correspondances.length === 0) {
+    for (const fiche of candidats) {
+      enregistrerActivite(req, {
+        userId: fiche._id, tenantId: fiche.tenantId, principalType: PRINCIPAL_CLIENT,
+        succes: false, raisonEchec: 'MOT_DE_PASSE_INVALIDE',
+      });
+    }
+    res.status(401).json({ message: 'Identifiants invalides' });
+    return true;
+  }
+  if (correspondances.length > 1) {
+    // Quasi impossible (mots de passe aléatoires) — refus explicite plutôt
+    // qu'une connexion sur le mauvais espace de travail.
+    res.status(401).json({
+      message: 'Cet identifiant est présent sur plusieurs espaces. Contactez votre administrateur pour sécuriser l’accès.',
+    });
+    return true;
+  }
+
+  const client = correspondances[0];
+  if (client.statut !== 'Actif') {
+    enregistrerActivite(req, {
+      userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
+      succes: false, raisonEchec: 'COMPTE_INACTIF',
+    });
+    res.status(403).json({ message: 'Ce compte est inactif. Contactez votre administrateur.' });
+    return true;
+  }
+
+  const tenant = await Tenant.findById(client.tenantId);
+  if (!tenant || tenant.status === 'terminated') {
+    enregistrerActivite(req, {
+      userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
+      succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
+    });
+    res.status(403).json({ message: "Cet espace de travail n'existe plus." });
+    return true;
+  }
+  if (tenant.status === 'suspended') {
+    enregistrerActivite(req, {
+      userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
+      succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
+    });
+    res.status(403).json({
+      message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
+    });
+    return true;
+  }
+
+  issueSession(res, client, tenant, {}, { req, principalType: PRINCIPAL_CLIENT });
+  return true;
+};
+
+/**
  * Connexion : vérifie les identifiants puis —
  *   - compte SANS 2FA : session JWT classique ;
  *   - compte AVEC 2FA : jeton temporaire (5 min), la session n'est émise
@@ -130,6 +224,11 @@ const login = async (req, res) => {
 
     const user = await Utilisateur.findOne({ email });
     if (!user) {
+      // Aucun compte interne : la tentative peut viser un accès PORTAIL CLIENT
+      // (l'entité commerciale porte sa propre identité depuis la refonte).
+      if (await loginClient(req, res, email, password)) return;
+      // Email inconnu des deux référentiels : non journalisé (non attribuable,
+      // pas de canal d'énumération des emails par le journal).
       res.status(401).json({ message: 'Identifiants invalides' });
       return;
     }
@@ -269,6 +368,33 @@ const resetPassword = async (req, res) => {
  */
 const me = async (req, res) => {
   try {
+    // Principal CLIENT : la fiche commerciale EST le compte (aucune donnée
+    // interne exposée ; principalType/mustChangePassword joints pour le shell).
+    if (req.principalType === PRINCIPAL_CLIENT) {
+      const client = await Client.findOne({ _id: req.userId, tenantId: req.tenantId }).lean();
+      if (!client) {
+        res.status(404).json({ message: 'Client introuvable' });
+        return;
+      }
+      res.status(200).json({
+        user: {
+          _id: client._id,
+          email: client.email,
+          nom: client.nom,
+          telephone: client.telephone,
+          adresse: client.adresse,
+          statut: client.statut,
+          role: ROLE_PORTAIL,
+          principalType: PRINCIPAL_CLIENT,
+          mustChangePassword: !!client.mustChangePassword,
+          createdAt: client.createdAt,
+          updatedAt: client.updatedAt,
+        },
+        tenant: tenantBranding(req.tenant || null),
+      });
+      return;
+    }
+
     const filter = { _id: req.userId };
     if (req.tenantId) filter.tenantId = req.tenantId;
     const user = await Utilisateur.findOne(filter).select('-password -resetToken -resetTokenExpiry');
@@ -277,7 +403,10 @@ const me = async (req, res) => {
       res.status(404).json({ message: 'Utilisateur introuvable' });
       return;
     }
-    res.status(200).json({ user, tenant: tenantBranding(req.tenant || null) });
+    res.status(200).json({
+      user: { ...user.toObject(), principalType: PRINCIPAL_UTILISATEUR, mustChangePassword: false },
+      tenant: tenantBranding(req.tenant || null),
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -290,6 +419,14 @@ const me = async (req, res) => {
  */
 const updateProfile = async (req, res) => {
   try {
+    if (req.principalType === PRINCIPAL_CLIENT) {
+      // La fiche d'un client n'est modifiable que par SON Tenant Admin —
+      // jamais d'auto-édition du profil portail (donnée commerciale).
+      res.status(403).json({
+        message: 'Votre fiche est gérée par votre fournisseur de services. Contactez votre administrateur pour la modifier.',
+      });
+      return;
+    }
     const user = await Utilisateur.findById(req.userId);
     if (!user) {
       res.status(404).json({ message: 'Utilisateur introuvable' });
@@ -325,6 +462,30 @@ const updateProfile = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+
+    // Principal CLIENT : même preuve du mot de passe actuel (le provisoire),
+    // puis lève l'obligation de changement (accès complet débloqué).
+    if (req.principalType === PRINCIPAL_CLIENT) {
+      const client = await Client.findById(req.userId).select('+password');
+      if (!client) {
+        res.status(404).json({ message: 'Client introuvable' });
+        return;
+      }
+      const valideClient = await client.comparePassword(currentPassword);
+      if (!valideClient) {
+        res.status(401).json({ message: 'Mot de passe actuel incorrect' });
+        return;
+      }
+      if (currentPassword === newPassword) {
+        res.status(400).json({ message: 'Le nouveau mot de passe doit être différent de l’actuel' });
+        return;
+      }
+      client.password = newPassword; // hashé via le hook pre-save
+      client.mustChangePassword = false;
+      await client.save();
+      res.status(200).json({ message: 'Mot de passe modifié avec succès', mustChangePassword: false });
+      return;
+    }
 
     const user = await Utilisateur.findById(req.userId);
     if (!user) {

@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authMiddleware, requireTenantAdmin } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireTenantAdmin, requirePasswordChanged } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createContrat,
@@ -14,6 +14,10 @@ const router = Router();
 
 // Toutes les routes de contrats nécessitent une authentification
 router.use(authMiddleware);
+
+// Un accès portail doté d'un mot de passe provisoire doit d'abord le
+// remplacer (mustChangePassword) — aucune donnée métier avant cela.
+router.use(requirePasswordChanged);
 
 // Lecture : tout utilisateur authentifié du tenant (alimente les listes déroulantes)
 router.get('/', getAllContrats);

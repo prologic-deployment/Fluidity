@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { authMiddleware, requireRole } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireRole, requirePasswordChanged } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createChangement,
@@ -16,6 +16,10 @@ const router = Router();
 
 // Toutes les routes de changements nécessitent une authentification
 router.use(authMiddleware);
+
+// Un accès portail doté d'un mot de passe provisoire doit d'abord le
+// remplacer (mustChangePassword) — aucune donnée métier avant cela.
+router.use(requirePasswordChanged);
 
 // Création réservée aux CLIENT (chaque client soumet son propre changement)
 router.post('/', requireRole('CLIENT'), validate(createChangementSchema), createChangement);

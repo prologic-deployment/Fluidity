@@ -1,11 +1,15 @@
 const { Client } = require('../models/client.model');
-const { backfillClientAccountLinks } = require('../utils/client-link.util');
+const { migrerComptesClients } = require('../utils/client-account-migration.util');
+
+/** Mot de passe de DÉMONSTRATION des accès portail (jamais en production). */
+const MOT_DE_PASSE_DEMO = 'Password123!';
 
 /**
- * Clients de démonstration, rattachés à LEUR tenant (ObjectId) et
- * alignés sur les comptes CLIENT de démo (même email dans le tenant).
- * Après création, les comptes CLIENT sans clientId sont rattachés
- * explicitement à leur fiche (lien canonique — voir client-link.util).
+ * Clients de démonstration, rattachés à LEUR tenant (ObjectId).
+ * La fiche Client EST l'identité de l'accès portail (email + mot de passe)
+ * — il n'y a plus de compte « Utilisateur role=CLIENT ». Les instances
+ * disposant encore de ces anciens comptes sont converties à la volée
+ * (transplant du hash, idempotent).
  */
 const seedClients = async (tenants = {}) => {
   const fluidity = tenants['Fluidity'];
@@ -43,26 +47,40 @@ const seedClients = async (tenants = {}) => {
   ];
 
   // Additif et idempotent : chaque fiche n'est créée que si l'email est
-  // absent du tenant (index unique (tenantId, email)).
+  // absent du tenant (index unique (tenantId, email)) ; une fiche existante
+  // sans accès reçoit l'identité de démo (jamais d'écrasement d'un accès).
   let created = 0;
   let existing = 0;
+  let accesAjoutes = 0;
   for (const c of demoClients) {
-    const found = await Client.findOne({ tenantId: c.tenantId, email: c.email });
+    const found = await Client.findOne({ tenantId: c.tenantId, email: c.email }).select('+password');
     if (found) {
       existing += 1;
+      if (!found.password) {
+        found.password = MOT_DE_PASSE_DEMO; // hashé via le hook pre-save
+        found.mustChangePassword = false; // démo : connexion directe documentée
+        await found.save();
+        accesAjoutes += 1;
+      }
       continue;
     }
-    await Client.create(c);
+    await Client.create({ ...c, password: MOT_DE_PASSE_DEMO, mustChangePassword: false });
     created += 1;
   }
   console.log(
-    `[Seed] Clients de démonstration : ${created} créé(s), ${existing} déjà présent(s) dans db.clients.`
+    `[Seed] Clients de démonstration : ${created} créé(s), ${existing} déjà présent(s), ` +
+      `${accesAjoutes} accès portail de démo ajouté(s) (db.clients).`
   );
 
-  // Lien explicite compte portail CLIENT -> fiche société (idempotent)
-  const lies = await backfillClientAccountLinks();
-  if (lies > 0) {
-    console.log(`[Seed] Rattachement clientId : ${lies} compte(s) CLIENT lié(s) à leur fiche société.`);
+  // Conversion des anciens comptes « Utilisateur role=CLIENT » encore
+  // présents (instances antérieures à la refonte) — hash transplanté,
+  // dossiers réassignés, idempotent.
+  const conv = await migrerComptesClients();
+  if (conv.convertis > 0) {
+    console.log(
+      `[Seed] ${conv.convertis} compte(s) CLIENT hérité(s) converti(s) en accès portail ` +
+        `(${conv.fichesCreees} fiche(s) créée(s), ${conv.dossiersReassignes} dossier(s) réassigné(s)).`
+    );
   }
 };
 

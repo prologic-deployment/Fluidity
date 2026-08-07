@@ -57,9 +57,14 @@ export interface RequesterRef {
   email: string;
   role?: string;
   status?: string;
+  /** Raison sociale / nom du principal Client (portail). */
   nom?: string;
+  telephone?: string;
+  /** Statut de la fiche cliente (« Actif » / « Inactif »…), portail uniquement. */
+  statut?: string;
   firstName?: string;
   lastName?: string;
+  /** Héritage : ancienne fiche société peuplée sur les anciens dossiers. */
   clientId?: RequesterClientRef | string | null;
 }
 

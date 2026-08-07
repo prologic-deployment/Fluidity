@@ -88,7 +88,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   get isClient(): boolean {
-    return this.user?.role === 'CLIENT';
+    return this.user?.principalType === 'CLIENT' || this.user?.role === 'CLIENT';
   }
 
   /** Nom affiché dans l'en-tête workspace (tenant impersonné en priorité). */

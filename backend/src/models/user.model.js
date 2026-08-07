@@ -3,26 +3,32 @@ const bcrypt = require('bcryptjs');
 const { Schema } = mongoose;
 
 /**
- * Hiérarchie RBAC de la plateforme :
+ * Hiérarchie RBAC de la plateforme — rôles INTERNES uniquement :
  *   PLATFORM_ADMIN  : Super Admin — possède la plateforme (hors tenant)
  *   TENANT_ADMIN    : administrateur d'un Tenant (ses utilisateurs, clients…)
  *   MANAGER         : validation/pilotage au sein du tenant (ex-Responsable/Commercial)
  *   AGENT           : traitement tickets/demandes/changements (ex-Support/Exploitation)
- *   CLIENT          : utilisateur client final (ses propres dossiers)
  *   VIEWER          : lecture seule au sein du tenant
  *
+ * Un « client » N'EST PAS un rôle Utilisateur : l'entité commerciale Client
+ * porte son propre accès portail (models/client.model). La migration
+ * convertit les historiques role='CLIENT' en identité de fiche Client
+ * (voir seed/migrate-multitenancy) — LEGACY_ROLE_CLIENT marque ce cas.
+ *
  * Correspondance avec les rôles historiques (migration) :
- *   ADMIN → PLATFORM_ADMIN, SUPPORT_N1 → AGENT, EXPLOITATION → AGENT,
- *   RESPONSABLE_TECHNIQUE → MANAGER, COMMERCIAL → MANAGER, CLIENT → CLIENT
+ *   ADMIN → TENANT_ADMIN, SUPPORT_N1 → AGENT, EXPLOITATION → AGENT,
+ *   RESPONSABLE_TECHNIQUE → MANAGER, COMMERCIAL → MANAGER
  */
-const ROLES = ['PLATFORM_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'AGENT', 'CLIENT', 'VIEWER'];
+const ROLES = ['PLATFORM_ADMIN', 'TENANT_ADMIN', 'MANAGER', 'AGENT', 'VIEWER'];
+
+/** Marqueurs de rôle historique représentant un accès portail client. */
+const LEGACY_ROLE_CLIENT = 'CLIENT';
 
 const ROLE_LABELS = {
   PLATFORM_ADMIN: 'Super Admin',
   TENANT_ADMIN: 'Admin Tenant',
   MANAGER: 'Manager',
   AGENT: 'Agent',
-  CLIENT: 'Client',
   VIEWER: 'Observateur',
 };
 
@@ -30,7 +36,8 @@ const ROLE_LABELS = {
  * Correspondance rôles historiques -> nouveaux rôles (script de migration).
  * L'ancien ADMIN était l'administrateur D'UN tenant (clients, contrats…) :
  * il devient TENANT_ADMIN. Le compte PLATFORM_ADMIN (plateforme) est
- * provisionné par le seed, jamais par la migration.
+ * provisionné par le seed, jamais par la migration. 'CLIENT' n'y figure
+ * volontairement pas : traité à part (conversion vers l'entité Client).
  */
 const LEGACY_ROLE_MAP = {
   ADMIN: 'TENANT_ADMIN',
@@ -38,27 +45,10 @@ const LEGACY_ROLE_MAP = {
   EXPLOITATION: 'AGENT',
   RESPONSABLE_TECHNIQUE: 'MANAGER',
   COMMERCIAL: 'MANAGER',
-  CLIENT: 'CLIENT',
 };
 
 /** Statuts de compte : invitation en attente, actif, suspendu. */
 const USER_STATUTS = ['invited', 'active', 'suspended'];
-
-/**
- * Séparation claire des responsabilités (§ architecture Client/Utilisateur) :
- *
- *   Client      = ENTITÉ COMMERCIALE (raison sociale, coordonnées métier,
- *                 contrats) — propriété du Tenant Admin, aucune donnée d'auth.
- *   Utilisateur = IDENTITÉ & ACCÈS (login/email, mot de passe, rôle RBAC,
- *                 2FA, profil, licences). Un compte `role: CLIENT` est un
- *                 accès portail rattaché à UNE fiche Client via `clientId`.
- *
- * `clientId` est la référence canonique et explicite (intégrité référentielle),
- * en remplacement de l'ancien rapprochement implicite par email. Le repli
- * par email ne subsiste que pour les données historiques non migrées
- * (voir utils/client-link.util.js — backfill idempotent fourni).
- * Plusieurs comptes CLIENT peuvent partager la même fiche société.
- */
 
 
 const UtilisateurSchema = new Schema(
@@ -79,12 +69,9 @@ const UtilisateurSchema = new Schema(
       trim: true,
     },
     password: { type: String, required: true },
-    role: { type: String, enum: ROLES, default: 'CLIENT' },
+    role: { type: String, enum: ROLES, default: 'VIEWER' },
     status: { type: String, enum: USER_STATUTS, default: 'active' },
     department: { type: String, default: '' },
-    // Comptes CLIENT uniquement : fiche « société cliente » de rattachement
-    // (propriétaire des contrats). null pour tous les autres rôles.
-    clientId: { type: Schema.Types.ObjectId, ref: 'Client', default: null },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
 
@@ -114,8 +101,6 @@ const UtilisateurSchema = new Schema(
 
 UtilisateurSchema.index({ tenantId: 1, email: 1 });
 UtilisateurSchema.index({ tenantId: 1, status: 1 });
-// Comptes portail rattachés à une même fiche société (ex. vue « contacts » d'un client)
-UtilisateurSchema.index({ tenantId: 1, clientId: 1 }, { sparse: true });
 
 /**
  * Hook pre-save : hash du mot de passe via bcrypt uniquement si modifié.
@@ -140,4 +125,4 @@ const Utilisateur = mongoose.model(
   'utilisateurs' // Collection explicite : db.utilisateurs
 );
 
-module.exports = { Utilisateur, ROLES, ROLE_LABELS, LEGACY_ROLE_MAP, USER_STATUTS };
+module.exports = { Utilisateur, ROLES, ROLE_LABELS, LEGACY_ROLE_MAP, LEGACY_ROLE_CLIENT, USER_STATUTS };

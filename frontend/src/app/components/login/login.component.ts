@@ -41,8 +41,14 @@ export class LoginComponent {
           return;
         }
         this.auth.saveSession(res);
-        // Super Admin -> tableau de bord plateforme ; tout autre rôle -> workspace tenant
-        this.router.navigate([this.auth.isPlatformAdmin() ? '/plateforme/tenants' : '/demandes']);
+        // Mot de passe provisoire (accès client provisionné) : la garde de
+        // route cantonne à la page Sécurité jusqu'au changement effectif.
+        const destination = this.auth.isPlatformAdmin()
+          ? '/plateforme/tenants'
+          : this.auth.mustChangePassword()
+            ? '/profile/security'
+            : '/demandes';
+        this.router.navigate([destination]);
       },
       error: (err) => {
         this.error = err.error?.message || 'Échec de la connexion';

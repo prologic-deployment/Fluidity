@@ -496,8 +496,8 @@
               <p class="truncate text-xs text-muted-foreground">{{ requesterEmail(c) }}</p>
             </div>
           </div>
-          <p *ngIf="ficheClient(c)?.statut" class="mt-2">
-            <span class="badge-secondary !text-[10px]">Fiche {{ ficheClient(c)?.statut | lowercase }}</span>
+          <p *ngIf="statutClient(c)" class="mt-2">
+            <span class="badge-secondary !text-[10px]">Fiche {{ statutClient(c) | lowercase }}</span>
           </p>
         </section>
 

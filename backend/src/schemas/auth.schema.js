@@ -6,7 +6,7 @@ const registerSchema = z.object({
   tenantId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'tenantId invalide (ObjectId attendu)'),
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  role: z.enum(['TENANT_ADMIN', 'MANAGER', 'AGENT', 'CLIENT', 'VIEWER']).optional(),
+  role: z.enum(['TENANT_ADMIN', 'MANAGER', 'AGENT', 'VIEWER']).optional(),
 });
 
 const loginSchema = z.object({

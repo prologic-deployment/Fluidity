@@ -4,9 +4,21 @@ const { Utilisateur } = require('../models/user.model');
 
 /**
  * Création d'un client (réservée aux ADMIN).
+ * La fiche naît SANS accès portail : l'accès (identité email + mot de passe
+ * provisoire généré) est provisionné explicitement — voir l'endpoint dédié.
+ * Garde-fou d'ambiguïté : l'email ne peut pas appartenir à un utilisateur
+ * interne (la connexion résout d'abord les comptes internes, le client
+ * serait masqué).
  */
 const createClient = async (req, res) => {
   try {
+    const emailNormalise = String(req.body.email || '').toLowerCase();
+    const collisionInterne = await Utilisateur.findOne({ email: emailNormalise }).select('_id').lean();
+    if (collisionInterne) {
+      res.status(409).json({ message: 'Cet email appartient déjà à un utilisateur interne. Choisissez un autre email.' });
+      return;
+    }
+
     const client = new Client({
       ...req.body,
       tenantId: req.tenantId,
@@ -71,8 +83,8 @@ const updateClient = async (req, res) => {
 /**
  * Suppression d'un client (réservée aux ADMIN).
  * Intégrité référentielle : impossible de supprimer une fiche encore
- * référencée par des contrats ou des comptes portail (clientId). Le message
- * détaille les blocages pour guider l'administrateur.
+ * référencée par des contrats ou des dossiers (demandes/changements). Le
+ * message détaille les blocages pour guider l'administrateur.
  */
 const deleteClient = async (req, res) => {
   try {
@@ -82,17 +94,23 @@ const deleteClient = async (req, res) => {
       return;
     }
 
-    const [nbContrats, nbComptes] = await Promise.all([
+    // Intégrité référentielle : la fiche (qui EST aussi l'accès portail) ne
+    // peut être supprimée si des contrats ou des dossiers la référencent.
+    const { Demande } = require('../models/demande.model');
+    const { Changement } = require('../models/changement.model');
+    const [nbContrats, nbDemandes, nbChangements] = await Promise.all([
       Contrat.countDocuments({ tenantId: req.tenantId, clientId: client._id }),
-      Utilisateur.countDocuments({ tenantId: req.tenantId, clientId: client._id }),
+      Demande.countDocuments({ tenantId: req.tenantId, requester: client._id }),
+      Changement.countDocuments({ tenantId: req.tenantId, requester: client._id }),
     ]);
-    if (nbContrats > 0 || nbComptes > 0) {
+    const nbDossiers = nbDemandes + nbChangements;
+    if (nbContrats > 0 || nbDossiers > 0) {
       const blocages = [];
       if (nbContrats > 0) blocages.push(`${nbContrats} contrat(s)`);
-      if (nbComptes > 0) blocages.push(`${nbComptes} compte(s) utilisateur rattaché(s)`);
+      if (nbDossiers > 0) blocages.push(`${nbDossiers} demande(s)/changement(s)`);
       res.status(409).json({
         message: `Suppression impossible : ce client est encore référencé par ${blocages.join(' et ')}. Détachez-les d'abord.`,
-        references: { contrats: nbContrats, comptes: nbComptes },
+        references: { contrats: nbContrats, dossiers: nbDossiers },
       });
       return;
     }

@@ -14,8 +14,15 @@ const { DEMANDE_STATUTS } = require('../utils/workflow');
 const DemandeSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
-    // Compte utilisateur (CLIENT) qui a soumis la demande — normalisation ObjectId
-    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    // Principal qui a soumis la demande — le Client (accès portail) depuis la
+    // refonte d'architecture ; 'Utilisateur' ne subsiste que pour les
+    // enregistrements historiques (voir requesterModel / populate dynamique).
+    requester: { type: Schema.Types.ObjectId, refPath: 'requesterModel', required: true },
+    requesterModel: {
+      type: String,
+      enum: ['Utilisateur', 'Client'],
+      default: 'Client',
+    },
     objet: { type: String, required: true },
     typeDemande: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },

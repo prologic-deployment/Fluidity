@@ -97,9 +97,12 @@ export class TopbarComponent {
   }
 
   get displayName(): string {
-    const user = this.auth.getUser() as (Record<string, unknown> & { firstName?: string; lastName?: string }) | null;
+    const user = this.auth.getUser() as
+      | (Record<string, unknown> & { firstName?: string; lastName?: string; displayName?: string })
+      | null;
     const full = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
-    return full || this.userEmail;
+    // Raison sociale du portail client -> identité nom+prénom -> email
+    return user?.displayName || full || this.userEmail;
   }
 
   get avatarUrl(): string | null {

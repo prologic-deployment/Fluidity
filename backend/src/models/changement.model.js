@@ -108,7 +108,14 @@ const ChangementSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
     // Compte utilisateur (CLIENT) qui a soumis le changement — normalisation ObjectId
-    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    // Principal demandeur — Client (accès portail) ; 'Utilisateur' pour les
+    // enregistrements historiques (populate dynamique via requesterModel).
+    requester: { type: Schema.Types.ObjectId, refPath: 'requesterModel', required: true },
+    requesterModel: {
+      type: String,
+      enum: ['Utilisateur', 'Client'],
+      default: 'Client',
+    },
     objetChangement: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },

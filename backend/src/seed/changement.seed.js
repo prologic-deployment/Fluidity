@@ -1,5 +1,5 @@
 const { Changement } = require('../models/changement.model');
-const { Utilisateur } = require('../models/user.model');
+const { Client } = require('../models/client.model');
 const { Contrat } = require('../models/contrat.model');
 
 /**
@@ -25,9 +25,9 @@ const seedChangements = async (tenants = {}) => {
   }
 
   const [atlas, helios, novaClient] = await Promise.all([
-    Utilisateur.findOne({ email: 'client@fluidity.dev' }),
-    Utilisateur.findOne({ email: 'client2@fluidity.dev' }),
-    Utilisateur.findOne({ email: 'client@nova-systems.dev' }),
+    Client.findOne({ tenantId: fluidity._id, email: 'client@fluidity.dev' }),
+    Client.findOne({ tenantId: fluidity._id, email: 'client2@fluidity.dev' }),
+    Client.findOne({ tenantId: nova._id, email: 'client@nova-systems.dev' }),
   ]);
   const [ctrAtlas, ctrAtlas2, ctrHelios, ctrNova] = await Promise.all([
     Contrat.findOne({ tenantId: fluidity._id, reference: 'CTR-2026-001' }),
@@ -43,7 +43,7 @@ const seedChangements = async (tenants = {}) => {
   const demoChangements = [
     // --- Statut : Soumis (action MANAGER : évaluation) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Soumis',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Soumis',
       objetChangement: 'Extension CPU/RAM de la VM e-commerce',
       descriptionDetaillee:
         'Passage de la VM shop-prod-01 de 4 vCPU / 16 Go à 8 vCPU / 32 Go pour absorber le trafic ' +
@@ -64,7 +64,7 @@ const seedChangements = async (tenants = {}) => {
       },
     },
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Soumis',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Soumis',
       objetChangement: 'Création du VLAN IoT entrepôt',
       descriptionDetaillee:
         'Création du VLAN 240 dédié aux équipements IoT de l\'entrepôt, isolé du LAN bureautique, ' +
@@ -80,7 +80,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : En attente de validation ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'En attente de validation',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'En attente de validation',
       objetChangement: 'Durcissement des règles pare-feu périmétriques',
       descriptionDetaillee:
         'Fermeture des ports non utilisés exposés en DMZ et restriction SSH aux seules IP du ' +
@@ -104,7 +104,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Approuvé (action AGENT : planification) ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Approuvé',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Approuvé',
       objetChangement: 'Montée de version PostgreSQL 14 vers 16',
       descriptionDetaillee:
         'Migration de l\'instance PostgreSQL mutualisée de reporting vers la version 16 avec ' +
@@ -120,7 +120,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Planifié (fenêtre fixée) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Planifié',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Planifié',
       objetChangement: 'Extension du volume NAS sauvegardes locales',
       descriptionDetaillee:
         'Ajout de 4 To sur le volume NAS dédié aux sauvegardes locales, avec mise à jour des quotas ' +
@@ -135,7 +135,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : En cours d'implémentation ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: "En cours d'implémentation",
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: "En cours d'implémentation",
       objetChangement: 'Migration des workloads Docker vers Kubernetes',
       descriptionDetaillee:
         'Bascule des 6 conteneurs applicatifs du serveur legacy vers le cluster K8s mutualisé ' +
@@ -151,7 +151,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Rollback (implémentation échouée, retour arrière) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Rollback',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Rollback',
       objetChangement: 'Déploiement portail v3 (rollback appliqué)',
       descriptionDetaillee:
         'Le déploiement du portail clients v3 a provoqué des erreurs 500 sur le parcours de ' +
@@ -166,7 +166,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Implémenté (action MANAGER : revue post-implémentation) ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Implémenté',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Implémenté',
       objetChangement: 'Allocation de 2 GPU pour l\'inférence IA',
       descriptionDetaillee:
         'Mise à disposition de 2 GPU partagés sur le nœud gpu-01 pour le service de recommandation ' +
@@ -181,7 +181,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : En revue post-implémentation (MANAGER peut clôturer) ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'En revue post-implémentation',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'En revue post-implémentation',
       objetChangement: 'Alignement de la rétention sauvegarde à 6 mois',
       descriptionDetaillee:
         'Passage de la politique de rétention Veeam de 3 à 6 mois pour les VM financières, avec ' +
@@ -198,7 +198,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Clôturé ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Clôturé',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Clôturé',
       objetChangement: 'Création d\'une VM de développement isolée',
       descriptionDetaillee:
         'Provision d\'une VM de développement (4 vCPU / 16 Go / 100 Go NVMe) dans le VLAN de test ' +
@@ -213,7 +213,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Rejeté ---
     {
-      tenantId: fluidity._id, requester: atlas._id, statut: 'Rejeté',
+      tenantId: fluidity._id, requester: atlas._id, requesterModel: 'Client', statut: 'Rejeté',
       objetChangement: 'Ouverture DNS publique sur tous les sous-domaines',
       descriptionDetaillee:
         'Demande de wildcard DNS *.atlas-services.tn pointant vers l\'IP publique du frontal. ' +
@@ -228,7 +228,7 @@ const seedChangements = async (tenants = {}) => {
     },
     // --- Statut : Annulé (figé) ---
     {
-      tenantId: fluidity._id, requester: helios._id, statut: 'Annulé',
+      tenantId: fluidity._id, requester: helios._id, requesterModel: 'Client', statut: 'Annulé',
       objetChangement: 'Suppression de la VM de démonstration commerciale',
       descriptionDetaillee:
         'Suppression de la VM demo-com-01 devenue inutile. Annulé par le client : la démonstration ' +
@@ -244,7 +244,7 @@ const seedChangements = async (tenants = {}) => {
 
     // ================= Tenant « Nova Systems » (isolation) =================
     {
-      tenantId: nova._id, requester: novaClient._id, statut: 'Soumis',
+      tenantId: nova._id, requester: novaClient._id, requesterModel: 'Client', statut: 'Soumis',
       objetChangement: 'Mise en place d\'un VPN site-à-site avec notre siège',
       descriptionDetaillee:
         'Établissement d\'un tunnel IPsec entre notre firewall de siège (Sfax) et le VPC hébergé, ' +
@@ -259,7 +259,7 @@ const seedChangements = async (tenants = {}) => {
       },
     },
     {
-      tenantId: nova._id, requester: novaClient._id, statut: 'Planifié',
+      tenantId: nova._id, requester: novaClient._id, requesterModel: 'Client', statut: 'Planifié',
       objetChangement: 'Remplacement des sondes de supervision obsolètes',
       descriptionDetaillee:
         'Déploiement de nouvelles sondes de monitoring sur les hyperviseurs, avec bascule des ' +
@@ -272,7 +272,7 @@ const seedChangements = async (tenants = {}) => {
       },
     },
     {
-      tenantId: nova._id, requester: novaClient._id, statut: 'Clôturé',
+      tenantId: nova._id, requester: novaClient._id, requesterModel: 'Client', statut: 'Clôturé',
       objetChangement: 'Extension de la rétention de sauvegarde à 12 mois',
       descriptionDetaillee:
         'Alignement de la politique de rétention des sauvegardes de l\'ERP sur les exigences ' +

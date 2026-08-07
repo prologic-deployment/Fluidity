@@ -100,13 +100,20 @@ export class ProfilComponent implements OnInit {
 
   // --- Identité affichée (en-tête) -------------------------------------------
 
+  /** Principal CLIENT (accès portail) : page en lecture seule — sa fiche
+   *  commerciale est gérée par le fournisseur de services, jamais en libre-service. */
+  get estClientPortail(): boolean {
+    return this.auth.isClient();
+  }
+
   get avatarUrl(): string | null {
     return (this.profile?.['avatarUrl'] as string) || null;
   }
 
   get displayName(): string {
     const full = `${this.profile?.['firstName'] || ''} ${this.profile?.['lastName'] || ''}`.trim();
-    return full || this.auth.getEmail() || '';
+    // Raison sociale (portail client) -> identité nom+prénom -> email
+    return (this.profile?.['nom'] as string) || full || this.email;
   }
 
   get initials(): string {

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const { Contrat } = require('../models/contrat.model');
 const { Client } = require('../models/client.model');
-const { resolveClientForUserAccount } = require('../utils/client-link.util');
+const { estPrincipalClient } = require('../utils/principals');
 
 /**
  * Création d'un contrat (réservé au Tenant Admin / Super Admin).
@@ -39,9 +39,8 @@ const createContrat = async (req, res) => {
 /**
  * Liste des contrats du tenant, avec filtre optionnel par client
  * (?clientId=<ObjectId>) — alimente les listes "Contrat" des formulaires.
- * Un utilisateur CLIENT ne voit que les contrats de SA société cliente
- * (référence canonique `Utilisateur.clientId`, repli legacy par email —
- * voir utils/client-link.util.js).
+ * Un principal CLIENT (accès portail) ne voit que les contrats de SA fiche :
+ * sa propre identité commerciale (req.userClientId) fait foi.
  */
 const getAllContrats = async (req, res) => {
   try {
@@ -53,17 +52,15 @@ const getAllContrats = async (req, res) => {
       }
       filter.clientId = req.query.clientId;
     }
-    // Restriction côté serveur : un CLIENT n'accède qu'aux contrats de sa fiche
-    if (req.userRole === 'CLIENT') {
-      const client = await resolveClientForUserAccount(req.tenantId, {
-        clientId: req.userClientId,
-        email: req.userEmail,
-      });
-      if (!client) {
-        res.status(200).json([]);
+    // Restriction côté serveur : un principal CLIENT n'accède qu'aux contrats
+    // de SA fiche (req.userClientId = son identité commerciale, posée par le
+    // middleware d'authentification — référence directe, plus aucun repli).
+    if (estPrincipalClient(req)) {
+      if (!req.userClientId) {
+        res.status(403).json({ message: 'Aucune fiche client associée à ce compte.' });
         return;
       }
-      filter.clientId = client._id;
+      filter.clientId = req.userClientId;
     }
     const contrats = await Contrat.find(filter).populate('clientId', 'nom email statut').sort({ createdAt: -1 });
     res.status(200).json(contrats);
