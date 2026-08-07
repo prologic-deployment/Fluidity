@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { UploadService, UploadedFile } from '../../services/upload.service';
+import { UploadService, UploadedFile, CategorieUpload } from '../../services/upload.service';
 
 interface DropzoneItem {
   id: string;
@@ -30,6 +30,10 @@ export class DropzoneComponent {
   @Input() label = 'Glissez vos fichiers ici';
   @Input() hint = 'ou cliquez pour parcourir — 15 Mo max par fichier';
   @Input() initialFiles: UploadedFile[] = [];
+
+  /** Catégorie de stockage tenant côté serveur (uploads/tenants/<id>/<categorie>/).
+   *  Par défaut : « attachments » appliqué par le serveur. */
+  @Input() categorie?: CategorieUpload;
 
   /** Émis à chaque changement, avec la liste des fichiers effectivement téléversés (statut "done"). */
   @Output() filesChange = new EventEmitter<UploadedFile[]>();
@@ -88,7 +92,7 @@ export class DropzoneComponent {
     }));
     this.items = this.multiple ? [...this.items, ...pending] : pending;
 
-    this.uploadService.upload(files).subscribe({
+    this.uploadService.upload(files, this.categorie).subscribe({
       next: (uploaded) => {
         pending.forEach((item, i) => {
           item.status = 'done';

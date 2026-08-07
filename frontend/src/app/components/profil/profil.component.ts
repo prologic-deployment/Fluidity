@@ -163,7 +163,7 @@ export class ProfilComponent implements OnInit {
     if (!this.avatarFile) return;
     this.avatarUploading = true;
     this.avatarError = null;
-    this.uploadService.upload([this.avatarFile]).subscribe({
+    this.uploadService.upload([this.avatarFile], 'profile-pictures').subscribe({
       next: ([uploaded]) =>
         this.auth.updateProfile({ avatarUrl: uploaded.url }).subscribe({
           next: ({ user }) => {
