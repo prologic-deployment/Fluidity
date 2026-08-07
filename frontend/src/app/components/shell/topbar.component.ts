@@ -1,41 +1,25 @@
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NavigationEnd, Router, RouterLink } from '@angular/router';
-import { filter, map, Observable, startWith } from 'rxjs';
+import { Router, RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
+import { BreadcrumbComponent } from '../shared/breadcrumb.component';
 import { PLATFORM_NAME } from '../../branding';
 
 /**
  * Barre de navigation horizontale supérieure (sticky) :
- *   [Menu mobile] [Fil d'Ariane / titre de page] ..... [Profil utilisateur ▾]
+ *   [Menu mobile] [Fil d'Ariane dynamique] ..... [Profil utilisateur ▾]
  *
- * La sidebar reste la navigation principale ; la topbar porte le contexte de
- * page et le menu utilisateur (profil, sécurité, thème, déconnexion).
- * Sur mobile (< lg), elle fournit le bouton d'ouverture de la sidebar.
+ * La sidebar reste la navigation principale ; la topbar porte le fil d'Ariane
+ * (composant dédié, généré depuis le routeur) et le menu utilisateur
+ * (profil, sécurité, thème, déconnexion). Sur mobile (< lg), elle fournit
+ * le bouton d'ouverture de la sidebar.
  */
-
-/** Libellés de fil d'Ariane par préfixe de route. */
-const ROUTE_LABELS: [RegExp, string][] = [
-  [/^\/plateforme\/tenants/, 'Plateforme · Tenants'],
-  [/^\/utilisateurs/, 'Utilisateurs'],
-  [/^\/demandes\/nouvelle/, 'Demandes · Nouvelle'],
-  [/^\/demandes/, 'Demandes'],
-  [/^\/changements\/nouveau/, 'Changements · Nouveau'],
-  [/^\/changements/, 'Changements'],
-  [/^\/contrats\/nouveau/, 'Contrats · Nouveau'],
-  [/^\/contrats/, 'Contrats'],
-  [/^\/clients\/nouveau/, 'Clients · Nouveau'],
-  [/^\/clients/, 'Clients'],
-  [/^\/profile\/security/, 'Profil · Sécurité'],
-  [/^\/profil/, 'Mon profil'],
-  [/^\/profile/, 'Mon profil'],
-];
-
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent],
   templateUrl: './topbar.component.html',
 })
 export class TopbarComponent {
@@ -44,14 +28,6 @@ export class TopbarComponent {
   @Output() menuToggle = new EventEmitter<void>();
 
   platformName = PLATFORM_NAME;
-
-  /** Titre de page courant, dérivé de l'URL (mis à jour à chaque navigation). */
-  readonly pageTitle$: Observable<string> = this.router.events.pipe(
-    filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-    map((e) => e.urlAfterRedirects),
-    startWith(this.router.url),
-    map((url) => this.labelFor(url))
-  );
 
   /** État du menu profil déroulant (haut droite). */
   menuOpen = false;
@@ -108,14 +84,6 @@ export class TopbarComponent {
 
   get roleLabel(): string {
     return this.auth.roleLabel();
-  }
-
-  private labelFor(url: string): string {
-    const clean = url.split('?')[0];
-    for (const [pattern, label] of ROUTE_LABELS) {
-      if (pattern.test(clean)) return label;
-    }
-    return 'Accueil';
   }
 
   /** Destination du logo mobile selon le rôle (comme après connexion). */

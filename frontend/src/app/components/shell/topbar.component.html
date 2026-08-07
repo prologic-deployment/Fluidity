@@ -30,10 +30,8 @@
     <span class="text-sm font-semibold tracking-tight">{{ platformName }}</span>
   </a>
 
-  <!-- Fil d'Ariane / titre de page -->
-  <div class="hidden min-w-0 items-center gap-2 sm:flex">
-    <span class="truncate text-sm font-medium text-foreground">{{ pageTitle$ | async }}</span>
-  </div>
+  <!-- Fil d'Ariane dynamique (généré depuis le routeur) -->
+  <app-breadcrumb class="min-w-0"></app-breadcrumb>
 
   <div class="flex-1"></div>
 

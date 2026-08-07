@@ -29,21 +29,59 @@ export const routes: Routes = [
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
+    // Arborescence imbriquée : chaque segment porte son libellé de fil
+    // d'Ariane (data.breadcrumb) consommé par <app-breadcrumb>.
     children: [
-      { path: 'demandes', component: DashboardDemandesComponent },
-      { path: 'demandes/nouvelle', component: CreateDemandeComponent },
-      { path: 'changements', component: DashboardChangementsComponent },
-      { path: 'changements/nouveau', component: CreateChangementComponent },
-      { path: 'contrats', component: DashboardContratsComponent },
-      { path: 'contrats/nouveau', component: CreateContratComponent, canActivate: [adminGuard] },
-      { path: 'clients', component: DashboardClientsComponent },
-      { path: 'clients/nouveau', component: CreateClientComponent, canActivate: [adminGuard] },
-      { path: 'plateforme/tenants', component: PlatformTenantsComponent, canActivate: [platformGuard] },
-      { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard] },
+      {
+        path: 'demandes',
+        data: { breadcrumb: 'Demandes' },
+        children: [
+          { path: '', component: DashboardDemandesComponent },
+          { path: 'nouvelle', component: CreateDemandeComponent, data: { breadcrumb: 'Nouvelle demande' } },
+        ],
+      },
+      {
+        path: 'changements',
+        data: { breadcrumb: 'Changements' },
+        children: [
+          { path: '', component: DashboardChangementsComponent },
+          { path: 'nouveau', component: CreateChangementComponent, data: { breadcrumb: 'Nouveau changement' } },
+        ],
+      },
+      {
+        path: 'contrats',
+        data: { breadcrumb: 'Contrats' },
+        children: [
+          { path: '', component: DashboardContratsComponent },
+          { path: 'nouveau', component: CreateContratComponent, canActivate: [adminGuard], data: { breadcrumb: 'Nouveau contrat' } },
+        ],
+      },
+      {
+        path: 'clients',
+        data: { breadcrumb: 'Clients' },
+        children: [
+          { path: '', component: DashboardClientsComponent },
+          { path: 'nouveau', component: CreateClientComponent, canActivate: [adminGuard], data: { breadcrumb: 'Nouveau client' } },
+        ],
+      },
+      {
+        path: 'plateforme',
+        data: { breadcrumb: 'Plateforme' },
+        children: [
+          { path: 'tenants', component: PlatformTenantsComponent, canActivate: [platformGuard], data: { breadcrumb: 'Tenants' } },
+        ],
+      },
+      { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard], data: { breadcrumb: 'Utilisateurs' } },
       // Profil : /profile est la route canonique ; /profil (historique) redirige dessus
-      { path: 'profile', component: ProfilComponent },
+      {
+        path: 'profile',
+        data: { breadcrumb: 'Mon profil' },
+        children: [
+          { path: '', component: ProfilComponent },
+          { path: 'security', component: SecurityPageComponent, data: { breadcrumb: 'Sécurité' } },
+        ],
+      },
       { path: 'profil', redirectTo: 'profile' },
-      { path: 'profile/security', component: SecurityPageComponent },
     ],
   },
   { path: '**', redirectTo: 'login' },
