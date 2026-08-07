@@ -315,7 +315,7 @@
       <p class="detail-section-title">Pièces jointes</p>
       <ul class="space-y-1">
         <li *ngFor="let p of d.piecesJointes">
-          <a [href]="p" target="_blank" rel="noopener" class="btn-link break-all">{{ p }}</a>
+          <a [href]="p | urlUpload" target="_blank" rel="noopener" class="btn-link break-all">{{ p }}</a>
         </li>
       </ul>
     </ng-container>

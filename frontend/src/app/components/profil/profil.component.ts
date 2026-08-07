@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { UploadService } from '../../services/upload.service';
 import { ToastService } from '../../services/toast.service';
 
@@ -18,7 +19,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-profil',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, UrlUploadPipe],
   templateUrl: './profil.component.html',
 })
 export class ProfilComponent implements OnInit {

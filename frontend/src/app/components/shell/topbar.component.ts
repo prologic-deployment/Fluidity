@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
+import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { PLATFORM_NAME } from '../../branding';
 
 /**
@@ -19,7 +20,7 @@ import { PLATFORM_NAME } from '../../branding';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, UrlUploadPipe],
   templateUrl: './topbar.component.html',
 })
 export class TopbarComponent {

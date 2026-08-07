@@ -7,13 +7,14 @@ import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
+import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent, UrlUploadPipe],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {

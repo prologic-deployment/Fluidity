@@ -50,7 +50,7 @@
           bg-gradient-to-br from-indigo-400 to-violet-500 text-[11px] font-bold text-white
           ring-2 ring-transparent transition-all group-hover:ring-primary/30"
       >
-        <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="h-full w-full object-cover" />
+        <img *ngIf="avatarUrl" [src]="avatarUrl | urlUpload" alt="Photo de profil" class="h-full w-full object-cover" />
         <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
       </span>
       <span class="hidden max-w-[160px] truncate text-sm font-medium md:block">{{ displayName }}</span>
@@ -74,7 +74,7 @@
       <!-- En-tête utilisateur -->
       <div class="flex items-center gap-3 border-b border-border bg-gradient-to-br from-primary/[0.06] to-violet-500/[0.05] px-4 py-3.5">
         <span class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow">
-          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="" class="h-full w-full object-cover" />
+          <img *ngIf="avatarUrl" [src]="avatarUrl | urlUpload" alt="" class="h-full w-full object-cover" />
           <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
         </span>
         <div class="min-w-0 flex-1">

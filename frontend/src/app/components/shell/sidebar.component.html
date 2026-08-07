@@ -14,7 +14,7 @@
   <div class="mx-4 mb-1">
     <div class="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5">
       <ng-container *ngIf="tenant as t">
-        <img *ngIf="!isPlatformWorkspace && t.logoUrl" [src]="t.logoUrl" alt="Logo tenant"
+        <img *ngIf="!isPlatformWorkspace && t.logoUrl" [src]="t.logoUrl | urlUpload" alt="Logo tenant"
           class="h-7 w-7 rounded-md object-contain bg-white/90 p-0.5" />
       </ng-container>
       <div *ngIf="isPlatformWorkspace || !tenant?.logoUrl" class="flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-bold text-white"
@@ -100,7 +100,7 @@
         class="group flex min-w-0 flex-1 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white/40">
         <div class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white
           ring-2 ring-transparent transition-all duration-200 group-hover:ring-white/30">
-          <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="h-full w-full object-cover" />
+          <img *ngIf="avatarUrl" [src]="avatarUrl | urlUpload" alt="Photo de profil" class="h-full w-full object-cover" />
           <ng-container *ngIf="!avatarUrl">{{ initials() }}</ng-container>
         </div>
         <div class="min-w-0 flex-1">

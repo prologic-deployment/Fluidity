@@ -11,6 +11,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { AuthService, Impersonation, SessionUser } from '../../services/auth.service';
 import { TenantBranding } from '../../models/tenant.model';
 import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
+import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 
 interface SidebarChild {
   label: string;
@@ -40,7 +41,7 @@ interface SidebarGroup {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, UrlUploadPipe],
   templateUrl: './sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
