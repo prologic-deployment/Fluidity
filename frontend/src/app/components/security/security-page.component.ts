@@ -104,6 +104,33 @@ export class SecurityPageComponent implements OnInit {
     });
   }
 
+  /**
+   * Score de posture /100 (bannière) : 40 pts pour le mot de passe actif
+   * (prérequis de session), +40 si la 2FA est activée, +20 si des codes de
+   * secours restent disponibles. Recalculé dès que le statut 2FA change.
+   */
+  get securityScore(): number {
+    const s = this.twoFactorStatus;
+    if (!s) return 0;
+    let score = 40;
+    if (s.enabled) score += 40;
+    if (s.enabled && (s.backupCodesRemaining ?? 0) > 0) score += 20;
+    return score;
+  }
+
+  get securityScoreLabel(): string {
+    if (this.securityScore >= 90) return '— Excellente, compte bien protégé.';
+    if (this.securityScore >= 60) return '— Bonne, quelques points à consolider.';
+    return '— À renforcer : activez la double authentification.';
+  }
+
+  /** Couleur de la jauge selon le score (jetons du thème). */
+  get securityScoreClass(): string {
+    if (this.securityScore >= 90) return 'bg-success';
+    if (this.securityScore >= 60) return 'bg-warning';
+    return this.securityScore > 0 ? 'bg-destructive' : 'bg-muted';
+  }
+
   /** Recommandations calculées sur l'état réel du compte (extensible). */
   get recommendations(): { ok: boolean; text: string }[] {
     const twoFaOn = this.twoFactorStatus?.enabled === true;

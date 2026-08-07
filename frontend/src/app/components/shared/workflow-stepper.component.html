@@ -1,0 +1,47 @@
+<!-- Frise de progression du workflow (scroll horizontal sur mobile) -->
+<div class="select-none" role="group" aria-label="Progression du workflow">
+  <ng-container *ngIf="!offTrack; else sortieDePiste">
+    <div class="flex items-start overflow-x-auto pb-1">
+      <ng-container *ngFor="let step of steps; let i = index">
+        <!-- Étape -->
+        <div class="flex min-w-[68px] flex-1 flex-col items-center gap-1.5 text-center">
+          <span
+            class="relative flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors duration-300"
+            [ngClass]="{
+              'border-primary bg-primary text-primary-foreground': stateOf(i) === 'done',
+              'border-primary bg-primary/10 text-primary ring-4 ring-primary/15': stateOf(i) === 'current',
+              'border-border bg-muted text-muted-foreground': stateOf(i) === 'todo'
+            }"
+            [attr.aria-current]="stateOf(i) === 'current' ? 'step' : null"
+          >
+            <svg *ngIf="stateOf(i) === 'done'" class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <ng-container *ngIf="stateOf(i) !== 'done'">{{ i + 1 }}</ng-container>
+          </span>
+          <span
+            class="text-[10px] leading-tight"
+            [ngClass]="stateOf(i) === 'current' ? 'font-semibold text-foreground' : stateOf(i) === 'done' ? 'text-foreground/70' : 'text-muted-foreground'"
+            [title]="step"
+          >{{ step }}</span>
+        </div>
+        <!-- Connecteur -->
+        <div
+          *ngIf="i < steps.length - 1"
+          class="mt-3 h-px min-w-2 flex-1 transition-colors duration-300"
+          [ngClass]="i < currentIndex ? 'bg-primary' : 'bg-border'"
+        ></div>
+      </ng-container>
+    </div>
+  </ng-container>
+
+  <ng-template #sortieDePiste>
+    <div class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs font-medium text-destructive">
+      <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="m5.6 5.6 12.8 12.8"></path>
+      </svg>
+      Parcours interrompu — statut final : {{ offTrack }}
+    </div>
+  </ng-template>
+</div>

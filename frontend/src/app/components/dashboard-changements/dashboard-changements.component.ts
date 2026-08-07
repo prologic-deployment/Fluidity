@@ -6,13 +6,14 @@ import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
@@ -45,6 +46,29 @@ export class DashboardChangementsComponent implements OnInit {
 
   /** Statuts depuis lesquels le client propriétaire peut annuler son changement. */
   readonly statutsAnnulables = ['Soumis', 'En attente de validation', 'Approuvé', 'Planifié'];
+
+  // --- Synthèse & frise de progression (§ UI) --------------------------------
+  /** Piste nominale du workflow changements (§2.3.4). */
+  readonly pisteWorkflow = [
+    'Soumis',
+    'En attente de validation',
+    'Approuvé',
+    'Planifié',
+    "En cours d'implémentation",
+    'Implémenté',
+    'En revue post-implémentation',
+    'Clôturé',
+  ];
+  /** Statuts « en vie » du traitement (carte En cours). */
+  private readonly statutsEnCours = [
+    'Soumis',
+    'En attente de validation',
+    'Approuvé',
+    'Planifié',
+    "En cours d'implémentation",
+  ];
+  /** Statuts hors piste (sorties de parcours). */
+  private readonly statutsHorsPiste = ['Rollback', 'Rejeté', 'Annulé'];
 
   constructor(
     private changementService: ChangementService,
@@ -94,6 +118,52 @@ export class DashboardChangementsComponent implements OnInit {
     this.searchTerm = '';
     this.statutFiltre = '';
     this.typeFiltre = '';
+  }
+
+  // --- Cartes de synthèse -----------------------------------------------------
+
+  get totalCount(): number {
+    return this.changements.length;
+  }
+
+  /** Changements en vie dans le traitement (jusqu'à l'implémentation). */
+  get enCoursCount(): number {
+    return this.changements.filter((c) => this.statutsEnCours.includes(c.statut || '')).length;
+  }
+
+  /** À valider : Soumis ou en attente de validation (goulot d'étranglement). */
+  get aValiderCount(): number {
+    return this.changements.filter((c) => c.statut === 'Soumis' || c.statut === 'En attente de validation').length;
+  }
+
+  /** Implémentés, en revue post-implémentation ou clôturés (sorties positives). */
+  get terminesCount(): number {
+    return this.changements.filter(
+      (c) => c.statut === 'Implémenté' || c.statut === 'En revue post-implémentation' || c.statut === 'Clôturé'
+    ).length;
+  }
+
+  /** Répartition par statut (panneau latéral) — barres proportionnelles au max. */
+  get distribution(): { label: string; count: number; pct: number }[] {
+    const compteurs = new Map<string, number>();
+    for (const c of this.changements) {
+      if (!c.statut) continue;
+      compteurs.set(c.statut, (compteurs.get(c.statut) || 0) + 1);
+    }
+    const max = Math.max(1, ...compteurs.values());
+    return this.statutsFiltrables
+      .filter((s) => compteurs.has(s))
+      .map((s) => ({ label: s, count: compteurs.get(s) || 0, pct: Math.round(((compteurs.get(s) || 0) / max) * 100) }));
+  }
+
+  /** Étape de la frise correspondant au statut (null pour les sorties de parcours). */
+  etapeCourante(statut?: string): string | null {
+    return statut && this.pisteWorkflow.includes(statut) ? statut : null;
+  }
+
+  /** Statut terminal hors piste, pour l'affichage « parcours interrompu ». */
+  statutHorsPiste(statut?: string): string | null {
+    return statut && this.statutsHorsPiste.includes(statut) ? statut : null;
   }
 
   viewDetails(changement: Changement): void {

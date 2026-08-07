@@ -6,13 +6,14 @@ import { DemandeService } from '../../services/demande.service';
 import { Demande } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
@@ -42,6 +43,28 @@ export class DashboardDemandesComponent implements OnInit {
 
   /** Statuts depuis lesquels le client propriétaire peut annuler sa demande. */
   readonly statutsAnnulables = ['Ouverte', "En cours d'analyse", 'En attente de validation', 'En attente client'];
+
+  // --- Synthèse & frise de progression (§ UI) --------------------------------
+  /** Piste nominale du workflow demandes (la pause « En attente client » est
+   *  rattachée visuellement à « En cours de réalisation »). */
+  readonly pisteWorkflow = [
+    'Ouverte',
+    "En cours d'analyse",
+    'En attente de validation',
+    'En cours de réalisation',
+    'Réalisée',
+    'Clôturée',
+  ];
+  /** Statuts « en vie » côté traitement (pour la carte En cours). */
+  private readonly statutsEnCours = [
+    'Ouverte',
+    "En cours d'analyse",
+    'En attente de validation',
+    'En cours de réalisation',
+    'En attente client',
+  ];
+  /** Statuts hors piste (sorties de parcours). */
+  private readonly statutsHorsPiste = ['Rejetée', 'Annulé'];
 
   constructor(
     private demandeService: DemandeService,
@@ -92,6 +115,52 @@ export class DashboardDemandesComponent implements OnInit {
     this.searchTerm = '';
     this.statutFiltre = '';
     this.prioriteFiltre = '';
+  }
+
+  // --- Cartes de synthèse -----------------------------------------------------
+
+  get totalCount(): number {
+    return this.demandes.length;
+  }
+
+  /** Dossiers en vie dans le traitement (hors terminaux/hors piste). */
+  get enCoursCount(): number {
+    return this.demandes.filter((d) => this.statutsEnCours.includes(d.statut || '')).length;
+  }
+
+  /** La balle est côté client : réponse/validation attendue. */
+  get actionRequiseCount(): number {
+    return this.demandes.filter((d) => d.statut === 'En attente client' || d.statut === 'En attente de validation').length;
+  }
+
+  /** Réalisées + clôturées (sorties positives). */
+  get terminesCount(): number {
+    return this.demandes.filter((d) => d.statut === 'Réalisée' || d.statut === 'Clôturée').length;
+  }
+
+  /** Répartition par statut (panneau latéral) — barres proportionnelles au max. */
+  get distribution(): { label: string; count: number; pct: number }[] {
+    const compteurs = new Map<string, number>();
+    for (const d of this.demandes) {
+      if (!d.statut) continue;
+      compteurs.set(d.statut, (compteurs.get(d.statut) || 0) + 1);
+    }
+    const max = Math.max(1, ...compteurs.values());
+    return this.statutsFiltrables
+      .filter((s) => compteurs.has(s))
+      .map((s) => ({ label: s, count: compteurs.get(s) || 0, pct: Math.round(((compteurs.get(s) || 0) / max) * 100) }));
+  }
+
+  /** Étape de la frise correspondant au statut (null pour les sorties de parcours). */
+  etapeCourante(statut?: string): string | null {
+    if (!statut) return null;
+    if (statut === 'En attente client') return 'En cours de réalisation'; // pause sur la piste
+    return this.pisteWorkflow.includes(statut) ? statut : null;
+  }
+
+  /** Statut terminal hors piste, pour l'affichage « parcours interrompu ». */
+  statutHorsPiste(statut?: string): string | null {
+    return statut && this.statutsHorsPiste.includes(statut) ? statut : null;
   }
 
   viewDetails(demande: Demande): void {

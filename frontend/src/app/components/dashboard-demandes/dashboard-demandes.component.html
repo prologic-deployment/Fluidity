@@ -24,34 +24,99 @@
   <main class="max-w-7xl mx-auto px-6 py-8">
     <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
 
-    <!-- Barre de filtres -->
-    <div class="toolbar">
-      <div class="search-field">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
-        </svg>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un objet, client, catégorie..." class="search-input" />
-        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
-          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
-        </button>
+    <!-- Cartes de synthèse -->
+    <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+      <div class="card animate-fade-in-up">
+        <div class="card-content flex items-center gap-3.5 py-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <p class="text-2xl font-semibold leading-none tabular-nums">{{ totalCount }}</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">Demandes au total</p>
+          </div>
+        </div>
       </div>
-
-      <select [(ngModel)]="statutFiltre" class="filter-select">
-        <option value="">Tous les statuts</option>
-        <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
-      </select>
-
-      <select [(ngModel)]="prioriteFiltre" class="filter-select">
-        <option value="">Toutes les priorités</option>
-        <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p }}</option>
-      </select>
-
-      <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
-        <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
-        Réinitialiser
-      </button>
+      <div class="card animate-fade-in-up stagger-1">
+        <div class="card-content flex items-center gap-3.5 py-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <p class="text-2xl font-semibold leading-none tabular-nums">{{ enCoursCount }}</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">En cours de traitement</p>
+          </div>
+        </div>
+      </div>
+      <div class="card animate-fade-in-up stagger-2">
+        <div class="card-content flex items-center gap-3.5 py-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <p class="text-2xl font-semibold leading-none tabular-nums">{{ actionRequiseCount }}</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">En attente d'action</p>
+          </div>
+        </div>
+      </div>
+      <div class="card animate-fade-in-up stagger-3">
+        <div class="card-content flex items-center gap-3.5 py-4">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </span>
+          <div class="min-w-0">
+            <p class="text-2xl font-semibold leading-none tabular-nums">{{ terminesCount }}</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">Réalisées / clôturées</p>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Barre de filtres (sticky sous la topbar) -->
+    <div class="sticky top-14 z-20 -mx-6 border-b border-border/60 bg-background/95 px-6 py-3 backdrop-blur-md">
+      <div class="toolbar !mb-0">
+        <div class="search-field">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un objet, client, catégorie..." class="search-input" />
+          <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+
+        <select [(ngModel)]="statutFiltre" class="filter-select">
+          <option value="">Tous les statuts</option>
+          <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
+        </select>
+
+        <select [(ngModel)]="prioriteFiltre" class="filter-select">
+          <option value="">Toutes les priorités</option>
+          <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p }}</option>
+        </select>
+
+        <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
+          <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+          Réinitialiser
+        </button>
+
+        <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading && demandes.length > 0">
+          {{ filteredDemandes().length }} / {{ demandes.length }}
+        </span>
+      </div>
+    </div>
+
+    <div class="grid gap-6 pt-6 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_330px]">
+      <section class="min-w-0">
 
     <!-- Squelette de chargement -->
     <div *ngIf="loading" class="table-wrap">
@@ -136,9 +201,63 @@
       </table>
     </div>
 
-    <p *ngIf="!loading && demandes.length > 0" class="mt-3 text-xs text-muted-foreground">
-      {{ filteredDemandes().length }} sur {{ demandes.length }} demande(s) affichée(s)
-    </p>
+      </section>
+
+      <!-- Panneau latéral : répartition par statut + actions rapides -->
+      <aside class="space-y-4 lg:sticky lg:top-32 lg:self-start">
+        <section class="card animate-fade-in-up stagger-1">
+          <div class="card-content space-y-3 py-5">
+            <h3 class="flex items-center gap-2 text-sm font-semibold">
+              <svg class="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+              </svg>
+              Répartition par statut
+            </h3>
+            <div class="space-y-2.5" *ngIf="distribution.length > 0; else aucuneDonnee">
+              <div *ngFor="let row of distribution">
+                <div class="flex items-center justify-between gap-2 text-xs">
+                  <span class="truncate text-muted-foreground" [title]="row.label">{{ row.label }}</span>
+                  <span class="font-medium tabular-nums">{{ row.count }}</span>
+                </div>
+                <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div class="h-full rounded-full bg-primary/70 transition-all duration-500" [style.width.%]="row.pct"></div>
+                </div>
+              </div>
+            </div>
+            <ng-template #aucuneDonnee>
+              <p class="text-xs text-muted-foreground">Aucune donnée à afficher.</p>
+            </ng-template>
+          </div>
+        </section>
+
+        <section class="card animate-fade-in-up stagger-2">
+          <div class="card-content space-y-2 py-5">
+            <h3 class="mb-1 flex items-center gap-2 text-sm font-semibold">
+              <svg class="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              Actions rapides
+            </h3>
+            <a *ngIf="auth.isClient()" routerLink="/demandes/nouvelle" class="btn-primary w-full justify-center">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              Nouvelle demande
+            </a>
+            <a routerLink="/changements" class="btn-outline w-full justify-center">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              Voir les changements
+            </a>
+            <a routerLink="/contrats" class="btn-outline w-full justify-center">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Voir les contrats
+            </a>
+          </div>
+        </section>
+      </aside>
+    </div>
   </main>
 </div>
 
@@ -148,6 +267,16 @@
     <div class="flex flex-wrap gap-2 mb-5">
       <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
       <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>Priorité : {{ d.prioriteSouhaitee }}</span>
+    </div>
+
+    <!-- Frise de progression du workflow -->
+    <div class="mb-6 rounded-xl border border-border bg-muted/30 px-4 py-4">
+      <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Progression</p>
+      <app-workflow-stepper
+        [steps]="pisteWorkflow"
+        [current]="etapeCourante(d.statut)"
+        [offTrack]="statutHorsPiste(d.statut)"
+      ></app-workflow-stepper>
     </div>
 
     <div class="detail-grid">
