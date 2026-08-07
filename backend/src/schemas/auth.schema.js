@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { AVATAR_RELATIF_REGEX, normaliserUrlUpload } = require('../utils/upload-file.util');
 
 const registerSchema = z.object({
   // ObjectId du Tenant auquel rattacher l'utilisateur
@@ -32,7 +33,15 @@ const updateProfileSchema = z.object({
   avatarUrl: z
     .string()
     .max(500)
-    .regex(/^\/uploads\//, "L'avatar doit provenir du service d'upload")
+    // POST /api/uploads renvoie une URL ABSOLUE (http://hôte/uploads/...) :
+    // normalisée ici en chemin relatif canonique avant validation — sans ça,
+    // tout enregistrement de photo de profil échouait avec un 400.
+    .transform((url) => normaliserUrlUpload(url))
+    .pipe(
+      z
+        .string()
+        .regex(AVATAR_RELATIF_REGEX, "L'avatar doit être une image (PNG, JPEG, WEBP) issue du service d'upload")
+    )
     .nullable()
     .optional(),
   timezone: z.string().max(60).optional(),

@@ -2,15 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
-
-const UPLOADS_ROOT = path.join(__dirname, '..', '..', 'uploads');
+const { UPLOADS_ROOT } = require('../utils/upload-file.util');
 
 /**
  * Stockage disque, organisé par tenant : uploads/<tenantId>/<uuid>.<ext>
  * (le tenantId est disponible sur req grâce à authMiddleware, monté avant
  * cette route). Le nom d'origine est conservé côté métadonnées renvoyées
  * au client, jamais utilisé tel quel sur le disque (évite les collisions
- * et les caractères indésirables).
+ * et les caractères indésirables). UPLOADS_ROOT : utils/upload-file.util.
  */
 const storage = multer.diskStorage({
   destination: (req, _file, cb) => {

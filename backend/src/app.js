@@ -19,8 +19,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Fichiers téléversés (pièces jointes), servis statiquement
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Fichiers téléversés (pièces jointes, photos de profil), servis statiquement.
+// Noms uuid => cache « immutable » sans risque d'obsolescence ; nosniff +
+// téléchargement forcé des types exécutables (html/svg) contre le XSS stocké.
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '..', 'uploads'), {
+    maxAge: '7d',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      if (/\.(html?|svg|xml)$/i.test(filePath)) {
+        res.setHeader('Content-Disposition', 'attachment');
+        res.setHeader('Content-Type', 'application/octet-stream');
+      }
+    },
+  })
+);
 
 // Route de santé : expose aussi l'état de la connexion MongoDB
 // (diagnostic immédiat, sans requête bloquée).

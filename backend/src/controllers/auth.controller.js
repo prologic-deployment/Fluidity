@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 const { sendResetPasswordEmail } = require('../services/email.service');
+const { supprimerFichierUpload } = require('../utils/upload-file.util');
 
 /** Message d'aide quand le compte provient de données pré-multi-tenant. */
 const LEGACY_MESSAGE =
@@ -267,11 +268,18 @@ const updateProfile = async (req, res) => {
       return;
     }
 
+    const ancienAvatar = user.avatarUrl;
     const champs = ['firstName', 'lastName', 'phone', 'jobTitle', 'bio', 'address', 'avatarUrl', 'timezone', 'language'];
     for (const champ of champs) {
       if (req.body[champ] !== undefined) user[champ] = req.body[champ];
     }
     await user.save();
+
+    // Photo remplacée ou supprimée : supprimer l'ancien fichier pour éviter
+    // d'accumuler des orphelins sur le disque (best-effort, jamais bloquant)
+    if (req.body.avatarUrl !== undefined && ancienAvatar && ancienAvatar !== user.avatarUrl) {
+      supprimerFichierUpload(ancienAvatar, req.tenantId);
+    }
 
     const clean = await Utilisateur.findById(user._id).select(
       '-password -resetToken -resetTokenExpiry -twoFactorSecret -twoFactorBackupCodes'
