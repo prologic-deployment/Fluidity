@@ -27,8 +27,25 @@ const disqueSchema = z.object({
   typePrecision: z.string().optional(),
 });
 
-/** Rétention canonique "<nombre> <période>", ex. "6 Mois". */
-const RETENTION_REGEX = /^([1-9]|1[0-2]) (Jour|Semaines|Mois|Années)$/;
+/**
+ * Rétention canonique "<nombre> <période>", ex. "6 Mois".
+ * Plage autorisée PAR PÉRIODE (source unique de vérité côté backend) :
+ * Jour 1→31, Semaines 1→52, Mois 1→12, Années 1→15.
+ * Le frontend applique exactement la même règle (models/changement.model.ts) :
+ * les deux doivent évoluer ensemble.
+ */
+const RETENTION_MAX_PAR_PERIODE = { Jour: 31, Semaines: 52, Mois: 12, Années: 15 };
+const RETENTION_FORMAT_REGEX = /^(\d{1,2}) (Jour|Semaines|Mois|Années)$/;
+
+const retentionValide = (value) => {
+  const m = RETENTION_FORMAT_REGEX.exec(value);
+  if (!m) return false;
+  const nombre = Number(m[1]);
+  return nombre >= 1 && nombre <= RETENTION_MAX_PAR_PERIODE[m[2]];
+};
+
+const RETENTION_MESSAGE =
+  'Rétention attendue au format « <nombre> <période> » — plages : Jour 1-31, Semaines 1-52, Mois 1-12, Années 1-15';
 
 const createChangementSchema = z.object({
   objetChangement: z.string().min(1, 'Objet du changement requis'),
@@ -70,10 +87,7 @@ const createChangementSchema = z.object({
       backup: z
         .object({
           espaceBackupSupplementaireGo: optionalNumber,
-          retentionSouhaitee: z
-            .string()
-            .regex(RETENTION_REGEX, 'Rétention attendue au format « <1-12> <Jour|Semaines|Mois|Années> »')
-            .optional(),
+          retentionSouhaitee: z.string().refine(retentionValide, RETENTION_MESSAGE).optional(),
           licencesNecessaires: z.string().optional(),
         })
         .optional(),

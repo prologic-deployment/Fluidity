@@ -127,8 +127,28 @@ export const TYPES_DISQUE: string[] = ['NVMe', 'SAS', 'SSD', 'HDD', 'SATA', 'Aut
 /** Périodes de rétention proposées (Spécifications — Sauvegarde). */
 export const RETENTION_PERIODES: string[] = ['Jour', 'Semaines', 'Mois', 'Années'];
 
-/** Nombres de rétention proposés (1 à 12). */
-export const RETENTION_NOMBRES: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+/**
+ * Rétention — plage autorisée PAR PÉRIODE (source unique de vérité côté frontend) :
+ * Jour 1→31, Semaines 1→52, Mois 1→12, Années 1→15.
+ * Le backend applique exactement la même règle (schemas/changement.schema.js) :
+ * les deux doivent évoluer ensemble.
+ */
+export const RETENTION_MAX_PAR_PERIODE: Record<string, number> = {
+  Jour: 31,
+  Semaines: 52,
+  Mois: 12,
+  Années: 15,
+};
+
+/**
+ * Nombres sélectionnables pour la période choisie : [1 … max].
+ * Retourne une liste vide tant qu'aucune période (connue) n'est choisie,
+ * ce qui permet au formulaire de désactiver le sélecteur de nombre.
+ */
+export function retentionNombresDisponibles(periode: string | null | undefined): number[] {
+  const max = (periode && RETENTION_MAX_PAR_PERIODE[periode]) || 0;
+  return Array.from({ length: max }, (_, i) => i + 1);
+}
 
 /** Motif IPv4 utilisé pour la validation des champs réseau. */
 export const IPV4_PATTERN = '^(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)){3}$';

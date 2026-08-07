@@ -11,8 +11,9 @@ import {
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
   SECTIONS_SPECIFICATIONS,
   TYPES_DISQUE,
-  RETENTION_NOMBRES,
+  RETENTION_MAX_PAR_PERIODE,
   RETENTION_PERIODES,
+  retentionNombresDisponibles,
   IPV4_PATTERN,
   DisqueServeur,
   Changement,
@@ -54,7 +55,6 @@ export class CreateChangementComponent implements OnInit {
 
   // Spécifications — Serveur : disques dynamiques / Sauvegarde : rétention
   typesDisque = TYPES_DISQUE;
-  retentionNombres = RETENTION_NOMBRES;
   retentionPeriodes = RETENTION_PERIODES;
 
   constructor(
@@ -145,6 +145,12 @@ export class CreateChangementComponent implements OnInit {
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
+    // Rétention dynamique : la liste des nombres dépend de la période.
+    // Tout nombre devenu invalide (ex. 30 avec « Mois ») est réinitialisé.
+    this.form.get('backup.retentionPeriode')?.valueChanges.subscribe((periode: string) => {
+      this.onRetentionPeriodeChange(periode);
+    });
+
     // Contrats proposés : pour un compte CLIENT, le serveur filtre
     // automatiquement ses propres contrats (restriction côté serveur).
     this.contratService.getAll().subscribe({
@@ -196,6 +202,32 @@ export class CreateChangementComponent implements OnInit {
 
   removeDisque(index: number): void {
     this.disques.removeAt(index);
+  }
+
+  // --- Rétention dynamique (Spécifications — Sauvegarde) -------------------
+
+  /**
+   * Nombres proposés pour la période actuellement choisie (1 → max).
+   * Getter recalculé par le template : aucune liste dupliquée en mémoire.
+   */
+  get retentionNombres(): number[] {
+    return retentionNombresDisponibles(this.form?.get('backup.retentionPeriode')?.value);
+  }
+
+  /** Max de la période courante (0 tant qu'aucune n'est sélectionnée) — pour l'aide contextuelle. */
+  get retentionMax(): number {
+    const periode = this.form?.get('backup.retentionPeriode')?.value;
+    return (periode && RETENTION_MAX_PAR_PERIODE[periode]) || 0;
+  }
+
+  /** Changement de période : réinitialise un nombre devenu hors plage. */
+  onRetentionPeriodeChange(periode: string): void {
+    const nombreCtrl = this.form.get('backup.retentionNombre');
+    const max = RETENTION_MAX_PAR_PERIODE[periode];
+    if (nombreCtrl?.value && (!max || nombreCtrl.value > max)) {
+      nombreCtrl.setValue(null);
+      nombreCtrl.markAsUntouched();
+    }
   }
 
   /** Précision libre requise uniquement quand le type de disque est « Autre ». */

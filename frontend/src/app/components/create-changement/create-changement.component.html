@@ -311,7 +311,7 @@
             <div>
               <label class="field-label">Rétention souhaitée</label>
               <div class="flex gap-2">
-                <select formControlName="retentionNombre" class="select w-24">
+                <select formControlName="retentionNombre" class="select w-24" [disabled]="!form.get('backup.retentionPeriode')?.value">
                   <option [ngValue]="null" disabled>Nombre</option>
                   <option *ngFor="let n of retentionNombres" [ngValue]="n">{{ n }}</option>
                 </select>
@@ -320,6 +320,9 @@
                   <option *ngFor="let p of retentionPeriodes" [value]="p">{{ p }}</option>
                 </select>
               </div>
+              <p *ngIf="retentionMax" class="mt-1 text-xs text-muted-foreground">
+                Plage autorisée : 1 à {{ retentionMax }} (période « {{ form.get('backup.retentionPeriode')?.value }} »).
+              </p>
               <p *ngIf="form.get('backup')?.hasError('retentionIncomplete') && form.get('backup')?.touched" class="field-error">
                 Choisissez un nombre et une période (ex : 6 | Mois).
               </p>
