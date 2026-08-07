@@ -23,7 +23,7 @@ export class UserService {
     return this.http.get<LicenseInfo>(`${this.baseUrl}/licenses`, { params });
   }
 
-  create(user: { email: string; password: string; role: string; department?: string; tenantId?: string }): Observable<{ user: AppUser; licence: LicenseInfo }> {
+  create(user: { email: string; password: string; role: string; department?: string; clientId?: string | null; tenantId?: string }): Observable<{ user: AppUser; licence: LicenseInfo }> {
     return this.http.post<{ user: AppUser; licence: LicenseInfo }>(this.baseUrl, user);
   }
 

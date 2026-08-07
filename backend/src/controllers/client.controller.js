@@ -1,4 +1,6 @@
 const { Client } = require('../models/client.model');
+const { Contrat } = require('../models/contrat.model');
+const { Utilisateur } = require('../models/user.model');
 
 /**
  * Création d'un client (réservée aux ADMIN).
@@ -68,17 +70,34 @@ const updateClient = async (req, res) => {
 
 /**
  * Suppression d'un client (réservée aux ADMIN).
+ * Intégrité référentielle : impossible de supprimer une fiche encore
+ * référencée par des contrats ou des comptes portail (clientId). Le message
+ * détaille les blocages pour guider l'administrateur.
  */
 const deleteClient = async (req, res) => {
   try {
-    const client = await Client.findOneAndDelete({
-      _id: req.params.id,
-      tenantId: req.tenantId,
-    });
+    const client = await Client.findOne({ _id: req.params.id, tenantId: req.tenantId });
     if (!client) {
       res.status(404).json({ message: 'Client introuvable' });
       return;
     }
+
+    const [nbContrats, nbComptes] = await Promise.all([
+      Contrat.countDocuments({ tenantId: req.tenantId, clientId: client._id }),
+      Utilisateur.countDocuments({ tenantId: req.tenantId, clientId: client._id }),
+    ]);
+    if (nbContrats > 0 || nbComptes > 0) {
+      const blocages = [];
+      if (nbContrats > 0) blocages.push(`${nbContrats} contrat(s)`);
+      if (nbComptes > 0) blocages.push(`${nbComptes} compte(s) utilisateur rattaché(s)`);
+      res.status(409).json({
+        message: `Suppression impossible : ce client est encore référencé par ${blocages.join(' et ')}. Détachez-les d'abord.`,
+        references: { contrats: nbContrats, comptes: nbComptes },
+      });
+      return;
+    }
+
+    await client.deleteOne();
     res.status(200).json({ message: 'Client supprimé avec succès' });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

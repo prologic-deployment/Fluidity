@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { Contrat } = require('../models/contrat.model');
 const { Client } = require('../models/client.model');
+const { resolveClientForUserAccount } = require('../utils/client-link.util');
 
 /**
  * Création d'un contrat (réservé au Tenant Admin / Super Admin).
@@ -38,8 +39,9 @@ const createContrat = async (req, res) => {
 /**
  * Liste des contrats du tenant, avec filtre optionnel par client
  * (?clientId=<ObjectId>) — alimente les listes "Contrat" des formulaires.
- * Un utilisateur CLIENT ne voit que les contrats de SA fiche client
- * (rattachement par email au sein du tenant).
+ * Un utilisateur CLIENT ne voit que les contrats de SA société cliente
+ * (référence canonique `Utilisateur.clientId`, repli legacy par email —
+ * voir utils/client-link.util.js).
  */
 const getAllContrats = async (req, res) => {
   try {
@@ -51,9 +53,12 @@ const getAllContrats = async (req, res) => {
       }
       filter.clientId = req.query.clientId;
     }
-    // Restriction côté serveur : un CLIENT n'accède qu'à ses propres contrats
+    // Restriction côté serveur : un CLIENT n'accède qu'aux contrats de sa fiche
     if (req.userRole === 'CLIENT') {
-      const client = await Client.findOne({ tenantId: req.tenantId, email: req.userEmail });
+      const client = await resolveClientForUserAccount(req.tenantId, {
+        clientId: req.userClientId,
+        email: req.userEmail,
+      });
       if (!client) {
         res.status(200).json([]);
         return;

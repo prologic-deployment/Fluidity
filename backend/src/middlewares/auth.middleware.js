@@ -50,7 +50,7 @@ const authMiddleware = async (req, res, next) => {
     req.userEmail = decoded.email;
 
     // --- Vérification du compte (suspension temps réel) ---
-    const user = await Utilisateur.findById(req.userId).select('role status tenantId').lean();
+    const user = await Utilisateur.findById(req.userId).select('role status tenantId clientId').lean();
     if (!user) {
       res.status(401).json({ message: 'Compte introuvable ou supprimé' });
       return;
@@ -63,6 +63,9 @@ const authMiddleware = async (req, res, next) => {
       res.status(403).json({ message: LEGACY_MESSAGE });
       return;
     }
+    // Rattachement métier éventuel (comptes CLIENT) : référence canonique
+    // vers la fiche société — utilisée pour restreindre les contrats visibles.
+    req.userClientId = user.clientId || null;
 
     // --- Impersonation (PLATFORM_ADMIN uniquement) ---
     if (req.userRole === 'PLATFORM_ADMIN' && req.headers['x-tenant-override']) {

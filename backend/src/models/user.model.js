@@ -44,6 +44,23 @@ const LEGACY_ROLE_MAP = {
 /** Statuts de compte : invitation en attente, actif, suspendu. */
 const USER_STATUTS = ['invited', 'active', 'suspended'];
 
+/**
+ * Séparation claire des responsabilités (§ architecture Client/Utilisateur) :
+ *
+ *   Client      = ENTITÉ COMMERCIALE (raison sociale, coordonnées métier,
+ *                 contrats) — propriété du Tenant Admin, aucune donnée d'auth.
+ *   Utilisateur = IDENTITÉ & ACCÈS (login/email, mot de passe, rôle RBAC,
+ *                 2FA, profil, licences). Un compte `role: CLIENT` est un
+ *                 accès portail rattaché à UNE fiche Client via `clientId`.
+ *
+ * `clientId` est la référence canonique et explicite (intégrité référentielle),
+ * en remplacement de l'ancien rapprochement implicite par email. Le repli
+ * par email ne subsiste que pour les données historiques non migrées
+ * (voir utils/client-link.util.js — backfill idempotent fourni).
+ * Plusieurs comptes CLIENT peuvent partager la même fiche société.
+ */
+
+
 const UtilisateurSchema = new Schema(
   {
     // Obligatoire pour tout utilisateur sauf le Super Admin (hors tenant)
@@ -65,6 +82,9 @@ const UtilisateurSchema = new Schema(
     role: { type: String, enum: ROLES, default: 'CLIENT' },
     status: { type: String, enum: USER_STATUTS, default: 'active' },
     department: { type: String, default: '' },
+    // Comptes CLIENT uniquement : fiche « société cliente » de rattachement
+    // (propriétaire des contrats). null pour tous les autres rôles.
+    clientId: { type: Schema.Types.ObjectId, ref: 'Client', default: null },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
 
@@ -94,6 +114,8 @@ const UtilisateurSchema = new Schema(
 
 UtilisateurSchema.index({ tenantId: 1, email: 1 });
 UtilisateurSchema.index({ tenantId: 1, status: 1 });
+// Comptes portail rattachés à une même fiche société (ex. vue « contacts » d'un client)
+UtilisateurSchema.index({ tenantId: 1, clientId: 1 }, { sparse: true });
 
 /**
  * Hook pre-save : hash du mot de passe via bcrypt uniquement si modifié.

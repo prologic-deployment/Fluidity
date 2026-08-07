@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../services/user.service';
-import { AppUser, AppRole, LicenseInfo, APP_ROLES, ROLE_LABELS, USER_STATUS_LABELS } from '../../models/user.model';
+import { AppUser, AppRole, ClientRef, LicenseInfo, APP_ROLES, ROLE_LABELS, USER_STATUS_LABELS } from '../../models/user.model';
+import { ClientService } from '../../services/client.service';
+import { Client } from '../../models/client.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -23,6 +25,8 @@ import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 })
 export class UsersDashboardComponent implements OnInit {
   users: AppUser[] = [];
+  /** Fiches sociétés du tenant — sélecteur de rattachement des comptes CLIENT. */
+  clients: Client[] = [];
   licence: LicenseInfo | null = null;
   loading = false;
   error: string | null = null;
@@ -45,6 +49,7 @@ export class UsersDashboardComponent implements OnInit {
 
   constructor(
     private userService: UserService,
+    private clientService: ClientService,
     private auth: AuthService,
     private confirmDialog: ConfirmDialogService,
     private fb: FormBuilder
@@ -57,12 +62,19 @@ export class UsersDashboardComponent implements OnInit {
       password: ['', [Validators.required, Validators.minLength(6)]],
       role: ['CLIENT', Validators.required],
       department: [''],
+      clientId: [''],
     });
     this.editForm = this.fb.group({
       role: ['', Validators.required],
       department: [''],
+      clientId: [''],
     });
     this.load();
+    // Fiches sociétés pour le rattachement des comptes portail CLIENT
+    this.clientService.getAll().subscribe({
+      next: (data) => (this.clients = data),
+      error: () => (this.clients = []),
+    });
   }
 
   load(): void {
@@ -103,6 +115,25 @@ export class UsersDashboardComponent implements OnInit {
     return ROLE_LABELS[role || ''] || role || '—';
   }
 
+  /** Nom de la société rattachée (comptes CLIENT) — fiche peuplée côté serveur. */
+  clientNom(u: AppUser): string {
+    const c = u.clientId;
+    if (c && typeof c === 'object') return c.nom;
+    return '';
+  }
+
+  /** Payload réseau : n'envoie le rattachement que pour un compte CLIENT. */
+  private payloadAvecClient(form: FormGroup): Record<string, unknown> {
+    const value = { ...(form.value as Record<string, unknown>) };
+    if (value['role'] !== 'CLIENT') {
+      delete value['clientId'];
+    } else {
+      // Chaîne vide = aucun rattachement explicite (null = détachement à l'édition)
+      value['clientId'] = value['clientId'] || null;
+    }
+    return value;
+  }
+
   statutLabel(statut?: string): string {
     return USER_STATUS_LABELS[statut || ''] || statut || '—';
   }
@@ -136,7 +167,7 @@ export class UsersDashboardComponent implements OnInit {
   openCreate(): void {
     this.showCreate = true;
     this.formError = null;
-    this.createForm.reset({ email: '', password: '', role: 'CLIENT', department: '' });
+    this.createForm.reset({ email: '', password: '', role: 'CLIENT', department: '', clientId: '' });
   }
 
   closeCreate(): void {
@@ -151,7 +182,7 @@ export class UsersDashboardComponent implements OnInit {
     }
     this.submitting = true;
     this.formError = null;
-    this.userService.create(this.createForm.value).subscribe({
+    this.userService.create(this.payloadAvecClient(this.createForm) as any).subscribe({
       next: (res) => {
         this.submitting = false;
         this.closeCreate();
@@ -164,11 +195,12 @@ export class UsersDashboardComponent implements OnInit {
     });
   }
 
-  // --- Édition (rôle / département) -----------------------------------------
+  // --- Édition (rôle / département / rattachement client) -------------------
   openEdit(u: AppUser): void {
     this.editing = u;
     this.formError = null;
-    this.editForm.reset({ role: u.role, department: u.department || '' });
+    const clientId = u.clientId && typeof u.clientId === 'object' ? (u.clientId as ClientRef)._id : (u.clientId as string) || '';
+    this.editForm.reset({ role: u.role, department: u.department || '', clientId });
   }
 
   closeEdit(): void {
@@ -180,7 +212,7 @@ export class UsersDashboardComponent implements OnInit {
     if (!this.editing?._id) return;
     this.submitting = true;
     this.formError = null;
-    this.userService.update(this.editing._id, this.editForm.value).subscribe({
+    this.userService.update(this.editing._id, this.payloadAvecClient(this.editForm)).subscribe({
       next: (res) => {
         this.submitting = false;
         this.closeEdit();

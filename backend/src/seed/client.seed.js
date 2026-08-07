@@ -1,8 +1,11 @@
 const { Client } = require('../models/client.model');
+const { backfillClientAccountLinks } = require('../utils/client-link.util');
 
 /**
  * Clients de démonstration, rattachés à LEUR tenant (ObjectId) et
  * alignés sur les comptes CLIENT de démo (même email dans le tenant).
+ * Après création, les comptes CLIENT sans clientId sont rattachés
+ * explicitement à leur fiche (lien canonique — voir client-link.util).
  */
 const seedClients = async (tenants = {}) => {
   const fluidity = tenants['Fluidity'];
@@ -55,6 +58,12 @@ const seedClients = async (tenants = {}) => {
   console.log(
     `[Seed] Clients de démonstration : ${created} créé(s), ${existing} déjà présent(s) dans db.clients.`
   );
+
+  // Lien explicite compte portail CLIENT -> fiche société (idempotent)
+  const lies = await backfillClientAccountLinks();
+  if (lies > 0) {
+    console.log(`[Seed] Rattachement clientId : ${lies} compte(s) CLIENT lié(s) à leur fiche société.`);
+  }
 };
 
 module.exports = { seedClients };

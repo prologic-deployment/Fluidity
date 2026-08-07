@@ -1,6 +1,13 @@
 export type AppRole = 'PLATFORM_ADMIN' | 'TENANT_ADMIN' | 'MANAGER' | 'AGENT' | 'CLIENT' | 'VIEWER';
 export type UserStatus = 'invited' | 'active' | 'suspended';
 
+/** Fiche « société cliente » peuplée côté serveur (comptes CLIENT uniquement). */
+export interface ClientRef {
+  _id: string;
+  nom: string;
+  statut?: string;
+}
+
 export interface AppUser {
   _id?: string;
   tenantId?: string | null;
@@ -8,6 +15,12 @@ export interface AppUser {
   role: AppRole;
   status?: UserStatus;
   department?: string;
+  /**
+   * Comptes CLIENT uniquement : fiche société de rattachement (propriétaire
+   * des contrats visibles). ObjectId en écriture, fiche peuplée en lecture.
+   * null = compte portail sans société rattachée (aucun contrat visible).
+   */
+  clientId?: string | ClientRef | null;
   createdAt?: string;
   updatedAt?: string;
 }
