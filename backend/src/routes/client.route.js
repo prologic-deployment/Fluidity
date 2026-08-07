@@ -1,8 +1,9 @@
 const { Router } = require('express');
-const { authMiddleware, requireTenantAdmin } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireTenantAdmin, requireUtilisateurInterne, requirePasswordChanged } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createClient,
+  regenererAcces,
   getAllClients,
   getClientById,
   updateClient,
@@ -12,14 +13,16 @@ const { createClientSchema, updateClientSchema } = require('../schemas/client.sc
 
 const router = Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, requirePasswordChanged);
 
-// Lecture : tout utilisateur authentifié du tenant (alimente le sélecteur "Client" des contrats)
-router.get('/', getAllClients);
-router.get('/:id', getClientById);
+// Lecture : réservée aux comptes internes (alimente les écrans d'administration ;
+// un principal CLIENT n'a jamais besoin de lister les fiches de son tenant).
+router.get('/', requireUtilisateurInterne, getAllClients);
+router.get('/:id', requireUtilisateurInterne, getClientById);
 
 // Écriture : réservée aux administrateurs
 router.post('/', requireTenantAdmin, validate(createClientSchema), createClient);
+router.post('/:id/regenerer-acces', requireTenantAdmin, regenererAcces);
 router.patch('/:id', requireTenantAdmin, validate(updateClientSchema), updateClient);
 router.delete('/:id', requireTenantAdmin, deleteClient);
 

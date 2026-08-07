@@ -21,7 +21,7 @@
           </div>
           <div>
             <h2 class="card-title">Informations du client</h2>
-            <p class="card-description">L'email doit correspondre au compte utilisateur (rôle CLIENT) de ce client.</p>
+            <p class="card-description">L'email servira d'identifiant de connexion au portail client.</p>
           </div>
         </div>
       </div>
@@ -69,5 +69,19 @@
         </div>
       </div>
     </form>
+
+    <p class="mt-4 text-sm text-muted-foreground">
+      À la création, un accès portail est automatiquement provisionné : les
+      identifiants seront affichés une seule fois pour être communiqués au
+      client, qui devra changer son mot de passe à sa première connexion.
+    </p>
   </main>
+
+  <app-credentials-modal
+    [open]="!!identifiants"
+    [email]="identifiants?.email || ''"
+    [motDePasse]="identifiants?.motDePasseProvisoire || ''"
+    contexte="creation"
+    (closed)="fermerIdentifiants()"
+  ></app-credentials-modal>
 </div>

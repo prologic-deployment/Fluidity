@@ -9,6 +9,8 @@ export interface Client {
   adresse?: string;
   statut?: StatutClient;
   notes?: string;
+  /** Le client doit remplacer son mot de passe provisoire (accès provisionné). */
+  mustChangePassword?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -131,6 +131,9 @@
   <ng-container *ngIf="selected as c">
     <div class="flex flex-wrap gap-2 mb-5">
       <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
+      <span *ngIf="c.mustChangePassword" class="badge-warning" title="Le mot de passe provisoire n'a pas encore été remplacé">
+        <span class="badge-dot"></span>Mot de passe provisoire en attente
+      </span>
     </div>
 
     <div class="detail-grid">
@@ -153,8 +156,19 @@
       <p class="detail-value whitespace-pre-line">{{ c.notes }}</p>
     </ng-container>
 
-    <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="auth.isAdmin()">
+    <div class="flex flex-wrap justify-end gap-3 pt-6 mt-6 border-t border-border" *ngIf="auth.isAdmin()">
+      <button (click)="regenererAcces(c)" [disabled]="regenerationEnCours" class="btn-outline">
+        {{ regenerationEnCours ? 'Régénération...' : "Régénérer l'accès portail" }}
+      </button>
       <button (click)="deleteClient(c._id)" class="btn-destructive">Supprimer le client</button>
     </div>
   </ng-container>
 </app-modal>
+
+<app-credentials-modal
+  [open]="!!identifiants"
+  [email]="identifiants?.email || ''"
+  [motDePasse]="identifiants?.motDePasseProvisoire || ''"
+  contexte="regeneration"
+  (closed)="fermerIdentifiants()"
+></app-credentials-modal>
