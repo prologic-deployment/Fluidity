@@ -180,7 +180,11 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="field-label">Système d'exploitation</label>
-              <input formControlName="os" type="text" class="input" />
+              <input formControlName="os" type="text" class="input" placeholder="ex : Ubuntu 24.04, Windows Server 2025..." />
+            </div>
+            <div>
+              <label class="field-label">Hostname</label>
+              <input formControlName="hostname" type="text" class="input" placeholder="ex : shop-prod-01" />
             </div>
             <div>
               <label class="field-label">Cœurs CPU</label>
@@ -280,6 +284,71 @@
                 Format IPv4 invalide (ex : 192.168.1.1).
               </p>
             </div>
+            <div>
+              <label class="field-label">DNS primaire</label>
+              <input formControlName="dnsPrimaire" type="text" class="input" placeholder="ex : 10.0.0.10" />
+              <p *ngIf="form.get('reseau.dnsPrimaire')?.hasError('pattern') && form.get('reseau.dnsPrimaire')?.touched" class="field-error">
+                Format IPv4 invalide (ex : 10.0.0.10).
+              </p>
+            </div>
+            <div>
+              <label class="field-label">DNS secondaire</label>
+              <input formControlName="dnsSecondaire" type="text" class="input" placeholder="ex : 10.0.0.11" />
+              <p *ngIf="form.get('reseau.dnsSecondaire')?.hasError('pattern') && form.get('reseau.dnsSecondaire')?.touched" class="field-error">
+                Format IPv4 invalide (ex : 10.0.0.11).
+              </p>
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">Routage</label>
+              <input formControlName="routage" type="text" class="input" placeholder="ex : Statique, OSPF area 0, BGP AS65001..." />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section dynamique : Pare-feu / VPN (Réseau+Firewall, Réseau+VPN, Sécurité+Firewall) -->
+      <section *ngIf="showSection('firewall')" class="card animate-fade-in-up stagger-3" formGroupName="firewall">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Pare-feu / VPN</h2>
+              <p class="card-description">Règles, flux et cloisonnement demandés.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="field-label">Règles pare-feu</label>
+              <textarea formControlName="reglesPareFeu" rows="3" class="textarea"
+                placeholder="Une règle par ligne, ex :&#10;WAN → DMZ : 443/tcp autorisé&#10;WAN → LAN : tout refusé"></textarea>
+            </div>
+            <div>
+              <label class="field-label">Ports concernés</label>
+              <input formControlName="ports" type="text" class="input" placeholder="ex : 443/tcp, 22/tcp, 53/udp" />
+            </div>
+            <div>
+              <label class="field-label">NAT</label>
+              <input formControlName="nat" type="text" class="input" placeholder="ex : DNAT vers DMZ, SNAT sortant, Aucun" />
+            </div>
+            <div>
+              <label class="field-label">Zones</label>
+              <input formControlName="zones" type="text" class="input" placeholder="ex : WAN, LAN, DMZ" />
+            </div>
+            <div>
+              <label class="field-label">Politique par défaut</label>
+              <input formControlName="politique" type="text" class="input" placeholder="ex : Deny all puis autorisations ciblées" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">VPN</label>
+              <input formControlName="vpn" type="text" class="input" placeholder="ex : Site-à-site IPSec, client SSL, WireGuard, Aucun" />
+            </div>
           </div>
         </div>
       </section>
@@ -326,6 +395,31 @@
               <p *ngIf="form.get('backup')?.hasError('retentionIncomplete') && form.get('backup')?.touched" class="field-error">
                 Choisissez un nombre et une période (ex : 6 | Mois).
               </p>
+            </div>
+            <div>
+              <label class="field-label">Fréquence de sauvegarde</label>
+              <select formControlName="frequenceSauvegarde" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let f of frequencesSauvegarde" [value]="f">{{ f }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Destination</label>
+              <input formControlName="destinationBackup" type="text" class="input" placeholder="ex : NAS local, S3 immuable, Azure Backup..." />
+            </div>
+            <div>
+              <label class="field-label">Compression</label>
+              <select formControlName="compression" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let o of ouiNon" [value]="o">{{ o }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Chiffrement</label>
+              <select formControlName="chiffrement" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let o of ouiNon" [value]="o">{{ o }}</option>
+              </select>
             </div>
             <div class="md:col-span-2">
               <label class="field-label">Licences nécessaires</label>
@@ -397,9 +491,21 @@
               <label class="field-label">Nombre de GPU</label>
               <input formControlName="nombreGpu" type="number" min="0" class="input" />
             </div>
-            <div class="md:col-span-2">
+            <div>
+              <label class="field-label">VRAM par GPU (Go)</label>
+              <input formControlName="vramGo" type="number" min="0" class="input" placeholder="ex : 80" />
+            </div>
+            <div>
+              <label class="field-label">Version CUDA</label>
+              <input formControlName="versionCuda" type="text" class="input" placeholder="ex : 12.4" />
+            </div>
+            <div>
               <label class="field-label">Framework</label>
               <input formControlName="framework" type="text" class="input" placeholder="Ex : PyTorch, TensorFlow, ONNX, Hugging Face..." />
+            </div>
+            <div>
+              <label class="field-label">Version du pilote</label>
+              <input formControlName="versionPilote" type="text" class="input" placeholder="ex : 550.54.15" />
             </div>
           </div>
         </div>

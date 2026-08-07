@@ -70,6 +70,7 @@ const createChangementSchema = z.object({
       serveur: z
         .object({
           os: z.string().optional(),
+          hostname: z.string().optional(),
           cpuCores: optionalNumber,
           ramGo: optionalNumber,
           // Remplace disqueNvmeGo / disqueSasGo : liste dynamique de disques
@@ -82,12 +83,30 @@ const createChangementSchema = z.object({
           adresseIp: optionalIpv4,
           masqueSousReseau: optionalIpv4,
           passerelle: optionalIpv4,
+          dnsPrimaire: optionalIpv4,
+          dnsSecondaire: optionalIpv4,
+          routage: z.string().optional(),
+        })
+        .optional(),
+      // Section pare-feu / VPN (combinaisons Réseau+Firewall, Réseau+VPN, Sécurité+Firewall)
+      firewall: z
+        .object({
+          reglesPareFeu: z.string().optional(),
+          ports: z.string().optional(),
+          nat: z.string().optional(),
+          zones: z.string().optional(),
+          politique: z.string().optional(),
+          vpn: z.string().optional(),
         })
         .optional(),
       backup: z
         .object({
           espaceBackupSupplementaireGo: optionalNumber,
           retentionSouhaitee: z.string().refine(retentionValide, RETENTION_MESSAGE).optional(),
+          frequenceSauvegarde: z.string().optional(),
+          destinationBackup: z.string().optional(),
+          compression: z.enum(['Oui', 'Non']).optional(),
+          chiffrement: z.enum(['Oui', 'Non']).optional(),
           licencesNecessaires: z.string().optional(),
         })
         .optional(),
@@ -125,7 +144,10 @@ const createChangementSchema = z.object({
         .object({
           typeGpu: z.string().optional(),
           nombreGpu: optionalNumber,
+          vramGo: optionalNumber,
           framework: z.string().optional(),
+          versionCuda: z.string().optional(),
+          versionPilote: z.string().optional(),
         })
         .optional(),
       securite: z

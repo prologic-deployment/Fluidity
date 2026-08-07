@@ -26,6 +26,7 @@ export interface Specifications {
   };
   serveur?: {
     os?: string;
+    hostname?: string;
     cpuCores?: number;
     ramGo?: number;
     // Disques dynamiques : remplace les anciens champs fixes disqueNvmeGo / disqueSasGo
@@ -36,11 +37,29 @@ export interface Specifications {
     adresseIp?: string;
     masqueSousReseau?: string;
     passerelle?: string;
+    dnsPrimaire?: string;
+    dnsSecondaire?: string;
+    /** Ex. Statique, OSPF, BGP... */
+    routage?: string;
+  };
+  /** Section dédiée pare-feu (catégories Réseau/Firewall, Sécurité/Firewall, VPN). */
+  firewall?: {
+    /** Règles demandées, une par ligne (ex. « WAN→DMZ : 443/tcp autorisé »). */
+    reglesPareFeu?: string;
+    ports?: string;
+    nat?: string;
+    zones?: string;
+    politique?: string;
+    vpn?: string;
   };
   backup?: {
     espaceBackupSupplementaireGo?: number;
-    /** Valeur canonique composée « <1-12> <période> », ex. « 6 Mois ». */
+    /** Valeur canonique composée « <nombre> <période> », ex. « 6 Mois » (plages par période). */
     retentionSouhaitee?: string;
+    frequenceSauvegarde?: string;
+    destinationBackup?: string;
+    compression?: string; // 'Oui' | 'Non'
+    chiffrement?: string; // 'Oui' | 'Non'
     licencesNecessaires?: string;
   };
   // --- Sections supplémentaires affichées selon la catégorie choisie ---
@@ -71,7 +90,11 @@ export interface Specifications {
   iaGpu?: {
     typeGpu?: string;
     nombreGpu?: number;
+    /** Mémoire vidéo par GPU (Go), ex. 80 pour une A100 80 Go. */
+    vramGo?: number;
     framework?: string;
+    versionCuda?: string;
+    versionPilote?: string;
   };
   securite?: {
     perimetre?: string;
@@ -153,15 +176,59 @@ export function retentionNombresDisponibles(periode: string | null | undefined):
 /** Motif IPv4 utilisé pour la validation des champs réseau. */
 export const IPV4_PATTERN = '^(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|0?[1-9]?\\d)){3}$';
 
+/** Fréquences de sauvegarde proposées (Spécifications — Sauvegarde). */
+export const FREQUENCES_SAUVEGARDE: string[] = ['Quotidienne', 'Hebdomadaire', 'Mensuelle', 'Personnalisée'];
+
+/** Réponses Oui/Non proposées (compression, chiffrement...). */
+export const OUI_NON: string[] = ['Oui', 'Non'];
+
 /**
- * Sections de spécifications affichées dynamiquement selon la catégorie.
- * 'general' est toujours affichée, quelle que soit la catégorie.
+ * Moteur de sections dynamiques — règles par catégorie, avec surcharges
+ * ciblées par sous-catégorie. Garantit qu'aucune section sans rapport avec
+ * la combinaison choisie n'est affichée (ex. Sécurité + Firewall n'affiche
+ * JAMAIS les champs serveur).
+ *
+ * 'general' est implicite : toujours affichée, jamais listée ici.
  */
-export const SECTIONS_SPECIFICATIONS: Record<string, string[]> = {
-  Réseau: ['reseau'],
-  VM: ['serveur'],
-  'IA-GPU': ['iaGpu'],
-  Stockage: ['stockage'],
-  Sécurité: ['securite'],
-  Sauvegarde: ['backup'],
+export interface RegleSections {
+  /** Sections affichées par défaut pour la catégorie (toute sous-catégorie sans surcharge). */
+  defaut: string[];
+  /** Surcharges exactes par sous-catégorie du catalogue (remplacent le défaut). */
+  parSousCategorie?: Record<string, string[]>;
+}
+
+export const SECTIONS_SPECIFICATIONS: Record<string, RegleSections> = {
+  Réseau: {
+    defaut: ['reseau'],
+    parSousCategorie: {
+      // Pare-feu et VPN ont besoin du contexte réseau + de la section dédiée
+      Firewall: ['reseau', 'firewall'],
+      VPN: ['reseau', 'firewall'],
+    },
+  },
+  VM: { defaut: ['serveur'] },
+  'IA-GPU': { defaut: ['iaGpu'] },
+  Stockage: { defaut: ['stockage'] },
+  Sécurité: {
+    defaut: ['securite'],
+    parSousCategorie: {
+      Firewall: ['securite', 'firewall'],
+    },
+  },
+  Sauvegarde: { defaut: ['backup'] },
 };
+
+/**
+ * Résout les sections à afficher pour un couple catégorie/sous-catégorie :
+ * surcharge exacte si la sous-catégorie y figure, sinon le défaut de la
+ * catégorie ; [] pour une catégorie custom (« Autre » → aucune section,
+ * comme avant). Source unique — formulaire, payload et validation s'y
+ * réfèrent tous via cette fonction.
+ */
+export function sectionsPour(categorie: string | null | undefined, sousCategorie?: string | null): string[] {
+  if (!categorie) return [];
+  const regle = SECTIONS_SPECIFICATIONS[categorie];
+  if (!regle) return [];
+  const surcharge = sousCategorie ? regle.parSousCategorie?.[sousCategorie] : undefined;
+  return surcharge ?? regle.defaut;
+}

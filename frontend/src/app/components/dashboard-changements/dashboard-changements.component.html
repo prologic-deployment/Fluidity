@@ -187,6 +187,7 @@
         </ng-container>
         <ng-container *ngIf="c.specifications.serveur as s">
           <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
+          <div *ngIf="s.hostname"><p class="detail-label">Hostname</p><p class="detail-value">{{ s.hostname }}</p></div>
           <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
           <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
           <div *ngIf="s.disques?.length" class="md:col-span-2">
@@ -204,10 +205,28 @@
           <div *ngIf="r.adresseIp"><p class="detail-label">Adresse IP</p><p class="detail-value">{{ r.adresseIp }}</p></div>
           <div *ngIf="r.masqueSousReseau"><p class="detail-label">Masque</p><p class="detail-value">{{ r.masqueSousReseau }}</p></div>
           <div *ngIf="r.passerelle"><p class="detail-label">Passerelle</p><p class="detail-value">{{ r.passerelle }}</p></div>
+          <div *ngIf="r.dnsPrimaire"><p class="detail-label">DNS primaire</p><p class="detail-value">{{ r.dnsPrimaire }}</p></div>
+          <div *ngIf="r.dnsSecondaire"><p class="detail-label">DNS secondaire</p><p class="detail-value">{{ r.dnsSecondaire }}</p></div>
+          <div *ngIf="r.routage"><p class="detail-label">Routage</p><p class="detail-value">{{ r.routage }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.firewall as fw">
+          <div *ngIf="fw.reglesPareFeu" class="md:col-span-2">
+            <p class="detail-label">Règles pare-feu</p>
+            <p class="detail-value whitespace-pre-line">{{ fw.reglesPareFeu }}</p>
+          </div>
+          <div *ngIf="fw.ports"><p class="detail-label">Ports</p><p class="detail-value">{{ fw.ports }}</p></div>
+          <div *ngIf="fw.nat"><p class="detail-label">NAT</p><p class="detail-value">{{ fw.nat }}</p></div>
+          <div *ngIf="fw.zones"><p class="detail-label">Zones</p><p class="detail-value">{{ fw.zones }}</p></div>
+          <div *ngIf="fw.politique"><p class="detail-label">Politique par défaut</p><p class="detail-value">{{ fw.politique }}</p></div>
+          <div *ngIf="fw.vpn"><p class="detail-label">VPN</p><p class="detail-value">{{ fw.vpn }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
           <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention souhaitée</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.frequenceSauvegarde"><p class="detail-label">Fréquence</p><p class="detail-value">{{ b.frequenceSauvegarde }}</p></div>
+          <div *ngIf="b.destinationBackup"><p class="detail-label">Destination</p><p class="detail-value">{{ b.destinationBackup }}</p></div>
+          <div *ngIf="b.compression"><p class="detail-label">Compression</p><p class="detail-value">{{ b.compression }}</p></div>
+          <div *ngIf="b.chiffrement"><p class="detail-label">Chiffrement</p><p class="detail-value">{{ b.chiffrement }}</p></div>
           <div *ngIf="b.licencesNecessaires"><p class="detail-label">Licences nécessaires</p><p class="detail-value">{{ b.licencesNecessaires }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.baseDeDonnees as db">
@@ -234,7 +253,10 @@
         <ng-container *ngIf="c.specifications.iaGpu as gpu">
           <div *ngIf="gpu.typeGpu"><p class="detail-label">Type de GPU</p><p class="detail-value">{{ gpu.typeGpu }}</p></div>
           <div *ngIf="gpu.nombreGpu"><p class="detail-label">Nombre de GPU</p><p class="detail-value">{{ gpu.nombreGpu }}</p></div>
+          <div *ngIf="gpu.vramGo"><p class="detail-label">VRAM / GPU (Go)</p><p class="detail-value">{{ gpu.vramGo }}</p></div>
           <div *ngIf="gpu.framework"><p class="detail-label">Framework</p><p class="detail-value">{{ gpu.framework }}</p></div>
+          <div *ngIf="gpu.versionCuda"><p class="detail-label">Version CUDA</p><p class="detail-value">{{ gpu.versionCuda }}</p></div>
+          <div *ngIf="gpu.versionPilote"><p class="detail-label">Version du pilote</p><p class="detail-value">{{ gpu.versionPilote }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.securite as sec">
           <div *ngIf="sec.perimetre"><p class="detail-label">Périmètre</p><p class="detail-value">{{ sec.perimetre }}</p></div>

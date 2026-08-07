@@ -9,11 +9,13 @@ import {
   SOUS_CATEGORIES_CHANGEMENT,
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
-  SECTIONS_SPECIFICATIONS,
+  sectionsPour,
   TYPES_DISQUE,
   RETENTION_MAX_PAR_PERIODE,
   RETENTION_PERIODES,
   retentionNombresDisponibles,
+  FREQUENCES_SAUVEGARDE,
+  OUI_NON,
   IPV4_PATTERN,
   DisqueServeur,
   Changement,
@@ -53,9 +55,11 @@ export class CreateChangementComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Spécifications — Serveur : disques dynamiques / Sauvegarde : rétention
+  // Spécifications — Serveur : disques dynamiques / Sauvegarde : rétention & politique
   typesDisque = TYPES_DISQUE;
   retentionPeriodes = RETENTION_PERIODES;
+  frequencesSauvegarde = FREQUENCES_SAUVEGARDE;
+  ouiNon = OUI_NON;
 
   constructor(
     private fb: FormBuilder,
@@ -84,6 +88,7 @@ export class CreateChangementComponent implements OnInit {
       }),
       serveur: this.fb.group({
         os: [''],
+        hostname: [''],
         cpuCores: [null],
         ramGo: [null],
         // Disques dynamiques : [capacité Go] + [type] (+ précision si 'Autre')
@@ -95,12 +100,27 @@ export class CreateChangementComponent implements OnInit {
         adresseIp: ['', Validators.pattern(IPV4_PATTERN)],
         masqueSousReseau: ['', Validators.pattern(IPV4_PATTERN)],
         passerelle: ['', Validators.pattern(IPV4_PATTERN)],
+        dnsPrimaire: ['', Validators.pattern(IPV4_PATTERN)],
+        dnsSecondaire: ['', Validators.pattern(IPV4_PATTERN)],
+        routage: [''],
+      }),
+      firewall: this.fb.group({
+        reglesPareFeu: [''],
+        ports: [''],
+        nat: [''],
+        zones: [''],
+        politique: [''],
+        vpn: [''],
       }),
       backup: this.fb.group(
         {
           espaceBackupSupplementaireGo: [null],
           retentionNombre: [null],
           retentionPeriode: [''],
+          frequenceSauvegarde: [''],
+          destinationBackup: [''],
+          compression: [''],
+          chiffrement: [''],
           licencesNecessaires: [''],
         },
         { validators: [retentionCompleteValidator] }
@@ -114,7 +134,10 @@ export class CreateChangementComponent implements OnInit {
       iaGpu: this.fb.group({
         typeGpu: [''],
         nombreGpu: [null],
+        vramGo: [null],
         framework: [''],
+        versionCuda: [''],
+        versionPilote: [''],
       }),
       securite: this.fb.group({
         perimetre: [''],
@@ -246,20 +269,23 @@ export class CreateChangementComponent implements OnInit {
   }
 
   /**
-   * Une section de spécifications n'est affichée que si la catégorie
-   * sélectionnée la requiert ('general' reste toujours visible ; aucune
-   * section spécifique n'est proposée pour une catégorie « Autre » custom).
+   * Une section de spécifications n'est affichée que si la combinaison
+   * catégorie/sous-catégorie la requiert ('general' reste toujours visible ;
+   * aucune section spécifique n'est proposée pour une catégorie « Autre »
+   * custom). Résolution centralisée dans `sectionsPour` (models/changement) :
+   * jamais de champ sans rapport avec la combinaison choisie.
    */
   showSection(section: string): boolean {
     if (section === 'general') return true;
     const cat = this.form?.get('categorie')?.value;
     if (!cat || cat === AUTRE) return false;
-    return (SECTIONS_SPECIFICATIONS[cat] || []).includes(section);
+    const sous = this.form?.get('sousCategorie')?.value;
+    return sectionsPour(cat, sous).includes(section);
   }
 
   /** Clés des sections réellement envoyées : general + sections visibles. */
   private sectionsVisibles(): string[] {
-    return ['general', 'serveur', 'reseau', 'backup', 'stockage', 'iaGpu', 'securite'].filter(
+    return ['general', 'serveur', 'reseau', 'firewall', 'backup', 'stockage', 'iaGpu', 'securite'].filter(
       (s) => this.showSection(s)
     );
   }

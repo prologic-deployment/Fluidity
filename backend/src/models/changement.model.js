@@ -22,6 +22,7 @@ const SpecificationsSchema = new Schema(
     },
     serveur: {
       os: { type: String },
+      hostname: { type: String },
       cpuCores: { type: Number },
       ramGo: { type: Number },
       // Disques dynamiques : paires [capacité Go] + [type] (NVMe/SAS/SSD/HDD/SATA/Autre)
@@ -41,10 +42,27 @@ const SpecificationsSchema = new Schema(
       adresseIp: { type: String, match: [IPV4_REGEX, 'Adresse IP invalide (format IPv4 attendu)'] },
       masqueSousReseau: { type: String, match: [IPV4_REGEX, 'Masque de sous-réseau invalide (format IPv4 attendu)'] },
       passerelle: { type: String, match: [IPV4_REGEX, 'Passerelle invalide (format IPv4 attendu)'] },
+      dnsPrimaire: { type: String, match: [IPV4_REGEX, 'DNS primaire invalide (format IPv4 attendu)'] },
+      dnsSecondaire: { type: String, match: [IPV4_REGEX, 'DNS secondaire invalide (format IPv4 attendu)'] },
+      routage: { type: String }, // Statique, OSPF, BGP...
+    },
+    // Section dédiée pare-feu / VPN (combinaisons Réseau+Firewall, Réseau+VPN,
+    // Sécurité+Firewall — voir SECTIONS_SPECIFICATIONS côté frontend)
+    firewall: {
+      reglesPareFeu: { type: String }, // une règle par ligne
+      ports: { type: String },
+      nat: { type: String },
+      zones: { type: String },
+      politique: { type: String },
+      vpn: { type: String },
     },
     backup: {
       espaceBackupSupplementaireGo: { type: Number },
-      retentionSouhaitee: { type: String },
+      retentionSouhaitee: { type: String }, // « <nombre> <période> » validé par Zod (plages par période)
+      frequenceSauvegarde: { type: String },
+      destinationBackup: { type: String },
+      compression: { type: String }, // 'Oui' | 'Non'
+      chiffrement: { type: String }, // 'Oui' | 'Non'
       licencesNecessaires: { type: String },
     },
     // Sections additionnelles, affichées côté formulaire selon la catégorie
@@ -73,7 +91,10 @@ const SpecificationsSchema = new Schema(
     iaGpu: {
       typeGpu: { type: String }, // NVIDIA A100, H100...
       nombreGpu: { type: Number },
+      vramGo: { type: Number }, // mémoire vidéo par GPU
       framework: { type: String }, // PyTorch, TensorFlow, ONNX, Hugging Face, CUDA...
+      versionCuda: { type: String },
+      versionPilote: { type: String },
     },
     securite: {
       perimetre: { type: String },

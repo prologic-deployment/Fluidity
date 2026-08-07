@@ -9,9 +9,10 @@ const { Contrat } = require('../models/contrat.model');
  *   -> Clôturé   (+ Rollback, Rejeté, Annulé)
  *
  * Chaque section de spécifications est représentée (serveur/disques dynamiques,
- * réseau/IPv4, sauvegarde/rétention, base de données, stockage, portail web,
- * conteneurs, IA-GPU, sécurité) pour tester aussi le formulaire dynamique et
- * l'affichage du détail.
+ * réseau/IPv4/DNS, pare-feu/règles & VPN, sauvegarde/rétention & politique,
+ * stockage, IA-GPU/VRAM & CUDA, sécurité — plus les sections historiques
+ * base de données / portail web / conteneurs portées par d'anciens records)
+ * pour tester aussi le formulaire dynamique et l'affichage du détail.
  *
  * Les statuts sont injectés directement (données de démo) — jamais en production.
  */
@@ -54,7 +55,7 @@ const seedChangements = async (tenants = {}) => {
       specifications: {
         general: { ressourcesConcernees: 'VM shop-prod-01 (cluster A)' },
         serveur: {
-          os: 'Ubuntu 24.04', cpuCores: 8, ramGo: 32,
+          os: 'Ubuntu 24.04', hostname: 'shop-prod-01', cpuCores: 8, ramGo: 32,
           disques: [
             { capaciteGo: 500, type: 'NVMe' },
             { capaciteGo: 1000, type: 'SAS' },
@@ -73,7 +74,8 @@ const seedChangements = async (tenants = {}) => {
       typeChangement: 'Majeur', contrat: ctrHelios._id,
       specifications: {
         general: { ressourcesConcernees: 'Switchs entrepôt + pare-feu inter-VLAN' },
-        reseau: { vlan: '240', adresseIp: '10.40.0.1', masqueSousReseau: '255.255.255.0', passerelle: '10.40.0.254' },
+        reseau: { vlan: '240', adresseIp: '10.40.0.1', masqueSousReseau: '255.255.255.0', passerelle: '10.40.0.254',
+          dnsPrimaire: '10.0.0.10', dnsSecondaire: '10.0.0.11', routage: 'Statique (inter-VLAN via pare-feu)' },
       },
     },
     // --- Statut : En attente de validation ---
@@ -90,6 +92,14 @@ const seedChangements = async (tenants = {}) => {
       specifications: {
         general: { ressourcesConcernees: 'Pare-feu périmétrique HA (2 nœuds)' },
         securite: { perimetre: 'DMZ + bastion SSH', niveauCriticite: 'Critique' },
+        firewall: {
+          reglesPareFeu: 'WAN → DMZ : 443/tcp autorisé\nWAN → DMZ : 22/tcp limité au bastion\nWAN → LAN : tout refusé',
+          ports: '443/tcp, 22/tcp (bastion)',
+          nat: 'DNAT vers DMZ',
+          zones: 'WAN, DMZ, LAN',
+          politique: 'Deny all par défaut',
+          vpn: 'Aucun',
+        },
       },
     },
     // --- Statut : Approuvé (action AGENT : planification) ---
@@ -166,7 +176,7 @@ const seedChangements = async (tenants = {}) => {
       typeChangement: 'Standard', contrat: ctrHelios._id,
       specifications: {
         general: { ressourcesConcernees: 'Nœud gpu-01 du cluster' },
-        iaGpu: { typeGpu: 'NVIDIA A100', nombreGpu: 2, framework: 'PyTorch' },
+        iaGpu: { typeGpu: 'NVIDIA A100', nombreGpu: 2, vramGo: 80, framework: 'PyTorch', versionCuda: '12.4', versionPilote: '550.54.15' },
       },
     },
     // --- Statut : En revue post-implémentation (MANAGER peut clôturer) ---
@@ -181,7 +191,9 @@ const seedChangements = async (tenants = {}) => {
       typeChangement: 'Majeur', contrat: ctrAtlas2._id,
       specifications: {
         general: { ressourcesConcernees: 'Job Veeam VM-finances' },
-        backup: { espaceBackupSupplementaireGo: 2000, retentionSouhaitee: '6 Mois', licencesNecessaires: 'Veeam Enterprise+' },
+        backup: { espaceBackupSupplementaireGo: 2000, retentionSouhaitee: '6 Mois', frequenceSauvegarde: 'Quotidienne',
+          destinationBackup: 'NAS local + copie S3 immuable', compression: 'Oui', chiffrement: 'Oui',
+          licencesNecessaires: 'Veeam Enterprise+' },
       },
     },
     // --- Statut : Clôturé ---
@@ -196,7 +208,7 @@ const seedChangements = async (tenants = {}) => {
       typeChangement: 'Standard', contrat: ctrHelios._id,
       specifications: {
         general: { ressourcesConcernees: 'Cluster dev - hôte 2' },
-        serveur: { os: 'Debian 12', cpuCores: 4, ramGo: 16, disques: [{ capaciteGo: 100, type: 'NVMe' }] },
+        serveur: { os: 'Debian 12', hostname: 'dev-mobile-01', cpuCores: 4, ramGo: 16, disques: [{ capaciteGo: 100, type: 'NVMe' }] },
       },
     },
     // --- Statut : Rejeté ---
