@@ -46,7 +46,7 @@ const SpecificationsSchema = new Schema(
       dnsSecondaire: { type: String, match: [IPV4_REGEX, 'DNS secondaire invalide (format IPv4 attendu)'] },
       routage: { type: String }, // Statique, OSPF, BGP...
     },
-    // Section dédiée pare-feu / VPN (combinaisons Réseau+Firewall, Réseau+VPN,
+    // Section dédiée pare-feu / VPN (combinaisons Réseau+VPN et
     // Sécurité+Firewall — voir SECTIONS_SPECIFICATIONS côté frontend)
     firewall: {
       reglesPareFeu: { type: String }, // une règle par ligne

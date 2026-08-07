@@ -88,7 +88,7 @@ const createChangementSchema = z.object({
           routage: z.string().optional(),
         })
         .optional(),
-      // Section pare-feu / VPN (combinaisons Réseau+Firewall, Réseau+VPN, Sécurité+Firewall)
+      // Section pare-feu / VPN (combinaisons Réseau+VPN et Sécurité+Firewall)
       firewall: z
         .object({
           reglesPareFeu: z.string().optional(),

@@ -59,7 +59,7 @@ const seedDemandes = async (tenants = {}) => {
       tenantId: fluidity._id, requester: helios._id, statut: 'Ouverte',
       objet: 'Ouverture de flux HTTPS vers notre API partenaire',
       typeDemande: "Modification d'accès", serviceEnvironnement: 'Production',
-      categorie: 'Réseau', sousCategorie: 'Firewall',
+      categorie: 'Réseau', sousCategorie: 'Autre',
       descriptionDetaillee:
         'Merci d\'autoriser le flux sortant TCP/443 de notre VLAN applicatif (10.20.0.0/24) ' +
         'vers api.helios-partner.tn (203.0.113.45) pour l\'intégration du nouveau logiciel logistique.',

@@ -42,7 +42,7 @@ export interface Specifications {
     /** Ex. Statique, OSPF, BGP... */
     routage?: string;
   };
-  /** Section dédiée pare-feu (catégories Réseau/Firewall, Sécurité/Firewall, VPN). */
+  /** Section dédiée pare-feu / VPN (Sécurité+Firewall et Réseau+VPN). */
   firewall?: {
     /** Règles demandées, une par ligne (ex. « WAN→DMZ : 443/tcp autorisé »). */
     reglesPareFeu?: string;
@@ -201,8 +201,9 @@ export const SECTIONS_SPECIFICATIONS: Record<string, RegleSections> = {
   Réseau: {
     defaut: ['reseau'],
     parSousCategorie: {
-      // Pare-feu et VPN ont besoin du contexte réseau + de la section dédiée
-      Firewall: ['reseau', 'firewall'],
+      // Le VPN a besoin du contexte réseau + de la section pare-feu/VPN.
+      // (La sous-catégorie « Firewall » n'existe plus dans Réseau : toute
+      //  règle pare-feu relève désormais de Sécurité + Firewall.)
       VPN: ['reseau', 'firewall'],
     },
   },
