@@ -181,6 +181,17 @@ const migrateToMultiTenancy = async () => {
     `[Migration] comptes CLIENT convertis en accès portail : ${conv.convertis} ` +
       `(${conv.fichesCreees} fiche(s) créée(s), ${conv.dossiersReassignes} dossier(s) réassigné(s)).`
   );
+  // Nettoyage du profil (§ profil) : « Fuseau horaire » et « Langue » ont été
+  // retirés du modèle Utilisateur — purge des valeurs persistées sur les
+  // documents existants (Mongoose les ignorerait déjà en lecture ; on rend
+  // la base strictement conforme au nouveau schéma).
+  const purge = await db
+    .collection('utilisateurs')
+    .updateMany(
+      { $or: [{ timezone: { $exists: true } }, { language: { $exists: true } }] },
+      { $unset: { timezone: '', language: '' } }
+    );
+  console.log(`[Migration] profil : ${purge.modifiedCount} compte(s) purgé(s) de timezone/language.`);
   console.log('[Migration] === Migration multi-tenant terminée ===');
   return map;
 };

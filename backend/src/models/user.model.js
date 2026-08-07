@@ -83,8 +83,6 @@ const UtilisateurSchema = new Schema(
     bio: { type: String, default: '' },
     address: { type: String, default: '' },
     avatarUrl: { type: String, default: null },
-    timezone: { type: String, default: 'Africa/Tunis' },
-    language: { type: String, default: 'fr' },
 
     // --- Double authentification TOTP (RFC 6238) — optionnelle, désactivée par défaut ---
     // Le secret est CHIFFRÉ (AES-256-GCM, crypto.util) — jamais stocké en clair.

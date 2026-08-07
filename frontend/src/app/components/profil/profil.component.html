@@ -234,19 +234,6 @@
               <label class="field-label">Adresse</label>
               <input formControlName="address" type="text" class="input" placeholder="Adresse professionnelle" />
             </div>
-            <div>
-              <label class="field-label">Fuseau horaire</label>
-              <select formControlName="timezone" class="select">
-                <option *ngFor="let tz of timezones" [value]="tz">{{ tz }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="field-label">Langue</label>
-              <select formControlName="language" class="select">
-                <option value="fr">Français</option>
-                <option value="en">English</option>
-              </select>
-            </div>
             <div class="md:col-span-2">
               <label class="field-label">Biographie</label>
               <textarea formControlName="bio" rows="3" class="textarea"

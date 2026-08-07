@@ -37,16 +37,6 @@ export class ProfilComponent implements OnInit {
   avatarUploading = false;
   avatarError: string | null = null;
 
-  readonly timezones = [
-    'Africa/Tunis',
-    'Europe/Paris',
-    'Europe/London',
-    'UTC',
-    'America/New_York',
-    'Africa/Casablanca',
-    'Africa/Algiers',
-  ];
-
   readonly ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
   readonly MAX_AVATAR_MB = 5;
 
@@ -65,8 +55,6 @@ export class ProfilComponent implements OnInit {
       jobTitle: ['', Validators.maxLength(120)],
       address: ['', Validators.maxLength(300)],
       bio: ['', Validators.maxLength(1000)],
-      timezone: ['Africa/Tunis'],
-      language: ['fr'],
     });
     this.loadProfile();
   }
@@ -85,8 +73,6 @@ export class ProfilComponent implements OnInit {
           jobTitle: user['jobTitle'] || '',
           address: user['address'] || '',
           bio: user['bio'] || '',
-          timezone: user['timezone'] || 'Africa/Tunis',
-          language: user['language'] || 'fr',
         });
         this.form.markAsPristine();
         this.loading = false;

@@ -44,8 +44,6 @@ const updateProfileSchema = z.object({
     )
     .nullable()
     .optional(),
-  timezone: z.string().max(60).optional(),
-  language: z.enum(['fr', 'en']).optional(),
 });
 
 const forgotPasswordSchema = z.object({

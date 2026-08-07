@@ -434,7 +434,7 @@ const updateProfile = async (req, res) => {
     }
 
     const ancienAvatar = user.avatarUrl;
-    const champs = ['firstName', 'lastName', 'phone', 'jobTitle', 'bio', 'address', 'avatarUrl', 'timezone', 'language'];
+    const champs = ['firstName', 'lastName', 'phone', 'jobTitle', 'bio', 'address', 'avatarUrl'];
     for (const champ of champs) {
       if (req.body[champ] !== undefined) user[champ] = req.body[champ];
     }
