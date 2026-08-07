@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService, TwoFactorStatus } from '../../services/auth.service';
+import { AuthService, TwoFactorStatus, LoginActivityItem } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-settings.component';
 
@@ -10,9 +10,10 @@ import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-se
  *   1. Mot de passe (actuel + nouveau + confirmation, jauge de robustesse,
  *      affichage/masquage) — validation client ET serveur ;
  *   2. Double authentification (implémentation TOTP existante réutilisée) ;
- *   3. Cartes « prêt-pour-la-suite » : activité récente de connexion (en attente
- *      de l'API dédiée), appareil courant (détecté localement), et
- *      recommandations de sécurité calculées depuis l'état réel du compte.
+ *   3. Activité de connexion récente : journal d'audit paginé (date, navigateur,
+ *      OS, appareil, IP, résultat, MFA) avec mise en évidence de la session
+ *      courante — alimenté par GET /api/auth/me/login-activity (soi-même
+ *      uniquement côté serveur) ; recommandations calculées sur l'état réel.
  * Architecture extensible : les cartes sont données pilotées par le composant.
  */
 @Component({
@@ -29,6 +30,17 @@ export class SecurityPageComponent implements OnInit {
   showConfirm = false;
 
   twoFactorStatus: TwoFactorStatus | null = null;
+
+  // --- Activité de connexion récente (journal d'audit du compte) -----------
+  activites: LoginActivityItem[] = [];
+  activiteTotal = 0;
+  activitePage = 1;
+  activitePages = 1;
+  activiteChargement = true;
+  activiteErreur: string | null = null;
+  /** iat du jeton courant — la ligne correspondante est surlignée. */
+  sessionIatActuel: number | null = null;
+  readonly activiteParPage = 6;
 
   /** Navigateur/appareil courant, dérivé localement du user-agent (sans API). */
   readonly currentDevice: string;
@@ -57,6 +69,52 @@ export class SecurityPageComponent implements OnInit {
       next: (status) => (this.twoFactorStatus = status),
       error: () => (this.twoFactorStatus = null),
     });
+    this.chargerActivite(1);
+  }
+
+  /** Charge une page du journal d'activité (soi-même uniquement côté serveur). */
+  chargerActivite(page: number): void {
+    this.activiteChargement = true;
+    this.activiteErreur = null;
+    this.auth.loginActivity(page, this.activiteParPage).subscribe({
+      next: (res) => {
+        this.activites = res.activites;
+        this.activiteTotal = res.total;
+        this.activitePage = res.page;
+        this.activitePages = res.pages;
+        this.sessionIatActuel = res.sessionIatActuel;
+        this.activiteChargement = false;
+      },
+      error: () => {
+        this.activites = [];
+        this.activiteErreur = "Le journal d'activité est momentanément indisponible.";
+        this.activiteChargement = false;
+      },
+    });
+  }
+
+  /** Cette ligne correspond-elle à la session en cours ? (bonus : surlignée) */
+  estSessionCourante(a: LoginActivityItem): boolean {
+    return !!a.succes && a.sessionIat != null && a.sessionIat === this.sessionIatActuel;
+  }
+
+  /** Libellé français d'une raison d'échec (code stocké en base). */
+  libelleEchec(raison: string | null): string {
+    const libelles: Record<string, string> = {
+      MOT_DE_PASSE_INVALIDE: 'Mot de passe incorrect',
+      COMPTE_SUSPENDU: 'Compte suspendu',
+      COMPTE_INACTIF: 'Compte inactif',
+      CODE_2FA_INVALIDE: 'Code 2FA invalide',
+      TENANT_INDISPONIBLE: 'Espace de travail indisponible',
+      DONNEES_HERITEES: 'Données à migrer',
+    };
+    return (raison && libelles[raison]) || 'Échec';
+  }
+
+  /** Date + heure françaises compactes (fuseau du navigateur). */
+  formatDateActivite(iso: string): string {
+    const d = new Date(iso);
+    return `${d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
   }
 
   private passwordsMatchValidator(form: FormGroup) {

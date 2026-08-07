@@ -61,6 +61,30 @@ export interface TwoFactorSetup {
   manualKey: string; // saisie manuelle dans l'application d'authentification
 }
 
+/** Une ligne du journal d'audit des connexions. */
+export interface LoginActivityItem {
+  _id: string;
+  date: string;
+  succes: boolean;
+  mfaUtilise: boolean;
+  raisonEchec: string | null;
+  ip: string | null;
+  navigateur: string;
+  systeme: string;
+  appareil: 'Ordinateur' | 'Mobile' | 'Tablette' | 'Inconnu';
+  pays: string | null;
+  /** iat du JWT émis à cette connexion — identifie la session courante. */
+  sessionIat: number | null;
+}
+
+export interface LoginActivityResponse {
+  activites: LoginActivityItem[];
+  total: number;
+  page: number;
+  pages: number;
+  sessionIatActuel: number | null;
+}
+
 const TOKEN_KEY = 'servicedesk_token';
 const USER_KEY = 'servicedesk_user';
 const TENANT_KEY = 'servicedesk_tenant';
@@ -120,6 +144,13 @@ export class AuthService {
   /** Désactive la 2FA — preuve requise : mot de passe OU code d'authentification. */
   twoFactorDisable(payload: { password?: string; code?: string }): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/2fa/disable`, payload);
+  }
+
+  /** Journal de connexion du compte courant (soi-même uniquement), paginé. */
+  loginActivity(page = 1, limit = 10): Observable<LoginActivityResponse> {
+    return this.http.get<LoginActivityResponse>(`${this.baseUrl}/me/login-activity`, {
+      params: { page, limit } as never,
+    });
   }
 
   me(): Observable<{ user: SessionUser & Record<string, unknown>; tenant: TenantBranding | null }> {

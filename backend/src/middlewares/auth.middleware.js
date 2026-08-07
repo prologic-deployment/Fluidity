@@ -48,6 +48,9 @@ const authMiddleware = async (req, res, next) => {
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     req.userEmail = decoded.email;
+    // « iat » du jeton : identifiant d'émission de la session courante
+    // (mise en évidence dans le journal d'activité de connexion).
+    req.tokenIat = decoded.iat || null;
 
     // --- Vérification du compte (suspension temps réel) ---
     const user = await Utilisateur.findById(req.userId).select('role status tenantId clientId').lean();

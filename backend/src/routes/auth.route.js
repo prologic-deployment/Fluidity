@@ -5,6 +5,7 @@ const {
   forgotPassword,
   resetPassword,
   me,
+  loginActivity,
   updateProfile,
   changePassword,
 } = require('../controllers/auth.controller');
@@ -38,6 +39,8 @@ router.post('/login', validate(loginSchema), login);
 router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
 router.get('/me', authMiddleware, me);
+// Audit : journal de connexion du compte courant (soi-même uniquement)
+router.get('/me/login-activity', authMiddleware, loginActivity);
 // Profil : chaque utilisateur met à jour UNIQUEMENT le sien (liste blanche zod)
 router.patch('/profile', authMiddleware, validate(updateProfileSchema), updateProfile);
 // Sécurité : changement de mot de passe avec preuve du mot de passe actuel

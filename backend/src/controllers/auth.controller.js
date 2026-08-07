@@ -5,6 +5,7 @@ const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 const { sendResetPasswordEmail } = require('../services/email.service');
 const { supprimerFichierUpload } = require('../utils/upload-file.util');
+const { enregistrerActivite } = require('../utils/login-activity.util');
 
 /** Message d'aide quand le compte provient de données pré-multi-tenant. */
 const LEGACY_MESSAGE =
@@ -68,7 +69,7 @@ const register = async (req, res) => {
  * la connexion classique et de la validation du second facteur (2FA), pour ne
  * pas dupliquer la logique d'émission.
  */
-const issueSession = (res, user, tenant, extras = {}) => {
+const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
   const secret = process.env.JWT_SECRET;
   const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
   const token = jwt.sign(
@@ -76,6 +77,16 @@ const issueSession = (res, user, tenant, extras = {}) => {
     secret,
     { expiresIn }
   );
+
+  if (contexte.req) {
+    enregistrerActivite(contexte.req, {
+      userId: user._id,
+      tenantId: user.tenantId || null,
+      succes: true,
+      mfaUtilise: !!contexte.mfaUtilise,
+      sessionIat: jwt.decode(token)?.iat || null,
+    });
+  }
 
   res.status(200).json({
     token,
@@ -125,11 +136,19 @@ const login = async (req, res) => {
 
     const valid = await user.comparePassword(password);
     if (!valid) {
+      enregistrerActivite(req, {
+        userId: user._id, tenantId: user.tenantId || null,
+        succes: false, raisonEchec: 'MOT_DE_PASSE_INVALIDE',
+      });
       res.status(401).json({ message: 'Identifiants invalides' });
       return;
     }
 
     if (user.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
+      enregistrerActivite(req, {
+        userId: user._id, tenantId: user.tenantId || null,
+        succes: false, raisonEchec: 'COMPTE_SUSPENDU',
+      });
       res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
       return;
     }
@@ -138,6 +157,9 @@ const login = async (req, res) => {
     // texte) : guider explicitement vers `npm run migrate` plutôt qu'une
     // erreur 500 illisible (CastError) — cause fréquente de « connexion impossible ».
     if (!ROLES.includes(user.role) || (user.tenantId && !mongoose.isValidObjectId(user.tenantId))) {
+      enregistrerActivite(req, {
+        userId: user._id, tenantId: null, succes: false, raisonEchec: 'DONNEES_HERITEES',
+      });
       res.status(403).json({ message: LEGACY_MESSAGE });
       return;
     }
@@ -147,10 +169,16 @@ const login = async (req, res) => {
     if (user.tenantId) {
       tenant = await Tenant.findById(user.tenantId);
       if (!tenant || tenant.status === 'terminated') {
+        enregistrerActivite(req, {
+          userId: user._id, tenantId: user.tenantId || null, succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
+        });
         res.status(403).json({ message: 'Cet espace de travail n\'existe plus.' });
         return;
       }
       if (tenant.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
+        enregistrerActivite(req, {
+          userId: user._id, tenantId: user.tenantId || null, succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
+        });
         res.status(403).json({
           message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
         });
@@ -169,7 +197,7 @@ const login = async (req, res) => {
       return;
     }
 
-    issueSession(res, user, tenant);
+    issueSession(res, user, tenant, {}, { req });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -323,9 +351,44 @@ const changePassword = async (req, res) => {
   }
 };
 
+/**
+ * Journal de connexion DU COMPTE COURANT (un utilisateur ne voit que sa
+ * propre activité) — le plus récent d'abord, paginé.
+ * `sessionIatActuel` permet au frontend de surligner la session en cours.
+ */
+const loginActivity = async (req, res) => {
+  try {
+    const { LoginActivity } = require('../models/login-activity.model');
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const filtre = { principalType: req.principalType || 'UTILISATEUR', userId: req.userId };
+
+    const [total, activites] = await Promise.all([
+      LoginActivity.countDocuments(filtre),
+      LoginActivity.find(filtre)
+        .sort({ date: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('-userAgent -__v')
+        .lean(),
+    ]);
+
+    res.status(200).json({
+      activites,
+      total,
+      page,
+      pages: Math.max(1, Math.ceil(total / limit)),
+      sessionIatActuel: req.tokenIat || null,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
 module.exports = {
   register,
   login,
+  loginActivity,
   forgotPassword,
   resetPassword,
   me,

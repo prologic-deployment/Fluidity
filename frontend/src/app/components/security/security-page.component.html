@@ -167,30 +167,116 @@
 
         <!-- ==================== DOUBLE AUTHENTIFICATION (implémentation existante) ==================== -->
         <app-two-factor-settings class="stagger-2 animate-fade-in-up block"></app-two-factor-settings>
+
+        <!-- ==================== ACTIVITÉ DE CONNEXION RÉCENTE ==================== -->
+        <section class="card animate-fade-in-up stagger-3">
+          <div class="card-content space-y-4 py-5">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="form-section-icon">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <div>
+                  <h3 class="text-sm font-semibold">Activité de connexion récente</h3>
+                  <p class="text-xs text-muted-foreground">
+                    Connexions et tentatives enregistrées sur votre compte
+                    <span *ngIf="activiteTotal">— {{ activiteTotal }} événement(s)</span>.
+                  </p>
+                </div>
+              </div>
+              <button type="button" (click)="chargerActivite(activitePage)" [disabled]="activiteChargement"
+                class="btn-secondary !px-2.5 !py-1.5 text-xs" title="Actualiser le journal">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                Actualiser
+              </button>
+            </div>
+
+            <!-- Chargement -->
+            <div *ngIf="activiteChargement" class="space-y-2" aria-busy="true">
+              <div *ngFor="let _ of [1, 2, 3]" class="h-10 animate-pulse rounded-lg bg-muted/60"></div>
+            </div>
+
+            <!-- Erreur -->
+            <div *ngIf="!activiteChargement && activiteErreur"
+              class="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              {{ activiteErreur }}
+            </div>
+
+            <!-- Vide -->
+            <p *ngIf="!activiteChargement && !activiteErreur && !activites.length"
+              class="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+              Aucune activité enregistrée pour le moment — votre prochaine connexion apparaîtra ici.
+            </p>
+
+            <!-- Journal -->
+            <div *ngIf="!activiteChargement && !activiteErreur && activites.length" class="overflow-x-auto">
+              <table class="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr class="border-b border-border text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <th class="pb-2 pr-4">Date &amp; heure</th>
+                    <th class="pb-2 pr-4">Navigateur · Système</th>
+                    <th class="pb-2 pr-4">Appareil</th>
+                    <th class="pb-2 pr-4">Adresse IP</th>
+                    <th class="pb-2 pr-4">Résultat</th>
+                    <th class="pb-2">MFA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let a of activites" class="border-b border-border/50 last:border-0"
+                    [ngClass]="estSessionCourante(a) ? 'bg-primary/5' : ''">
+                    <td class="py-2.5 pr-4 whitespace-nowrap">
+                      <span class="flex items-center gap-2">
+                        {{ formatDateActivite(a.date) }}
+                        <span *ngIf="estSessionCourante(a)"
+                          class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                          <span class="h-1 w-1 rounded-full bg-current"></span>Session actuelle
+                        </span>
+                      </span>
+                    </td>
+                    <td class="py-2.5 pr-4 whitespace-nowrap">
+                      {{ a.navigateur }}<span class="text-muted-foreground"> · {{ a.systeme }}</span>
+                    </td>
+                    <td class="py-2.5 pr-4 text-muted-foreground">{{ a.appareil }}</td>
+                    <td class="py-2.5 pr-4 font-mono text-xs text-muted-foreground">{{ a.ip || '—' }}</td>
+                    <td class="py-2.5 pr-4">
+                      <span *ngIf="a.succes" class="badge-success !text-[11px]">Réussie</span>
+                      <span *ngIf="!a.succes" class="badge-destructive !text-[11px]" [title]="libelleEchec(a.raisonEchec)">
+                        Échouée · {{ libelleEchec(a.raisonEchec) }}
+                      </span>
+                    </td>
+                    <td class="py-2.5 text-muted-foreground">{{ a.mfaUtilise ? 'Oui' : 'Non' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination -->
+            <div *ngIf="activitePages > 1 && !activiteChargement" class="flex items-center justify-between border-t border-border pt-3">
+              <p class="text-xs text-muted-foreground">Page {{ activitePage }} / {{ activitePages }}</p>
+              <div class="flex gap-2">
+                <button type="button" class="btn-secondary !px-2.5 !py-1.5 text-xs"
+                  (click)="chargerActivite(activitePage - 1)" [disabled]="activitePage <= 1 || activiteChargement">
+                  Précédent
+                </button>
+                <button type="button" class="btn-secondary !px-2.5 !py-1.5 text-xs"
+                  (click)="chargerActivite(activitePage + 1)" [disabled]="activitePage >= activitePages || activiteChargement">
+                  Suivant
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!-- ==================== PANNEAU LATÉRAL : contexte & recommandations ==================== -->
       <aside class="space-y-4 lg:sticky lg:top-32 lg:self-start">
 
-        <!-- Activité récente de connexion -->
-        <section class="card animate-fade-in-up stagger-2">
-          <div class="card-content space-y-3 py-5">
-            <div class="flex items-center gap-3">
-              <div class="form-section-icon">
-                <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-              </div>
-              <h3 class="text-sm font-semibold">Activité de connexion récente</h3>
-            </div>
-            <p class="text-sm text-muted-foreground">
-              Le journal des connexions (date, appareil, localisation) sera affiché ici dès que le
-              service d'audit sera disponible côté API.
-            </p>
-            <span class="badge-secondary">Bientôt disponible</span>
-          </div>
-        </section>
 
         <!-- Appareils connectés -->
         <section class="card animate-fade-in-up stagger-3">

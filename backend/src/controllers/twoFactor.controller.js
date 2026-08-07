@@ -1,6 +1,7 @@
 const { Utilisateur } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 const { issueSession, verifyTwoFactorToken } = require('./auth.controller');
+const { enregistrerActivite } = require('../utils/login-activity.util');
 const { sendTwoFactorEnabledEmail, sendTwoFactorDisabledEmail } = require('../services/email.service');
 const { encryptSecret, decryptSecret } = require('../utils/crypto.util');
 const {
@@ -240,12 +241,17 @@ const verifyLogin = async (req, res) => {
     const plainSecret = decryptSecret(user.twoFactorSecret);
     const { ok, backupUsed } = checkCode(user, plainSecret, req.body.code, true);
     if (!ok) {
+      // Échec au second facteur : la tentative a atteint le défi MFA
+      enregistrerActivite(req, {
+        userId: user._id, tenantId: user.tenantId || null,
+        succes: false, mfaUtilise: true, raisonEchec: 'CODE_2FA_INVALIDE',
+      });
       res.status(401).json({ message: 'Code invalide. Réessayez.' });
       return;
     }
     if (backupUsed) await user.save(); // code de secours consommé (usage unique)
 
-    issueSession(res, user, tenant, { backupCodeUsed: backupUsed });
+    issueSession(res, user, tenant, { backupCodeUsed: backupUsed }, { req, mfaUtilise: true });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
