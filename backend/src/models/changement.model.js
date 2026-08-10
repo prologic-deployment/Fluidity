@@ -13,6 +13,25 @@ const { CHANGEMENT_STATUTS } = require('../utils/workflow');
 
 const IPV4_REGEX = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/;
 
+// Schéma d'une entrée de stockage — utilisé en tableau pour supporter
+// plusieurs configurations (FormArray côté frontend). Les champs custom
+// ne sont renseignés que lorsque la valeur est "Autre".
+const StockageEntrySchema = new Schema(
+  {
+    typeStockage: { type: String },
+    customStorageType: { type: String },
+    capaciteGo: { type: Number },
+    protocole: { type: String },
+    customProtocole: { type: String },
+    // Aliases anglais pour compatibilité payload (storageSpecifications)
+    storageType: { type: String },
+    customType: { type: String },
+    protocol: { type: String },
+    customProtocol: { type: String },
+  },
+  { _id: false, strict: false }
+);
+
 const SpecificationsSchema = new Schema(
   {
     general: {
@@ -72,11 +91,12 @@ const SpecificationsSchema = new Schema(
       version: { type: String },
       tailleGo: { type: Number },
     },
-    stockage: {
-      typeStockage: { type: String },
-      capaciteGo: { type: Number },
-      protocole: { type: String }, // NFS, SMB, iSCSI...
-    },
+    // Stockage — supporte plusieurs configurations (FormArray). Stocké en
+    // tableau d'objets { typeStockage, customStorageType, capaciteGo, protocole, customProtocole }.
+    // Mixed pour compatibilité ascendante : les enregistrements historiques
+    // contiennent un objet unique { typeStockage, capaciteGo, protocole }.
+    // Les nouveaux enregistrements sont toujours un tableau.
+    stockage: { type: Schema.Types.Mixed },
     portailWeb: {
       domaine: { type: String },
       sslRequis: { type: String }, // 'Oui' | 'Non'
@@ -100,6 +120,8 @@ const SpecificationsSchema = new Schema(
       perimetre: { type: String },
       niveauCriticite: { type: String }, // Standard, Élevé, Critique...
     },
+    // Alias anglais pour compatibilité (storageSpecifications)
+    storageSpecifications: { type: Schema.Types.Mixed },
   },
   { _id: false }
 );
@@ -141,6 +163,138 @@ const ChangementSchema = new Schema(
 ChangementSchema.index({ tenantId: 1, createdAt: -1 });
 ChangementSchema.index({ tenantId: 1, requester: 1 });
 
+/**
+ * Normalise la section stockage pour compatibilité ascendante :
+ * - Si storageSpecifications (alias anglais) est présent, le migre vers stockage.
+ * - Si stockage est un objet unique (legacy), l'expose comme tableau côté API
+ *   pour que le frontend reçoive toujours un tableau cohérent.
+ * - Nettoie les customs inutiles (expose seulement les champs pertinents).
+ */
+function normalizeStockageForResponse(doc) {
+  if (!doc || !doc.specifications) return doc;
+  const spec = doc.specifications;
+  // Migrer l'alias anglais s'il existe et que stockage est vide
+  if (spec.storageSpecifications && !spec.stockage) {
+    spec.stockage = spec.storageSpecifications;
+  }
+  // Supprimer l'alias pour ne pas exposer de doublon
+  if (spec.storageSpecifications) {
+    // Mongoose Mixed : delete + markModified si nécessaire
+    if (spec.toObject) {
+      // Document
+      spec.storageSpecifications = undefined;
+    } else {
+      delete spec.storageSpecifications;
+    }
+  }
+  // Legacy : objet unique → tableau à un élément (exposition API uniquement)
+  if (spec.stockage && !Array.isArray(spec.stockage) && typeof spec.stockage === 'object') {
+    const s = spec.stockage;
+    const isEntry =
+      s.typeStockage !== undefined ||
+      s.protocole !== undefined ||
+      s.storageType !== undefined ||
+      s.protocol !== undefined ||
+      s.capaciteGo !== undefined;
+    if (isEntry) {
+      spec.stockage = [s];
+    }
+  }
+  // Nettoyer l'alias résiduel si présent après migration
+  if (spec.storageSpecifications) {
+    delete spec.storageSpecifications;
+  }
+  return doc;
+}
+
+/**
+ * Normalise le payload d'écriture (create/update) avant persistance :
+ * - storageSpecifications → stockage
+ * - objet unique → tableau
+ */
+function normalizeStockageForWrite(specifications) {
+  if (!specifications) return specifications;
+  if (specifications.storageSpecifications && !specifications.stockage) {
+    specifications.stockage = specifications.storageSpecifications;
+  }
+  if (specifications.storageSpecifications) delete specifications.storageSpecifications;
+  if (
+    specifications.stockage &&
+    !Array.isArray(specifications.stockage) &&
+    typeof specifications.stockage === 'object'
+  ) {
+    const s = specifications.stockage;
+    const isEntry =
+      s.typeStockage !== undefined ||
+      s.protocole !== undefined ||
+      s.storageType !== undefined ||
+      s.protocol !== undefined ||
+      s.capaciteGo !== undefined;
+    if (isEntry) specifications.stockage = [s];
+  }
+  // Nettoyer chaque entrée : retirer les customs vides si non "Autre"
+  if (Array.isArray(specifications.stockage)) {
+    specifications.stockage = specifications.stockage
+      .filter((e) => e && (e.typeStockage || e.storageType || e.protocole || e.protocol))
+      .map((e) => {
+        const type = e.typeStockage || e.storageType;
+        const proto = e.protocole || e.protocol;
+        const customType = e.customStorageType || e.customType;
+        const customProto = e.customProtocole || e.customProtocol;
+        const out = {
+          typeStockage: type,
+          protocole: proto,
+        };
+        if (e.capaciteGo !== undefined && e.capaciteGo !== null && e.capaciteGo !== '') out.capaciteGo = Number(e.capaciteGo);
+        if (type === 'Autre' && customType) out.customStorageType = customType;
+        if (proto === 'Autre' && customProto) out.customProtocole = customProto;
+        return out;
+      });
+  }
+  return specifications;
+}
+
+// Pré-traitement à l'écriture : normalise stockage avant persistance
+ChangementSchema.pre('save', function (next) {
+  if (this.specifications) {
+    normalizeStockageForWrite(this.specifications);
+  }
+  next();
+});
+
+ChangementSchema.pre('findOneAndUpdate', function (next) {
+  const update = this.getUpdate();
+  // Gère à la fois { $set: { specifications } } et { specifications }
+  const spec = update?.specifications || update?.$set?.specifications;
+  if (spec) {
+    normalizeStockageForWrite(spec);
+  }
+  // Cas où specifications.stockage est directement dans $set
+  const stockageSet = update?.$set?.['specifications.stockage'] || update?.['specifications.stockage'];
+  if (stockageSet && !Array.isArray(stockageSet) && typeof stockageSet === 'object') {
+    const isEntry = stockageSet.typeStockage || stockageSet.protocole || stockageSet.storageType || stockageSet.protocol;
+    if (isEntry) {
+      if (update.$set) update.$set['specifications.stockage'] = [stockageSet];
+      else update['specifications.stockage'] = [stockageSet];
+    }
+  }
+  next();
+});
+
+// Hook post-find pour normaliser la sortie (lecture)
+ChangementSchema.post('find', function (docs) {
+  if (Array.isArray(docs)) docs.forEach(normalizeStockageForResponse);
+});
+ChangementSchema.post('findOne', function (doc) {
+  normalizeStockageForResponse(doc);
+});
+ChangementSchema.post('findOneAndUpdate', function (doc) {
+  normalizeStockageForResponse(doc);
+});
+ChangementSchema.post('save', function (doc) {
+  normalizeStockageForResponse(doc);
+});
+
 const Changement = mongoose.model('Changement', ChangementSchema);
 
-module.exports = { Changement };
+module.exports = { Changement, StockageEntrySchema, normalizeStockageForResponse, normalizeStockageForWrite };

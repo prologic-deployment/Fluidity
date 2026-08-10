@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
-import { Changement } from '../../models/changement.model';
+import { Changement, StockageEntry, normalizeStockage, displayStockageType, displayStockageProtocole } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
@@ -269,6 +269,32 @@ export class DashboardChangementsComponent implements OnInit {
     const ct = changement.contrat;
     if (ct && typeof ct === 'object') return ct.reference;
     return (ct as string) || '—';
+  }
+
+  // --- Stockage multi-entrées (compatibilité legacy) -------------------------
+
+  /** Retourne les configurations de stockage normalisées en tableau (legacy object → [object]). */
+  getStockages(changement: Changement): StockageEntry[] {
+    const stockage = (changement.specifications as any)?.stockage ?? (changement.specifications as any)?.storageSpecifications;
+    return normalizeStockage(stockage);
+  }
+
+  /** Affiche le type de stockage (gère "Autre" → précision). */
+  displayStockageType(entry: any): string {
+    return displayStockageType(entry);
+  }
+
+  /** Affiche le protocole (gère "Autre" → précision). */
+  displayStockageProtocole(entry: any): string {
+    return displayStockageProtocole(entry);
+  }
+
+  isStockageArray(stockage: any): boolean {
+    return Array.isArray(stockage);
+  }
+
+  asStockageArray(stockage: any): StockageEntry[] {
+    return normalizeStockage(stockage);
   }
 
   /** Le client connecté est le propriétaire du changement. */

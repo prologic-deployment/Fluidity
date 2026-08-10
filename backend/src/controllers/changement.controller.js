@@ -1,4 +1,4 @@
-const { Changement } = require('../models/changement.model');
+const { Changement, normalizeStockageForResponse, normalizeStockageForWrite } = require('../models/changement.model');
 const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
@@ -51,6 +51,10 @@ const createChangement = async (req, res) => {
       return;
     }
 
+    // Normalise le payload stockage (array + alias + customs) avant persistance
+    if (req.body.specifications) {
+      normalizeStockageForWrite(req.body.specifications);
+    }
     const changement = new Changement({
       ...req.body,
       requester: req.userId,
@@ -82,7 +86,9 @@ const createChangement = async (req, res) => {
     });
     sendSupportEmail(req.tenantId, `[Changement] ${changement.objetChangement}`, html).catch(console.error);
 
-    res.status(201).json(await populateRefs(Changement.findById(changement._id)));
+    const created = await populateRefs(Changement.findById(changement._id));
+    if (created) normalizeStockageForResponse(created);
+    res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -95,6 +101,8 @@ const getAllChangements = async (req, res) => {
   try {
     // Un client ne liste que SES changements ; les autres rôles gardent la vue tenant.
     const changements = await populateRefs(Changement.find({ tenantId: req.tenantId, ...filtreProprietaire(req) })).sort({ createdAt: -1 });
+    // Normalise chaque document pour compatibilité stockage legacy (objet → tableau)
+    changements.forEach((doc) => normalizeStockageForResponse(doc));
     res.status(200).json(changements);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -111,6 +119,7 @@ const getChangementById = async (req, res) => {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
+    normalizeStockageForResponse(changement);
     res.status(200).json(changement);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -134,6 +143,16 @@ const updateChangement = async (req, res) => {
       return;
     }
 
+    // Normalise le payload stockage si présent dans la requête de mise à jour
+    if (req.body.specifications) {
+      normalizeStockageForWrite(req.body.specifications);
+    }
+    // Gère aussi le cas où specifications.stockage est dans $set
+    if (req.body['specifications.stockage']) {
+      const tmp = { stockage: req.body['specifications.stockage'] };
+      normalizeStockageForWrite(tmp);
+      req.body['specifications.stockage'] = tmp.stockage;
+    }
     const changement = await populateRefs(
       Changement.findOneAndUpdate(
         { _id: existant._id, tenantId: req.tenantId },
@@ -141,6 +160,7 @@ const updateChangement = async (req, res) => {
         { new: true, runValidators: true }
       )
     );
+    if (changement) normalizeStockageForResponse(changement);
     res.status(200).json(changement);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

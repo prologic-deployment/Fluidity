@@ -47,6 +47,71 @@ const retentionValide = (value) => {
 const RETENTION_MESSAGE =
   'Rétention attendue au format « <nombre> <période> » — plages : Jour 1-31, Semaines 1-52, Mois 1-12, Années 1-15';
 
+/** Entrée de stockage — une configuration parmi plusieurs (FormArray). */
+const stockageEntrySchema = z
+  .object({
+    typeStockage: z.string().optional(),
+    customStorageType: z.string().optional(),
+    capaciteGo: optionalNumber,
+    protocole: z.string().optional(),
+    customProtocole: z.string().optional(),
+    // Aliases anglais pour compatibilité (storageSpecifications)
+    storageType: z.string().optional(),
+    protocol: z.string().optional(),
+    customProtocol: z.string().optional(),
+    customType: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const type = data.typeStockage || data.storageType;
+    const proto = data.protocole || data.protocol;
+    const customType = data.customStorageType || data.customType;
+    const customProto = data.customProtocole || data.customProtocol;
+
+    // Si l'entrée est totalement vide (aucun champ), on la laisse passer — le
+    // nettoyage côté contrôleur la filtrera. Sinon, type et protocole sont requis.
+    const hasAnyValue =
+      (type && type !== '') ||
+      (proto && proto !== '') ||
+      (customType && customType !== '') ||
+      (customProto && customProto !== '') ||
+      data.capaciteGo !== undefined;
+
+    if (!hasAnyValue) return;
+
+    if (!type || type.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Type de stockage requis',
+        path: ['typeStockage'],
+      });
+    }
+    if (!proto || proto.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Protocole requis',
+        path: ['protocole'],
+      });
+    }
+    if (type === 'Autre' && (!customType || customType.trim() === '')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Précisez le type de stockage',
+        path: ['customStorageType'],
+      });
+    }
+    if (proto === 'Autre' && (!customProto || customProto.trim() === '')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Précisez le protocole',
+        path: ['customProtocole'],
+      });
+    }
+  });
+
+// Stockage peut être un objet unique (legacy) ou un tableau de configurations
+const stockageSchema = z.union([stockageEntrySchema, z.array(stockageEntrySchema)]).optional();
+const storageSpecificationsSchema = z.array(stockageEntrySchema).optional();
+
 const createChangementSchema = z.object({
   objetChangement: z.string().min(1, 'Objet du changement requis'),
   descriptionDetaillee: z.string().min(1, 'Description détaillée requise'),
@@ -118,13 +183,8 @@ const createChangementSchema = z.object({
           tailleGo: optionalNumber,
         })
         .optional(),
-      stockage: z
-        .object({
-          typeStockage: z.string().optional(),
-          capaciteGo: optionalNumber,
-          protocole: z.string().optional(),
-        })
-        .optional(),
+      stockage: stockageSchema,
+      storageSpecifications: storageSpecificationsSchema,
       portailWeb: z
         .object({
           domaine: z.string().optional(),
@@ -181,4 +241,4 @@ const changerStatutChangementSchema = z.object({
   statut: z.string().min(1, 'Statut requis'),
 });
 
-module.exports = { createChangementSchema, updateChangementSchema, changerStatutChangementSchema };
+module.exports = { createChangementSchema, updateChangementSchema, changerStatutChangementSchema, stockageEntrySchema };

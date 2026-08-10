@@ -130,7 +130,10 @@ const seedChangements = async (tenants = {}) => {
       typeChangement: 'Standard', contrat: ctrAtlas._id,
       specifications: {
         general: { ressourcesConcernees: 'NAS local site Tunis' },
-        stockage: { typeStockage: 'NAS', capaciteGo: 4096, protocole: 'SMB' },
+        stockage: [
+          { typeStockage: 'NAS', capaciteGo: 4096, protocole: 'SMB / CIFS' },
+          { typeStockage: 'SAN', capaciteGo: 2048, protocole: 'iSCSI' },
+        ],
       },
     },
     // --- Statut : En cours d'implémentation ---

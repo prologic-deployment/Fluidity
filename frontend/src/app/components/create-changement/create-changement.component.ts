@@ -11,6 +11,8 @@ import {
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
   sectionsPour,
   TYPES_DISQUE,
+  TYPES_STOCKAGE,
+  PROTOCOLES_STOCKAGE,
   RETENTION_MAX_PAR_PERIODE,
   RETENTION_PERIODES,
   retentionNombresDisponibles,
@@ -18,6 +20,7 @@ import {
   OUI_NON,
   IPV4_PATTERN,
   DisqueServeur,
+  StockageEntry,
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
@@ -55,8 +58,10 @@ export class CreateChangementComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Spécifications — Serveur : disques dynamiques / Sauvegarde : rétention & politique
+  // Spécifications — Serveur : disques dynamiques / Sauvegarde : rétention & politique / Stockage : multi-entrées
   typesDisque = TYPES_DISQUE;
+  typesStockage = TYPES_STOCKAGE;
+  protocolesStockage = PROTOCOLES_STOCKAGE;
   retentionPeriodes = RETENTION_PERIODES;
   frequencesSauvegarde = FREQUENCES_SAUVEGARDE;
   ouiNon = OUI_NON;
@@ -126,11 +131,8 @@ export class CreateChangementComponent implements OnInit {
         { validators: [retentionCompleteValidator] }
       ),
       // --- Sections supplémentaires affichées selon la catégorie choisie ---
-      stockage: this.fb.group({
-        typeStockage: [''],
-        capaciteGo: [null],
-        protocole: [''],
-      }),
+      // Stockage — FormArray pour plusieurs configurations (Type + Protocole + Autre + capacité)
+      stockage: this.fb.array([]),
       iaGpu: this.fb.group({
         typeGpu: [''],
         nombreGpu: [null],
@@ -144,6 +146,9 @@ export class CreateChangementComponent implements OnInit {
         niveauCriticite: [''],
       }),
     });
+
+    // Initialise avec une première entrée de stockage (au moins une requise quand section visible)
+    this.addStockage();
 
     // "Autre" sur Service / Environnement : champ de précision obligatoire,
     // masqué et réinitialisé dès qu'une autre valeur est choisie
@@ -160,6 +165,10 @@ export class CreateChangementComponent implements OnInit {
       this.setValidator(this.form.get('categorieAutre'), estAutre);
       this.setValidator(this.form.get('sousCategorie'), !estAutre);
       this.setValidator(this.form.get('sousCategorieAutre'), estAutre);
+      // Si on bascule vers Stockage, s'assurer qu'au moins une entrée existe
+      if (cat === 'Stockage' && this.stockages.length === 0) {
+        this.addStockage();
+      }
     });
 
     // "Autre" sur Sous-catégorie (catégorie standard) : précision obligatoire
@@ -225,6 +234,89 @@ export class CreateChangementComponent implements OnInit {
 
   removeDisque(index: number): void {
     this.disques.removeAt(index);
+  }
+
+  // --- Stockages multiples (Spécifications — Stockage) -------------------
+
+  get stockages(): FormArray {
+    return this.form.get('stockage') as FormArray;
+  }
+
+  createStockageGroup(data?: Partial<StockageEntry>): FormGroup {
+    return this.fb.group({
+      typeStockage: [data?.typeStockage || data?.storageType || '', Validators.required],
+      customStorageType: [data?.customStorageType || data?.customType || ''],
+      capaciteGo: [data?.capaciteGo ?? null],
+      protocole: [data?.protocole || data?.protocol || '', Validators.required],
+      customProtocole: [data?.customProtocole || data?.customProtocol || ''],
+    });
+  }
+
+  addStockage(): void {
+    this.stockages.push(this.createStockageGroup());
+  }
+
+  removeStockage(index: number): void {
+    // Ne pas permettre de supprimer la dernière entrée si au moins une est obligatoire
+    if (this.stockages.length <= 1) return;
+    this.stockages.removeAt(index);
+  }
+
+  /** Précision libre requise uniquement quand le type de stockage est « Autre ». */
+  onStockageTypeChange(index: number): void {
+    const group = this.stockages.at(index) as FormGroup;
+    const custom = group.get('customStorageType');
+    const required = group.get('typeStockage')?.value === AUTRE;
+    if (!required) {
+      custom?.setValue('', { emitEvent: false });
+      custom?.markAsUntouched();
+    }
+    if (custom) {
+      custom.setValidators(required ? [Validators.required] : []);
+      custom.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  /** Précision libre requise uniquement quand le protocole est « Autre ». */
+  onStockageProtocoleChange(index: number): void {
+    const group = this.stockages.at(index) as FormGroup;
+    const custom = group.get('customProtocole');
+    const required = group.get('protocole')?.value === AUTRE;
+    if (!required) {
+      custom?.setValue('', { emitEvent: false });
+      custom?.markAsUntouched();
+    }
+    if (custom) {
+      custom.setValidators(required ? [Validators.required] : []);
+      custom.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  /**
+   * Charge des entrées de stockage existantes (legacy ou tableau) dans le FormArray.
+   * Utilisé pour l'édition et la compatibilité ascendante.
+   */
+  patchStockages(stockage: any): void {
+    this.stockages.clear();
+    if (!stockage) {
+      this.addStockage();
+      return;
+    }
+    const entries = Array.isArray(stockage) ? stockage : [stockage];
+    if (entries.length === 0) {
+      this.addStockage();
+      return;
+    }
+    for (const e of entries) {
+      const group = this.createStockageGroup(e);
+      // Appliquer les validateurs Autre après patch
+      this.stockages.push(group);
+    }
+    // Déclencher les validateurs custom pour chaque entrée
+    for (let i = 0; i < this.stockages.length; i++) {
+      this.onStockageTypeChange(i);
+      this.onStockageProtocoleChange(i);
+    }
   }
 
   // --- Rétention dynamique (Spécifications — Sauvegarde) -------------------
@@ -304,8 +396,27 @@ export class CreateChangementComponent implements OnInit {
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      // Touche aussi les groupes du FormArray stockage pour afficher les erreurs
+      this.stockages.controls.forEach((c) => c.markAllAsTouched());
       return;
     }
+    // Validation supplémentaire : si la section stockage est visible, au moins une entrée valide
+    if (this.showSection('stockage')) {
+      if (this.stockages.length === 0) {
+        this.form.markAllAsTouched();
+        return;
+      }
+      // Vérifier que chaque entrée a type et protocole
+      let hasInvalid = false;
+      this.stockages.controls.forEach((ctrl) => {
+        if (ctrl.invalid) {
+          ctrl.markAllAsTouched();
+          hasInvalid = true;
+        }
+      });
+      if (hasInvalid) return;
+    }
+
     const raw = this.form.value;
     const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
     const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
@@ -334,6 +445,40 @@ export class CreateChangementComponent implements OnInit {
           backup.retentionSouhaitee = `${raw.backup.retentionNombre} ${raw.backup.retentionPeriode}`;
         }
         if (Object.keys(backup).length) specifications.backup = backup;
+      } else if (section === 'stockage') {
+        // Stockage — tableau de configurations (FormArray)
+        const stockages: StockageEntry[] = (raw.stockage || [])
+          .filter((s: any) => s?.typeStockage && s?.protocole)
+          .map((s: any) => {
+            const entry: StockageEntry = {
+              typeStockage: s.typeStockage,
+              protocole: s.protocole,
+            };
+            if (s.capaciteGo !== null && s.capaciteGo !== '' && s.capaciteGo !== undefined) {
+              entry.capaciteGo = Number(s.capaciteGo);
+            }
+            if (s.typeStockage === AUTRE && s.customStorageType) {
+              entry.customStorageType = s.customStorageType;
+            }
+            if (s.protocole === AUTRE && s.customProtocole) {
+              entry.customProtocole = s.customProtocole;
+            }
+            return entry;
+          });
+        if (stockages.length) {
+          // Nettoyer les customs inutiles (sécurité)
+          const cleaned = stockages.map((e) => {
+            const out: any = { ...e };
+            if (out.typeStockage !== AUTRE) delete out.customStorageType;
+            if (out.protocole !== AUTRE) delete out.customProtocole;
+            // Ne pas envoyer de customs vides
+            if (!out.customStorageType) delete out.customStorageType;
+            if (!out.customProtocole) delete out.customProtocole;
+            if (out.capaciteGo === null || out.capaciteGo === undefined || out.capaciteGo === '') delete out.capaciteGo;
+            return out;
+          });
+          specifications.stockage = cleaned;
+        }
       } else {
         const data = this.clean(raw[section] || {});
         if (Object.keys(data).length) specifications[section] = data;

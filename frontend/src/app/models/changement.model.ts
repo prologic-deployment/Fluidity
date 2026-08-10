@@ -71,11 +71,11 @@ export interface Specifications {
     version?: string;
     tailleGo?: number;
   };
-  stockage?: {
-    typeStockage?: string;
-    capaciteGo?: number;
-    protocole?: string;
-  };
+  // Stockage — supporte plusieurs configurations (FormArray).
+  // Legacy : objet unique { typeStockage, capaciteGo, protocole }
+  // Nouveau : tableau de StockageEntry[]
+  stockage?: StockageEntry | StockageEntry[];
+  storageSpecifications?: StockageEntry[];
   portailWeb?: {
     domaine?: string;
     sslRequis?: string;
@@ -181,6 +181,74 @@ export const FREQUENCES_SAUVEGARDE: string[] = ['Quotidienne', 'Hebdomadaire', '
 
 /** Réponses Oui/Non proposées (compression, chiffrement...). */
 export const OUI_NON: string[] = ['Oui', 'Non'];
+
+/** Entrée de stockage — une configuration parmi plusieurs (FormArray). */
+export interface StockageEntry {
+  typeStockage: string;
+  customStorageType?: string;
+  capaciteGo?: number;
+  protocole: string;
+  customProtocole?: string;
+  // Aliases anglais pour compatibilité payload
+  storageType?: string;
+  protocol?: string;
+  customProtocol?: string;
+  customType?: string;
+}
+
+/** Types de stockage proposés dans le dropdown. */
+export const TYPES_STOCKAGE: string[] = [
+  'NAS',
+  'SAN',
+  'DAS',
+  'Object Storage',
+  'Block Storage',
+  'File Storage',
+  'Cloud Storage',
+  'Local Storage',
+  'Autre',
+];
+
+/** Protocoles de stockage proposés dans le dropdown. */
+export const PROTOCOLES_STOCKAGE: string[] = [
+  'NFS',
+  'SMB / CIFS',
+  'iSCSI',
+  'Fibre Channel',
+  'S3',
+  'NVMe-oF',
+  'FTP / SFTP',
+  'WebDAV',
+  'Autre',
+];
+
+/**
+ * Normalise la section stockage en tableau (compatibilité legacy) :
+ * - si déjà un tableau → le retourne
+ * - si objet unique → le wrappe en tableau
+ * - si falsy → tableau vide
+ */
+export function normalizeStockage(stockage: StockageEntry | StockageEntry[] | any): StockageEntry[] {
+  if (!stockage) return [];
+  if (Array.isArray(stockage)) return stockage as StockageEntry[];
+  return [stockage as StockageEntry];
+}
+
+/** Affiche le type de stockage (gère "Autre" → custom). */
+export function displayStockageType(entry: StockageEntry | any): string {
+  if (!entry) return '';
+  const type = entry.typeStockage || entry.storageType || '';
+  if (type === 'Autre') return entry.customStorageType || entry.customType || 'Autre';
+  return type;
+}
+
+/** Affiche le protocole (gère "Autre" → custom). */
+export function displayStockageProtocole(entry: StockageEntry | any): string {
+  if (!entry) return '';
+  const proto = entry.protocole || entry.protocol || '';
+  if (proto === 'Autre') return entry.customProtocole || entry.customProtocol || 'Autre';
+  return proto;
+}
 
 /**
  * Moteur de sections dynamiques — règles par catégorie, avec surcharges

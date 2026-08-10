@@ -427,10 +427,22 @@
           <div *ngIf="db.version"><p class="detail-label">Version</p><p class="detail-value">{{ db.version }}</p></div>
           <div *ngIf="db.tailleGo"><p class="detail-label">Taille (Go)</p><p class="detail-value">{{ db.tailleGo }}</p></div>
         </ng-container>
-        <ng-container *ngIf="c.specifications.stockage as st">
-          <div *ngIf="st.typeStockage"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ st.typeStockage }}</p></div>
-          <div *ngIf="st.capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ st.capaciteGo }}</p></div>
-          <div *ngIf="st.protocole"><p class="detail-label">Protocole</p><p class="detail-value">{{ st.protocole }}</p></div>
+        <!-- Stockage — supporte plusieurs configurations (legacy single + tableau) -->
+        <ng-container *ngIf="getStockages(c).length > 0">
+          <div *ngFor="let s of getStockages(c); let idx = index" class="md:col-span-2 rounded-lg border border-border bg-muted/20 p-3">
+            <p class="detail-label font-semibold mb-1">Stockage {{ idx + 1 }}</p>
+            <div class="detail-grid">
+              <div *ngIf="displayStockageType(s)"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ displayStockageType(s) }}</p></div>
+              <div *ngIf="s.capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ s.capaciteGo }}</p></div>
+              <div *ngIf="displayStockageProtocole(s)"><p class="detail-label">Protocole</p><p class="detail-value">{{ displayStockageProtocole(s) }}</p></div>
+            </div>
+          </div>
+        </ng-container>
+        <!-- Fallback legacy : stockage objet unique non normalisé (sécurité) -->
+        <ng-container *ngIf="getStockages(c).length === 0 && $any(c.specifications).stockage as st">
+          <div *ngIf="$any(st).typeStockage || $any(st).storageType"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ displayStockageType($any(st)) }}</p></div>
+          <div *ngIf="$any(st).capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ $any(st).capaciteGo }}</p></div>
+          <div *ngIf="$any(st).protocole || $any(st).protocol"><p class="detail-label">Protocole</p><p class="detail-value">{{ displayStockageProtocole($any(st)) }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.portailWeb as pw">
           <div *ngIf="pw.domaine"><p class="detail-label">Domaine</p><p class="detail-value">{{ pw.domaine }}</p></div>

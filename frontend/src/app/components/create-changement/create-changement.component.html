@@ -430,8 +430,8 @@
         </div>
       </section>
 
-      <!-- Section dynamique : Stockage -->
-      <section *ngIf="showSection('stockage')" class="card animate-fade-in-up stagger-2" formGroupName="stockage">
+      <!-- Section dynamique : Stockage — configurations multiples (FormArray) -->
+      <section *ngIf="showSection('stockage')" class="card animate-fade-in-up stagger-2">
         <div class="card-header-tinted">
           <div class="form-section-header">
             <div class="form-section-icon">
@@ -443,25 +443,74 @@
             </div>
             <div>
               <h2 class="card-title">Spécifications — Stockage</h2>
-              <p class="card-description">Type, capacité et protocole d'accès.</p>
+              <p class="card-description">Configurez une ou plusieurs configurations de stockage.</p>
             </div>
           </div>
         </div>
-        <div class="card-content pt-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="field-label">Type de stockage</label>
-              <input formControlName="typeStockage" type="text" class="input" placeholder="ex : NAS, SAN, Volume..." />
-            </div>
-            <div>
-              <label class="field-label">Capacité (Go)</label>
-              <input formControlName="capaciteGo" type="number" min="0" class="input" />
-            </div>
-            <div>
-              <label class="field-label">Protocole</label>
-              <input formControlName="protocole" type="text" class="input" placeholder="ex : NFS, SMB, iSCSI..." />
+        <div class="card-content pt-6 space-y-4">
+          <div formArrayName="stockage" class="space-y-4">
+            <div *ngFor="let group of stockages.controls; let i = index" [formGroupName]="i"
+              class="rounded-xl border border-border bg-muted/20 p-4 space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold flex items-center gap-2">
+                  <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold">{{ i + 1 }}</span>
+                  Stockage {{ i + 1 }}
+                </h3>
+                <button type="button" (click)="removeStockage(i)" [disabled]="stockages.length <= 1"
+                  class="btn-ghost btn-sm text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40 disabled:cursor-not-allowed"
+                  [title]="stockages.length <= 1 ? 'Au moins une configuration est requise' : 'Supprimer cette configuration'">
+                  <svg class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6M14 11v6"></path>
+                  </svg>
+                  Supprimer
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label">Type de stockage <span class="text-destructive">*</span></label>
+                  <select formControlName="typeStockage" (change)="onStockageTypeChange(i)" class="select">
+                    <option value="" disabled>Sélectionner...</option>
+                    <option *ngFor="let t of typesStockage" [value]="t">{{ t }}</option>
+                  </select>
+                  <p *ngIf="group.get('typeStockage')?.invalid && group.get('typeStockage')?.touched" class="field-error">Type de stockage requis.</p>
+                </div>
+
+                <div *ngIf="group.get('typeStockage')?.value === 'Autre'">
+                  <label class="field-label">Précisez le type de stockage <span class="text-destructive">*</span></label>
+                  <input formControlName="customStorageType" type="text" class="input" placeholder="ex : Stockage hybride..." />
+                  <p *ngIf="group.get('customStorageType')?.invalid && group.get('customStorageType')?.touched" class="field-error">Champ requis quand "Autre" est sélectionné.</p>
+                </div>
+
+                <div>
+                  <label class="field-label">Protocole <span class="text-destructive">*</span></label>
+                  <select formControlName="protocole" (change)="onStockageProtocoleChange(i)" class="select">
+                    <option value="" disabled>Sélectionner...</option>
+                    <option *ngFor="let p of protocolesStockage" [value]="p">{{ p }}</option>
+                  </select>
+                  <p *ngIf="group.get('protocole')?.invalid && group.get('protocole')?.touched" class="field-error">Protocole requis.</p>
+                </div>
+
+                <div *ngIf="group.get('protocole')?.value === 'Autre'">
+                  <label class="field-label">Précisez le protocole <span class="text-destructive">*</span></label>
+                  <input formControlName="customProtocole" type="text" class="input" placeholder="ex : Protocole propriétaire..." />
+                  <p *ngIf="group.get('customProtocole')?.invalid && group.get('customProtocole')?.touched" class="field-error">Champ requis quand "Autre" est sélectionné.</p>
+                </div>
+
+                <div>
+                  <label class="field-label">Capacité (Go)</label>
+                  <input formControlName="capaciteGo" type="number" min="0" class="input" placeholder="ex : 500" />
+                </div>
+              </div>
             </div>
           </div>
+
+          <button type="button" (click)="addStockage()" class="btn-outline btn-sm w-full justify-center">
+            <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            Ajouter un stockage
+          </button>
+          <p class="text-xs text-muted-foreground text-center">Vous pouvez ajouter autant de configurations que nécessaire. Au moins une est requise pour la catégorie Stockage.</p>
         </div>
       </section>
 
