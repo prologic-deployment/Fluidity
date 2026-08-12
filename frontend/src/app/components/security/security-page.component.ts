@@ -5,6 +5,8 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { AuthService, TwoFactorStatus, LoginActivityItem } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-settings.component';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 
 /**
  * Page Sécurité (/profile/security) :
@@ -20,7 +22,7 @@ import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-se
 @Component({
   selector: 'app-security-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TwoFactorSettingsComponent],
+  imports: [CommonModule, ReactiveFormsModule, TwoFactorSettingsComponent, ...I18N_IMPORTS],
   templateUrl: './security-page.component.html',
 })
 export class SecurityPageComponent implements OnInit {
@@ -50,7 +52,8 @@ export class SecurityPageComponent implements OnInit {
     private fb: FormBuilder,
     private auth: AuthService,
     private toast: ToastService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {
     const ua = navigator.userAgent;
     const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
@@ -167,7 +170,7 @@ export class SecurityPageComponent implements OnInit {
       next: () => {
         this.savingPassword = false;
         this.passwordForm.reset();
-        this.toast.success('Mot de passe modifié avec succès.');
+        this.toast.success(this.i18n.t('security.pwdChanged'));
         if (etaitProvisoire) {
           // Obligation levée côté serveur : synchroniser la session puis
           // ouvrir l'accès à l'application (la garde de route s'appuie dessus).

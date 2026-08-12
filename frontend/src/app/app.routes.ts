@@ -37,61 +37,61 @@ export const routes: Routes = [
     children: [
       {
         path: 'tickets',
-        data: { breadcrumb: 'Tickets' },
+        data: { breadcrumb: 'nav.tickets' },
         children: [
           { path: '', component: DashboardTicketsComponent },
-          { path: 'nouveau', component: CreateTicketComponent, data: { breadcrumb: 'Nouveau ticket' } },
-          { path: ':id/modifier', component: CreateTicketComponent, data: { breadcrumb: 'Modifier' } },
-          { path: ':id', component: TicketDetailsComponent, data: { breadcrumb: 'Détail' } },
+          { path: 'nouveau', component: CreateTicketComponent, data: { breadcrumb: 'tickets.new' } },
+          { path: ':id/modifier', component: CreateTicketComponent, data: { breadcrumb: 'tickets.edit' } },
+          { path: ':id', component: TicketDetailsComponent, data: { breadcrumb: 'common.details' } },
         ],
       },
       {
         path: 'demandes',
-        data: { breadcrumb: 'Demandes' },
+        data: { breadcrumb: 'nav.demandes' },
         children: [
           { path: '', component: DashboardDemandesComponent },
-          { path: 'nouvelle', component: CreateDemandeComponent, data: { breadcrumb: 'Nouvelle demande' } },
+          { path: 'nouvelle', component: CreateDemandeComponent, data: { breadcrumb: 'demandes.new' } },
         ],
       },
       {
         path: 'changements',
-        data: { breadcrumb: 'Changements' },
+        data: { breadcrumb: 'nav.changements' },
         children: [
           { path: '', component: DashboardChangementsComponent },
-          { path: 'nouveau', component: CreateChangementComponent, data: { breadcrumb: 'Nouveau changement' } },
+          { path: 'nouveau', component: CreateChangementComponent, data: { breadcrumb: 'changements.new' } },
         ],
       },
       {
         path: 'contrats',
-        data: { breadcrumb: 'Contrats' },
+        data: { breadcrumb: 'nav.contrats' },
         children: [
           { path: '', component: DashboardContratsComponent },
-          { path: 'nouveau', component: CreateContratComponent, canActivate: [adminGuard], data: { breadcrumb: 'Nouveau contrat' } },
+          { path: 'nouveau', component: CreateContratComponent, canActivate: [adminGuard], data: { breadcrumb: 'contracts.new' } },
         ],
       },
       {
         path: 'clients',
-        data: { breadcrumb: 'Clients' },
+        data: { breadcrumb: 'nav.clients' },
         children: [
           { path: '', component: DashboardClientsComponent },
-          { path: 'nouveau', component: CreateClientComponent, canActivate: [adminGuard], data: { breadcrumb: 'Nouveau client' } },
+          { path: 'nouveau', component: CreateClientComponent, canActivate: [adminGuard], data: { breadcrumb: 'clients.new' } },
         ],
       },
       {
         path: 'plateforme',
-        data: { breadcrumb: 'Plateforme' },
+        data: { breadcrumb: 'nav.platform' },
         children: [
-          { path: 'tenants', component: PlatformTenantsComponent, canActivate: [platformGuard], data: { breadcrumb: 'Tenants' } },
+          { path: 'tenants', component: PlatformTenantsComponent, canActivate: [platformGuard], data: { breadcrumb: 'nav.tenants' } },
         ],
       },
-      { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard], data: { breadcrumb: 'Utilisateurs' } },
+      { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard], data: { breadcrumb: 'nav.users' } },
       // Profil : /profile est la route canonique ; /profil (historique) redirige dessus
       {
         path: 'profile',
-        data: { breadcrumb: 'Mon profil' },
+        data: { breadcrumb: 'nav.profile' },
         children: [
           { path: '', component: ProfilComponent },
-          { path: 'security', component: SecurityPageComponent, data: { breadcrumb: 'Sécurité' } },
+          { path: 'security', component: SecurityPageComponent, data: { breadcrumb: 'nav.security' } },
         ],
       },
       { path: 'profil', redirectTo: 'profile' },

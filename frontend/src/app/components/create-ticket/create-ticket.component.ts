@@ -23,13 +23,15 @@ import {
   showSpecSection,
 } from '../../utils/specifications-form.factory';
 import { RETENTION_MAX_PAR_PERIODE } from '../../models/changement.model';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 
 const AUTRE = 'Autre';
 
 @Component({
   selector: 'app-create-ticket',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, SpecificationsFormComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, SpecificationsFormComponent, ...I18N_IMPORTS],
   templateUrl: './create-ticket.component.html',
 })
 export class CreateTicketComponent implements OnInit {
@@ -49,7 +51,8 @@ export class CreateTicketComponent implements OnInit {
     private tickets: TicketService,
     private contratService: ContratService,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -239,7 +242,7 @@ export class CreateTicketComponent implements OnInit {
     req$.subscribe({
       next: (t) => this.router.navigate(['/tickets', t._id || this.editId]),
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de l’enregistrement du ticket.';
+        this.error = err.error?.message || this.i18n.t('tickets.createError');
         this.loading = false;
       },
     });

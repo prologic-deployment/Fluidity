@@ -22,9 +22,9 @@
         {{ workspaceInitial }}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-semibold text-white">{{ isPlatformWorkspace ? 'Plateforme' : workspaceName }}</p>
+        <p class="truncate text-xs font-semibold text-white">{{ isPlatformWorkspace ? ('nav.platform' | t) : workspaceName }}</p>
         <p class="truncate text-[10px] text-slate-400">
-          {{ isPlatformWorkspace ? 'Administration globale' : (tenant?.plan ? tenant?.plan + ' — espace de travail' : 'Espace de travail') }}
+          {{ isPlatformWorkspace ? ('nav.platformAdmin' | t) : (tenant?.plan ? tenant?.plan + ' — ' + ('nav.workspaceLabel' | t) : ('nav.workspaceLabel' | t)) }}
         </p>
       </div>
     </div>
@@ -33,9 +33,9 @@
   <!-- Bandeau impersonation -->
   <div *ngIf="impersonation" class="mx-4 mb-1">
     <div class="flex items-center justify-between rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2">
-      <p class="text-[10px] font-medium text-amber-200">Impersonation</p>
+      <p class="text-[10px] font-medium text-amber-200">{{ 'nav.impersonation' | t }}</p>
       <button (click)="quitterImpersonation()" class="text-[10px] font-semibold text-amber-100 underline decoration-dotted hover:text-white">
-        Quitter
+        {{ 'nav.leaveImpersonation' | t }}
       </button>
     </div>
   </div>
@@ -45,7 +45,7 @@
   <!-- Navigation -->
   <nav class="flex-1 overflow-y-auto px-3 py-2">
     <div *ngFor="let group of groups; trackBy: trackGroup">
-      <p class="side-group-label">{{ group.label }}</p>
+      <p class="side-group-label">{{ group.label | t }}</p>
 
       <ng-container *ngIf="group.children as children">
         <button *ngIf="children.length" type="button" (click)="toggle(group)"
@@ -67,7 +67,7 @@
               <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            {{ group.label }}
+            {{ group.label | t }}
           </span>
           <svg class="side-toggle-icon" [class.side-toggle-icon-open]="group.open"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -82,7 +82,7 @@
               routerLinkActive="side-sublink-active" [routerLinkActiveOptions]="{ exact: true }"
               class="side-sublink">
               <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>
-              {{ child.label }}
+              {{ child.label | t }}
             </a>
           </div>
         </div>
@@ -96,7 +96,7 @@
   <div class="p-4">
     <div class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
       <!-- Zone identité cliquable -> /profile (le bouton de déconnexion reste séparé) -->
-      <a routerLink="/profile" title="Mon profil"
+      <a routerLink="/profile" [title]="'nav.profile' | t"
         class="group flex min-w-0 flex-1 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-white/40">
         <div class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white
           ring-2 ring-transparent transition-all duration-200 group-hover:ring-white/30">

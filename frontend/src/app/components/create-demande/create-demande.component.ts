@@ -14,6 +14,8 @@ import {
 } from '../../models/demande.model';
 import { Contrat } from '../../models/contrat.model';
 import { DropzoneComponent } from '../shared/dropzone.component';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 import { UploadedFile } from '../../services/upload.service';
 
 const AUTRE = 'Autre';
@@ -21,7 +23,7 @@ const AUTRE = 'Autre';
 @Component({
   selector: 'app-create-demande',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, ...I18N_IMPORTS],
   templateUrl: './create-demande.component.html',
 })
 export class CreateDemandeComponent implements OnInit {

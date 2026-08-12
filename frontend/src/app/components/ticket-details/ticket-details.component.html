@@ -2,15 +2,15 @@
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
     <div class="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center gap-3 justify-between">
       <div class="min-w-0">
-        <a routerLink="/tickets" class="btn-link text-xs">&larr; Tickets</a>
+        <a routerLink="/tickets" class="btn-link text-xs">&larr; {{ 'nav.tickets' | t }}</a>
         <div class="mt-1 flex flex-wrap items-center gap-2">
           <button type="button" class="font-mono text-sm font-semibold hover:underline" (click)="copyRef()" [title]="'Copier'">
             {{ t.reference }}
           </button>
-          <span *ngIf="copied" class="text-xs text-success">Copié</span>
+          <span *ngIf="copied" class="text-xs text-success">{{ 'common.copied' | t }}</span>
           <span [class]="prioriteClass(t.priorite)"><span class="badge-dot"></span>{{ t.priorite }}</span>
-          <span class="badge-outline">{{ t.statut }}</span>
-          <a *ngIf="t.statut !== 'Clôturé'" [routerLink]="['/tickets', t._id, 'modifier']" class="btn-outline btn-sm">Modifier</a>
+          <span class="badge-outline">{{ t.statut | tl }}</span>
+          <a *ngIf="t.statut !== 'Clôturé'" [routerLink]="['/tickets', t._id, 'modifier']" class="btn-outline btn-sm">{{ 'common.edit' | t }}</a>
         </div>
         <h1 class="text-xl font-semibold tracking-tight mt-1">{{ t.objet }}</h1>
       </div>

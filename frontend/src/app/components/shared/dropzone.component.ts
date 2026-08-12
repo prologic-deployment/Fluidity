@@ -1,6 +1,9 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UploadService, UploadedFile, CategorieUpload } from '../../services/upload.service';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 
 interface DropzoneItem {
   id: string;
@@ -27,8 +30,8 @@ interface DropzoneItem {
 export class DropzoneComponent {
   @Input() accept = '';
   @Input() multiple = true;
-  @Input() label = 'Glissez vos fichiers ici';
-  @Input() hint = 'ou cliquez pour parcourir — 15 Mo max par fichier';
+  @Input() label?: string;
+  @Input() hint?: string;
   @Input() initialFiles: UploadedFile[] = [];
 
   /** Catégorie de stockage tenant côté serveur (uploads/tenants/<id>/<categorie>/).
@@ -41,7 +44,14 @@ export class DropzoneComponent {
   items: DropzoneItem[] = [];
   isDragOver = false;
 
-  constructor(private uploadService: UploadService) {}
+  constructor(private uploadService: UploadService, private i18n: I18nService) {}
+
+  displayLabel(): string {
+    return this.label || this.i18n.t('dropzone.label');
+  }
+  displayHint(): string {
+    return this.hint || this.i18n.t('dropzone.hint');
+  }
 
   ngOnInit(): void {
     this.items = this.initialFiles.map((f) => ({

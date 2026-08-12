@@ -16,10 +16,8 @@
 
     <div class="relative z-10 space-y-9">
       <div class="animate-fade-in-up stagger-1">
-        <h2 class="text-3xl font-semibold tracking-tight leading-tight">Le portail unifié<br />de vos services cloud.</h2>
-        <p class="mt-4 text-sm text-slate-300 max-w-sm">
-          Demandes, changements et contrats suivis de bout en bout, avec un workflow conforme à vos processus métier.
-        </p>
+        <h2 class="text-3xl font-semibold tracking-tight leading-tight">{{ 'auth.heroTitle' | t }}</h2>
+        <p class="mt-4 text-sm text-slate-300 max-w-sm">{{ 'auth.heroText' | t }}</p>
       </div>
 
       <div class="space-y-4">
@@ -31,8 +29,8 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium">Multi-tenant sécurisé</p>
-            <p class="text-xs text-slate-400">Isolation stricte des données, par client et par rôle</p>
+            <p class="text-sm font-medium">{{ 'auth.featureMt' | t }}</p>
+            <p class="text-xs text-slate-400">{{ 'auth.featureMtHint' | t }}</p>
           </div>
         </div>
 
@@ -46,8 +44,8 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium">Workflow piloté par rôle</p>
-            <p class="text-xs text-slate-400">Chaque étape validée par la bonne équipe, au bon moment</p>
+            <p class="text-sm font-medium">{{ 'auth.featureWf' | t }}</p>
+            <p class="text-xs text-slate-400">{{ 'auth.featureWfHint' | t }}</p>
           </div>
         </div>
 
@@ -59,8 +57,8 @@
             </svg>
           </div>
           <div>
-            <p class="text-sm font-medium">Contrats centralisés</p>
-            <p class="text-xs text-slate-400">Un point de référence unique pour chaque engagement client</p>
+            <p class="text-sm font-medium">{{ 'auth.featureCt' | t }}</p>
+            <p class="text-xs text-slate-400">{{ 'auth.featureCtHint' | t }}</p>
           </div>
         </div>
       </div>
@@ -78,12 +76,18 @@
         <span class="text-lg font-semibold tracking-tight">ServiceDesk</span>
       </div>
 
-      <h1 class="text-2xl font-semibold tracking-tight">Bon retour</h1>
-      <p class="mt-1.5 text-sm text-muted-foreground">Connectez-vous à votre espace de travail.</p>
+      <div class="flex justify-end mb-4">
+        <select class="select !w-auto !h-8 !text-xs" (change)="onLang($event)">
+          <option value="fr" [selected]="i18n.lang === 'fr'">🇫🇷 Français</option>
+          <option value="en" [selected]="i18n.lang === 'en'">🇬🇧 English</option>
+        </select>
+      </div>
+      <h1 class="text-2xl font-semibold tracking-tight">{{ 'auth.welcomeBack' | t }}</h1>
+      <p class="mt-1.5 text-sm text-muted-foreground">{{ 'auth.signInHint' | t }}</p>
 
       <form [formGroup]="form" (ngSubmit)="submit()" class="mt-8 space-y-4">
         <div>
-          <label class="field-label">Email</label>
+          <label class="field-label">{{ 'auth.email' | t }}</label>
           <div class="field-group">
             <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2"></rect>
@@ -92,12 +96,12 @@
             <input type="email" formControlName="email" class="input-with-icon" placeholder="utilisateur@entreprise.com" />
           </div>
           <p *ngIf="form.get('email')?.invalid && form.get('email')?.touched" class="field-error">
-            Email valide requis.
+            {{ 'auth.validEmail' | t }}
           </p>
         </div>
 
         <div>
-          <label class="field-label">Mot de passe</label>
+          <label class="field-label">{{ 'auth.password' | t }}</label>
           <div class="field-group">
             <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="10" rx="2"></rect>
@@ -113,12 +117,12 @@
           <svg *ngIf="loading" class="h-4 w-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
           </svg>
-          {{ loading ? 'Connexion...' : 'Se connecter' }}
+          {{ loading ? ('auth.signingIn' | t) : ('auth.signIn' | t) }}
         </button>
       </form>
 
       <div class="mt-5 text-center">
-        <a routerLink="/reset-password" class="btn-link">Mot de passe oublié ?</a>
+        <a routerLink="/reset-password" class="btn-link">{{ 'auth.forgot' | t }}</a>
       </div>
     </div>
   </div>

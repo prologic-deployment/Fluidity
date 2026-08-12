@@ -6,11 +6,12 @@ import { TicketService } from '../../services/ticket.service';
 import { AuthService } from '../../services/auth.service';
 import { Ticket, TicketStats, STATUTS_TICKET } from '../../models/ticket.model';
 import { CATEGORIES } from '../../models/demande.model';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 @Component({
   selector: 'app-dashboard-tickets',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './dashboard-tickets.component.html',
 })
 export class DashboardTicketsComponent implements OnInit {

@@ -7,6 +7,8 @@ import { ThemeService } from '../../services/theme.service';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { PLATFORM_NAME } from '../../branding';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { AppLang, I18nService } from '../../i18n/i18n.service';
 
 /**
  * Barre de navigation horizontale supérieure (sticky) :
@@ -20,7 +22,7 @@ import { PLATFORM_NAME } from '../../branding';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent, UrlUploadPipe],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './topbar.component.html',
 })
 export class TopbarComponent {
@@ -39,7 +41,8 @@ export class TopbarComponent {
   constructor(
     private router: Router,
     private auth: AuthService,
-    private theme: ThemeService
+    private theme: ThemeService,
+    public i18n: I18nService
   ) {
     this.isDark$ = this.theme.dark$;
   }
@@ -84,7 +87,12 @@ export class TopbarComponent {
   }
 
   get roleLabel(): string {
-    return this.auth.roleLabel();
+    return this.i18n.t('roles.' + (this.auth.getRole() || 'Utilisateur'));
+  }
+
+  onLang(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value as AppLang;
+    this.i18n.setLang(value);
   }
 
   /** Destination du logo mobile selon le rôle (comme après connexion). */

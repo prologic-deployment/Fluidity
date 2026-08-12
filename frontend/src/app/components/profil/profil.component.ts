@@ -6,6 +6,8 @@ import { AuthService } from '../../services/auth.service';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { UploadService } from '../../services/upload.service';
 import { ToastService } from '../../services/toast.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 
 /**
  * Page « Mon profil » — expérience de compte moderne (style Microsoft Account /
@@ -19,7 +21,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-profil',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, UrlUploadPipe],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './profil.component.html',
 })
 export class ProfilComponent implements OnInit {
@@ -44,7 +46,8 @@ export class ProfilComponent implements OnInit {
     private fb: FormBuilder,
     private auth: AuthService,
     private uploadService: UploadService,
-    private toast: ToastService
+    private toast: ToastService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -79,7 +82,7 @@ export class ProfilComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.toast.error('Impossible de charger votre profil.');
+        this.toast.error(this.i18n.t('profile.loadError'));
       },
     });
   }
@@ -163,7 +166,7 @@ export class ProfilComponent implements OnInit {
             this.auth.syncSessionUser(user); // mise à jour immédiate topbar/sidebar
             this.avatarUploading = false;
             this.cancelAvatarPreview();
-            this.toast.success('Photo de profil mise à jour.');
+            this.toast.success(this.i18n.t('profile.photoUpdated'));
           },
           error: () => {
             this.avatarUploading = false;
@@ -185,7 +188,7 @@ export class ProfilComponent implements OnInit {
         this.profile = user;
         this.auth.syncSessionUser(user);
         this.avatarUploading = false;
-        this.toast.success('Photo de profil supprimée.');
+        this.toast.success(this.i18n.t('profile.photoRemoved'));
       },
       error: () => {
         this.avatarUploading = false;

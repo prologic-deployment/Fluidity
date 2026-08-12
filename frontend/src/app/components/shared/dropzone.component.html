@@ -19,8 +19,8 @@
     </svg>
   </div>
 
-  <p class="text-sm font-medium text-foreground">{{ label }}</p>
-  <p class="text-xs text-muted-foreground">{{ hint }}</p>
+  <p class="text-sm font-medium text-foreground">{{ displayLabel() }}</p>
+  <p class="text-xs text-muted-foreground">{{ displayHint() }}</p>
 </div>
 
 <div *ngIf="items.length" class="mt-3 space-y-2">

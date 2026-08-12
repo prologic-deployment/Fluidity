@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterLink } from '@angular/router';
 import { Observable, filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 export interface BreadcrumbItem {
   label: string;
@@ -24,7 +25,7 @@ export interface BreadcrumbItem {
 @Component({
   selector: 'app-breadcrumb',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './breadcrumb.component.html',
 })
 export class BreadcrumbComponent {
@@ -46,7 +47,7 @@ export class BreadcrumbComponent {
   }
 
   /** Libellé de l'étape racine. */
-  readonly homeLabel = 'Tableau de bord';
+  readonly homeLabel = 'nav.dashboard';
 
   private build(): BreadcrumbItem[] {
     const items: BreadcrumbItem[] = [];

@@ -5,6 +5,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TicketService } from '../../services/ticket.service';
 import { AuthService } from '../../services/auth.service';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 import {
   EQUIPES_SUPPORT,
   Ticket,
@@ -15,7 +17,7 @@ import {
 @Component({
   selector: 'app-ticket-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, UrlUploadPipe],
+  imports: [CommonModule, FormsModule, RouterLink, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './ticket-details.component.html',
 })
 export class TicketDetailsComponent implements OnInit {
@@ -43,7 +45,7 @@ export class TicketDetailsComponent implements OnInit {
   transitionLoading = false;
   equipes = EQUIPES_SUPPORT;
 
-  constructor(private route: ActivatedRoute, private tickets: TicketService, public auth: AuthService) {}
+  constructor(private route: ActivatedRoute, private tickets: TicketService, public auth: AuthService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -203,7 +205,9 @@ export class TicketDetailsComponent implements OnInit {
       reouverture: 'Réouverture',
       cloture: 'Clôture',
     };
-    return map[a.action] || a.action;
+    const key = 'workflow.' + a.action;
+    const tr = this.i18n.t(key);
+    return tr === key ? (map[a.action] || a.action) : tr;
   }
 
   nomFichier(url: string): string {

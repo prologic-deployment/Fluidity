@@ -13,6 +13,7 @@ import {
   StockageEntry,
 } from '../../models/changement.model';
 import { showSpecField, showSpecSection } from '../../utils/specifications-form.factory';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 const AUTRE = 'Autre';
 
@@ -23,7 +24,7 @@ const AUTRE = 'Autre';
 @Component({
   selector: 'app-specifications-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ...I18N_IMPORTS],
   templateUrl: './specifications-form.component.html',
   viewProviders: [{ provide: ControlContainer, useExisting: FormGroupDirective }],
 })

@@ -1,11 +1,11 @@
 <!-- Fil d'Ariane : [🏠] › Étapes intermédiaires › Étape courante -->
-<nav aria-label="Fil d'Ariane" class="hidden min-w-0 items-center sm:flex">
+<nav [attr.aria-label]="'nav.home' | t" class="hidden min-w-0 items-center sm:flex">
   <ol class="flex min-w-0 items-center gap-1.5 text-sm" *ngIf="items$ | async as items">
     <!-- Racine : tableau de bord -->
     <li class="flex shrink-0 items-center">
       <a
         [routerLink]="homeLink"
-        [title]="homeLabel"
+        [title]="homeLabel | t"
         class="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -13,7 +13,7 @@
           <path d="M9 21V12h6v9"></path>
           <path d="M5 10v10h14V10"></path>
         </svg>
-        <span class="sr-only">{{ homeLabel }}</span>
+        <span class="sr-only">{{ homeLabel | t }}</span>
       </a>
     </li>
 

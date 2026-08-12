@@ -12,6 +12,8 @@ import { AuthService, Impersonation, SessionUser } from '../../services/auth.ser
 import { TenantBranding } from '../../models/tenant.model';
 import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 
 interface SidebarChild {
   label: string;
@@ -41,7 +43,7 @@ interface SidebarGroup {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, UrlUploadPipe],
+  imports: [CommonModule, RouterLink, RouterLinkActive, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './sidebar.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -60,7 +62,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
   constructor(
     private auth: AuthService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -70,6 +73,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.refreshModel();
       this.cdr.markForCheck();
     });
+    this.i18n.lang$.pipe(takeUntil(this.destroy$)).subscribe(() => this.cdr.markForCheck());
   }
 
   ngOnDestroy(): void {
@@ -124,10 +128,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
     if (this.isPlatformAdmin) {
       const plateforme: SidebarGroup = {
-        label: 'Plateforme',
+        label: 'nav.platform',
         icon: 'grid',
         open: true,
-        children: [{ label: 'Tenants', path: '/plateforme/tenants' }],
+        children: [{ label: 'nav.tenants', path: '/plateforme/tenants' }],
       };
       groups.push(plateforme);
     }
@@ -136,54 +140,53 @@ export class SidebarComponent implements OnInit, OnDestroy {
     // NB : « Mon profil » n'est plus ici — accessible via le menu du profil (topbar).
     if (!this.isPlatformAdmin || this.impersonation) {
       groups.push({
-        label: 'Espace Services',
+        label: 'nav.workspace',
         icon: 'grid',
         open: true,
         children: [
-          { label: 'Tickets', path: '/tickets' },
-          { label: 'Demandes', path: '/demandes' },
-          { label: 'Changements', path: '/changements' },
+          { label: 'nav.tickets', path: '/tickets' },
+          { label: 'nav.demandes', path: '/demandes' },
+          { label: 'nav.changements', path: '/changements' },
         ],
       });
 
       if (this.isTenantAdmin || this.isPlatformAdmin) {
         groups.push({
-          label: 'Utilisateurs',
+          label: 'nav.users',
           icon: 'users',
           open: true,
-          children: [{ label: 'Comptes & licences', path: '/utilisateurs' }],
+          children: [{ label: 'nav.accounts', path: '/utilisateurs' }],
         });
         groups.push({
-          label: 'Contrats',
+          label: 'nav.contrats',
           icon: 'file',
           open: true,
           children: [
-            { label: 'Tous les contrats', path: '/contrats' },
-            { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
+            { label: 'nav.allContracts', path: '/contrats' },
+            { label: 'nav.newContract', path: '/contrats/nouveau' },
           ],
         });
         groups.push({
-          label: 'Clients',
+          label: 'nav.clients',
           icon: 'users',
           open: true,
           children: [
-            { label: 'Tous les clients', path: '/clients' },
-            { label: 'Nouveau client', path: '/clients/nouveau' },
+            { label: 'nav.allClients', path: '/clients' },
+            { label: 'nav.newClient', path: '/clients/nouveau' },
           ],
         });
       } else if (!this.isClient) {
-        // Rôles internes (Manager / Agent / Observateur) : lecture transverse
         groups.push({
-          label: 'Contrats',
+          label: 'nav.contrats',
           icon: 'file',
           open: true,
-          children: [{ label: 'Tous les contrats', path: '/contrats' }],
+          children: [{ label: 'nav.allContracts', path: '/contrats' }],
         });
         groups.push({
-          label: 'Clients',
+          label: 'nav.clients',
           icon: 'users',
           open: true,
-          children: [{ label: 'Tous les clients', path: '/clients' }],
+          children: [{ label: 'nav.allClients', path: '/clients' }],
         });
       }
     }
@@ -213,7 +216,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   roleLabel(): string {
-    return this.auth.roleLabel(this.user?.role);
+    return this.i18n.t('roles.' + (this.user?.role || 'Utilisateur'));
   }
 
   logout(): void {

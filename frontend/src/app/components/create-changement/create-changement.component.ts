@@ -15,6 +15,8 @@ import {
 import { Contrat } from '../../models/contrat.model';
 import { DropzoneComponent } from '../shared/dropzone.component';
 import { SpecificationsFormComponent } from '../shared/specifications-form.component';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 import { UploadedFile } from '../../services/upload.service';
 import {
   buildSpecificationControls,
@@ -29,7 +31,7 @@ const AUTRE = 'Autre';
 @Component({
   selector: 'app-create-changement',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, SpecificationsFormComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, SpecificationsFormComponent, ...I18N_IMPORTS],
   templateUrl: './create-changement.component.html',
 })
 export class CreateChangementComponent implements OnInit {
