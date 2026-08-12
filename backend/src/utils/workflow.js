@@ -135,8 +135,11 @@ const CHANGEMENT_TRANSITIONS = {
  * « Annulé » : un dossier annulé est figé pour tout le monde.
  */
 function canTransition(transitions, from, to, role) {
-  if (from === 'Annulé') return false;
-  if (role === 'PLATFORM_ADMIN' || role === 'TENANT_ADMIN') return true;
+  if (from === 'Annulé' || from === 'Clôturé' || from === 'Clôturée') return false;
+  if (role === 'PLATFORM_ADMIN' || role === 'TENANT_ADMIN') {
+    const options = transitions[from] || [];
+    return options.some((o) => o.to === to);
+  }
   const options = transitions[from] || [];
   const match = options.find((o) => o.to === to);
   return !!match && match.roles.includes(role);
@@ -153,6 +156,48 @@ function availableTransitions(transitions, from, role) {
   return options.filter((o) => o.roles.includes(role)).map((o) => o.to);
 }
 
+// ---------------------------------------------------------------------
+// TICKET — Incident Management (extensible ticket types)
+// ---------------------------------------------------------------------
+const TICKET_TYPES = ['Incident'];
+
+const TICKET_STATUTS = [
+  'Nouveau',
+  'Affecté',
+  "En cours d'analyse",
+  'En attente client',
+  'En attente tiers',
+  'En cours de résolution',
+  'Résolu',
+  'Clôturé',
+  'Réouvert',
+];
+
+/** Statuts qui suspendent le SLA. */
+const TICKET_STATUTS_SLA_PAUSE = ['En attente client', 'En attente tiers'];
+
+const TICKET_TRANSITIONS = {
+  Nouveau: [
+    { to: 'Affecté', roles: ['AGENT', 'MANAGER'] },
+    { to: "En cours d'analyse", roles: ['AGENT', 'MANAGER'] },
+  ],
+  Affecté: [{ to: "En cours d'analyse", roles: ['AGENT', 'MANAGER'] }],
+  "En cours d'analyse": [
+    { to: 'En cours de résolution', roles: ['AGENT', 'MANAGER'] },
+    { to: 'En attente client', roles: ['AGENT', 'MANAGER'] },
+    { to: 'En attente tiers', roles: ['AGENT', 'MANAGER'] },
+  ],
+  'En attente client': [{ to: "En cours d'analyse", roles: ['CLIENT', 'AGENT', 'MANAGER'] }],
+  'En attente tiers': [{ to: 'En cours de résolution', roles: ['AGENT', 'MANAGER'] }],
+  'En cours de résolution': [{ to: 'Résolu', roles: ['AGENT', 'MANAGER'] }],
+  Résolu: [
+    { to: 'Clôturé', roles: ['CLIENT', 'AGENT', 'MANAGER'] },
+    { to: 'Réouvert', roles: ['CLIENT', 'AGENT', 'MANAGER'] },
+  ],
+  Clôturé: [],
+  Réouvert: [{ to: "En cours d'analyse", roles: ['AGENT', 'MANAGER'] }],
+};
+
 module.exports = {
   DEMANDE_STATUTS,
   DEMANDE_STATUTS_ANNULABLES,
@@ -160,6 +205,10 @@ module.exports = {
   CHANGEMENT_STATUTS,
   CHANGEMENT_STATUTS_ANNULABLES,
   CHANGEMENT_TRANSITIONS,
+  TICKET_TYPES,
+  TICKET_STATUTS,
+  TICKET_STATUTS_SLA_PAUSE,
+  TICKET_TRANSITIONS,
   canTransition,
   availableTransitions,
 };

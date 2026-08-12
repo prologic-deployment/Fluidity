@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/run.js",
     "migrate": "node src/seed/migrate-multitenancy.js",
-    "migrate:uploads": "node src/seed/migrate-uploads-structure.js"
+    "migrate:uploads": "node src/seed/migrate-uploads-structure.js",
+    "test": "node src/utils/ticket-priority.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
