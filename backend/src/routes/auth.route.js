@@ -46,11 +46,11 @@ router.patch('/profile', authMiddleware, validate(updateProfileSchema), updatePr
 // Sécurité : changement de mot de passe avec preuve du mot de passe actuel
 router.post('/change-password', authMiddleware, validate(changePasswordSchema), changePassword);
 
-// --- Double authentification (2FA) — réservée aux comptes internes ---
-router.get('/2fa/status', authMiddleware, requireUtilisateurInterne, getStatus);
-router.post('/2fa/setup', authMiddleware, requireUtilisateurInterne, setup);
-router.post('/2fa/verify-setup', authMiddleware, requireUtilisateurInterne, validate(twoFactorVerifySetupSchema), verifySetup);
-router.post('/2fa/disable', authMiddleware, requireUtilisateurInterne, validate(twoFactorDisableSchema), disable);
+// --- Double authentification (2FA) — tout compte authentifié gère SA propre 2FA ---
+router.get('/2fa/status', authMiddleware, getStatus);
+router.post('/2fa/setup', authMiddleware, setup);
+router.post('/2fa/verify-setup', authMiddleware, validate(twoFactorVerifySetupSchema), verifySetup);
+router.post('/2fa/disable', authMiddleware, validate(twoFactorDisableSchema), disable);
 // Second facteur de connexion : jeton temporaire + code OTP (public, sans session)
 router.post('/2fa/verify-login', validate(twoFactorVerifyLoginSchema), verifyLogin);
 
