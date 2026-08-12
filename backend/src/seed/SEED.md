@@ -22,6 +22,7 @@ Mot de passe commun (développement uniquement) : `Password123!`
 | manager@fluidity.dev | MANAGER — Technique |
 | viewer@fluidity.dev | VIEWER |
 | amine.user@fluidity.dev | VIEWER |
+| 2fa.pending@fluidity.dev | VIEWER — 2FA setup en cours (non activée) |
 | client@fluidity.dev | Portail Client — Atlas Industries |
 | client2@fluidity.dev | Portail Client — Helios Distribution |
 | maghreb@fluidity.dev | Portail Client — Maghreb Systems |

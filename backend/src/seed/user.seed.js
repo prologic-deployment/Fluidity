@@ -1,4 +1,5 @@
 const { Utilisateur } = require('../models/user.model');
+const { encryptSecret } = require('../utils/crypto.util');
 
 /** Mot de passe de développement (hashé par le hook pre-save). */
 const DEMO_PASSWORD = 'Password123!';
@@ -49,6 +50,17 @@ const seedUsers = async (tenants = {}) => {
     { tenantId: fluidity._id, email: 'viewer@fluidity.dev', password: DEMO_PASSWORD, role: 'VIEWER', department: 'Finance', firstName: 'Omar', lastName: 'Viewer' },
     { tenantId: fluidity._id, email: 'amine.user@fluidity.dev', password: DEMO_PASSWORD, role: 'VIEWER', department: 'Métier', firstName: 'Amine', lastName: 'Trabelsi' },
     { tenantId: fluidity._id, email: 'selma.ops@fluidity.dev', password: DEMO_PASSWORD, role: 'AGENT', department: 'Système', firstName: 'Selma', lastName: 'Ops' },
+    // 2FA : configuration commencée mais non activée (login mot de passe toujours possible)
+    {
+      tenantId: fluidity._id,
+      email: '2fa.pending@fluidity.dev',
+      password: DEMO_PASSWORD,
+      role: 'VIEWER',
+      department: 'Sécurité',
+      firstName: 'Ines',
+      lastName: 'Totp',
+      twoFactorSetupPending: true,
+    },
 
     // --- Nova Systems (Tenant B) ---
     { tenantId: nova._id, email: 'nova-admin@nova-systems.dev', password: DEMO_PASSWORD, role: 'TENANT_ADMIN', department: 'Direction', firstName: 'Hedi', lastName: 'Nova' },

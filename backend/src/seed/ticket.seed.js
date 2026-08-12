@@ -213,6 +213,29 @@ const seedTickets = async (tenants = {}) => {
       resolution: { resume: 'Fichier restauré dans /restore/atlas/.', resolvedAt: hoursAgo(5), resolvedBy: sarah?._id, resolvedByModel: 'Utilisateur' },
       specifications: { backup: { sourceBackup: 'Veeam J-1', typeRestore: 'Fichier', cibleRestore: '/restore/atlas' } },
     },
+    {
+      tenantId: fluidity._id, clientId: atlas._id, contrat: ctrAtlas._id, createdBy: atlas._id, createdByModel: 'Client',
+      reference: 'INC-2026-0016', statut: 'Nouveau', objet: 'Scope DHCP épuisé VLAN 30',
+      descriptionDetaillee: 'Plus d’adresses libres dans le pool DHCP du VLAN 30 (WiFi collaborateurs).',
+      categorie: 'Réseau', sousCategorie: 'DHCP', impact: 'Moyen', urgence: 'Critique', ageHours: 2,
+      specifications: { reseau: { scopePool: 'VLAN30', plageAdresses: '10.30.0.50-10.30.0.250' } },
+    },
+    {
+      tenantId: fluidity._id, clientId: helios._id, contrat: ctrHelios._id, createdBy: helios._id, createdByModel: 'Client',
+      reference: 'INC-2026-0017', statut: 'Affecté', objet: 'Snapshot ERP avant patch',
+      descriptionDetaillee: 'Besoin d’un snapshot erp-app-01 / erp-db-01 avant le patch constructeur.',
+      categorie: 'VM', sousCategorie: 'Snapshot', impact: 'Faible', urgence: 'Élevée',
+      assignedTeam: 'Système', assignedTo: selma?._id, ageHours: 9,
+      specifications: { serveur: { vmCible: 'erp-app-01', nomSnapshot: 'pre-patch-2026-08' } },
+    },
+    {
+      tenantId: fluidity._id, clientId: atlas._id, contrat: ctrAtlas._id, createdBy: atlas._id, createdByModel: 'Client',
+      reference: 'INC-2026-0018', statut: "En cours d'analyse", objet: 'Job backup configuration à recréer',
+      descriptionDetaillee: 'Le job quotidien a été supprimé par erreur. Recréer la configuration Veeam.',
+      categorie: 'Sauvegarde', sousCategorie: 'Backup Configuration', impact: 'Élevé', urgence: 'Faible',
+      assignedTeam: 'Cloud', assignedTo: lina?._id, ageHours: 11,
+      specifications: { backup: { typeBackup: 'Incremental', frequenceSauvegarde: 'Quotidienne', systemeCible: 'VM-finances' } },
+    },
   ];
 
   const novaTickets = [];
@@ -257,6 +280,14 @@ const seedTickets = async (tenants = {}) => {
         categorie: 'Sécurité', sousCategorie: 'Certificat', impact: 'Faible', urgence: 'Moyenne',
         assignedTeam: 'Support N1', assignedTo: ines?._id, ageHours: 200,
         resolution: { resume: 'Certificats déployés.', closedAt: hoursAgo(150), confirmationClient: true },
+      },
+      {
+        tenantId: nova._id, clientId: novaRetail._id, contrat: ctrNova._id, createdBy: novaRetail._id, createdByModel: 'Client',
+        reference: 'INC-2026-0106', statut: 'Affecté', objet: 'Load balancer VIP caisses timeout',
+        descriptionDetaillee: 'Le VIP 10.70.0.10 ne répond plus sur 443. Health checks KO sur 2 backends.',
+        categorie: 'Réseau', sousCategorie: 'Load Balancer', impact: 'Critique', urgence: 'Critique',
+        assignedTeam: 'Réseau', assignedTo: dora?._id, ageHours: 4,
+        specifications: { reseau: { typeLb: 'L7', vip: '10.70.0.10', portsLb: '443', healthCheck: 'HTTPS /health' } },
       }
     );
   }
