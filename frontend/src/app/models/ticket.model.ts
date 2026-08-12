@@ -83,6 +83,7 @@ export interface Ticket {
   assignedTo?: { _id: string; email: string; firstName?: string; lastName?: string; role?: string } | string | null;
   piecesJointes?: string[];
   diagnostic?: TicketDiagnostic;
+  specifications?: Record<string, any>;
   attenteMotif?: string;
   attenteDepuis?: string;
   sla?: TicketSla;
@@ -153,33 +154,7 @@ export const EQUIPES_SUPPORT: string[] = [
   'Autre',
 ];
 
-/** Catégories incident — domaines infra + catalogue existant. */
-export const CATEGORIES_TICKET: string[] = [
-  'Réseau',
-  'Infrastructure',
-  'VM',
-  'Base de données',
-  'Portail web',
-  'Conteneurs',
-  'IA-GPU',
-  'Stockage',
-  'Sécurité',
-  'Sauvegarde',
-  'Autre',
-];
-
-export const SOUS_CATEGORIES_TICKET: Record<string, string[]> = {
-  Réseau: ['Firewall', 'Switch', 'VLAN', 'Routage', 'DNS', 'DHCP', 'VPN', 'Load Balancer', 'WiFi', 'Proxy', 'Autre'],
-  Infrastructure: ['Serveur physique', 'Hyperviseur', 'Alimentation', 'Monitoring', 'Autre'],
-  VM: ['VM inaccessible', 'Performance', 'Création VM', 'Extension ressources', 'Snapshot', 'Autre'],
-  'Base de données': ['Indisponibilité', 'Performance', 'Sauvegarde BDD', 'Accès', 'Autre'],
-  'Portail web': ['Indisponibilité', 'SSL', 'Performance', 'Autre'],
-  Conteneurs: ['Pod / replica', 'Registry', 'Orchestration', 'Autre'],
-  'IA-GPU': ['GPU Allocation', 'Drivers', 'Performance', 'Autre'],
-  Stockage: ['NAS', 'SAN', 'Volume', 'NFS', 'SMB', 'Quotas', 'Capacité', 'Autre'],
-  Sécurité: ['Incident sécurité', 'Firewall', 'Certificat', 'Accès', 'Autre'],
-  Sauvegarde: ['Échec backup', 'Restore', 'Rétention', 'Veeam', 'Autre'],
-};
+/** @deprecated utiliser CATEGORIES / SOUS_CATEGORIES (demande.model) — source unique. */
 
 const PRIORITY_MATRIX: Record<ImpactTicket, Record<UrgenceTicket, PrioriteTicket>> = {
   Faible: { Faible: 'P4', Moyenne: 'P4', Élevée: 'P3', Critique: 'P3' },

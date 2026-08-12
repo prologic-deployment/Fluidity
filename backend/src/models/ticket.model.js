@@ -47,6 +47,7 @@ const TicketSchema = new Schema(
     assignedTo: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
     piecesJointes: [{ type: String }],
     diagnostic: { type: DiagnosticSchema, default: {} },
+    specifications: { type: Schema.Types.Mixed, default: {} },
     attenteMotif: { type: String },
     attenteDepuis: { type: Date },
     sla: {

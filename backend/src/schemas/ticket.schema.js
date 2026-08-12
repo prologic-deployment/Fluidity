@@ -36,6 +36,7 @@ const createTicketSchema = z.object({
   contrat: objectId('Contrat (ObjectId) requis'),
   piecesJointes: z.array(z.string()).optional(),
   diagnostic: diagnosticSchema,
+  specifications: z.record(z.any()).optional(),
   priorite: z.string().optional(),
 });
 
@@ -48,6 +49,7 @@ const updateTicketSchema = z
     impact: z.enum(IMPACTS).optional(),
     urgence: z.enum(URGENCES).optional(),
     diagnostic: diagnosticSchema,
+    specifications: z.record(z.any()).optional(),
     piecesJointes: z.array(z.string()).optional(),
   })
   .partial();

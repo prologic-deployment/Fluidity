@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TicketService } from '../../services/ticket.service';
 import { AuthService } from '../../services/auth.service';
-import { Ticket, TicketStats, STATUTS_TICKET, CATEGORIES_TICKET } from '../../models/ticket.model';
+import { Ticket, TicketStats, STATUTS_TICKET } from '../../models/ticket.model';
+import { CATEGORIES } from '../../models/demande.model';
 
 @Component({
   selector: 'app-dashboard-tickets',
@@ -25,7 +26,7 @@ export class DashboardTicketsComponent implements OnInit {
   pages = 1;
   total = 0;
   statuts = STATUTS_TICKET;
-  categories = CATEGORIES_TICKET;
+  categories = CATEGORIES;
   priorites = ['P1', 'P2', 'P3', 'P4'];
 
   constructor(private tickets: TicketService, public auth: AuthService, private router: Router) {}

@@ -1,8 +1,8 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
     <div class="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
-      <a routerLink="/tickets" class="btn-link">&larr; Retour</a>
-      <h1 class="text-xl font-semibold tracking-tight">Nouveau ticket</h1>
+      <a [routerLink]="editId ? ['/tickets', editId] : '/tickets'" class="btn-link">&larr; Retour</a>
+      <h1 class="text-xl font-semibold tracking-tight">{{ editId ? 'Modifier le ticket' : 'Nouveau ticket' }}</h1>
       <span></span>
     </div>
   </header>
@@ -18,8 +18,8 @@
               <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
             </div>
             <div>
-              <h2 class="card-title">Incident</h2>
-              <p class="card-description">Décrivez le dysfonctionnement constaté. La date d'ouverture est enregistrée côté serveur.</p>
+              <h2 class="card-title">Informations générales</h2>
+              <p class="card-description">Incident — catégories et spécifications identiques aux demandes et changements.</p>
             </div>
           </div>
         </div>
@@ -50,10 +50,12 @@
                 <option value="" disabled>Sélectionner...</option>
                 <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
               </select>
+              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">Précisez la catégorie</label>
+              <label class="field-label">Précisez votre catégorie</label>
               <input formControlName="categorieAutre" type="text" class="input" />
+              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('categorie')?.value !== 'Autre'">
               <label class="field-label">Sous-catégorie</label>
@@ -61,10 +63,12 @@
                 <option value="" disabled>Sélectionner...</option>
                 <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
               </select>
+              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div *ngIf="form.get('sousCategorie')?.value === 'Autre' || form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">Précisez la sous-catégorie</label>
+              <label class="field-label">Précisez votre sous-catégorie</label>
               <input formControlName="sousCategorieAutre" type="text" class="input" />
+              <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">Champ requis.</p>
             </div>
             <div>
               <label class="field-label">Impact</label>
@@ -84,7 +88,7 @@
               <div class="rounded-lg border border-border bg-muted/30 px-4 py-3 flex items-center justify-between">
                 <div>
                   <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Priorité calculée</p>
-                  <p class="text-sm text-muted-foreground">Matrice Impact × Urgence — le serveur recalcule à l'enregistrement.</p>
+                  <p class="text-sm text-muted-foreground">Matrice Impact × Urgence — recalculée côté serveur.</p>
                 </div>
                 <span *ngIf="prioriteCalculee" class="inline-flex h-9 min-w-[3rem] items-center justify-center rounded-lg text-sm font-bold"
                   [ngClass]="{
@@ -99,8 +103,8 @@
           </div>
           <div>
             <label class="field-label">Description détaillée</label>
-            <textarea formControlName="descriptionDetaillee" rows="6" class="textarea"
-              placeholder="Symptômes, périmètre impacté, heure de constat, messages d'erreur, informations utiles au diagnostic..."></textarea>
+            <textarea formControlName="descriptionDetaillee" rows="5" class="textarea"
+              placeholder="Symptômes, périmètre impacté, heure de constat, messages d'erreur..."></textarea>
             <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">Description requise (min. 10 caractères).</p>
           </div>
           <div>
@@ -112,34 +116,13 @@
         </div>
       </section>
 
-      <section *ngIf="form.get('categorie')?.value && form.get('categorie')?.value !== 'Autre'" class="card" formGroupName="diagnostic">
-        <div class="card-header-tinted">
-          <h2 class="card-title">Informations de diagnostic</h2>
-          <p class="card-description">Champs utiles pour cette catégorie — facultatifs.</p>
-        </div>
-        <div class="card-content pt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngIf="showDiag('source')"><label class="field-label">Source</label><input formControlName="source" class="input" /></div>
-          <div *ngIf="showDiag('destination')"><label class="field-label">Destination</label><input formControlName="destination" class="input" /></div>
-          <div *ngIf="showDiag('protocole')"><label class="field-label">Protocole</label><input formControlName="protocole" class="input" /></div>
-          <div *ngIf="showDiag('port')"><label class="field-label">Port</label><input formControlName="port" class="input" /></div>
-          <div *ngIf="showDiag('direction')"><label class="field-label">Direction</label><input formControlName="direction" class="input" /></div>
-          <div *ngIf="showDiag('nomVm')"><label class="field-label">Nom VM / serveur</label><input formControlName="nomVm" class="input" /></div>
-          <div *ngIf="showDiag('environnement')"><label class="field-label">Environnement</label><input formControlName="environnement" class="input" /></div>
-          <div *ngIf="showDiag('hote')"><label class="field-label">Hôte / cluster</label><input formControlName="hote" class="input" /></div>
-          <div *ngIf="showDiag('ip')"><label class="field-label">IP</label><input formControlName="ip" class="input" /></div>
-          <div *ngIf="showDiag('systemeStockage')"><label class="field-label">Système de stockage</label><input formControlName="systemeStockage" class="input" /></div>
-          <div *ngIf="showDiag('volume')"><label class="field-label">Volume / partage</label><input formControlName="volume" class="input" /></div>
-          <div *ngIf="showDiag('capacite')"><label class="field-label">Capacité</label><input formControlName="capacite" class="input" /></div>
-          <div *ngIf="showDiag('systemeAffecte')"><label class="field-label">Système affecté</label><input formControlName="systemeAffecte" class="input" /></div>
-          <div *ngIf="showDiag('evenementSecurite')"><label class="field-label">Événement de sécurité</label><input formControlName="evenementSecurite" class="input" /></div>
-          <div *ngIf="showDiag('heureDetection')"><label class="field-label">Heure de détection</label><input formControlName="heureDetection" class="input" /></div>
-          <div *ngIf="showDiag('comportement')" class="md:col-span-2"><label class="field-label">Comportement observé</label><input formControlName="comportement" class="input" /></div>
-        </div>
-      </section>
+      <app-specifications-form [form]="form"></app-specifications-form>
 
-      <div class="flex justify-end gap-3">
-        <a routerLink="/tickets" class="btn-outline">Annuler</a>
-        <button type="submit" [disabled]="loading" class="btn-primary">{{ loading ? 'Envoi...' : 'Ouvrir l\'incident' }}</button>
+      <div class="flex justify-end space-x-3">
+        <a [routerLink]="editId ? ['/tickets', editId] : '/tickets'" class="btn-outline">Annuler</a>
+        <button type="submit" [disabled]="loading" class="btn-primary">
+          {{ loading ? 'Envoi...' : (editId ? 'Enregistrer' : 'Ouvrir l\'incident') }}
+        </button>
       </div>
     </form>
   </main>

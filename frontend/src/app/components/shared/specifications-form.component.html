@@ -1,0 +1,910 @@
+      <!-- Section 2 : Spécifications générales (toujours affichée) -->
+      <section class="card animate-fade-in-up stagger-1" formGroupName="general">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Général</h2>
+              <p class="card-description">Ressources concernées par ce changement.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="field-label">Ressources concernées</label>
+              <input formControlName="ressourcesConcernees" type="text" class="input" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">Commentaire</label>
+              <textarea formControlName="commentaire" rows="2" class="textarea"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3 : Serveur -->
+      <section *ngIf="showSection('serveur')" class="card animate-fade-in-up stagger-2" formGroupName="serveur">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="8" rx="2"></rect>
+                <rect x="2" y="13" width="20" height="8" rx="2"></rect>
+                <line x1="6" y1="7" x2="6.01" y2="7"></line>
+                <line x1="6" y1="17" x2="6.01" y2="17"></line>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Serveur</h2>
+              <p class="card-description">Système, calcul et stockage.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngIf="showField('serveur','hostname')">
+              <label class="field-label">Nom de la VM</label>
+              <input formControlName="hostname" type="text" class="input" placeholder="ex : shop-prod-01" />
+            </div>
+            <div *ngIf="showField('serveur','vmCible')">
+              <label class="field-label">VM cible</label>
+              <input formControlName="vmCible" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','vmSource')">
+              <label class="field-label">VM source</label>
+              <input formControlName="vmSource" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','nouveauNomVm')">
+              <label class="field-label">Nouveau nom de VM</label>
+              <input formControlName="nouveauNomVm" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','environnementVm')">
+              <label class="field-label">Environnement</label>
+              <input formControlName="environnementVm" type="text" class="input" placeholder="Prod, Préprod..." />
+            </div>
+            <div *ngIf="showField('serveur','os')">
+              <label class="field-label">Système d'exploitation</label>
+              <input formControlName="os" type="text" class="input" placeholder="ex : Ubuntu 24.04, Windows Server 2025..." />
+            </div>
+            <div *ngIf="showField('serveur','cpuCores')">
+              <label class="field-label">vCPU / Cœurs CPU</label>
+              <input formControlName="cpuCores" type="number" min="0" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','ramGo')">
+              <label class="field-label">RAM (Go)</label>
+              <input formControlName="ramGo" type="number" min="0" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','reseauVm')">
+              <label class="field-label">Réseau</label>
+              <input formControlName="reseauVm" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','configIp')">
+              <label class="field-label">Configuration IP</label>
+              <input formControlName="configIp" type="text" class="input" placeholder="DHCP ou IP fixe" />
+            </div>
+            <div *ngIf="showField('serveur','datacenter')">
+              <label class="field-label">Datacenter / Cluster / Hôte</label>
+              <input formControlName="datacenter" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','typeRessource')">
+              <label class="field-label">Type de ressource</label>
+              <input formControlName="typeRessource" type="text" class="input" placeholder="vCPU, RAM, Disque..." />
+            </div>
+            <div *ngIf="showField('serveur','valeurActuelle')">
+              <label class="field-label">Valeur actuelle</label>
+              <input formControlName="valeurActuelle" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','valeurDemandee')">
+              <label class="field-label">Valeur demandée</label>
+              <input formControlName="valeurDemandee" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','destinationVm')">
+              <label class="field-label">Destination</label>
+              <input formControlName="destinationVm" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','optionsPersonnalisation')" class="md:col-span-2">
+              <label class="field-label">Options de personnalisation</label>
+              <input formControlName="optionsPersonnalisation" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','hoteSource')">
+              <label class="field-label">Hôte / environnement source</label>
+              <input formControlName="hoteSource" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','hoteDestination')">
+              <label class="field-label">Hôte / environnement destination</label>
+              <input formControlName="hoteDestination" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','typeMigration')">
+              <label class="field-label">Type de migration</label>
+              <input formControlName="typeMigration" type="text" class="input" placeholder="vMotion, cold, stockage..." />
+            </div>
+            <div *ngIf="showField('serveur','downtimeEstime')">
+              <label class="field-label">Indisponibilité estimée</label>
+              <input formControlName="downtimeEstime" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','impactReseau')" class="md:col-span-2">
+              <label class="field-label">Impact réseau</label>
+              <input formControlName="impactReseau" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','confirmationBackup')">
+              <label class="field-label">Sauvegarde confirmée</label>
+              <select formControlName="confirmationBackup" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let o of ouiNon" [value]="o">{{ o }}</option>
+              </select>
+            </div>
+            <div *ngIf="showField('serveur','confirmationSnapshot')">
+              <label class="field-label">Snapshot confirmé</label>
+              <select formControlName="confirmationSnapshot" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let o of ouiNon" [value]="o">{{ o }}</option>
+              </select>
+            </div>
+            <div *ngIf="showField('serveur','retentionDonnees')">
+              <label class="field-label">Conservation des données</label>
+              <input formControlName="retentionDonnees" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','motifDecommission')" class="md:col-span-2">
+              <label class="field-label">Motif de décommissionnement</label>
+              <input formControlName="motifDecommission" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','nomSnapshot')">
+              <label class="field-label">Nom du snapshot</label>
+              <input formControlName="nomSnapshot" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','descriptionSnapshot')" class="md:col-span-2">
+              <label class="field-label">Description</label>
+              <input formControlName="descriptionSnapshot" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','retentionSnapshot')">
+              <label class="field-label">Rétention</label>
+              <input formControlName="retentionSnapshot" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('serveur','expirationSnapshot')">
+              <label class="field-label">Expiration</label>
+              <input formControlName="expirationSnapshot" type="text" class="input" />
+            </div>
+          </div>
+
+          <!-- Disques dynamiques : [capacité Go] [type] (+ précision si « Autre ») -->
+          <div class="mt-4" formArrayName="disques" *ngIf="showField('serveur','disques')">
+            <div class="flex items-center justify-between mb-2">
+              <label class="field-label mb-0">Disques</label>
+              <button type="button" (click)="addDisque()" class="btn-outline btn-sm">
+                <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                Ajouter un disque
+              </button>
+            </div>
+            <p *ngIf="disques.length === 0" class="text-xs text-muted-foreground">
+              Aucun disque ajouté — cliquez sur « Ajouter un disque » pour déclarer le stockage (ex : 500 | NVMe).
+            </p>
+            <div *ngFor="let d of disques.controls; let i = index" [formGroupName]="i" class="flex items-start gap-2 mt-2">
+              <div class="w-32">
+                <input formControlName="capaciteGo" type="number" min="1" class="input" placeholder="500" />
+              </div>
+              <span class="text-xs text-muted-foreground mt-3">Go</span>
+              <div class="w-36">
+                <select formControlName="type" (change)="onDisqueTypeChange(i)" class="select">
+                  <option *ngFor="let t of typesDisque" [value]="t">{{ t }}</option>
+                </select>
+              </div>
+              <div *ngIf="d.get('type')?.value === 'Autre'" class="flex-1">
+                <input formControlName="typePrecision" type="text" class="input" placeholder="Précisez le type de disque" />
+              </div>
+              <button type="button" (click)="removeDisque(i)" title="Retirer ce disque"
+                class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive mt-1">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                  <path d="M10 11v6M14 11v6"></path>
+                </svg>
+              </button>
+            </div>
+            <p *ngIf="disques.invalid && disques.touched" class="field-error mt-1">
+              Chaque disque doit avoir une capacité (Go ≥ 1) et un type.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4 : Réseau -->
+      <section *ngIf="showSection('reseau')" class="card animate-fade-in-up stagger-3" formGroupName="reseau">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="2"></circle>
+                <path d="M12 2v6"></path>
+                <path d="M12 16v6"></path>
+                <path d="m4.93 4.93 4.24 4.24"></path>
+                <path d="m14.83 14.83 4.24 4.24"></path>
+                <path d="M2 12h6"></path>
+                <path d="M16 12h6"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Réseau</h2>
+              <p class="card-description">Adressage et segmentation.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngIf="showField('reseau','vlan')">
+              <label class="field-label">VLAN ID</label>
+              <input formControlName="vlan" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','vlanName')">
+              <label class="field-label">Nom du VLAN</label>
+              <input formControlName="vlanName" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','descriptionVlan')" class="md:col-span-2">
+              <label class="field-label">Description</label>
+              <input formControlName="descriptionVlan" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','interfaceAssociee')">
+              <label class="field-label">Interface / Switch associé</label>
+              <input formControlName="interfaceAssociee" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','reseauCidr')">
+              <label class="field-label">Réseau / Subnet</label>
+              <input formControlName="reseauCidr" type="text" class="input" placeholder="ex : 10.10.20.0/24" />
+            </div>
+            <div *ngIf="showField('reseau','adresseIp')">
+              <label class="field-label">Adresse IP</label>
+              <input formControlName="adresseIp" type="text" class="input" placeholder="ex : 192.168.1.10" />
+              <p *ngIf="form.get('reseau.adresseIp')?.hasError('pattern') && form.get('reseau.adresseIp')?.touched" class="field-error">Format IPv4 invalide.</p>
+            </div>
+            <div *ngIf="showField('reseau','masqueSousReseau')">
+              <label class="field-label">Masque de sous-réseau</label>
+              <input formControlName="masqueSousReseau" type="text" class="input" placeholder="ex : 255.255.255.0" />
+            </div>
+            <div *ngIf="showField('reseau','passerelle')">
+              <label class="field-label">Passerelle</label>
+              <input formControlName="passerelle" type="text" class="input" placeholder="ex : 192.168.1.1" />
+            </div>
+            <div *ngIf="showField('reseau','dnsPrimaire')">
+              <label class="field-label">DNS primaire</label>
+              <input formControlName="dnsPrimaire" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','dnsSecondaire')">
+              <label class="field-label">DNS secondaire</label>
+              <input formControlName="dnsSecondaire" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','zoneDns')">
+              <label class="field-label">Zone DNS</label>
+              <input formControlName="zoneDns" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','typeEnregistrement')">
+              <label class="field-label">Type d'enregistrement</label>
+              <input formControlName="typeEnregistrement" type="text" class="input" placeholder="A, CNAME, MX..." />
+            </div>
+            <div *ngIf="showField('reseau','nomEnregistrement')">
+              <label class="field-label">Nom d'enregistrement</label>
+              <input formControlName="nomEnregistrement" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','valeurActuelle')">
+              <label class="field-label">Valeur actuelle</label>
+              <input formControlName="valeurActuelle" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','nouvelleValeur')">
+              <label class="field-label">Nouvelle valeur</label>
+              <input formControlName="nouvelleValeur" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','ttl')">
+              <label class="field-label">TTL</label>
+              <input formControlName="ttl" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','scopePool')">
+              <label class="field-label">Scope / Pool</label>
+              <input formControlName="scopePool" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','plageAdresses')">
+              <label class="field-label">Plage d'adresses</label>
+              <input formControlName="plageAdresses" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','reservation')">
+              <label class="field-label">Réservation</label>
+              <input formControlName="reservation" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','reseauDestination')">
+              <label class="field-label">Réseau de destination</label>
+              <input formControlName="reseauDestination" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','nextHop')">
+              <label class="field-label">Next hop</label>
+              <input formControlName="nextHop" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','metrique')">
+              <label class="field-label">Métrique</label>
+              <input formControlName="metrique" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','protocoleRoutage')">
+              <label class="field-label">Protocole de routage</label>
+              <input formControlName="protocoleRoutage" type="text" class="input" placeholder="Statique, OSPF, BGP..." />
+            </div>
+            <div *ngIf="showField('reseau','typeVpn')">
+              <label class="field-label">Type de VPN</label>
+              <input formControlName="typeVpn" type="text" class="input" placeholder="IPSec, SSL, WireGuard..." />
+            </div>
+            <div *ngIf="showField('reseau','reseauLocal')">
+              <label class="field-label">Réseau local</label>
+              <input formControlName="reseauLocal" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','reseauDistant')">
+              <label class="field-label">Réseau distant</label>
+              <input formControlName="reseauDistant" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','chiffrementVpn')">
+              <label class="field-label">Chiffrement</label>
+              <input formControlName="chiffrementVpn" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','methodeAuth')">
+              <label class="field-label">Méthode d'authentification</label>
+              <input formControlName="methodeAuth" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','peerGateway')">
+              <label class="field-label">Pair / passerelle</label>
+              <input formControlName="peerGateway" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','typeLb')">
+              <label class="field-label">Type de load balancer</label>
+              <input formControlName="typeLb" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','vip')">
+              <label class="field-label">VIP</label>
+              <input formControlName="vip" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','serveursBackend')" class="md:col-span-2">
+              <label class="field-label">Serveurs backend</label>
+              <input formControlName="serveursBackend" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','portsLb')">
+              <label class="field-label">Ports</label>
+              <input formControlName="portsLb" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','protocoleLb')">
+              <label class="field-label">Protocole</label>
+              <input formControlName="protocoleLb" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','algorithmeLb')">
+              <label class="field-label">Algorithme</label>
+              <input formControlName="algorithmeLb" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','healthCheck')">
+              <label class="field-label">Health check</label>
+              <input formControlName="healthCheck" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','nomSwitch')">
+              <label class="field-label">Nom du switch</label>
+              <input formControlName="nomSwitch" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','ipManagement')">
+              <label class="field-label">IP de management</label>
+              <input formControlName="ipManagement" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','interfacePort')">
+              <label class="field-label">Interface / Port</label>
+              <input formControlName="interfacePort" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','configRequise')" class="md:col-span-2">
+              <label class="field-label">Configuration requise</label>
+              <input formControlName="configRequise" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','ssid')">
+              <label class="field-label">SSID</label>
+              <input formControlName="ssid" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','modeSecurite')">
+              <label class="field-label">Mode de sécurité</label>
+              <input formControlName="modeSecurite" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','authentificationWifi')">
+              <label class="field-label">Authentification</label>
+              <input formControlName="authentificationWifi" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','accessPoint')">
+              <label class="field-label">Point d'accès / Contrôleur</label>
+              <input formControlName="accessPoint" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','typeProxy')">
+              <label class="field-label">Type de proxy</label>
+              <input formControlName="typeProxy" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','hostProxy')">
+              <label class="field-label">Hôte / IP</label>
+              <input formControlName="hostProxy" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','portProxy')">
+              <label class="field-label">Port</label>
+              <input formControlName="portProxy" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','protocoleProxy')">
+              <label class="field-label">Protocole</label>
+              <input formControlName="protocoleProxy" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','servicesCibles')">
+              <label class="field-label">Services cibles</label>
+              <input formControlName="servicesCibles" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('reseau','authProxy')">
+              <label class="field-label">Authentification</label>
+              <input formControlName="authProxy" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section dynamique : Pare-feu / VPN (Réseau+VPN, Sécurité+Firewall) -->
+      <section *ngIf="showSection('firewall')" class="card animate-fade-in-up stagger-3" formGroupName="firewall">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Pare-feu / VPN</h2>
+              <p class="card-description">Règles, flux et cloisonnement demandés.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngIf="showField('firewall','source')">
+              <label class="field-label">Source</label>
+              <input formControlName="source" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','destination')">
+              <label class="field-label">Destination</label>
+              <input formControlName="destination" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','protocole')">
+              <label class="field-label">Protocole</label>
+              <input formControlName="protocole" type="text" class="input" placeholder="TCP, UDP, ICMP..." />
+            </div>
+            <div *ngIf="showField('firewall','ports')">
+              <label class="field-label">Port(s)</label>
+              <input formControlName="ports" type="text" class="input" placeholder="ex : 443/tcp, 22/tcp" />
+            </div>
+            <div *ngIf="showField('firewall','action')">
+              <label class="field-label">Action</label>
+              <input formControlName="action" type="text" class="input" placeholder="Autoriser / Refuser" />
+            </div>
+            <div *ngIf="showField('firewall','direction')">
+              <label class="field-label">Direction</label>
+              <input formControlName="direction" type="text" class="input" placeholder="Entrant / Sortant" />
+            </div>
+            <div *ngIf="showField('firewall','dureeRegle')">
+              <label class="field-label">Durée (si temporaire)</label>
+              <input formControlName="dureeRegle" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','justification')" class="md:col-span-2">
+              <label class="field-label">Justification</label>
+              <input formControlName="justification" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','reglesPareFeu')" class="md:col-span-2">
+              <label class="field-label">Règles pare-feu (détail)</label>
+              <textarea formControlName="reglesPareFeu" rows="3" class="textarea" placeholder="Une règle par ligne"></textarea>
+            </div>
+            <div *ngIf="showField('firewall','nat')">
+              <label class="field-label">NAT</label>
+              <input formControlName="nat" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','zones')">
+              <label class="field-label">Zones</label>
+              <input formControlName="zones" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','politique')">
+              <label class="field-label">Politique par défaut</label>
+              <input formControlName="politique" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('firewall','vpn')" class="md:col-span-2">
+              <label class="field-label">VPN</label>
+              <input formControlName="vpn" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5 : Sauvegarde -->
+      <section *ngIf="showSection('backup')" class="card animate-fade-in-up stagger-4" formGroupName="backup">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"></path>
+                <path d="M21 8 12 3 3 8"></path>
+                <path d="M21 8H3"></path>
+                <path d="M12 12v4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Sauvegarde</h2>
+              <p class="card-description">Rétention et licences associées.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngIf="showField('backup','espaceBackupSupplementaireGo')">
+              <label class="field-label">Espace backup sup. (Go)</label>
+              <input formControlName="espaceBackupSupplementaireGo" type="number" min="0" class="input" />
+            </div>
+            <div *ngIf="showField('backup','retentionNombre') || showField('backup','retentionPeriode')">
+              <label class="field-label">Rétention souhaitée</label>
+              <div class="flex gap-2">
+                <select formControlName="retentionNombre" class="select w-24" [disabled]="!form.get('backup.retentionPeriode')?.value">
+                  <option [ngValue]="null" disabled>Nombre</option>
+                  <option *ngFor="let n of retentionNombres" [ngValue]="n">{{ n }}</option>
+                </select>
+                <select formControlName="retentionPeriode" class="select flex-1">
+                  <option value="" disabled>Période</option>
+                  <option *ngFor="let p of retentionPeriodes" [value]="p">{{ p }}</option>
+                </select>
+              </div>
+              <p *ngIf="retentionMax" class="mt-1 text-xs text-muted-foreground">
+                Plage autorisée : 1 à {{ retentionMax }} (période « {{ form.get('backup.retentionPeriode')?.value }} »).
+              </p>
+              <p *ngIf="form.get('backup')?.hasError('retentionIncomplete') && form.get('backup')?.touched" class="field-error">
+                Choisissez un nombre et une période (ex : 6 | Mois).
+              </p>
+            </div>
+            <div *ngIf="showField('backup','frequenceSauvegarde')">
+              <label class="field-label">Fréquence de sauvegarde</label>
+              <select formControlName="frequenceSauvegarde" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let f of frequencesSauvegarde" [value]="f">{{ f }}</option>
+              </select>
+            </div>
+            <div *ngIf="showField('backup','destinationBackup')">
+              <label class="field-label">Destination</label>
+              <input formControlName="destinationBackup" type="text" class="input" placeholder="ex : NAS local, S3 immuable, Azure Backup..." />
+            </div>
+            <div *ngIf="showField('backup','compression')">
+              <label class="field-label">Compression</label>
+              <select formControlName="compression" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let o of ouiNon" [value]="o">{{ o }}</option>
+              </select>
+            </div>
+            <div *ngIf="showField('backup','chiffrement')">
+              <label class="field-label">Chiffrement</label>
+              <select formControlName="chiffrement" class="select">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let o of ouiNon" [value]="o">{{ o }}</option>
+              </select>
+            </div>
+            <div *ngIf="showField('backup','licencesNecessaires')" class="md:col-span-2">
+              <label class="field-label">Licences nécessaires</label>
+              <input formControlName="licencesNecessaires" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','sourceBackup')">
+              <label class="field-label">Source</label>
+              <input formControlName="sourceBackup" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','pointRestauration')">
+              <label class="field-label">Point de restauration</label>
+              <input formControlName="pointRestauration" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','cibleRestore')">
+              <label class="field-label">Cible</label>
+              <input formControlName="cibleRestore" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','typeRestore')">
+              <label class="field-label">Type de restauration</label>
+              <input formControlName="typeRestore" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','perimetreDonnees')" class="md:col-span-2">
+              <label class="field-label">Périmètre des données</label>
+              <input formControlName="perimetreDonnees" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','perimetreBackup')">
+              <label class="field-label">Périmètre de sauvegarde</label>
+              <input formControlName="perimetreBackup" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','retentionExistante')">
+              <label class="field-label">Rétention existante</label>
+              <input formControlName="retentionExistante" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','typeReplication')">
+              <label class="field-label">Type de réplication</label>
+              <input formControlName="typeReplication" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','bandePassante')">
+              <label class="field-label">Bande passante / réseau</label>
+              <input formControlName="bandePassante" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','rpo')">
+              <label class="field-label">RPO</label>
+              <input formControlName="rpo" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','sourceArchive')">
+              <label class="field-label">Source des données</label>
+              <input formControlName="sourceArchive" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','destinationArchive')">
+              <label class="field-label">Destination d'archivage</label>
+              <input formControlName="destinationArchive" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','classeStockage')">
+              <label class="field-label">Classe de stockage</label>
+              <input formControlName="classeStockage" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','exigencesRecuperation')" class="md:col-span-2">
+              <label class="field-label">Exigences de récupération</label>
+              <input formControlName="exigencesRecuperation" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','nomJobVeeam')">
+              <label class="field-label">Nom du job Veeam</label>
+              <input formControlName="nomJobVeeam" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','serveurVeeam')">
+              <label class="field-label">Serveur Veeam</label>
+              <input formControlName="serveurVeeam" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','typeBackupVeeam')">
+              <label class="field-label">Type de backup</label>
+              <input formControlName="typeBackupVeeam" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','repository')">
+              <label class="field-label">Repository</label>
+              <input formControlName="repository" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','planification')">
+              <label class="field-label">Planification</label>
+              <input formControlName="planification" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','systemeCible')">
+              <label class="field-label">Système cible</label>
+              <input formControlName="systemeCible" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('backup','typeBackup')">
+              <label class="field-label">Type de sauvegarde</label>
+              <input formControlName="typeBackup" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section dynamique : Stockage — configurations multiples (FormArray) -->
+      <section *ngIf="showSection('stockage')" class="card animate-fade-in-up stagger-2">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 6c0-1.66 3.58-3 8-3s8 1.34 8 3-3.58 3-8 3-8-1.34-8-3Z"></path>
+                <path d="M20 6v6c0 1.66-3.58 3-8 3s-8-1.34-8-3V6"></path>
+                <path d="M20 12v6c0 1.66-3.58 3-8 3s-8-1.34-8-3v-6"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Stockage</h2>
+              <p class="card-description">Configurez une ou plusieurs configurations de stockage.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6 space-y-4">
+          <div formArrayName="stockage" class="space-y-4">
+            <div *ngFor="let group of stockages.controls; let i = index" [formGroupName]="i"
+              class="rounded-xl border border-border bg-muted/20 p-4 space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold flex items-center gap-2">
+                  <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary text-xs font-bold">{{ i + 1 }}</span>
+                  Stockage {{ i + 1 }}
+                </h3>
+                <button type="button" (click)="removeStockage(i)" [disabled]="stockages.length <= 1"
+                  class="btn-ghost btn-sm text-destructive hover:bg-destructive/10 hover:text-destructive disabled:opacity-40 disabled:cursor-not-allowed"
+                  [title]="stockages.length <= 1 ? 'Au moins une configuration est requise' : 'Supprimer cette configuration'">
+                  <svg class="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                    <path d="M10 11v6M14 11v6"></path>
+                  </svg>
+                  Supprimer
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label">Type de stockage <span class="text-destructive">*</span></label>
+                  <select formControlName="typeStockage" (change)="onStockageTypeChange(i)" class="select">
+                    <option value="" disabled>Sélectionner...</option>
+                    <option *ngFor="let t of typesStockage" [value]="t">{{ t }}</option>
+                  </select>
+                  <p *ngIf="group.get('typeStockage')?.invalid && group.get('typeStockage')?.touched" class="field-error">Type de stockage requis.</p>
+                </div>
+
+                <div *ngIf="group.get('typeStockage')?.value === 'Autre'">
+                  <label class="field-label">Précisez le type de stockage <span class="text-destructive">*</span></label>
+                  <input formControlName="customStorageType" type="text" class="input" placeholder="ex : Stockage hybride..." />
+                  <p *ngIf="group.get('customStorageType')?.invalid && group.get('customStorageType')?.touched" class="field-error">Champ requis quand "Autre" est sélectionné.</p>
+                </div>
+
+                <div>
+                  <label class="field-label">Protocole <span class="text-destructive">*</span></label>
+                  <select formControlName="protocole" (change)="onStockageProtocoleChange(i)" class="select">
+                    <option value="" disabled>Sélectionner...</option>
+                    <option *ngFor="let p of protocolesStockage" [value]="p">{{ p }}</option>
+                  </select>
+                  <p *ngIf="group.get('protocole')?.invalid && group.get('protocole')?.touched" class="field-error">Protocole requis.</p>
+                </div>
+
+                <div *ngIf="group.get('protocole')?.value === 'Autre'">
+                  <label class="field-label">Précisez le protocole <span class="text-destructive">*</span></label>
+                  <input formControlName="customProtocole" type="text" class="input" placeholder="ex : Protocole propriétaire..." />
+                  <p *ngIf="group.get('customProtocole')?.invalid && group.get('customProtocole')?.touched" class="field-error">Champ requis quand "Autre" est sélectionné.</p>
+                </div>
+
+                <div>
+                  <label class="field-label">Capacité (Go)</label>
+                  <input formControlName="capaciteGo" type="number" min="0" class="input" placeholder="ex : 500" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" (click)="addStockage()" class="btn-outline btn-sm w-full justify-center">
+            <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            Ajouter un stockage
+          </button>
+          <p class="text-xs text-muted-foreground text-center">Vous pouvez ajouter autant de configurations que nécessaire. Au moins une est requise pour la catégorie Stockage.</p>
+        </div>
+      </section>
+
+      <!-- Section dynamique : IA / GPU -->
+      <section *ngIf="showSection('iaGpu')" class="card animate-fade-in-up stagger-2" formGroupName="iaGpu">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <path d="M9 9h6v6H9z"></path>
+                <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — IA / GPU</h2>
+              <p class="card-description">Accélérateurs et frameworks d'apprentissage.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngIf="showField('iaGpu','typeGpu')">
+              <label class="field-label">Type de GPU</label>
+              <input formControlName="typeGpu" type="text" class="input" placeholder="ex : NVIDIA H100, A100, L40S, RTX 6000 Ada..." />
+            </div>
+            <div *ngIf="showField('iaGpu','nombreGpu')">
+              <label class="field-label">Nombre de GPU</label>
+              <input formControlName="nombreGpu" type="number" min="0" class="input" />
+            </div>
+            <div *ngIf="showField('iaGpu','vramGo')">
+              <label class="field-label">VRAM par GPU (Go)</label>
+              <input formControlName="vramGo" type="number" min="0" class="input" placeholder="ex : 80" />
+            </div>
+            <div *ngIf="showField('iaGpu','versionCuda')">
+              <label class="field-label">Version CUDA</label>
+              <input formControlName="versionCuda" type="text" class="input" placeholder="ex : 12.4" />
+            </div>
+            <div *ngIf="showField('iaGpu','framework')">
+              <label class="field-label">Framework</label>
+              <input formControlName="framework" type="text" class="input" placeholder="Ex : PyTorch, TensorFlow, ONNX, Hugging Face..." />
+            </div>
+            <div *ngIf="showField('iaGpu','versionPilote')">
+              <label class="field-label">Version du pilote</label>
+              <input formControlName="versionPilote" type="text" class="input" placeholder="ex : 550.54.15" />
+            </div>
+            <div *ngIf="showField('iaGpu','serveurCible')">
+              <label class="field-label">Serveur / VM cible</label>
+              <input formControlName="serveurCible" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('iaGpu','dureeEstimee')">
+              <label class="field-label">Durée estimée</label>
+              <input formControlName="dureeEstimee" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('iaGpu','versionPiloteActuelle')">
+              <label class="field-label">Version pilote actuelle</label>
+              <input formControlName="versionPiloteActuelle" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('iaGpu','versionPiloteDemandee')">
+              <label class="field-label">Version pilote demandée</label>
+              <input formControlName="versionPiloteDemandee" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('iaGpu','compatibiliteCuda')">
+              <label class="field-label">Compatibilité CUDA</label>
+              <input formControlName="compatibiliteCuda" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('iaGpu','fenetreMaintenance')" class="md:col-span-2">
+              <label class="field-label">Fenêtre de maintenance / indisponibilité</label>
+              <input formControlName="fenetreMaintenance" type="text" class="input" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section dynamique : Sécurité -->
+      <section *ngIf="showSection('securite')" class="card animate-fade-in-up stagger-2" formGroupName="securite">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Spécifications — Sécurité</h2>
+              <p class="card-description">Périmètre et criticité de la demande.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div *ngIf="showField('securite','perimetre')">
+              <label class="field-label">Périmètre / portée</label>
+              <input formControlName="perimetre" type="text" class="input" placeholder="ex : parc utilisateurs, production, DMZ..." />
+            </div>
+            <div *ngIf="showField('securite','systemeCible')">
+              <label class="field-label">Système cible</label>
+              <input formControlName="systemeCible" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','environnementAudit')">
+              <label class="field-label">Environnement</label>
+              <input formControlName="environnementAudit" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','typeAudit')">
+              <label class="field-label">Type d'audit</label>
+              <input formControlName="typeAudit" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','periodeAudit')">
+              <label class="field-label">Période</label>
+              <input formControlName="periodeAudit" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','livrables')" class="md:col-span-2">
+              <label class="field-label">Rapports / livrables</label>
+              <input formControlName="livrables" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','typeCertificat')">
+              <label class="field-label">Type de certificat</label>
+              <input formControlName="typeCertificat" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','nomCommun')">
+              <label class="field-label">Domaine / CN</label>
+              <input formControlName="nomCommun" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','emetteurCa')">
+              <label class="field-label">Émetteur / CA</label>
+              <input formControlName="emetteurCa" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','validite')">
+              <label class="field-label">Validité</label>
+              <input formControlName="validite" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','cibleInstallation')">
+              <label class="field-label">Cible d'installation</label>
+              <input formControlName="cibleInstallation" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','renouvellementOuNouveau')">
+              <label class="field-label">Renouvellement ou nouveau</label>
+              <input formControlName="renouvellementOuNouveau" type="text" class="input" />
+            </div>
+            <div *ngIf="showField('securite','niveauCriticite')">
+              <label class="field-label">Niveau de criticité</label>
+              <select formControlName="niveauCriticite" class="select">
+                <option value="" disabled>Sélectionner...</option>
+                <option value="Faible">Faible</option>
+                <option value="Moyenne">Moyenne</option>
+                <option value="Haute">Haute</option>
+                <option value="Critique">Critique</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+

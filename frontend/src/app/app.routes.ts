@@ -41,6 +41,7 @@ export const routes: Routes = [
         children: [
           { path: '', component: DashboardTicketsComponent },
           { path: 'nouveau', component: CreateTicketComponent, data: { breadcrumb: 'Nouveau ticket' } },
+          { path: ':id/modifier', component: CreateTicketComponent, data: { breadcrumb: 'Modifier' } },
           { path: ':id', component: TicketDetailsComponent, data: { breadcrumb: 'Détail' } },
         ],
       },

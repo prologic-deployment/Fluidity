@@ -113,6 +113,7 @@ const createTicket = async (req, res) => {
       statut: 'Nouveau',
       piecesJointes: req.body.piecesJointes || [],
       diagnostic: req.body.diagnostic || {},
+      specifications: req.body.specifications || {},
     });
     initSla(ticket, now);
     await ticket.save();
@@ -252,11 +253,7 @@ const getTicketById = async (req, res) => {
 
 const updateTicket = async (req, res) => {
   try {
-    if (estClient(req)) {
-      res.status(403).json({ message: 'La qualification est réservée au support.' });
-      return;
-    }
-    const ticket = await Ticket.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const ticket = await Ticket.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
     if (!ticket) {
       res.status(404).json({ message: 'Ticket introuvable' });
       return;
@@ -281,6 +278,7 @@ const updateTicket = async (req, res) => {
     if (req.body.impact !== undefined) ticket.impact = req.body.impact;
     if (req.body.urgence !== undefined) ticket.urgence = req.body.urgence;
     if (req.body.diagnostic !== undefined) ticket.diagnostic = req.body.diagnostic;
+    if (req.body.specifications !== undefined) ticket.specifications = req.body.specifications;
     if (req.body.piecesJointes !== undefined) ticket.piecesJointes = req.body.piecesJointes;
 
     ticket.priorite = calculatePriority(ticket.impact, ticket.urgence);

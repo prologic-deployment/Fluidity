@@ -11,6 +11,7 @@
           <span [class]="prioriteClass(t.priorite)"><span class="badge-dot"></span>{{ t.priorite }}</span>
           <span class="badge-outline">{{ t.statut }}</span>
           <span class="badge-secondary">{{ t.type }}</span>
+          <a *ngIf="t.statut !== 'Clôturé'" [routerLink]="['/tickets', t._id, 'modifier']" class="btn-outline btn-sm">Modifier</a>
         </div>
         <h1 class="text-xl font-semibold tracking-tight mt-1">{{ t.objet }}</h1>
       </div>
