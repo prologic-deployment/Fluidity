@@ -1,9 +1,8 @@
 const { Tenant } = require('../models/tenant.model');
 
 /**
- * Tenants de démonstration de la plateforme SaaS multi-tenant.
- * « Fluidity » n'est plus l'application : c'est simplement LE tenant
- * historique (les données de démo héritées y sont rattachées).
+ * Trois tenants isolés pour tester l'absence de fuite inter-tenant.
+ * Fluidity / Nova Systems conservés (jeux historiques) + Carthage Digital.
  */
 const demoTenants = [
   {
@@ -25,6 +24,8 @@ const demoTenants = [
     name: 'Nova Systems',
     type: 'Company',
     contactEmail: 'contact@nova-systems.dev',
+    phone: '+216 74 200 200',
+    address: 'Sfax, Tunisie',
     plan: 'Professional',
     maxUsers: 20,
     storageQuotaMb: 2048,
@@ -33,14 +34,23 @@ const demoTenants = [
     timezone: 'Africa/Tunis',
     language: 'fr',
   },
+  {
+    name: 'Carthage Digital',
+    type: 'Company',
+    contactEmail: 'contact@carthage-demo.local',
+    phone: '+216 71 333 000',
+    address: 'Lac 2, Tunis, Tunisie',
+    website: 'https://carthage-demo.local',
+    plan: 'Starter',
+    maxUsers: 15,
+    storageQuotaMb: 1024,
+    primaryColor: '#f59e0b',
+    secondaryColor: '#ef4444',
+    timezone: 'Africa/Tunis',
+    language: 'fr',
+  },
 ];
 
-/**
- * Insère les tenants de démonstration manquants (additif, idempotent :
- * chaque tenant n'est créé que s'il n'existe pas déjà). Renvoie la map
- * { nom -> Tenant } pour enchaîner les seeds dépendants (utilisateurs,
- * clients, contrats, demandes, changements).
- */
 const seedTenants = async () => {
   let created = 0;
   for (const t of demoTenants) {
@@ -59,7 +69,6 @@ const seedTenants = async () => {
   return all;
 };
 
-/** Map { nom -> document Tenant } des tenants présents en base. */
 const mapTenants = async () => {
   const tenants = await Tenant.find({ status: { $ne: 'terminated' } });
   return Object.fromEntries(tenants.map((t) => [t.name, t]));

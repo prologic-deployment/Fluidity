@@ -1,0 +1,79 @@
+const { LoginActivity } = require('../models/login-activity.model');
+const { Utilisateur } = require('../models/user.model');
+const { Client } = require('../models/client.model');
+
+const seedLoginActivity = async (tenants = {}) => {
+  const fluidity = tenants['Fluidity'];
+  if (!fluidity) return;
+
+  const users = await Utilisateur.find({
+    email: { $in: ['admin@fluidity.dev', 'sarah.n1@fluidity.dev', 'superadmin@servicedesk.dev'] },
+  });
+  const clients = await Client.find({ email: { $in: ['client@fluidity.dev', 'client@nova-systems.dev'] } });
+
+  const samples = [];
+  const hoursAgo = (h) => new Date(Date.now() - h * 3600 * 1000);
+
+  for (const u of users) {
+    samples.push({
+      tenantId: u.tenantId || null,
+      principalType: 'UTILISATEUR',
+      userId: u._id,
+      date: hoursAgo(2),
+      succes: true,
+      mfaUtilise: false,
+      ip: '203.0.113.10',
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0',
+      navigateur: 'Chrome',
+      systeme: 'Windows',
+      appareil: 'Ordinateur',
+      sessionIat: Math.floor(Date.now() / 1000) - 7200,
+    });
+    samples.push({
+      tenantId: u.tenantId || null,
+      principalType: 'UTILISATEUR',
+      userId: u._id,
+      date: hoursAgo(26),
+      succes: false,
+      raisonEchec: 'MOT_DE_PASSE_INVALIDE',
+      ip: '198.51.100.22',
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
+      navigateur: 'Safari',
+      systeme: 'iOS',
+      appareil: 'Mobile',
+    });
+  }
+
+  for (const c of clients) {
+    samples.push({
+      tenantId: c.tenantId,
+      principalType: 'CLIENT',
+      userId: c._id,
+      date: hoursAgo(5),
+      succes: true,
+      mfaUtilise: false,
+      ip: '192.0.2.40',
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) Firefox/128.0',
+      navigateur: 'Firefox',
+      systeme: 'macOS',
+      appareil: 'Ordinateur',
+      sessionIat: Math.floor(Date.now() / 1000) - 18000,
+    });
+  }
+
+  let created = 0;
+  for (const s of samples) {
+    const exists = await LoginActivity.findOne({
+      userId: s.userId,
+      principalType: s.principalType,
+      succes: s.succes,
+      date: s.date,
+    });
+    if (exists) continue;
+    await LoginActivity.create(s);
+    created += 1;
+  }
+  console.log(`[Seed] Activité de connexion : ${created} événement(s) ajouté(s).`);
+};
+
+module.exports = { seedLoginActivity };

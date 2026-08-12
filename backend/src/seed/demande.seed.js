@@ -18,6 +18,7 @@ const { Contrat } = require('../models/contrat.model');
 const seedDemandes = async (tenants = {}) => {
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
+  const carthage = tenants['Carthage Digital'];
   if (!fluidity || !nova) {
     console.warn('[Seed] Tenants de démonstration absents — demandes non créées.');
     return;
@@ -216,8 +217,34 @@ const seedDemandes = async (tenants = {}) => {
   // Additif et idempotent PAR TENANT : le jeu de démo d'un tenant n'est
   // inséré que si ce tenant n'a encore AUCUNE demande — jamais de doublon
   // au fil des relances, et les données réelles ne sont jamais touchées.
+  if (carthage) {
+    const retail = await Client.findOne({ tenantId: carthage._id, email: 'retail@carthage-demo.local' });
+    const ctrC = await Contrat.findOne({ tenantId: carthage._id, reference: 'CTR-2026-201' });
+    if (retail && ctrC) {
+      demoDemandes.push(
+        {
+          tenantId: carthage._id, requester: retail._id, requesterModel: 'Client', statut: 'Ouverte',
+          objet: 'Indisponibilité WiFi magasin Lac 2',
+          typeDemande: 'Support technique', serviceEnvironnement: 'Production',
+          categorie: 'Réseau', sousCategorie: 'WiFi',
+          descriptionDetaillee: 'Le SSID magasin-lac2 est inaccessible depuis ce matin. Environ 12 caisses impactées.',
+          prioriteSouhaitee: 'Urgente', contrat: ctrC._id,
+        },
+        {
+          tenantId: carthage._id, requester: retail._id, requesterModel: 'Client', statut: "En cours d'analyse",
+          objet: 'Snapshot avant soldes',
+          typeDemande: 'Support technique', serviceEnvironnement: 'Production',
+          categorie: 'VM', sousCategorie: 'Snapshot',
+          descriptionDetaillee: 'Merci de prendre un snapshot des VM caisse-app et caisse-db avant le week-end de soldes.',
+          prioriteSouhaitee: 'Élevée', contrat: ctrC._id,
+        }
+      );
+    }
+  }
+
   let created = 0;
-  for (const tenant of [fluidity, nova]) {
+  const tenantList = [fluidity, nova, carthage].filter(Boolean);
+  for (const tenant of tenantList) {
     const existing = await Demande.countDocuments({ tenantId: tenant._id });
     if (existing > 0) continue;
     const docs = demoDemandes.filter((d) => String(d.tenantId) === String(tenant._id));

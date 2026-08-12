@@ -1,54 +1,31 @@
 const { Client } = require('../models/client.model');
 const { migrerComptesClients } = require('../utils/client-account-migration.util');
+const { DEMO_PASSWORD } = require('./user.seed');
 
-/** Mot de passe de DÉMONSTRATION des accès portail (jamais en production). */
-const MOT_DE_PASSE_DEMO = 'Password123!';
-
-/**
- * Clients de démonstration, rattachés à LEUR tenant (ObjectId).
- * La fiche Client EST l'identité de l'accès portail (email + mot de passe)
- * — il n'y a plus de compte « Utilisateur role=CLIENT ». Les instances
- * disposant encore de ces anciens comptes sont converties à la volée
- * (transplant du hash, idempotent).
- */
 const seedClients = async (tenants = {}) => {
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
+  const carthage = tenants['Carthage Digital'];
   if (!fluidity || !nova) {
     console.warn('[Seed] Tenants de démonstration absents — clients non créés.');
     return;
   }
 
   const demoClients = [
-    {
-      tenantId: fluidity._id,
-      email: 'client@fluidity.dev',
-      nom: 'Atlas Industries',
-      telephone: '+216 71 000 111',
-      adresse: 'Tunis, Tunisie',
-      statut: 'Actif',
-    },
-    {
-      tenantId: fluidity._id,
-      email: 'client2@fluidity.dev',
-      nom: 'Helios Distribution',
-      telephone: '+216 71 444 555',
-      adresse: 'Ariana, Tunisie',
-      statut: 'Actif',
-    },
-    {
-      tenantId: nova._id,
-      email: 'client@nova-systems.dev',
-      nom: 'Nova Retail',
-      telephone: '+216 71 222 333',
-      adresse: 'Sfax, Tunisie',
-      statut: 'Actif',
-    },
+    { tenantId: fluidity._id, email: 'client@fluidity.dev', nom: 'Atlas Industries', telephone: '+216 71 000 111', adresse: 'Tunis, Tunisie', statut: 'Actif' },
+    { tenantId: fluidity._id, email: 'client2@fluidity.dev', nom: 'Helios Distribution', telephone: '+216 71 444 555', adresse: 'Ariana, Tunisie', statut: 'Actif' },
+    { tenantId: fluidity._id, email: 'maghreb@fluidity.dev', nom: 'Maghreb Systems', telephone: '+216 71 888 000', adresse: 'Sousse, Tunisie', statut: 'Actif' },
+    { tenantId: nova._id, email: 'client@nova-systems.dev', nom: 'Nova Retail', telephone: '+216 71 222 333', adresse: 'Sfax, Tunisie', statut: 'Actif' },
+    { tenantId: nova._id, email: 'logistique@nova-systems.dev', nom: 'Nova Logistique', telephone: '+216 74 111 222', adresse: 'Gabès, Tunisie', statut: 'Actif' },
   ];
 
-  // Additif et idempotent : chaque fiche n'est créée que si l'email est
-  // absent du tenant (index unique (tenantId, email)) ; une fiche existante
-  // sans accès reçoit l'identité de démo (jamais d'écrasement d'un accès).
+  if (carthage) {
+    demoClients.push(
+      { tenantId: carthage._id, email: 'retail@carthage-demo.local', nom: 'Carthage Retail', telephone: '+216 71 333 111', adresse: 'Lac 2, Tunis', statut: 'Actif' },
+      { tenantId: carthage._id, email: 'media@carthage-demo.local', nom: 'Carthage Media', telephone: '+216 71 333 222', adresse: 'Berges du Lac', statut: 'Actif' }
+    );
+  }
+
   let created = 0;
   let existing = 0;
   let accesAjoutes = 0;
@@ -57,29 +34,24 @@ const seedClients = async (tenants = {}) => {
     if (found) {
       existing += 1;
       if (!found.password) {
-        found.password = MOT_DE_PASSE_DEMO; // hashé via le hook pre-save
-        found.mustChangePassword = false; // démo : connexion directe documentée
+        found.password = DEMO_PASSWORD;
+        found.mustChangePassword = false;
         await found.save();
         accesAjoutes += 1;
       }
       continue;
     }
-    await Client.create({ ...c, password: MOT_DE_PASSE_DEMO, mustChangePassword: false });
+    await Client.create({ ...c, password: DEMO_PASSWORD, mustChangePassword: false });
     created += 1;
   }
   console.log(
-    `[Seed] Clients de démonstration : ${created} créé(s), ${existing} déjà présent(s), ` +
-      `${accesAjoutes} accès portail de démo ajouté(s) (db.clients).`
+    `[Seed] Clients : ${created} créé(s), ${existing} déjà présent(s), ${accesAjoutes} accès portail ajouté(s).`
   );
 
-  // Conversion des anciens comptes « Utilisateur role=CLIENT » encore
-  // présents (instances antérieures à la refonte) — hash transplanté,
-  // dossiers réassignés, idempotent.
   const conv = await migrerComptesClients();
   if (conv.convertis > 0) {
     console.log(
-      `[Seed] ${conv.convertis} compte(s) CLIENT hérité(s) converti(s) en accès portail ` +
-        `(${conv.fichesCreees} fiche(s) créée(s), ${conv.dossiersReassignes} dossier(s) réassigné(s)).`
+      `[Seed] ${conv.convertis} compte(s) CLIENT hérité(s) converti(s) (${conv.fichesCreees} fiche(s), ${conv.dossiersReassignes} dossier(s)).`
     );
   }
 };

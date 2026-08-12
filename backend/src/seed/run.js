@@ -6,23 +6,12 @@ const { seedClients } = require('./client.seed');
 const { seedContrats } = require('./contrat.seed');
 const { seedDemandes } = require('./demande.seed');
 const { seedChangements } = require('./changement.seed');
+const { seedTickets } = require('./ticket.seed');
+const { seedLoginActivity } = require('./login-activity.seed');
 
 /**
- * Script autonome de seed : se connecte, insère les tenants, utilisateurs,
- * clients, contrats, demandes et changements de démonstration si les
- * collections sont vides, puis se déconnecte. Usage : npm run seed
- *
- * Le jeu de démonstration couvre TOUT le périmètre testable de la
- * plateforme : 2 tenants isolés avec leurs marques, tous les rôles métier,
- * tous les statuts des deux workflows (demandes et changements), tous les
- * types/états de contrats et toutes les sections de spécifications.
- *
- * ADDITIF et idempotent : relancer le seed sur une base existante complète
- * UNIQUEMENT les éléments manquants (comptes, fiches, contrats, jeux de
- * tickets par tenant vide) — les données existantes ne sont jamais altérées.
- *
- * Pour migrer des données EXISTANTES (legacy String IDs vers ObjectIds),
- * utiliser : npm run migrate
+ * Seed additif et idempotent. Usage : npm run seed
+ * Reset dev (jamais en production) : SEED_RESET=1 npm run seed:reset && npm run seed
  */
 (async () => {
   try {
@@ -33,6 +22,8 @@ const { seedChangements } = require('./changement.seed');
     await seedContrats(tenants);
     await seedDemandes(tenants);
     await seedChangements(tenants);
+    await seedTickets(tenants);
+    await seedLoginActivity(tenants);
   } catch (err) {
     console.error('[Seed] Échec du seed :', err);
     process.exitCode = 1;

@@ -291,8 +291,28 @@ const seedChangements = async (tenants = {}) => {
   ];
 
   // Additif et idempotent PAR TENANT (même règle que les demandes).
+  if (carthage) {
+    const retail = await Client.findOne({ tenantId: carthage._id, email: 'retail@carthage-demo.local' });
+    const ctrC = await Contrat.findOne({ tenantId: carthage._id, reference: 'CTR-2026-201' });
+    if (retail && ctrC) {
+      demoChangements.push({
+        tenantId: carthage._id, requester: retail._id, requesterModel: 'Client', statut: 'Soumis',
+        objetChangement: 'Création VLAN caisses isolé',
+        descriptionDetaillee: 'VLAN dédié aux caisses (VLAN 50) isolé du WiFi client.',
+        serviceEnvironnement: 'Production', categorie: 'Réseau', sousCategorie: 'VLAN',
+        planRetourArriere: 'Suppression du VLAN 50 et restauration de la config switch.',
+        typeChangement: 'Standard', contrat: ctrC._id,
+        specifications: {
+          general: { ressourcesConcernees: 'Switchs magasin Lac 2' },
+          reseau: { vlan: '50', vlanName: 'CAISSES', passerelle: '10.50.0.1', reseauCidr: '10.50.0.0/24' },
+        },
+      });
+    }
+  }
+
   let created = 0;
-  for (const tenant of [fluidity, nova]) {
+  const tenantList = [fluidity, nova, carthage].filter(Boolean);
+  for (const tenant of tenantList) {
     const existing = await Changement.countDocuments({ tenantId: tenant._id });
     if (existing > 0) continue;
     const docs = demoChangements.filter((c) => String(c.tenantId) === String(tenant._id));
