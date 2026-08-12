@@ -387,7 +387,6 @@ export const FR: Record<string, unknown> = {
     Support: 'Support',
     'Hébergement': 'Hébergement',
     'Infogérance': 'Infogérance',
-    'Développement': 'Développement',
     Incident: 'Incident',
   },
   workflow: {

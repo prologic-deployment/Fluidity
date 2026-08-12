@@ -2,8 +2,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UploadService, UploadedFile, CategorieUpload } from '../../services/upload.service';
 import { I18nService } from '../../i18n/i18n.service';
-import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { I18nService } from '../../i18n/i18n.service';
 
 interface DropzoneItem {
   id: string;
