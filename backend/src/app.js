@@ -11,6 +11,7 @@ const changementRoutes = require('./routes/changement.route');
 const contratRoutes = require('./routes/contrat.route');
 const clientRoutes = require('./routes/client.route');
 const uploadRoutes = require('./routes/upload.route');
+const ticketRoutes = require('./routes/ticket.route');
 
 dotenv.config();
 
@@ -68,6 +69,7 @@ app.use('/api/demandes', demandeRoutes);
 app.use('/api/changements', changementRoutes);
 app.use('/api/contrats', contratRoutes);
 app.use('/api/clients', clientRoutes);
+app.use('/api/tickets', ticketRoutes);
 app.use('/api/uploads', uploadRoutes);
 
 module.exports = app;

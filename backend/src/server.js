@@ -1,5 +1,6 @@
 const app = require('./app');
 const { connectDB } = require('./config/db.config');
+const { startTicketAutoCloseJob } = require('./jobs/ticket-auto-close.job');
 
 const PORT = process.env.PORT || 3000;
 
@@ -13,6 +14,7 @@ const PORT = process.env.PORT || 3000;
     await connectDB();
     app.listen(PORT, () => {
       console.log(`[ServiceDesk] Serveur démarré sur le port ${PORT}`);
+      startTicketAutoCloseJob();
     });
   } catch (err) {
     console.error('[ServiceDesk] Impossible de démarrer le serveur :', err);
