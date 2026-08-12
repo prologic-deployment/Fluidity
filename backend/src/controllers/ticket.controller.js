@@ -101,7 +101,7 @@ const createTicket = async (req, res) => {
       createdBy: req.userId,
       createdByModel: 'Client',
       reference,
-      type: 'Incident',
+      type: 'Incident', // toujours Incident — jamais fourni par le client
       objet: req.body.objet.trim(),
       descriptionDetaillee: req.body.descriptionDetaillee.trim(),
       openedAt: now,

@@ -1,7 +1,6 @@
 const { z } = require('zod');
 const { objectId } = require('./common');
 const { IMPACTS, URGENCES } = require('../utils/ticket-priority');
-const { TICKET_TYPES } = require('../utils/workflow');
 
 const diagnosticSchema = z
   .object({
@@ -28,7 +27,6 @@ const diagnosticSchema = z
 const createTicketSchema = z.object({
   objet: z.string().trim().min(3, 'Objet requis').max(200),
   descriptionDetaillee: z.string().trim().min(10, 'Description trop courte'),
-  type: z.enum(TICKET_TYPES).optional(),
   categorie: z.string().min(1, 'Catégorie requise'),
   sousCategorie: z.string().min(1, 'Sous-catégorie requise'),
   impact: z.enum(IMPACTS),

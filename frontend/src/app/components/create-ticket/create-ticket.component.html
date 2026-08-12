@@ -31,12 +31,6 @@
               <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">Objet requis (200 caractères max).</p>
             </div>
             <div>
-              <label class="field-label">Type</label>
-              <select formControlName="type" class="select">
-                <option *ngFor="let t of types" [value]="t">{{ t }}</option>
-              </select>
-            </div>
-            <div>
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat actif...</option>

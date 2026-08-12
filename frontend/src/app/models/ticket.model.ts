@@ -69,7 +69,8 @@ export interface Ticket {
   contrat: string | ContratRef;
   createdBy?: RequesterRef | string;
   reference?: string;
-  type: TypeTicket;
+  /** Toujours « Incident » — fixé côté serveur, jamais saisi. */
+  type?: TypeTicket;
   objet: string;
   descriptionDetaillee: string;
   openedAt?: string;

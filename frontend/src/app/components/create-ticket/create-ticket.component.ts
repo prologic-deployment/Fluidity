@@ -10,7 +10,6 @@ import { SpecificationsFormComponent } from '../shared/specifications-form.compo
 import { UploadedFile } from '../../services/upload.service';
 import { CATEGORIES, SOUS_CATEGORIES } from '../../models/demande.model';
 import {
-  TYPES_TICKET,
   IMPACTS_TICKET,
   URGENCES_TICKET,
   calculatePriority,
@@ -35,7 +34,6 @@ const AUTRE = 'Autre';
 })
 export class CreateTicketComponent implements OnInit {
   form!: FormGroup;
-  types = TYPES_TICKET;
   categories = CATEGORIES;
   impacts = IMPACTS_TICKET;
   urgences = URGENCES_TICKET;
@@ -58,7 +56,6 @@ export class CreateTicketComponent implements OnInit {
     this.form = this.fb.group({
       objet: ['', [Validators.required, Validators.maxLength(200)]],
       descriptionDetaillee: ['', [Validators.required, Validators.minLength(10)]],
-      type: ['Incident', Validators.required],
       categorie: ['', Validators.required],
       categorieAutre: [''],
       sousCategorie: ['', Validators.required],
@@ -125,7 +122,6 @@ export class CreateTicketComponent implements OnInit {
           {
             objet: t.objet,
             descriptionDetaillee: t.descriptionDetaillee,
-            type: t.type || 'Incident',
             categorie: cat,
             categorieAutre: catKnown ? '' : t.categorie,
             sousCategorie: sousKnown ? t.sousCategorie : AUTRE,
@@ -228,7 +224,6 @@ export class CreateTicketComponent implements OnInit {
     const payload = {
       objet: raw.objet.trim(),
       descriptionDetaillee: raw.descriptionDetaillee.trim(),
-      type: 'Incident' as const,
       categorie,
       sousCategorie,
       impact: raw.impact,
