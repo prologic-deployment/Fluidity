@@ -86,8 +86,7 @@ export class ProfilComponent implements OnInit {
 
   // --- Identité affichée (en-tête) -------------------------------------------
 
-  /** Principal CLIENT (accès portail) : page en lecture seule — sa fiche
-   *  commerciale est gérée par le fournisseur de services, jamais en libre-service. */
+  /** Principal CLIENT : peut éditer ses coordonnées personnelles, pas la raison sociale. */
   get estClientPortail(): boolean {
     return this.auth.isClient();
   }

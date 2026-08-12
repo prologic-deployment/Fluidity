@@ -34,13 +34,56 @@ export interface Specifications {
   };
   reseau?: {
     vlan?: string;
+    vlanName?: string;
+    descriptionVlan?: string;
+    interfaceAssociee?: string;
+    reseauCidr?: string;
     adresseIp?: string;
     masqueSousReseau?: string;
     passerelle?: string;
     dnsPrimaire?: string;
     dnsSecondaire?: string;
-    /** Ex. Statique, OSPF, BGP... */
     routage?: string;
+    zoneDns?: string;
+    typeEnregistrement?: string;
+    nomEnregistrement?: string;
+    valeurActuelle?: string;
+    nouvelleValeur?: string;
+    ttl?: string;
+    scopePool?: string;
+    plageAdresses?: string;
+    reservation?: string;
+    reseauDestination?: string;
+    nextHop?: string;
+    metrique?: string;
+    protocoleRoutage?: string;
+    typeVpn?: string;
+    reseauLocal?: string;
+    reseauDistant?: string;
+    chiffrementVpn?: string;
+    methodeAuth?: string;
+    peerGateway?: string;
+    typeLb?: string;
+    vip?: string;
+    serveursBackend?: string;
+    portsLb?: string;
+    protocoleLb?: string;
+    algorithmeLb?: string;
+    healthCheck?: string;
+    nomSwitch?: string;
+    ipManagement?: string;
+    interfacePort?: string;
+    configRequise?: string;
+    ssid?: string;
+    modeSecurite?: string;
+    authentificationWifi?: string;
+    accessPoint?: string;
+    typeProxy?: string;
+    hostProxy?: string;
+    portProxy?: string;
+    protocoleProxy?: string;
+    servicesCibles?: string;
+    authProxy?: string;
   };
   /** Section dédiée pare-feu / VPN (Sécurité+Firewall et Réseau+VPN). */
   firewall?: {
@@ -51,6 +94,13 @@ export interface Specifications {
     zones?: string;
     politique?: string;
     vpn?: string;
+    source?: string;
+    destination?: string;
+    protocole?: string;
+    action?: string;
+    direction?: string;
+    dureeRegle?: string;
+    justification?: string;
   };
   backup?: {
     espaceBackupSupplementaireGo?: number;
@@ -61,6 +111,27 @@ export interface Specifications {
     compression?: string; // 'Oui' | 'Non'
     chiffrement?: string; // 'Oui' | 'Non'
     licencesNecessaires?: string;
+    sourceBackup?: string;
+    pointRestauration?: string;
+    cibleRestore?: string;
+    typeRestore?: string;
+    perimetreDonnees?: string;
+    retentionExistante?: string;
+    typeReplication?: string;
+    bandePassante?: string;
+    rpo?: string;
+    sourceArchive?: string;
+    destinationArchive?: string;
+    classeStockage?: string;
+    exigencesRecuperation?: string;
+    nomJobVeeam?: string;
+    serveurVeeam?: string;
+    typeBackupVeeam?: string;
+    repository?: string;
+    planification?: string;
+    systemeCible?: string;
+    perimetreBackup?: string;
+    typeBackup?: string;
   };
   // --- Sections supplémentaires affichées selon la catégorie choisie ---
   // Les sections baseDeDonnees / portailWeb / conteneurs ne sont plus proposées
@@ -95,10 +166,27 @@ export interface Specifications {
     framework?: string;
     versionCuda?: string;
     versionPilote?: string;
+    serveurCible?: string;
+    dureeEstimee?: string;
+    versionPiloteActuelle?: string;
+    versionPiloteDemandee?: string;
+    compatibiliteCuda?: string;
+    fenetreMaintenance?: string;
   };
   securite?: {
     perimetre?: string;
     niveauCriticite?: string;
+    systemeCible?: string;
+    environnementAudit?: string;
+    typeAudit?: string;
+    periodeAudit?: string;
+    livrables?: string;
+    typeCertificat?: string;
+    nomCommun?: string;
+    emetteurCa?: string;
+    validite?: string;
+    cibleInstallation?: string;
+    renouvellementOuNouveau?: string;
   };
 }
 
@@ -269,23 +357,185 @@ export const SECTIONS_SPECIFICATIONS: Record<string, RegleSections> = {
   Réseau: {
     defaut: ['reseau'],
     parSousCategorie: {
-      // Le VPN a besoin du contexte réseau + de la section pare-feu/VPN.
-      // (La sous-catégorie « Firewall » n'existe plus dans Réseau : toute
-      //  règle pare-feu relève désormais de Sécurité + Firewall.)
-      VPN: ['reseau', 'firewall'],
+      VLAN: ['reseau'],
+      DNS: ['reseau'],
+      DHCP: ['reseau'],
+      Routage: ['reseau'],
+      VPN: ['reseau'],
+      'Load Balancer': ['reseau'],
+      Switch: ['reseau'],
+      WiFi: ['reseau'],
+      Proxy: ['reseau'],
+      Autre: [],
     },
   },
-  VM: { defaut: ['serveur'] },
-  'IA-GPU': { defaut: ['iaGpu'] },
-  Stockage: { defaut: ['stockage'] },
+  VM: {
+    defaut: ['serveur'],
+    parSousCategorie: {
+      'Création VM': ['serveur'],
+      'Extension ressources': ['serveur'],
+      Clone: ['serveur'],
+      Migration: ['serveur'],
+      'Migration VM': ['serveur'],
+      Suppression: ['serveur'],
+      'Suppression VM': ['serveur'],
+      Snapshot: ['serveur'],
+      Autre: [],
+    },
+  },
+  'IA-GPU': {
+    defaut: ['iaGpu'],
+    parSousCategorie: {
+      'GPU Allocation': ['iaGpu'],
+      Drivers: ['iaGpu'],
+      Autre: [],
+    },
+  },
+  Stockage: {
+    defaut: ['stockage'],
+    parSousCategorie: {
+      NAS: ['stockage'],
+      SAN: ['stockage'],
+      'Extension capacité': ['stockage'],
+      Volume: ['stockage'],
+      NFS: ['stockage'],
+      SMB: ['stockage'],
+      Quotas: ['stockage'],
+      Autre: [],
+    },
+  },
   Sécurité: {
     defaut: ['securite'],
     parSousCategorie: {
-      Firewall: ['securite', 'firewall'],
+      Audit: ['securite'],
+      Firewall: ['firewall'],
+      Certificat: ['securite'],
+      Autre: [],
     },
   },
-  Sauvegarde: { defaut: ['backup'] },
+  Sauvegarde: {
+    defaut: ['backup'],
+    parSousCategorie: {
+      Restore: ['backup'],
+      Rétention: ['backup'],
+      Retention: ['backup'],
+      Réplication: ['backup'],
+      Archivage: ['backup'],
+      Veeam: ['backup'],
+      'Backup Configuration': ['backup'],
+      'Backup configuration': ['backup'],
+      Autre: [],
+    },
+  },
 };
+
+/** Champs visibles par section pour une sous-catégorie (source unique UI + payload). */
+export const CHAMPS_PAR_SOUS_CATEGORIE: Record<string, Record<string, Record<string, string[]>>> = {
+  Réseau: {
+    VLAN: { reseau: ['vlan', 'vlanName', 'descriptionVlan', 'interfaceAssociee', 'reseauCidr', 'passerelle'] },
+    DNS: { reseau: ['zoneDns', 'typeEnregistrement', 'nomEnregistrement', 'valeurActuelle', 'nouvelleValeur', 'ttl'] },
+    DHCP: {
+      reseau: ['scopePool', 'reseauCidr', 'masqueSousReseau', 'passerelle', 'dnsPrimaire', 'dnsSecondaire', 'plageAdresses', 'reservation'],
+    },
+    Routage: { reseau: ['reseauDestination', 'masqueSousReseau', 'nextHop', 'metrique', 'protocoleRoutage'] },
+    VPN: { reseau: ['typeVpn', 'reseauLocal', 'reseauDistant', 'chiffrementVpn', 'methodeAuth', 'peerGateway'] },
+    'Load Balancer': { reseau: ['typeLb', 'vip', 'serveursBackend', 'portsLb', 'protocoleLb', 'algorithmeLb', 'healthCheck'] },
+    Switch: { reseau: ['nomSwitch', 'ipManagement', 'interfacePort', 'vlan', 'configRequise'] },
+    WiFi: { reseau: ['ssid', 'modeSecurite', 'authentificationWifi', 'vlan', 'accessPoint'] },
+    Proxy: { reseau: ['typeProxy', 'hostProxy', 'portProxy', 'protocoleProxy', 'servicesCibles', 'authProxy'] },
+    Autre: {},
+  },
+  VM: {
+    'Création VM': {
+      serveur: ['hostname', 'environnementVm', 'os', 'cpuCores', 'ramGo', 'disques', 'reseauVm', 'configIp', 'datacenter'],
+    },
+    'Extension ressources': {
+      serveur: ['vmCible', 'typeRessource', 'valeurActuelle', 'valeurDemandee', 'cpuCores', 'ramGo', 'disques'],
+    },
+    Clone: { serveur: ['vmSource', 'nouveauNomVm', 'destinationVm', 'reseauVm', 'optionsPersonnalisation'] },
+    Migration: { serveur: ['hoteSource', 'hoteDestination', 'typeMigration', 'downtimeEstime', 'impactReseau'] },
+    'Migration VM': { serveur: ['hoteSource', 'hoteDestination', 'typeMigration', 'downtimeEstime', 'impactReseau'] },
+    Suppression: { serveur: ['vmCible', 'confirmationBackup', 'confirmationSnapshot', 'retentionDonnees', 'motifDecommission'] },
+    'Suppression VM': { serveur: ['vmCible', 'confirmationBackup', 'confirmationSnapshot', 'retentionDonnees', 'motifDecommission'] },
+    Snapshot: { serveur: ['vmCible', 'nomSnapshot', 'descriptionSnapshot', 'retentionSnapshot', 'expirationSnapshot'] },
+    Autre: {},
+  },
+  'IA-GPU': {
+    'GPU Allocation': { iaGpu: ['typeGpu', 'nombreGpu', 'vramGo', 'versionCuda', 'serveurCible', 'framework', 'dureeEstimee'] },
+    Drivers: { iaGpu: ['typeGpu', 'versionPiloteActuelle', 'versionPiloteDemandee', 'compatibiliteCuda', 'serveurCible', 'fenetreMaintenance'] },
+    Autre: {},
+  },
+  Stockage: {
+    NAS: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    SAN: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    'Extension capacité': { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    Volume: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    NFS: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    SMB: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    Quotas: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    Autre: {},
+  },
+  Sécurité: {
+    Audit: { securite: ['perimetre', 'systemeCible', 'environnementAudit', 'typeAudit', 'periodeAudit', 'livrables'] },
+    Firewall: {
+      firewall: ['source', 'destination', 'protocole', 'ports', 'action', 'direction', 'dureeRegle', 'justification', 'reglesPareFeu'],
+    },
+    Certificat: { securite: ['typeCertificat', 'nomCommun', 'emetteurCa', 'validite', 'cibleInstallation', 'renouvellementOuNouveau'] },
+    Autre: {},
+  },
+  Sauvegarde: {
+    Restore: { backup: ['sourceBackup', 'pointRestauration', 'cibleRestore', 'typeRestore', 'perimetreDonnees'] },
+    Rétention: { backup: ['retentionNombre', 'retentionPeriode', 'perimetreBackup', 'retentionExistante'] },
+    Retention: { backup: ['retentionNombre', 'retentionPeriode', 'perimetreBackup', 'retentionExistante'] },
+    Réplication: { backup: ['sourceBackup', 'destinationBackup', 'typeReplication', 'frequenceSauvegarde', 'bandePassante', 'rpo'] },
+    Archivage: { backup: ['sourceArchive', 'destinationArchive', 'retentionNombre', 'retentionPeriode', 'classeStockage', 'exigencesRecuperation'] },
+    Veeam: { backup: ['nomJobVeeam', 'serveurVeeam', 'typeBackupVeeam', 'repository', 'planification', 'retentionNombre', 'retentionPeriode'] },
+    'Backup Configuration': {
+      backup: [
+        'systemeCible',
+        'perimetreBackup',
+        'typeBackup',
+        'frequenceSauvegarde',
+        'planification',
+        'destinationBackup',
+        'chiffrement',
+        'compression',
+        'retentionNombre',
+        'retentionPeriode',
+      ],
+    },
+    'Backup configuration': {
+      backup: [
+        'systemeCible',
+        'perimetreBackup',
+        'typeBackup',
+        'frequenceSauvegarde',
+        'planification',
+        'destinationBackup',
+        'chiffrement',
+        'compression',
+        'retentionNombre',
+        'retentionPeriode',
+      ],
+    },
+    Autre: {},
+  },
+};
+
+export function champsPour(categorie: string | null | undefined, sousCategorie?: string | null): Record<string, string[]> {
+  if (!categorie || !sousCategorie) return {};
+  return CHAMPS_PAR_SOUS_CATEGORIE[categorie]?.[sousCategorie] || {};
+}
+
+export function champVisible(
+  categorie: string | null | undefined,
+  sousCategorie: string | null | undefined,
+  section: string,
+  champ: string
+): boolean {
+  const map = champsPour(categorie, sousCategorie);
+  return (map[section] || []).includes(champ);
+}
 
 /**
  * Résout les sections à afficher pour un couple catégorie/sous-catégorie :

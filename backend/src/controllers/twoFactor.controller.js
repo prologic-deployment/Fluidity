@@ -1,6 +1,25 @@
 const { Utilisateur } = require('../models/user.model');
+const { Client } = require('../models/client.model');
 const { Tenant } = require('../models/tenant.model');
+const { PRINCIPAL_CLIENT } = require('../utils/principals');
 const { issueSession, verifyTwoFactorToken } = require('./auth.controller');
+
+async function loadAccountById(id, extraSelect = '') {
+  const client = await Client.findById(id).select(extraSelect);
+  if (client) return { account: client, principalType: PRINCIPAL_CLIENT };
+  const user = await Utilisateur.findById(id).select(extraSelect);
+  if (user) return { account: user, principalType: 'UTILISATEUR' };
+  return { account: null, principalType: null };
+}
+
+async function loadSessionAccount(req, extraSelect = '') {
+  if (req.principalType === PRINCIPAL_CLIENT) {
+    const account = await Client.findById(req.userId).select(extraSelect);
+    return { account, principalType: PRINCIPAL_CLIENT };
+  }
+  const account = await Utilisateur.findById(req.userId).select(extraSelect);
+  return { account, principalType: 'UTILISATEUR' };
+}
 const { enregistrerActivite } = require('../utils/login-activity.util');
 const { sendTwoFactorEnabledEmail, sendTwoFactorDisabledEmail } = require('../services/email.service');
 const { encryptSecret, decryptSecret } = require('../utils/crypto.util');
@@ -52,9 +71,9 @@ function checkCode(user, plainSecret, code, consumeBackup) {
 /** GET /api/auth/2fa/status — état courant (jamais de secret). */
 const getStatus = async (req, res) => {
   try {
-    const user = await Utilisateur.findById(req.userId).select('+twoFactorBackupCodes');
+    const { account: user } = await loadSessionAccount(req, '+twoFactorBackupCodes');
     if (!user) {
-      res.status(404).json({ message: 'Utilisateur introuvable' });
+      res.status(404).json({ message: 'Compte introuvable' });
       return;
     }
     res.status(200).json({
@@ -75,9 +94,9 @@ const getStatus = async (req, res) => {
  */
 const setup = async (req, res) => {
   try {
-    const user = await Utilisateur.findById(req.userId).select('+twoFactorSecret');
+    const { account: user } = await loadSessionAccount(req, '+twoFactorSecret');
     if (!user) {
-      res.status(404).json({ message: 'Utilisateur introuvable' });
+      res.status(404).json({ message: 'Compte introuvable' });
       return;
     }
     if (user.twoFactorEnabled) {
@@ -113,9 +132,9 @@ const setup = async (req, res) => {
  */
 const verifySetup = async (req, res) => {
   try {
-    const user = await Utilisateur.findById(req.userId).select('+twoFactorSecret');
+    const { account: user } = await loadSessionAccount(req, '+twoFactorSecret');
     if (!user) {
-      res.status(404).json({ message: 'Utilisateur introuvable' });
+      res.status(404).json({ message: 'Compte introuvable' });
       return;
     }
     if (user.twoFactorEnabled) {
@@ -158,9 +177,9 @@ const verifySetup = async (req, res) => {
  */
 const disable = async (req, res) => {
   try {
-    const user = await Utilisateur.findById(req.userId).select('+twoFactorSecret +twoFactorBackupCodes');
+    const { account: user } = await loadSessionAccount(req, '+twoFactorSecret +twoFactorBackupCodes');
     if (!user) {
-      res.status(404).json({ message: 'Utilisateur introuvable' });
+      res.status(404).json({ message: 'Compte introuvable' });
       return;
     }
     if (!user.twoFactorEnabled) {
@@ -212,17 +231,21 @@ const verifyLogin = async (req, res) => {
       return;
     }
 
-    const user = await Utilisateur.findById(userId).select('+twoFactorSecret +twoFactorBackupCodes');
+    const { account: user, principalType } = await loadAccountById(userId, '+twoFactorSecret +twoFactorBackupCodes');
     if (!user || !user.twoFactorEnabled) {
       res.status(401).json({ message: 'Vérification impossible pour ce compte.' });
       return;
     }
-    if (user.status === 'suspended') {
+    const estClient = principalType === PRINCIPAL_CLIENT;
+    if (!estClient && user.status === 'suspended') {
       res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
       return;
     }
+    if (estClient && user.statut !== 'Actif') {
+      res.status(403).json({ message: 'Ce compte est inactif. Contactez votre administrateur.' });
+      return;
+    }
 
-    // Mêmes garde-fous workspace que la connexion classique
     let tenant = null;
     if (user.tenantId) {
       tenant = await Tenant.findById(user.tenantId);
@@ -241,17 +264,21 @@ const verifyLogin = async (req, res) => {
     const plainSecret = decryptSecret(user.twoFactorSecret);
     const { ok, backupUsed } = checkCode(user, plainSecret, req.body.code, true);
     if (!ok) {
-      // Échec au second facteur : la tentative a atteint le défi MFA
       enregistrerActivite(req, {
         userId: user._id, tenantId: user.tenantId || null,
+        principalType: estClient ? PRINCIPAL_CLIENT : 'UTILISATEUR',
         succes: false, mfaUtilise: true, raisonEchec: 'CODE_2FA_INVALIDE',
       });
       res.status(401).json({ message: 'Code invalide. Réessayez.' });
       return;
     }
-    if (backupUsed) await user.save(); // code de secours consommé (usage unique)
+    if (backupUsed) await user.save();
 
-    issueSession(res, user, tenant, { backupCodeUsed: backupUsed }, { req, mfaUtilise: true });
+    issueSession(res, user, tenant, { backupCodeUsed: backupUsed }, {
+      req,
+      mfaUtilise: true,
+      principalType: estClient ? PRINCIPAL_CLIENT : undefined,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }

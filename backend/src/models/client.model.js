@@ -47,6 +47,17 @@ const ClientSchema = new Schema(
     mustChangePassword: { type: Boolean, default: false },
     resetToken: { type: String, select: false },
     resetTokenExpiry: { type: Date, select: false },
+
+    // Profil self-service (ne remplace pas la raison sociale administrée)
+    firstName: { type: String, default: '', trim: true },
+    lastName: { type: String, default: '', trim: true },
+    avatarUrl: { type: String, default: null },
+
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: null, select: false },
+    twoFactorVerified: { type: Boolean, default: false },
+    twoFactorCreatedAt: { type: Date, default: null },
+    twoFactorBackupCodes: { type: [String], default: [], select: false },
   },
   { timestamps: true }
 );

@@ -78,12 +78,10 @@ export class SecurityPageComponent implements OnInit {
       },
       { validators: [this.passwordsMatchValidator] }
     );
-    if (!this.estClientPortail) {
-      this.auth.twoFactorStatus().subscribe({
-        next: (status) => (this.twoFactorStatus = status),
-        error: () => (this.twoFactorStatus = null),
-      });
-    }
+    this.auth.twoFactorStatus().subscribe({
+      next: (status) => (this.twoFactorStatus = status),
+      error: () => (this.twoFactorStatus = null),
+    });
     this.chargerActivite(1);
   }
 

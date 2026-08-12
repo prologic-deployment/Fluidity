@@ -16,7 +16,7 @@ const {
   disable,
   verifyLogin,
 } = require('../controllers/twoFactor.controller');
-const { authMiddleware, requireUtilisateurInterne } = require('../middlewares/auth.middleware');
+const { authMiddleware } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   registerSchema,

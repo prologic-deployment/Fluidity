@@ -110,9 +110,9 @@ export const CATEGORIES: string[] = [
  */
 export const SOUS_CATEGORIES: Record<string, string[]> = {
   Réseau: ['VLAN', 'DNS', 'DHCP', 'Routage', 'VPN', 'Load Balancer', 'Switch', 'WiFi', 'Proxy', 'Autre'],
-  VM: ['Création VM', 'Extension ressources', 'Migration VM', 'Suppression VM', 'Snapshot', 'Clone', 'Autre'],
+  VM: ['Création VM', 'Extension ressources', 'Clone', 'Migration', 'Suppression', 'Snapshot', 'Autre'],
   'IA-GPU': ['GPU Allocation', 'Drivers', 'Autre'],
-  Stockage: ['NAS', 'SAN', 'Volume', 'Extension capacité', 'NFS', 'SMB', 'Quotas', 'Autre'],
+  Stockage: ['NAS', 'SAN', 'Extension capacité', 'Volume', 'NFS', 'SMB', 'Quotas', 'Autre'],
   Sécurité: ['Audit', 'Firewall', 'Certificat', 'Autre'],
-  Sauvegarde: ['Backup configuration', 'Restore', 'Retention', 'Réplication', 'Archivage', 'Veeam', 'Autre'],
+  Sauvegarde: ['Restore', 'Rétention', 'Réplication', 'Archivage', 'Veeam', 'Backup Configuration', 'Autre'],
 };

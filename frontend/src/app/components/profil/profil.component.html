@@ -38,7 +38,6 @@
               </div>
               <!-- Recouvrement au survol -->
               <label
-                *ngIf="!estClientPortail"
                 for="avatar-input"
                 class="absolute inset-0 flex cursor-pointer items-center justify-center rounded-2xl bg-slate-950/55 text-white
                   opacity-0 transition-opacity duration-200 group-hover:opacity-100"
@@ -67,8 +66,7 @@
             </div>
           </div>
 
-          <!-- Actions photo (utilisateurs internes uniquement) -->
-          <div *ngIf="!estClientPortail" class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <ng-container *ngIf="avatarPreview as preview">
               <button type="button" (click)="saveAvatar()" [disabled]="avatarUploading" class="btn-primary btn-sm">
                 {{ avatarUploading ? 'Envoi...' : 'Enregistrer cette photo' }}
@@ -126,7 +124,7 @@
       </div>
     </section>
 
-    <!-- ==================== FICHE CLIENT (portail — lecture seule) ==================== -->
+    <!-- ==================== FICHE CLIENT (raison sociale en lecture seule) ==================== -->
     <section *ngIf="estClientPortail" class="card animate-fade-in-up stagger-1">
       <div class="card-header-tinted">
         <div class="form-section-header">
@@ -167,14 +165,14 @@
           </div>
         </dl>
         <p *ngIf="!loading" class="mt-5 rounded-lg border border-border bg-muted/30 px-3.5 py-2.5 text-xs text-muted-foreground">
-          Ces informations sont administrées par votre fournisseur de services — contactez votre
-          interlocuteur pour toute mise à jour.
+          La raison sociale et l'email de connexion sont administrés par votre fournisseur.
+          Vous pouvez mettre à jour votre photo, vos coordonnées personnelles et votre mot de passe.
         </p>
       </div>
     </section>
 
     <!-- ==================== INFORMATIONS PERSONNELLES (utilisateurs internes) ==================== -->
-    <section *ngIf="!estClientPortail" class="card animate-fade-in-up stagger-1">
+    <section class="card animate-fade-in-up stagger-1">
       <div class="card-header-tinted">
         <div class="form-section-header">
           <div class="form-section-icon">
@@ -216,11 +214,11 @@
                 Numéro invalide (chiffres, espaces, +, -, (), .).
               </p>
             </div>
-            <div>
+            <div *ngIf="!estClientPortail">
               <label class="field-label">Intitulé de poste</label>
               <input formControlName="jobTitle" type="text" class="input" placeholder="ex : Ingénieur Cloud" />
             </div>
-            <div>
+            <div *ngIf="!estClientPortail">
               <label class="field-label">Département</label>
               <input [value]="department" type="text" class="input opacity-60" disabled />
               <p class="mt-1 text-xs text-muted-foreground">Géré par votre administrateur.</p>

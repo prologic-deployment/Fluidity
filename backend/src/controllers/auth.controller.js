@@ -112,11 +112,10 @@ const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
     email: user.email,
     status: estClient ? (user.statut === 'Actif' ? 'active' : 'inactive') : user.status,
     // Identité d'affichage (topbar, sidebar, menu profil) — jamais de secret
-    firstName: estClient ? '' : user.firstName || '',
-    lastName: estClient ? '' : user.lastName || '',
-    // Raison sociale du client portail (nom d'affichage de la sidebar/topbar)
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
     displayName: estClient ? user.nom : undefined,
-    avatarUrl: estClient ? null : user.avatarUrl || null,
+    avatarUrl: user.avatarUrl || null,
     // Accès provisionné par l'admin : changement obligatoire à la 1re connexion
     mustChangePassword: estClient ? !!user.mustChangePassword : false,
     tenant: tenantBranding(tenant),
@@ -151,7 +150,7 @@ const verifyTwoFactorToken = (token) => {
  *   attribuable à une fiche), false si aucune fiche ne porte cet email.
  */
 const loginClient = async (req, res, email, password) => {
-  const candidats = await Client.find({ email }).select('+password');
+  const candidats = await Client.find({ email }).select('+password +twoFactorSecret +twoFactorBackupCodes');
   if (!candidats.length) return false;
 
   const correspondances = [];
@@ -204,6 +203,15 @@ const loginClient = async (req, res, email, password) => {
     });
     res.status(403).json({
       message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
+    });
+    return true;
+  }
+
+  if (client.twoFactorEnabled && client.twoFactorVerified) {
+    res.status(200).json({
+      requiresTwoFactor: true,
+      twoFactorToken: signTwoFactorToken(client._id),
+      expiresInMinutes: 5,
     });
     return true;
   }
@@ -420,10 +428,34 @@ const me = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     if (req.principalType === PRINCIPAL_CLIENT) {
-      // La fiche d'un client n'est modifiable que par SON Tenant Admin —
-      // jamais d'auto-édition du profil portail (donnée commerciale).
-      res.status(403).json({
-        message: 'Votre fiche est gérée par votre fournisseur de services. Contactez votre administrateur pour la modifier.',
+      const client = await Client.findById(req.userId);
+      if (!client) {
+        res.status(404).json({ message: 'Client introuvable' });
+        return;
+      }
+      const ancienAvatar = client.avatarUrl;
+      if (req.body.firstName !== undefined) client.firstName = req.body.firstName;
+      if (req.body.lastName !== undefined) client.lastName = req.body.lastName;
+      if (req.body.phone !== undefined) client.telephone = req.body.phone;
+      if (req.body.address !== undefined) client.adresse = req.body.address;
+      if (req.body.avatarUrl !== undefined) client.avatarUrl = req.body.avatarUrl;
+      await client.save();
+      if (req.body.avatarUrl !== undefined && ancienAvatar && ancienAvatar !== client.avatarUrl) {
+        supprimerFichierUpload(ancienAvatar, req.tenantId);
+      }
+      const clean = await Client.findById(client._id).select(
+        '-password -resetToken -resetTokenExpiry -twoFactorSecret -twoFactorBackupCodes'
+      );
+      res.status(200).json({
+        message: 'Profil mis à jour',
+        user: {
+          ...clean.toObject(),
+          phone: clean.telephone,
+          address: clean.adresse,
+          role: ROLE_PORTAIL,
+          principalType: PRINCIPAL_CLIENT,
+          mustChangePassword: !!clean.mustChangePassword,
+        },
       });
       return;
     }

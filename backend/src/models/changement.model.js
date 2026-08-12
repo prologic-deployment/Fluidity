@@ -123,7 +123,7 @@ const SpecificationsSchema = new Schema(
     // Alias anglais pour compatibilité (storageSpecifications)
     storageSpecifications: { type: Schema.Types.Mixed },
   },
-  { _id: false }
+  { _id: false, strict: false }
 );
 
 const ChangementSchema = new Schema(

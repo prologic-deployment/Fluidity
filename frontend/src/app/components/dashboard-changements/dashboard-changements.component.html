@@ -383,6 +383,9 @@
           <div *ngIf="s.hostname"><p class="detail-label">Hostname</p><p class="detail-value">{{ s.hostname }}</p></div>
           <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
           <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
+          <div *ngIf="$any(s).vmCible"><p class="detail-label">VM cible</p><p class="detail-value">{{ $any(s).vmCible }}</p></div>
+          <div *ngIf="$any(s).vmSource"><p class="detail-label">VM source</p><p class="detail-value">{{ $any(s).vmSource }}</p></div>
+          <div *ngIf="$any(s).nomSnapshot"><p class="detail-label">Snapshot</p><p class="detail-value">{{ $any(s).nomSnapshot }}</p></div>
           <div *ngIf="s.disques?.length" class="md:col-span-2">
             <p class="detail-label">Disques</p>
             <ul class="detail-value space-y-0.5">
@@ -401,6 +404,14 @@
           <div *ngIf="r.dnsPrimaire"><p class="detail-label">DNS primaire</p><p class="detail-value">{{ r.dnsPrimaire }}</p></div>
           <div *ngIf="r.dnsSecondaire"><p class="detail-label">DNS secondaire</p><p class="detail-value">{{ r.dnsSecondaire }}</p></div>
           <div *ngIf="r.routage"><p class="detail-label">Routage</p><p class="detail-value">{{ r.routage }}</p></div>
+          <div *ngIf="$any(r).vlanName"><p class="detail-label">Nom VLAN</p><p class="detail-value">{{ $any(r).vlanName }}</p></div>
+          <div *ngIf="$any(r).zoneDns"><p class="detail-label">Zone DNS</p><p class="detail-value">{{ $any(r).zoneDns }}</p></div>
+          <div *ngIf="$any(r).typeEnregistrement"><p class="detail-label">Type d'enregistrement</p><p class="detail-value">{{ $any(r).typeEnregistrement }}</p></div>
+          <div *ngIf="$any(r).nomEnregistrement"><p class="detail-label">Nom d'enregistrement</p><p class="detail-value">{{ $any(r).nomEnregistrement }}</p></div>
+          <div *ngIf="$any(r).ssid"><p class="detail-label">SSID</p><p class="detail-value">{{ $any(r).ssid }}</p></div>
+          <div *ngIf="$any(r).typeVpn"><p class="detail-label">Type VPN</p><p class="detail-value">{{ $any(r).typeVpn }}</p></div>
+          <div *ngIf="$any(r).vip"><p class="detail-label">VIP</p><p class="detail-value">{{ $any(r).vip }}</p></div>
+          <div *ngIf="$any(r).typeProxy"><p class="detail-label">Type proxy</p><p class="detail-value">{{ $any(r).typeProxy }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.firewall as fw">
           <div *ngIf="fw.reglesPareFeu" class="md:col-span-2">
@@ -412,6 +423,10 @@
           <div *ngIf="fw.zones"><p class="detail-label">Zones</p><p class="detail-value">{{ fw.zones }}</p></div>
           <div *ngIf="fw.politique"><p class="detail-label">Politique par défaut</p><p class="detail-value">{{ fw.politique }}</p></div>
           <div *ngIf="fw.vpn"><p class="detail-label">VPN</p><p class="detail-value">{{ fw.vpn }}</p></div>
+          <div *ngIf="$any(fw).source"><p class="detail-label">Source</p><p class="detail-value">{{ $any(fw).source }}</p></div>
+          <div *ngIf="$any(fw).destination"><p class="detail-label">Destination</p><p class="detail-value">{{ $any(fw).destination }}</p></div>
+          <div *ngIf="$any(fw).action"><p class="detail-label">Action</p><p class="detail-value">{{ $any(fw).action }}</p></div>
+          <div *ngIf="$any(fw).justification"><p class="detail-label">Justification</p><p class="detail-value">{{ $any(fw).justification }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>

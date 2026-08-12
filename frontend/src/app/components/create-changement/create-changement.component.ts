@@ -10,6 +10,8 @@ import {
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
   sectionsPour,
+  champVisible,
+  champsPour,
   TYPES_DISQUE,
   TYPES_STOCKAGE,
   PROTOCOLES_STOCKAGE,
@@ -96,18 +98,85 @@ export class CreateChangementComponent implements OnInit {
         hostname: [''],
         cpuCores: [null],
         ramGo: [null],
-        // Disques dynamiques : [capacité Go] + [type] (+ précision si 'Autre')
+        environnementVm: [''],
+        datacenter: [''],
+        reseauVm: [''],
+        configIp: [''],
+        vmCible: [''],
+        typeRessource: [''],
+        valeurActuelle: [''],
+        valeurDemandee: [''],
+        vmSource: [''],
+        nouveauNomVm: [''],
+        destinationVm: [''],
+        optionsPersonnalisation: [''],
+        hoteSource: [''],
+        hoteDestination: [''],
+        typeMigration: [''],
+        downtimeEstime: [''],
+        impactReseau: [''],
+        confirmationBackup: [''],
+        confirmationSnapshot: [''],
+        retentionDonnees: [''],
+        motifDecommission: [''],
+        nomSnapshot: [''],
+        descriptionSnapshot: [''],
+        retentionSnapshot: [''],
+        expirationSnapshot: [''],
         disques: this.fb.array([]),
       }),
       reseau: this.fb.group({
         vlan: [''],
-        // Validation stricte du format IPv4 (octets 0-255)
+        vlanName: [''],
+        descriptionVlan: [''],
+        interfaceAssociee: [''],
+        reseauCidr: [''],
         adresseIp: ['', Validators.pattern(IPV4_PATTERN)],
         masqueSousReseau: ['', Validators.pattern(IPV4_PATTERN)],
         passerelle: ['', Validators.pattern(IPV4_PATTERN)],
         dnsPrimaire: ['', Validators.pattern(IPV4_PATTERN)],
         dnsSecondaire: ['', Validators.pattern(IPV4_PATTERN)],
         routage: [''],
+        zoneDns: [''],
+        typeEnregistrement: [''],
+        nomEnregistrement: [''],
+        valeurActuelle: [''],
+        nouvelleValeur: [''],
+        ttl: [''],
+        scopePool: [''],
+        plageAdresses: [''],
+        reservation: [''],
+        reseauDestination: [''],
+        nextHop: [''],
+        metrique: [''],
+        protocoleRoutage: [''],
+        typeVpn: [''],
+        reseauLocal: [''],
+        reseauDistant: [''],
+        chiffrementVpn: [''],
+        methodeAuth: [''],
+        peerGateway: [''],
+        typeLb: [''],
+        vip: [''],
+        serveursBackend: [''],
+        portsLb: [''],
+        protocoleLb: [''],
+        algorithmeLb: [''],
+        healthCheck: [''],
+        nomSwitch: [''],
+        ipManagement: [''],
+        interfacePort: [''],
+        configRequise: [''],
+        ssid: [''],
+        modeSecurite: [''],
+        authentificationWifi: [''],
+        accessPoint: [''],
+        typeProxy: [''],
+        hostProxy: [''],
+        portProxy: [''],
+        protocoleProxy: [''],
+        servicesCibles: [''],
+        authProxy: [''],
       }),
       firewall: this.fb.group({
         reglesPareFeu: [''],
@@ -116,6 +185,13 @@ export class CreateChangementComponent implements OnInit {
         zones: [''],
         politique: [''],
         vpn: [''],
+        source: [''],
+        destination: [''],
+        protocole: [''],
+        action: [''],
+        direction: [''],
+        dureeRegle: [''],
+        justification: [''],
       }),
       backup: this.fb.group(
         {
@@ -127,6 +203,27 @@ export class CreateChangementComponent implements OnInit {
           compression: [''],
           chiffrement: [''],
           licencesNecessaires: [''],
+          sourceBackup: [''],
+          pointRestauration: [''],
+          cibleRestore: [''],
+          typeRestore: [''],
+          perimetreDonnees: [''],
+          retentionExistante: [''],
+          typeReplication: [''],
+          bandePassante: [''],
+          rpo: [''],
+          sourceArchive: [''],
+          destinationArchive: [''],
+          classeStockage: [''],
+          exigencesRecuperation: [''],
+          nomJobVeeam: [''],
+          serveurVeeam: [''],
+          typeBackupVeeam: [''],
+          repository: [''],
+          planification: [''],
+          systemeCible: [''],
+          perimetreBackup: [''],
+          typeBackup: [''],
         },
         { validators: [retentionCompleteValidator] }
       ),
@@ -140,10 +237,27 @@ export class CreateChangementComponent implements OnInit {
         framework: [''],
         versionCuda: [''],
         versionPilote: [''],
+        serveurCible: [''],
+        dureeEstimee: [''],
+        versionPiloteActuelle: [''],
+        versionPiloteDemandee: [''],
+        compatibiliteCuda: [''],
+        fenetreMaintenance: [''],
       }),
       securite: this.fb.group({
         perimetre: [''],
         niveauCriticite: [''],
+        systemeCible: [''],
+        environnementAudit: [''],
+        typeAudit: [''],
+        periodeAudit: [''],
+        livrables: [''],
+        typeCertificat: [''],
+        nomCommun: [''],
+        emetteurCa: [''],
+        validite: [''],
+        cibleInstallation: [''],
+        renouvellementOuNouveau: [''],
       }),
     });
 
@@ -169,12 +283,14 @@ export class CreateChangementComponent implements OnInit {
       if (cat === 'Stockage' && this.stockages.length === 0) {
         this.addStockage();
       }
+      this.resetSpecsIncompatibles();
     });
 
     // "Autre" sur Sous-catégorie (catégorie standard) : précision obligatoire
     this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
       if (this.form.get('categorie')?.value === AUTRE) return; // déjà géré ci-dessus
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
+      this.resetSpecsIncompatibles();
     });
 
     // Rétention dynamique : la liste des nombres dépend de la période.
@@ -375,6 +491,37 @@ export class CreateChangementComponent implements OnInit {
     return sectionsPour(cat, sous).includes(section);
   }
 
+  showField(section: string, champ: string): boolean {
+    const cat = this.form?.get('categorie')?.value;
+    const sous = this.form?.get('sousCategorie')?.value;
+    return champVisible(cat, sous, section, champ);
+  }
+
+  private resetSpecsIncompatibles(): void {
+    const cat = this.form.get('categorie')?.value;
+    const sous = this.form.get('sousCategorie')?.value;
+    const autorises = champsPour(cat, sous);
+    for (const section of ['serveur', 'reseau', 'firewall', 'backup', 'iaGpu', 'securite']) {
+      const group = this.form.get(section) as FormGroup | null;
+      if (!group) continue;
+      const keep = new Set(autorises[section] || []);
+      for (const key of Object.keys(group.controls)) {
+        if (key === 'disques') {
+          if (!keep.has('disques')) this.disques.clear();
+          continue;
+        }
+        if (!keep.has(key)) {
+          const ctrl = group.get(key);
+          if (ctrl && ctrl.value !== '' && ctrl.value !== null) {
+            ctrl.setValue(key.includes('Go') || key.includes('Cores') || key === 'nombreGpu' || key === 'vramGo' ? null : '', {
+              emitEvent: false,
+            });
+          }
+        }
+      }
+    }
+  }
+
   /** Clés des sections réellement envoyées : general + sections visibles. */
   private sectionsVisibles(): string[] {
     return ['general', 'serveur', 'reseau', 'firewall', 'backup', 'stockage', 'iaGpu', 'securite'].filter(
@@ -386,6 +533,18 @@ export class CreateChangementComponent implements OnInit {
   private clean(obj: Record<string, any>): Record<string, any> {
     const out: Record<string, any> = {};
     for (const key of Object.keys(obj)) {
+      const v = obj[key];
+      if (v === '' || v === null || v === undefined) continue;
+      out[key] = v;
+    }
+    return out;
+  }
+
+  private cleanVisible(section: string, obj: Record<string, any>): Record<string, any> {
+    const out: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      if (key === 'disques' || key === 'retentionNombre' || key === 'retentionPeriode') continue;
+      if (!this.showField(section, key)) continue;
       const v = obj[key];
       if (v === '' || v === null || v === undefined) continue;
       out[key] = v;
@@ -425,7 +584,7 @@ export class CreateChangementComponent implements OnInit {
     const specifications: any = {};
     for (const section of this.sectionsVisibles()) {
       if (section === 'serveur') {
-        const serveur: any = this.clean(raw.serveur || {});
+        const serveur: any = this.cleanVisible('serveur', raw.serveur || {});
         delete serveur.disques; // reconstruit proprement ci-dessous
         const disques: DisqueServeur[] = (raw.serveur?.disques || [])
           .filter((d: any) => d?.capaciteGo && d?.type)
@@ -437,7 +596,7 @@ export class CreateChangementComponent implements OnInit {
         if (disques.length) serveur.disques = disques;
         if (Object.keys(serveur).length) specifications.serveur = serveur;
       } else if (section === 'backup') {
-        const backup: any = this.clean(raw.backup || {});
+        const backup: any = this.cleanVisible('backup', raw.backup || {});
         delete backup.retentionNombre;
         delete backup.retentionPeriode;
         // Rétention composée « <nombre> <période> », ex. « 6 Mois »

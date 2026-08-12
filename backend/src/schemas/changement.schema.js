@@ -138,9 +138,9 @@ const createChangementSchema = z.object({
           hostname: z.string().optional(),
           cpuCores: optionalNumber,
           ramGo: optionalNumber,
-          // Remplace disqueNvmeGo / disqueSasGo : liste dynamique de disques
           disques: z.array(disqueSchema).optional(),
         })
+        .passthrough()
         .optional(),
       reseau: z
         .object({
@@ -152,8 +152,8 @@ const createChangementSchema = z.object({
           dnsSecondaire: optionalIpv4,
           routage: z.string().optional(),
         })
+        .passthrough()
         .optional(),
-      // Section pare-feu / VPN (combinaisons Réseau+VPN et Sécurité+Firewall)
       firewall: z
         .object({
           reglesPareFeu: z.string().optional(),
@@ -163,6 +163,7 @@ const createChangementSchema = z.object({
           politique: z.string().optional(),
           vpn: z.string().optional(),
         })
+        .passthrough()
         .optional(),
       backup: z
         .object({
@@ -174,6 +175,7 @@ const createChangementSchema = z.object({
           chiffrement: z.enum(['Oui', 'Non']).optional(),
           licencesNecessaires: z.string().optional(),
         })
+        .passthrough()
         .optional(),
       // --- Sections supplémentaires affichées selon la catégorie choisie ---
       baseDeDonnees: z
@@ -209,12 +211,14 @@ const createChangementSchema = z.object({
           versionCuda: z.string().optional(),
           versionPilote: z.string().optional(),
         })
+        .passthrough()
         .optional(),
       securite: z
         .object({
           perimetre: z.string().optional(),
           niveauCriticite: z.string().optional(),
         })
+        .passthrough()
         .optional(),
     })
     .optional(),
