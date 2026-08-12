@@ -19,6 +19,7 @@ const { Contrat } = require('../models/contrat.model');
 const seedChangements = async (tenants = {}) => {
   const fluidity = tenants['Fluidity'];
   const nova = tenants['Nova Systems'];
+  const carthage = tenants['Carthage Digital'];
   if (!fluidity || !nova) {
     console.warn('[Seed] Tenants de démonstration absents — changements non créés.');
     return;
