@@ -37,9 +37,7 @@
           <div class="card-content py-5 space-y-4">
             <p class="detail-section-title">Conversation</p>
             <div *ngFor="let c of comments" class="rounded-lg border px-3.5 py-3"
-              [class.border-amber-400/40]="c.visibilite === 'interne'"
-              [class.bg-amber-500/5]="c.visibilite === 'interne'"
-              [class.border-border]="c.visibilite === 'public'">
+              [ngClass]="c.visibilite === 'interne' ? 'border-amber-400/40 bg-amber-500/5' : 'border-border'">
               <div class="flex items-center justify-between text-xs text-muted-foreground mb-1">
                 <span>{{ c.auteurModel }} · {{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
                 <span class="font-semibold" [class.text-warning]="c.visibilite === 'interne'">
