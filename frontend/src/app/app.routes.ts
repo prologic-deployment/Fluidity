@@ -11,6 +11,9 @@ import { DashboardDemandesComponent } from './components/dashboard-demandes/dash
 import { CreateDemandeComponent } from './components/create-demande/create-demande.component';
 import { DashboardChangementsComponent } from './components/dashboard-changements/dashboard-changements.component';
 import { CreateChangementComponent } from './components/create-changement/create-changement.component';
+import { DashboardTicketsComponent } from './components/dashboard-tickets/dashboard-tickets.component';
+import { CreateTicketComponent } from './components/create-ticket/create-ticket.component';
+import { TicketDetailsComponent } from './components/ticket-details/ticket-details.component';
 import { DashboardContratsComponent } from './components/dashboard-contrats/dashboard-contrats.component';
 import { CreateContratComponent } from './components/create-contrat/create-contrat.component';
 import { DashboardClientsComponent } from './components/dashboard-clients/dashboard-clients.component';
@@ -32,6 +35,15 @@ export const routes: Routes = [
     // Arborescence imbriquée : chaque segment porte son libellé de fil
     // d'Ariane (data.breadcrumb) consommé par <app-breadcrumb>.
     children: [
+      {
+        path: 'tickets',
+        data: { breadcrumb: 'Tickets' },
+        children: [
+          { path: '', component: DashboardTicketsComponent },
+          { path: 'nouveau', component: CreateTicketComponent, data: { breadcrumb: 'Nouveau ticket' } },
+          { path: ':id', component: TicketDetailsComponent, data: { breadcrumb: 'Détail' } },
+        ],
+      },
       {
         path: 'demandes',
         data: { breadcrumb: 'Demandes' },

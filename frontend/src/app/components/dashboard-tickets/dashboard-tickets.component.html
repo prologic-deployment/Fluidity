@@ -1,0 +1,89 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">Tickets</h1>
+        <p class="text-sm text-muted-foreground">Incidents et suivi opérationnel.</p>
+      </div>
+      <a *ngIf="auth.isClient()" routerLink="/tickets/nouveau" class="btn-primary">Nouveau ticket</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <div class="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-6">
+      <div class="card"><div class="card-content py-4"><p class="text-2xl font-semibold tabular-nums">{{ stats?.ouverts ?? '—' }}</p><p class="text-xs text-muted-foreground mt-1">Ouverts</p></div></div>
+      <div class="card"><div class="card-content py-4"><p class="text-2xl font-semibold tabular-nums">{{ stats?.p1p2 ?? '—' }}</p><p class="text-xs text-muted-foreground mt-1">P1 / P2</p></div></div>
+      <div class="card"><div class="card-content py-4"><p class="text-2xl font-semibold tabular-nums">{{ stats?.attenteClient ?? '—' }}</p><p class="text-xs text-muted-foreground mt-1">Attente client</p></div></div>
+      <div class="card"><div class="card-content py-4"><p class="text-2xl font-semibold tabular-nums">{{ stats?.attenteTiers ?? '—' }}</p><p class="text-xs text-muted-foreground mt-1">Attente tiers</p></div></div>
+      <div class="card"><div class="card-content py-4"><p class="text-2xl font-semibold tabular-nums">{{ stats?.mesAssignes ?? '—' }}</p><p class="text-xs text-muted-foreground mt-1">Mes tickets</p></div></div>
+      <div class="card"><div class="card-content py-4"><p class="text-2xl font-semibold tabular-nums">{{ stats?.resolus ?? '—' }}</p><p class="text-xs text-muted-foreground mt-1">Résolus (7 j)</p></div></div>
+    </div>
+
+    <div class="toolbar mb-4">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="searchTerm" (keyup.enter)="applyFilters()" placeholder="Référence, objet..." class="search-input" />
+      </div>
+      <select [(ngModel)]="statutFiltre" (change)="applyFilters()" class="filter-select">
+        <option value="">Tous les statuts</option>
+        <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
+      </select>
+      <select [(ngModel)]="prioriteFiltre" (change)="applyFilters()" class="filter-select">
+        <option value="">Toutes les priorités</option>
+        <option *ngFor="let p of priorites" [value]="p">{{ p }}</option>
+      </select>
+      <select [(ngModel)]="categorieFiltre" (change)="applyFilters()" class="filter-select">
+        <option value="">Toutes les catégories</option>
+        <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+      </select>
+      <button type="button" class="btn-ghost btn-sm" (click)="resetFilters()">Réinitialiser</button>
+      <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading">{{ total }} ticket(s)</span>
+    </div>
+
+    <div *ngIf="loading" class="table-wrap p-4 space-y-3">
+      <div *ngFor="let i of [1,2,3,4,5]" class="skeleton h-10 w-full"></div>
+    </div>
+
+    <div *ngIf="!loading && items.length === 0" class="card">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">Aucun ticket pour ces filtres.</div>
+    </div>
+
+    <div *ngIf="!loading && items.length" class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Référence</th>
+            <th>Objet</th>
+            <th class="hidden md:table-cell">Client</th>
+            <th>Priorité</th>
+            <th>Statut</th>
+            <th class="hidden lg:table-cell">Affectation</th>
+            <th class="hidden xl:table-cell">Ouvert le</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of items" class="table-row-clickable" (click)="open(t)">
+            <td class="font-mono text-xs font-semibold">{{ t.reference }}</td>
+            <td class="font-medium"><p class="max-w-[280px] truncate" [title]="t.objet">{{ t.objet }}</p>
+              <p class="text-xs text-muted-foreground">{{ t.categorie }} / {{ t.sousCategorie }}</p></td>
+            <td class="hidden md:table-cell">{{ clientNom(t) }}</td>
+            <td><span [class]="prioriteClass(t.priorite)"><span class="badge-dot"></span>{{ t.priorite }}</span></td>
+            <td><span [class]="statutClass(t.statut)"><span class="badge-dot"></span>{{ t.statut }}</span></td>
+            <td class="hidden lg:table-cell text-sm text-muted-foreground">{{ techLabel(t) }}</td>
+            <td class="hidden xl:table-cell text-muted-foreground">{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="pages > 1" class="mt-4 flex items-center justify-between text-sm">
+      <p class="text-muted-foreground">Page {{ page }} / {{ pages }}</p>
+      <div class="flex gap-2">
+        <button class="btn-outline btn-sm" [disabled]="page <= 1" (click)="page = page - 1; load()">Précédent</button>
+        <button class="btn-outline btn-sm" [disabled]="page >= pages" (click)="page = page + 1; load()">Suivant</button>
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,153 @@
+<div class="min-h-screen" *ngIf="!loading && ticket as t">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center gap-3 justify-between">
+      <div class="min-w-0">
+        <a routerLink="/tickets" class="btn-link text-xs">&larr; Tickets</a>
+        <div class="mt-1 flex flex-wrap items-center gap-2">
+          <button type="button" class="font-mono text-sm font-semibold hover:underline" (click)="copyRef()" [title]="'Copier'">
+            {{ t.reference }}
+          </button>
+          <span *ngIf="copied" class="text-xs text-success">Copié</span>
+          <span [class]="prioriteClass(t.priorite)"><span class="badge-dot"></span>{{ t.priorite }}</span>
+          <span class="badge-outline">{{ t.statut }}</span>
+          <span class="badge-secondary">{{ t.type }}</span>
+        </div>
+        <h1 class="text-xl font-semibold tracking-tight mt-1">{{ t.objet }}</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="space-y-6 min-w-0">
+        <section class="card">
+          <div class="card-content py-5 space-y-4">
+            <p class="detail-section-title">Description</p>
+            <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ t.descriptionDetaillee }}</p>
+            <div *ngIf="t.piecesJointes?.length">
+              <p class="detail-label mb-2">Pièces jointes</p>
+              <a *ngFor="let pj of t.piecesJointes" [href]="pj | urlUpload" target="_blank" class="btn-outline btn-sm mr-2 mb-2">{{ nomFichier(pj) }}</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content py-5 space-y-4">
+            <p class="detail-section-title">Conversation</p>
+            <div *ngFor="let c of comments" class="rounded-lg border px-3.5 py-3"
+              [class.border-amber-400/40]="c.visibilite === 'interne'"
+              [class.bg-amber-500/5]="c.visibilite === 'interne'"
+              [class.border-border]="c.visibilite === 'public'">
+              <div class="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>{{ c.auteurModel }} · {{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+                <span class="font-semibold" [class.text-warning]="c.visibilite === 'interne'">
+                  {{ c.visibilite === 'interne' ? 'Note interne' : 'Commentaire public' }}
+                </span>
+              </div>
+              <p class="text-sm whitespace-pre-line">{{ c.corps }}</p>
+            </div>
+            <p *ngIf="!comments.length" class="text-sm text-muted-foreground">Aucun commentaire pour le moment.</p>
+            <div *ngIf="t.statut !== 'Clôturé'" class="space-y-2 pt-2">
+              <textarea [(ngModel)]="commentText" rows="3" class="textarea" placeholder="Votre message..."></textarea>
+              <label *ngIf="!auth.isClient()" class="flex items-center gap-2 text-sm">
+                <input type="checkbox" [(ngModel)]="commentInterne" /> Note interne (invisible au client)
+              </label>
+              <button type="button" class="btn-primary btn-sm" [disabled]="commentLoading || !commentText.trim()" (click)="sendComment()">
+                {{ commentLoading ? 'Envoi...' : 'Publier' }}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content py-5 space-y-3">
+            <p class="detail-section-title">Historique</p>
+            <ul class="space-y-3">
+              <li *ngFor="let a of activities" class="flex gap-3 text-sm">
+                <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"></span>
+                <div>
+                  <p class="font-medium">{{ libelleAction(a) }}</p>
+                  <p class="text-xs text-muted-foreground">{{ a.acteurEmail || 'Système' }} · {{ a.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+                  <p *ngIf="a.metadata && (a.metadata['de'] || a.metadata['vers'])" class="text-xs">
+                    {{ a.metadata['de'] }} → {{ a.metadata['vers'] }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <aside class="space-y-4 lg:sticky lg:top-28 lg:self-start">
+        <section class="card">
+          <div class="card-content py-4 space-y-2 text-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Général</p>
+            <p><span class="text-muted-foreground">Client</span><br />{{ clientNom() }}</p>
+            <p><span class="text-muted-foreground">Contrat</span><br />{{ contratLabel() }}</p>
+            <p><span class="text-muted-foreground">Catégorie</span><br />{{ t.categorie }} / {{ t.sousCategorie }}</p>
+            <p><span class="text-muted-foreground">Impact / Urgence</span><br />{{ t.impact }} · {{ t.urgence }}</p>
+            <p><span class="text-muted-foreground">Ouvert le</span><br />{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content py-4 space-y-2 text-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</p>
+            <p [class]="slaClass()" class="font-semibold">{{ t.slaEtat?.label || '—' }}</p>
+            <p *ngIf="t.sla?.reponseDueAt">Réponse avant {{ t.sla?.reponseDueAt | date: 'dd/MM HH:mm' }}</p>
+            <p *ngIf="t.sla?.resolutionDueAt">Résolution avant {{ t.sla?.resolutionDueAt | date: 'dd/MM HH:mm' }}</p>
+            <p *ngIf="t.attenteMotif" class="text-warning">Attente : {{ t.attenteMotif }}</p>
+          </div>
+        </section>
+
+        <section *ngIf="!auth.isClient()" class="card">
+          <div class="card-content py-4 space-y-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Affectation</p>
+            <select [(ngModel)]="assignTeam" class="select">
+              <option value="">Équipe...</option>
+              <option *ngFor="let e of equipes" [value]="e">{{ e }}</option>
+            </select>
+            <select [(ngModel)]="assignTo" class="select">
+              <option value="">Technicien...</option>
+              <option *ngFor="let u of assignees" [value]="u._id">{{ u.firstName }} {{ u.lastName }} · {{ u.email }}</option>
+            </select>
+            <button type="button" class="btn-outline btn-sm w-full" [disabled]="assignLoading" (click)="assigner()">
+              {{ assignLoading ? '...' : 'Enregistrer l\'affectation' }}
+            </button>
+          </div>
+        </section>
+
+        <section *ngIf="transitions.length" class="card">
+          <div class="card-content py-4 space-y-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faire avancer</p>
+            <select [(ngModel)]="transitionCible" class="select">
+              <option value="">Choisir une action...</option>
+              <option *ngFor="let s of transitions" [value]="s">{{ s }}</option>
+            </select>
+            <textarea *ngIf="needsMotif(transitionCible)" [(ngModel)]="motif" rows="2" class="textarea" placeholder="Motif de l'attente..."></textarea>
+            <ng-container *ngIf="needsResolution(transitionCible)">
+              <textarea [(ngModel)]="resume" rows="2" class="textarea" placeholder="Résumé de résolution *"></textarea>
+              <input [(ngModel)]="actionCorrective" class="input" placeholder="Action corrective" />
+              <input [(ngModel)]="workaround" class="input" placeholder="Contournement (optionnel)" />
+            </ng-container>
+            <button type="button" class="btn-primary btn-sm w-full" [disabled]="transitionLoading || !transitionCible" (click)="appliquerTransition()">
+              {{ transitionLoading ? '...' : 'Appliquer' }}
+            </button>
+          </div>
+        </section>
+
+        <section *ngIf="t.resolution?.resume" class="card">
+          <div class="card-content py-4 text-sm space-y-2">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Résolution</p>
+            <p class="whitespace-pre-line">{{ t.resolution?.resume }}</p>
+            <p *ngIf="t.resolution?.resolvedAt" class="text-xs text-muted-foreground">{{ t.resolution?.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+<div *ngIf="loading" class="p-10 text-sm text-muted-foreground">Chargement du ticket...</div>
+<div *ngIf="!loading && !ticket" class="p-10">{{ error || 'Introuvable' }} · <a routerLink="/tickets" class="btn-link">Retour</a></div>

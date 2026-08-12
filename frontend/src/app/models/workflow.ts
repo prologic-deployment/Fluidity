@@ -64,12 +64,34 @@ export const CHANGEMENT_TRANSITIONS: Record<string, Transition[]> = {
 const ROLES_FORCE = ['PLATFORM_ADMIN', 'TENANT_ADMIN'];
 
 /** Statuts cibles atteignables depuis `from` pour `role` (supervision : tout autorisé, sauf depuis « Annulé »). */
+export const TICKET_TRANSITIONS: Record<string, Transition[]> = {
+  Nouveau: [
+    { to: 'Affecté', roles: ['AGENT', 'MANAGER'] },
+    { to: "En cours d'analyse", roles: ['AGENT', 'MANAGER'] },
+  ],
+  Affecté: [{ to: "En cours d'analyse", roles: ['AGENT', 'MANAGER'] }],
+  "En cours d'analyse": [
+    { to: 'En cours de résolution', roles: ['AGENT', 'MANAGER'] },
+    { to: 'En attente client', roles: ['AGENT', 'MANAGER'] },
+    { to: 'En attente tiers', roles: ['AGENT', 'MANAGER'] },
+  ],
+  'En attente client': [{ to: "En cours d'analyse", roles: ['CLIENT', 'AGENT', 'MANAGER'] }],
+  'En attente tiers': [{ to: 'En cours de résolution', roles: ['AGENT', 'MANAGER'] }],
+  'En cours de résolution': [{ to: 'Résolu', roles: ['AGENT', 'MANAGER'] }],
+  Résolu: [
+    { to: 'Clôturé', roles: ['CLIENT', 'AGENT', 'MANAGER'] },
+    { to: 'Réouvert', roles: ['CLIENT', 'AGENT', 'MANAGER'] },
+  ],
+  Clôturé: [],
+  Réouvert: [{ to: "En cours d'analyse", roles: ['AGENT', 'MANAGER'] }],
+};
+
 export function availableTransitions(
   transitions: Record<string, Transition[]>,
   from: string | undefined,
   role: string | null | undefined
 ): string[] {
-  if (!from || !role || from === 'Annulé') return [];
+  if (!from || !role || from === 'Annulé' || from === 'Clôturé' || from === 'Clôturée') return [];
   const options = transitions[from] || [];
   if (ROLES_FORCE.includes(role)) return options.map((o) => o.to);
   return options.filter((o) => o.roles.includes(role)).map((o) => o.to);

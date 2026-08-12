@@ -140,6 +140,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         icon: 'grid',
         open: true,
         children: [
+          { label: 'Tickets', path: '/tickets' },
           { label: 'Demandes', path: '/demandes' },
           { label: 'Changements', path: '/changements' },
         ],
