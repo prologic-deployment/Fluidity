@@ -237,7 +237,7 @@ function projectScene(ctx: SceneBuilderContext): ProductSceneHandle {
       tl.fromTo(b.scale, { y: 0.05 }, { y: 1, duration: 0.55, ease: 'back.out(1.6)' }, 0.15 + i * 0.12);
     });
     tl.fromTo(tasks, { opacity: 0 }, { opacity: 1, duration: 0.5, stagger: 0.06 }, 0.4);
-    tl.fromTo(c.group.rotation, { y: -0.25 }, { y: 0, duration: 1.4, ease: 'power2.out' }, 0);
+    tl.fromTo(c.group.scale, { x: 0.9, y: 0.9, z: 0.9 }, { x: 1, y: 1, z: 1, duration: 1.2, ease: 'power2.out' }, 0);
     c.tweens.push(tl);
   };
 

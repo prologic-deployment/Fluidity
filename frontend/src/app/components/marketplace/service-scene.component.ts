@@ -134,6 +134,19 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
       this.handle.entrance(sctx);
     }
 
+    // Respiration caméra (subtle, GSAP) — ne concurrence PAS la timeline
+    // d'entrée : la boucle n'écrit plus camera.position.z.
+    if (!this.reduced) {
+      const breathe = gsap.to(camera.position, {
+        z: (mobile ? 8.6 : 9.2) + 0.35,
+        duration: 6,
+        yoyo: true,
+        repeat: -1,
+        ease: 'sine.inOut',
+      });
+      tweens.push(breathe);
+    }
+
     // Réglage initial caméra (dolly d'entrée géré par la timeline)
     const renderFrame = () => renderer.render(scene, camera);
     renderFrame();
@@ -151,7 +164,6 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
       if (!this.reduced) {
         camera.position.x += (this.pointer.targetX * 0.5 - camera.position.x) * 0.04;
         camera.position.y += (-this.pointer.targetY * 0.35 - camera.position.y) * 0.04;
-        camera.position.z = (mobile ? 8.6 : 9.2) + Math.sin(this.time.t * 0.12) * 0.35;
         camera.lookAt(0, 0, 0);
       }
       renderFrame();
