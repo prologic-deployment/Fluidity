@@ -126,7 +126,7 @@
           </li>
           <li class="flex items-center justify-between gap-3">
             <span class="text-muted-foreground">{{ 'marketplace.startingPrice' | t }}</span>
-            <span class="font-semibold">{{ price(p.plans[0]?.id || 'starter') }} € / {{ 'marketplace.perUserMonth' | t }}</span>
+            <span class="font-semibold">{{ price(p.plans[0].id) }} € / {{ 'marketplace.perUserMonth' | t }}</span>
           </li>
         </ul>
       </div>
@@ -138,7 +138,7 @@
     <div class="mx-auto max-w-7xl px-6">
       <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.features' | t }}</h2>
       <p class="mt-2 max-w-2xl text-sm text-muted-foreground">{{ 'marketplace.featuresHint' | t }}</p>
-      <ul class="mt-8 grid gap-3 sm:grid-cols-2" *ngIf="p.featuresKey?.length">
+      <ul class="mt-8 grid gap-3 sm:grid-cols-2" *ngIf="p.featuresKey.length">
         <li *ngFor="let f of p.featuresKey" class="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
           <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
             <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -150,7 +150,7 @@
   </section>
 
   <!-- ============ BÉNÉFICES ============ -->
-  <section class="mx-auto max-w-7xl px-6 py-16" *ngIf="p.benefitsKey?.length">
+  <section class="mx-auto max-w-7xl px-6 py-16" *ngIf="p.benefitsKey.length">
     <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.benefits' | t }}</h2>
     <div class="mt-8 grid gap-5 md:grid-cols-3">
       <div *ngFor="let b of p.benefitsKey; let i = index" class="rounded-2xl border border-border bg-card p-6">
@@ -164,7 +164,7 @@
   </section>
 
   <!-- ============ CAS D'USAGE ============ -->
-  <section class="border-t border-border bg-muted/20 py-16" *ngIf="p.useCasesKey?.length">
+  <section class="border-t border-border bg-muted/20 py-16" *ngIf="p.useCasesKey.length">
     <div class="mx-auto max-w-7xl px-6">
       <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.useCases' | t }}</h2>
       <p class="mt-2 max-w-2xl text-sm text-muted-foreground">{{ 'marketplace.useCasesHint' | t }}</p>
