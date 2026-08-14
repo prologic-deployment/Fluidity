@@ -14,6 +14,8 @@ const {
 const { calculatePriority } = require('../utils/ticket-priority');
 const { initSla, applySlaOnTransition, slaEtat } = require('../utils/ticket-sla');
 const { PRINCIPAL_CLIENT } = require('../utils/principals');
+const { auditWorkflow } = require('../utils/saas-log.util');
+
 
 const estClient = (req) => req.userRole === 'CLIENT' || req.principalType === PRINCIPAL_CLIENT;
 
@@ -421,6 +423,7 @@ const changerStatutTicket = async (req, res) => {
     }
 
     await ticket.save();
+    await auditWorkflow(req, 'servicedesk', 'ticket', ticket._id, statutActuel, nouveauStatut, req.userId);
     await enregistrerActivite(ticket, nouveauStatut === 'Résolu' ? 'resolution' : nouveauStatut === 'Réouvert' ? 'reouverture' : nouveauStatut === 'Clôturé' ? 'cloture' : 'statut', req, {
       de: statutActuel,
       vers: nouveauStatut,

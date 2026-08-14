@@ -3,6 +3,8 @@ const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, CHANGEMENT_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
+const { auditWorkflow } = require('../utils/saas-log.util');
+
 
 /** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres changements. */
 const filtreProprietaire = (req) =>
@@ -280,6 +282,7 @@ const changerStatutChangement = async (req, res) => {
       return;
     }
 
+    await auditWorkflow(req, 'servicedesk', 'changement', changement._id, statutActuel, nouveauStatut, req.userId);
     changement.statut = nouveauStatut;
     await changement.save();
 

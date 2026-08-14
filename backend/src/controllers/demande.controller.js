@@ -3,6 +3,8 @@ const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { DEMANDE_TRANSITIONS, DEMANDE_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
+const { auditWorkflow } = require('../utils/saas-log.util');
+
 
 /** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres demandes. */
 const filtreProprietaire = (req) =>
@@ -259,6 +261,7 @@ const changerStatutDemande = async (req, res) => {
       return;
     }
 
+    await auditWorkflow(req, 'servicedesk', 'demande', demande._id, statutActuel, nouveauStatut, req.userId);
     demande.statut = nouveauStatut;
     await demande.save();
 
