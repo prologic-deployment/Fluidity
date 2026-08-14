@@ -10,7 +10,7 @@
     "seed:reset": "node src/seed/reset.js",
     "migrate": "node src/seed/migrate-multitenancy.js",
     "migrate:uploads": "node src/seed/migrate-uploads-structure.js",
-    "test": "node src/utils/ticket-priority.test.js"
+    "test": "node src/utils/ticket-priority.test.js && node src/products/registry.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

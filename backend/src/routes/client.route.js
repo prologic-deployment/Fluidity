@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { requireProductAccess } = require('../middlewares/product-access.middleware');
 const { authMiddleware, requireTenantAdmin, requireUtilisateurInterne, requirePasswordChanged } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
@@ -14,6 +15,10 @@ const { createClientSchema, updateClientSchema } = require('../schemas/client.sc
 const router = Router();
 
 router.use(authMiddleware, requirePasswordChanged);
+
+// Accès produit ServiceDesk — l'autorité serveur vérifie souscription +
+// licence ; les tenants historiques sans souscription restent couverts.
+router.use(requireProductAccess('servicedesk'));
 
 // Lecture : réservée aux comptes internes (alimente les écrans d'administration ;
 // un principal CLIENT n'a jamais besoin de lister les fiches de son tenant).

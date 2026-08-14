@@ -47,6 +47,19 @@ const demoTenants = [
     primaryColor: '#f59e0b',
     secondaryColor: '#ef4444',
     timezone: 'Africa/Tunis',
+  {
+    // Particulier SaaS : un seul produit, une seule licence (scénario individuel).
+    name: 'Karim Solo',
+    type: 'Individual',
+    contactEmail: 'karim.solo@example.dev',
+    phone: '+216 22 000 000',
+    address: 'La Marsa, Tunisie',
+    plan: 'Starter',
+    maxUsers: 1,
+    storageQuotaMb: 256,
+    primaryColor: '#10b981',
+    secondaryColor: '#22c55e',
+    timezone: 'Africa/Tunis',
     language: 'fr',
   },
 ];

@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const { requireProductAccess } = require('../middlewares/product-access.middleware');
 const { authMiddleware, requireRole, requirePasswordChanged } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
@@ -25,6 +26,11 @@ const {
 const router = Router();
 
 router.use(authMiddleware);
+
+// Accès produit ServiceDesk — l'autorité serveur vérifie souscription +
+// licence + (permission) ; les tenants historiques sans souscription restent
+// couverts par le mode « legacy » (ServiceDesk conservé).
+router.use(requireProductAccess('servicedesk'));
 router.use(requirePasswordChanged);
 
 router.get('/stats', getTicketStats);

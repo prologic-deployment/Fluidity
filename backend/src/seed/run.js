@@ -8,6 +8,7 @@ const { seedDemandes } = require('./demande.seed');
 const { seedChangements } = require('./changement.seed');
 const { seedTickets } = require('./ticket.seed');
 const { seedLoginActivity } = require('./login-activity.seed');
+const { seedSaas } = require('./saas.seed');
 
 /**
  * Seed additif et idempotent. Usage : npm run seed
@@ -24,6 +25,7 @@ const { seedLoginActivity } = require('./login-activity.seed');
     await seedChangements(tenants);
     await seedTickets(tenants);
     await seedLoginActivity(tenants);
+    await seedSaas();
   } catch (err) {
     console.error('[Seed] Échec du seed :', err);
     process.exitCode = 1;

@@ -1,0 +1,113 @@
+/**
+ * Tests du registre SaaS (sans base de données) :
+ *   - intégrité des workflows (états, transitions, états terminaux) ;
+ *   - permissions référencées par les transitions existent dans le produit ;
+ *   - chaque rôle par défaut possède des permissions résolvables ;
+ *   - clés de produits uniques et stables.
+ */
+const assert = require('node:assert');
+const {
+  PRODUCTS,
+  WORKFLOWS,
+  getProduct,
+  getWorkflow,
+  getPermissions,
+  rolePermissions,
+  PLANS,
+} = require('./registry');
+
+let failures = 0;
+const check = (name, fn) => {
+  try {
+    fn();
+    console.log(`  ✓ ${name}`);
+  } catch (err) {
+    failures += 1;
+    console.log(`  ✗ ${name} — ${err.message}`);
+  }
+};
+
+console.log('Test 1 : clés de produits uniques et stables');
+const keys = PRODUCTS.map((p) => p.key);
+check('17 produits définis', () => assert.strictEqual(PRODUCTS.length, 17));
+check('clés uniques', () => assert.strictEqual(new Set(keys).size, keys.length));
+check('clés en snake_case stable', () =>
+  keys.forEach((k) => assert.match(k, /^[a-z][a-z0-9_]*$/))
+);
+check('ServiceDesk disponible', () => assert.strictEqual(getProduct('servicedesk').status, 'available'));
+check('un seul produit disponible (pas de fausses fonctionnalités)', () =>
+  assert.strictEqual(PRODUCTS.filter((p) => p.available).length, 1)
+);
+
+console.log('Test 2 : plans cohérents (3 plans par produit, prix positifs)');
+check('chaque produit a 3 plans', () =>
+  PRODUCTS.forEach((p) => assert.strictEqual(p.plans.length, 3))
+);
+check('prix mensuels > 0 et annuels = 10 × mensuel', () =>
+  PRODUCTS.forEach((p) =>
+    p.plans.forEach((pl) => {
+      assert.ok(pl.pricePerSeatMonthly > 0, `${p.key}/${pl.id} prix mensuel`);
+      assert.strictEqual(pl.pricePerSeatAnnual, Math.round(pl.pricePerSeatMonthly * 10));
+    })
+  )
+);
+
+console.log('Test 3 : workflows — intégrité des états et transitions');
+for (const p of PRODUCTS) {
+  const wf = getWorkflow(p.key);
+  check(`workflow défini pour ${p.key}`, () => assert.ok(wf, p.key));
+  if (!wf) continue;
+  const stateKeys = new Set(wf.states.map((s) => s.key));
+  check(`workflow ${p.key} : au moins 2 états`, () => assert.ok(wf.states.length >= 2));
+  check(`workflow ${p.key} : états uniques`, () =>
+    assert.strictEqual(stateKeys.size, wf.states.length)
+  );
+  const terminal = wf.states.filter((s) => s.terminal).map((s) => s.key);
+  const perms = new Set(getPermissions(p.key));
+  for (const tr of wf.transitions) {
+    check(`workflow ${p.key} : transition ${tr.from}→${tr.to} (états valides)`, () => {
+      if (tr.from !== '*') assert.ok(stateKeys.has(tr.from), `état source ${tr.from} inconnu`);
+      assert.ok(stateKeys.has(tr.to), `état cible ${tr.to} inconnu`);
+    });
+    if (tr.permission) {
+      check(`workflow ${p.key} : permission ${tr.permission} déclarée`, () =>
+        assert.ok(perms.has(tr.permission), `${tr.permission} absente de ${p.key}`)
+      );
+    }
+  }
+  for (const t of terminal) {
+    check(`workflow ${p.key} : état terminal ${t} sans transition sortante`, () =>
+      assert.ok(!wf.transitions.some((tr) => tr.from === t))
+    );
+  }
+}
+
+console.log('Test 4 : rôles par défaut → permissions résolvables');
+for (const p of PRODUCTS) {
+  for (const r of p.roles) {
+    check(`rôle ${p.key}/${r.key} → permissions non vides`, () =>
+      assert.ok(rolePermissions(r.key).length > 0, `${r.key} sans permissions`)
+    );
+  }
+  check(`rôles uniques pour ${p.key}`, () =>
+    assert.strictEqual(new Set(p.roles.map((r) => r.key)).size, p.roles.length)
+  );
+}
+
+console.log('Test 5 : rôle produit par défaut du principal');
+const { defaultProductRole } = require('./registry');
+check('CLIENT → requester (servicedesk)', () =>
+  assert.strictEqual(defaultProductRole('servicedesk', 'AGENT', 'CLIENT'), 'requester')
+);
+check('TENANT_ADMIN → servicedesk_admin', () =>
+  assert.strictEqual(defaultProductRole('servicedesk', 'TENANT_ADMIN', 'UTILISATEUR'), 'servicedesk_admin')
+);
+check('AGENT → support_n1', () =>
+  assert.strictEqual(defaultProductRole('servicedesk', 'AGENT', 'UTILISATEUR'), 'support_n1')
+);
+check('MANAGER → service_manager', () =>
+  assert.strictEqual(defaultProductRole('servicedesk', 'MANAGER', 'UTILISATEUR'), 'service_manager')
+);
+
+console.log('\nRésultat : ' + (failures ? `${failures} échec(s)` : 'OK — registre SaaS valide'));
+process.exit(failures ? 1 : 0);
