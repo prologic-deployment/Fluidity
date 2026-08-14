@@ -1,29 +1,49 @@
-<div class="relative h-[300px] w-full overflow-hidden rounded-2xl border border-border bg-card/60 sm:h-[360px]">
-  <!-- Canvas Three.js (WebGL) -->
-  <canvas #canvas class="absolute inset-0 h-full w-full" [attr.aria-hidden]="true"></canvas>
-
-  <!-- Fallback CSS/SVG (WebGL indisponible ou motion réduit) -->
+<div
+  class="relative h-[300px] w-full overflow-hidden rounded-2xl border border-border bg-card/60 sm:h-[380px]"
+  role="img"
+  [attr.aria-label]="(labelKey | t) || undefined"
+>
+  <!-- Halo de fond adapté au thème (CSS) -->
   <div
-    #fallback
+    class="pointer-events-none absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
+    [style.background]="color + '26'"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Canvas Three.js (WebGL) -->
+  <canvas #canvas class="absolute inset-0 h-full w-full" aria-hidden="true"></canvas>
+
+  <!-- Shimmer de chargement (masqué quand la scène est prête) -->
+  <div
+    *ngIf="!ready && !fallback"
+    class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-[1px]"
+    aria-hidden="true"
+  >
+    <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+    <p class="text-xs text-muted-foreground">{{ 'scene.loading' | t }}</p>
+  </div>
+
+  <!-- Fallback SVG/CSS (WebGL indisponible ou échec) -->
+  <div
     *ngIf="fallback"
     class="absolute inset-0 flex flex-col items-center justify-center gap-3"
     aria-hidden="true"
   >
-    <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="100" cy="80" r="52" [attr.stroke]="color" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 8" />
+    <svg width="220" height="170" viewBox="0 0 220 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="110" cy="85" r="58" [attr.stroke]="color" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 8" />
       <g [attr.stroke]="color" stroke-width="2" stroke-linecap="round">
-        <line x1="100" y1="80" x2="60" y2="42" />
-        <line x1="100" y1="80" x2="148" y2="52" />
-        <line x1="100" y1="80" x2="74" y2="122" />
-        <line x1="100" y1="80" x2="138" y2="114" />
-        <line x1="60" y1="42" x2="148" y2="52" />
-        <line x1="74" y1="122" x2="138" y2="114" />
+        <line x1="110" y1="85" x2="62" y2="42" />
+        <line x1="110" y1="85" x2="160" y2="52" />
+        <line x1="110" y1="85" x2="78" y2="130" />
+        <line x1="110" y1="85" x2="146" y2="124" />
+        <line x1="62" y1="42" x2="160" y2="52" />
+        <line x1="78" y1="130" x2="146" y2="124" />
       </g>
-      <circle cx="100" cy="80" r="7" [attr.fill]="color" />
-      <circle cx="60" cy="42" r="5" [attr.fill]="color" opacity="0.8" />
-      <circle cx="148" cy="52" r="5" [attr.fill]="color" opacity="0.8" />
-      <circle cx="74" cy="122" r="5" [attr.fill]="color" opacity="0.8" />
-      <circle cx="138" cy="114" r="5" [attr.fill]="color" opacity="0.8" />
+      <circle cx="110" cy="85" r="8" [attr.fill]="color" />
+      <circle cx="62" cy="42" r="5.5" [attr.fill]="color" opacity="0.85" />
+      <circle cx="160" cy="52" r="5.5" [attr.fill]="color" opacity="0.85" />
+      <circle cx="78" cy="130" r="5.5" [attr.fill]="color" opacity="0.85" />
+      <circle cx="146" cy="124" r="5.5" [attr.fill]="color" opacity="0.85" />
     </svg>
     <p class="text-xs text-muted-foreground">{{ labelKey | t }}</p>
   </div>
