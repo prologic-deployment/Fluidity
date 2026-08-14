@@ -15,12 +15,35 @@ const DICTS: Record<AppLang, Record<string, unknown>> = { fr: FR, en: EN };
  */
 export const LANG_LOCALES: Record<AppLang, string> = { fr: 'fr-FR', en: 'en-GB' };
 
+/**
+ * Résolution d'une clé de traduction.
+ *
+ * Les dictionnaires FR/EN utilisent DEUX styles de clés :
+ *   1. objets imbriqués  → `common: { save: '…' }` (clé « common.save ») ;
+ *   2. clés plates       → `'products.servicedesk.name': '…'`
+ *      (clé « products.servicedesk.name » avec points DANS la clé) ;
+ *   3. mixte             → `audit: { platform: { 'subscription.created': '…' } }`
+ *      (suffixe plat sous un objet imbriqué).
+ *
+ * On tente : correspondance exacte (clé plate), puis, à chaque niveau de la
+ * descente, le suffixe restant comme clé plate, puis le segment suivant.
+ */
 function lookup(dict: Record<string, unknown>, path: string): string | undefined {
+  // 1) Clé plate : correspondance exacte sur la chaîne complète.
+  const direct = dict[path];
+  if (typeof direct === 'string') return direct;
+  // 2) Descente dans les objets imbriqués, en testant à chaque niveau le
+  //    suffixe restant comme clé plate (style mixte).
   const parts = path.split('.');
   let cur: unknown = dict;
-  for (const p of parts) {
+  for (let i = 0; i < parts.length; i++) {
     if (cur == null || typeof cur !== 'object') return undefined;
-    cur = (cur as Record<string, unknown>)[p];
+    const remaining = parts.slice(i).join('.');
+    if (remaining !== path) {
+      const hit = (cur as Record<string, unknown>)[remaining];
+      if (typeof hit === 'string') return hit;
+    }
+    cur = (cur as Record<string, unknown>)[parts[i]];
   }
   return typeof cur === 'string' ? cur : undefined;
 }

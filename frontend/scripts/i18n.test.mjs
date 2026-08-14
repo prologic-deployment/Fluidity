@@ -53,6 +53,46 @@ const enEntries = flatten(en);
 const frKeys = new Set(frEntries.map(([k]) => k));
 const enKeys = new Set(enEntries.map(([k]) => k));
 
+/**
+ * Résolution identique au service de production : clé plate d'abord
+ * (clés contenant des points, ex. 'products.servicedesk.name'), puis
+ * descente dans les objets imbriqués, en testant à chaque niveau le
+ * suffixe restant comme clé plate (style mixte, ex. saas.audit.*).
+ */
+function lookup(dict, path) {
+  if (typeof dict[path] === 'string') return dict[path];
+  const parts = path.split('.');
+  let cur = dict;
+  for (let i = 0; i < parts.length; i++) {
+    if (cur == null || typeof cur !== 'object') return undefined;
+    const remaining = parts.slice(i).join('.');
+    if (remaining !== path) {
+      const hit = cur[remaining];
+      if (typeof hit === 'string') return hit;
+    }
+    cur = cur[parts[i]];
+  }
+  return typeof cur === 'string' ? cur : undefined;
+}
+
+console.log('Test 0 : résolution runtime des clés (aucune clé brute visible)');
+const runtimeKeys = new Set([...frKeys, ...enKeys]);
+const unresolved = [...runtimeKeys].filter((k) => {
+  // Interpolation attendue -> résolution partielle OK
+  return lookup(fr, k) === undefined && lookup(en, k) === undefined;
+});
+if (unresolved.length) fail(`${unresolved.length} clé(s) non résolues par lookup() : ${unresolved.slice(0, 8).join(', ')}…`);
+else ok(`${runtimeKeys.size} clés résolues par lookup() (FR et EN)`);
+// Les clés plates critiques doivent produire du texte traduit, pas la clé.
+const flatProbe = ['products.servicedesk.name', 'products.project_management.name', 'scene.techLabel'];
+const raw = flatProbe.filter((k) => {
+  const frV = lookup(fr, k);
+  const enV = lookup(en, k);
+  return frV === undefined || enV === undefined || frV === k || enV === k;
+});
+if (raw.length) fail(`clés plates non traduites : ${raw.join(', ')}`);
+else ok('clés plates produits/scènes résolues (FR/EN)');
+
 console.log('Test 1 : parité des clés FR/EN');
 const missingEn = [...frKeys].filter((k) => !enKeys.has(k));
 const missingFr = [...enKeys].filter((k) => !frKeys.has(k));
