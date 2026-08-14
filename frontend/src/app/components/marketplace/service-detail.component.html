@@ -1,0 +1,112 @@
+<app-marketplace-header></app-marketplace-header>
+
+<div *ngIf="product as p" class="relative">
+  <!-- Hero + scène 3D -->
+  <section class="relative overflow-hidden border-b border-border">
+    <div class="pointer-events-none absolute inset-0 opacity-[0.05]" style="background-image: radial-gradient(circle, #6366f1 1px, transparent 1px); background-size: 28px 28px;"></div>
+    <div class="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 lg:grid-cols-2 lg:py-24">
+      <div>
+        <a routerLink="/services" class="btn-link text-xs">&larr; {{ 'marketplace.services' | t }}</a>
+        <p class="mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
+          [ngClass]="isAvailable() ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'">
+          {{ (isAvailable() ? 'marketplace.available' : 'marketplace.comingSoonTag') | t }}
+        </p>
+        <h1 class="mt-4 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">{{ p.emoji }} {{ p.nameKey | t }}</h1>
+        <p class="mt-4 max-w-xl text-lg text-muted-foreground">{{ p.descriptionKey | t }}</p>
+        <div class="mt-8 flex flex-wrap gap-4">
+          <a *ngIf="isAvailable()" [routerLink]="p.route" class="btn-primary px-6 py-3 text-base">{{ 'marketplace.ctaOpenApp' | t }}</a>
+          <a *ngIf="!isAvailable()" routerLink="/pricing" class="btn-primary px-6 py-3 text-base">{{ 'marketplace.notifyMe' | t }}</a>
+          <a routerLink="/pricing" class="btn-outline px-6 py-3 text-base">{{ 'marketplace.seePricing' | t }}</a>
+        </div>
+      </div>
+      <div class="relative">
+        <app-service-scene [productKey]="p.key" [color]="p.color"></app-service-scene>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fonctionnalités -->
+  <section class="mx-auto max-w-7xl px-6 py-16">
+    <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.features' | t }}</h2>
+    <ul class="mt-6 grid gap-3 sm:grid-cols-2" *ngIf="p.featuresKey?.length">
+      <li *ngFor="let f of p.featuresKey" class="flex items-start gap-3 rounded-xl border border-border bg-card p-4">
+        <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+          <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </span>
+        <span class="text-sm">{{ f | t }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Rôles & Workflow -->
+  <section class="border-t border-border bg-muted/20 py-16">
+    <div class="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-2">
+      <div>
+        <h2 class="text-xl font-bold tracking-tight">{{ 'marketplace.roles' | t }}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.rolesHint' | t }}</p>
+        <ul class="mt-4 space-y-2">
+          <li *ngFor="let r of p.roles" class="flex items-center gap-2 text-sm">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary"></span>{{ r.nameKey | t }}
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold tracking-tight">{{ 'marketplace.workflow' | t }}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.workflowHint' | t }}</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span *ngFor="let s of workflowKeys()" class="rounded-lg border border-border bg-card px-3 py-1.5 text-xs">{{ s | t }}</span>
+        </div>
+        <p class="mt-4 text-xs text-muted-foreground">{{ 'marketplace.workflowNote' | t }}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tarifs -->
+  <section class="mx-auto max-w-7xl px-6 py-16">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.pricing' | t }}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.pricingHint' | t }}</p>
+      </div>
+      <div class="inline-flex items-center rounded-lg border border-border bg-card p-1 text-sm">
+        <button type="button" (click)="billing = 'monthly'" class="rounded-md px-3 py-1.5 font-medium transition-colors" [class.bg-primary]="billing === 'monthly'" [class.text-primary-foreground]="billing === 'monthly'">{{ 'marketplace.monthly' | t }}</button>
+        <button type="button" (click)="billing = 'annual'" class="rounded-md px-3 py-1.5 font-medium transition-colors" [class.bg-primary]="billing === 'annual'" [class.text-primary-foreground]="billing === 'annual'">{{ 'marketplace.annual' | t }}</button>
+      </div>
+    </div>
+
+    <div class="mt-8 grid gap-5 md:grid-cols-3">
+      <div *ngFor="let plan of p.plans" class="rounded-2xl border border-border bg-card p-6">
+        <h3 class="font-semibold">{{ plan.nameKey | t }}</h3>
+        <p class="mt-3 text-3xl font-bold">
+          {{ price(p, plan.id) }} €
+          <span class="text-sm font-normal text-muted-foreground">/ {{ priceUnit(p) | t }}</span>
+        </p>
+        <a [routerLink]="isAvailable() ? p.route : '/pricing'" class="mt-5 btn-outline btn-sm w-full justify-center">
+          {{ (isAvailable() ? 'marketplace.ctaOpenApp' : 'marketplace.comingSoonTag') | t }}
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="mx-auto max-w-3xl px-6 pb-20">
+    <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.faq' | t }}</h2>
+    <div class="mt-6 space-y-3">
+      <div *ngFor="let q of faqKeys(); let i = index" class="rounded-xl border border-border bg-card">
+        <button type="button" (click)="faqOpen = faqOpen === i ? null : i" class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-sm font-medium" [attr.aria-expanded]="faqOpen === i">
+          {{ q | t }}
+          <svg class="h-4 w-4 shrink-0 transition-transform" [class.rotate-180]="faqOpen === i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div *ngIf="faqOpen === i" class="border-t border-border px-5 py-4 text-sm text-muted-foreground">{{ (q + 'A') | t }}</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div *ngIf="notFound" class="mx-auto max-w-3xl px-6 py-24 text-center">
+  <p class="text-2xl">😕</p>
+  <h1 class="mt-4 text-2xl font-bold">{{ 'marketplace.notFound' | t }}</h1>
+  <a routerLink="/services" class="btn-primary mt-6">{{ 'marketplace.services' | t }}</a>
+</div>
+
+<app-marketplace-footer></app-marketplace-footer>

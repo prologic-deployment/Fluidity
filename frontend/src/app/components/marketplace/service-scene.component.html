@@ -1,0 +1,35 @@
+<div class="relative h-[300px] w-full overflow-hidden rounded-2xl border border-border bg-card/60 sm:h-[360px]">
+  <!-- Canvas Three.js (WebGL) -->
+  <canvas #canvas class="absolute inset-0 h-full w-full" [attr.aria-hidden]="true"></canvas>
+
+  <!-- Fallback CSS/SVG (WebGL indisponible ou motion réduit) -->
+  <div
+    #fallback
+    *ngIf="fallback"
+    class="absolute inset-0 flex flex-col items-center justify-center gap-3"
+    aria-hidden="true"
+  >
+    <svg width="200" height="160" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="80" r="52" [attr.stroke]="color" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 8" />
+      <g [attr.stroke]="color" stroke-width="2" stroke-linecap="round">
+        <line x1="100" y1="80" x2="60" y2="42" />
+        <line x1="100" y1="80" x2="148" y2="52" />
+        <line x1="100" y1="80" x2="74" y2="122" />
+        <line x1="100" y1="80" x2="138" y2="114" />
+        <line x1="60" y1="42" x2="148" y2="52" />
+        <line x1="74" y1="122" x2="138" y2="114" />
+      </g>
+      <circle cx="100" cy="80" r="7" [attr.fill]="color" />
+      <circle cx="60" cy="42" r="5" [attr.fill]="color" opacity="0.8" />
+      <circle cx="148" cy="52" r="5" [attr.fill]="color" opacity="0.8" />
+      <circle cx="74" cy="122" r="5" [attr.fill]="color" opacity="0.8" />
+      <circle cx="138" cy="114" r="5" [attr.fill]="color" opacity="0.8" />
+    </svg>
+    <p class="text-xs text-muted-foreground">{{ labelKey | t }}</p>
+  </div>
+
+  <!-- Badge décoratif -->
+  <span class="pointer-events-none absolute right-4 top-4 rounded-full border border-border bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+    {{ 'scene.techLabel' | t }}
+  </span>
+</div>

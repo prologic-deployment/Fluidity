@@ -1,0 +1,74 @@
+<app-marketplace-header></app-marketplace-header>
+
+<section class="mx-auto max-w-7xl px-6 py-16">
+  <div class="text-center">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{{ 'marketplace.pricingTitle' | t }}</h1>
+    <p class="mx-auto mt-3 max-w-2xl text-muted-foreground">{{ 'marketplace.pricingSub' | t }}</p>
+
+    <div class="mt-8 inline-flex items-center rounded-lg border border-border bg-card p-1 text-sm">
+      <button type="button" (click)="billing = 'monthly'" class="rounded-md px-4 py-1.5 font-medium transition-colors" [class.bg-primary]="billing === 'monthly'" [class.text-primary-foreground]="billing === 'monthly'">{{ 'marketplace.monthly' | t }}</button>
+      <button type="button" (click)="billing = 'annual'" class="rounded-md px-4 py-1.5 font-medium transition-colors" [class.bg-primary]="billing === 'annual'" [class.text-primary-foreground]="billing === 'annual'">
+        {{ 'marketplace.annual' | t }}
+        <span class="ml-1 text-xs opacity-80">−17%</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tableau des tarifs -->
+  <div class="mt-12 overflow-x-auto rounded-2xl border border-border bg-card" *ngIf="!loading">
+    <table class="w-full min-w-[720px] text-sm">
+      <thead>
+        <tr class="border-b border-border text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <th class="px-6 py-4">{{ 'marketplace.product' | t }}</th>
+          <th class="px-4 py-4">{{ 'marketplace.planStarter' | t }}</th>
+          <th class="px-4 py-4">{{ 'marketplace.planBusiness' | t }}</th>
+          <th class="px-4 py-4">{{ 'marketplace.planEnterprise' | t }}</th>
+          <th class="px-6 py-4 text-right">{{ 'marketplace.action' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of products" class="border-b border-border/60 last:border-0 hover:bg-muted/30">
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">{{ p.emoji }}</span>
+              <div>
+                <p class="font-semibold">{{ p.nameKey | t }}</p>
+                <p class="text-xs text-muted-foreground">
+                  <span [class.text-success]="p.available" [class.text-warning]="!p.available">
+                    {{ (p.available ? 'marketplace.available' : 'marketplace.comingSoonTag') | t }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-4 font-semibold">{{ price(p, 'starter') }} € <span class="text-xs font-normal text-muted-foreground">/ {{ unit() | t }}</span></td>
+          <td class="px-4 py-4 font-semibold">{{ price(p, 'business') }} € <span class="text-xs font-normal text-muted-foreground">/ {{ unit() | t }}</span></td>
+          <td class="px-4 py-4 font-semibold">{{ price(p, 'enterprise') }} € <span class="text-xs font-normal text-muted-foreground">/ {{ unit() | t }}</span></td>
+          <td class="px-6 py-4 text-right">
+            <a [routerLink]="['/services', p.key]" class="btn-outline btn-sm">{{ 'marketplace.details' | t }}</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-4 text-xs text-muted-foreground">{{ 'marketplace.pricingNote' | t }}</p>
+
+  <!-- Méthodes de paiement -->
+  <div class="mt-16 grid gap-6 md:grid-cols-3">
+    <div class="rounded-2xl border border-border bg-card p-6">
+      <h3 class="font-semibold">💳 {{ 'marketplace.payCard' | t }}</h3>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.payCardHint' | t }}</p>
+    </div>
+    <div class="rounded-2xl border border-border bg-card p-6">
+      <h3 class="font-semibold">🏦 {{ 'marketplace.payTransfer' | t }}</h3>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.payTransferHint' | t }}</p>
+    </div>
+    <div class="rounded-2xl border border-border bg-card p-6">
+      <h3 class="font-semibold">🏢 {{ 'marketplace.payInvoice' | t }}</h3>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.payInvoiceHint' | t }}</p>
+    </div>
+  </div>
+</section>
+
+<app-marketplace-footer></app-marketplace-footer>
