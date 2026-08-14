@@ -22,3 +22,6 @@ frontend/.angular/
 
 # Fichiers téléversés (pièces jointes)
 backend/uploads/
+
+# QA headless (captures E2E)
+backend/e2e-shots/
