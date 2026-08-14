@@ -7,7 +7,7 @@ import { AuthService } from '../../services/auth.service';
 
 /**
  * En-tête public du marketplace SaaS : logo, navigation (Services, Tarifs),
- * connexion + CTA. Traduit en FR/EN.
+ * connexion + CTA. Menu mobile repliable (accessibilité clavier). FR/EN.
  */
 @Component({
   selector: 'app-marketplace-header',
@@ -24,6 +24,7 @@ import { AuthService } from '../../services/auth.service';
           <span class="text-lg font-semibold tracking-tight">{{ platformName }}</span>
         </a>
 
+        <!-- Navigation desktop -->
         <nav class="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Navigation principale">
           <a routerLink="/services" routerLinkActive="text-primary" class="transition-colors hover:text-primary">{{ 'marketplace.services' | t }}</a>
           <a routerLink="/pricing" routerLinkActive="text-primary" class="transition-colors hover:text-primary">{{ 'marketplace.pricing' | t }}</a>
@@ -36,15 +37,46 @@ import { AuthService } from '../../services/auth.service';
           </ng-container>
           <ng-container *ngIf="!auth.isAuthenticated()">
             <a routerLink="/login" class="btn-ghost btn-sm hidden sm:inline-flex">{{ 'auth.signIn' | t }}</a>
-            <a routerLink="/services" class="btn-primary btn-sm">{{ 'marketplace.discover' | t }}</a>
+            <a routerLink="/services" class="btn-primary btn-sm hidden sm:inline-flex">{{ 'marketplace.discover' | t }}</a>
           </ng-container>
+
+          <!-- Bouton menu mobile -->
+          <button
+            type="button"
+            class="btn-icon-sm md:hidden"
+            (click)="menuOpen = !menuOpen"
+            [attr.aria-expanded]="menuOpen"
+            [attr.aria-label]="'marketplace.menu' | t"
+          >
+            <svg *ngIf="!menuOpen" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>
+            <svg *ngIf="menuOpen" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
         </div>
       </div>
+
+      <!-- Menu mobile -->
+      <nav
+        *ngIf="menuOpen"
+        class="border-t border-border/60 bg-background px-6 py-4 md:hidden"
+        aria-label="Navigation mobile"
+      >
+        <div class="flex flex-col gap-1">
+          <a routerLink="/services" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.services' | t }}</a>
+          <a routerLink="/pricing" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.pricing' | t }}</a>
+          <ng-container *ngIf="auth.isAuthenticated()">
+            <a routerLink="/workspace" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.mySpace' | t }}</a>
+          </ng-container>
+          <ng-container *ngIf="!auth.isAuthenticated()">
+            <a routerLink="/login" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'auth.signIn' | t }}</a>
+          </ng-container>
+        </div>
+      </nav>
     </header>
   `,
 })
 export class MarketplaceHeaderComponent {
   platformName = PLATFORM_NAME;
+  menuOpen = false;
   constructor(public auth: AuthService) {}
   get brandInitial(): string {
     return PLATFORM_NAME.charAt(0);
