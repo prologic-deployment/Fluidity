@@ -6,6 +6,7 @@ import { UserService } from '../../services/user.service';
 import { AppUser, AppRole, LicenseInfo, APP_ROLES, ROLE_LABELS, USER_STATUS_LABELS } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
+import { ProductLicensesComponent } from './product-licenses.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -21,7 +22,7 @@ import { apiErrorMessage } from '../../utils/api-error.util';
 @Component({
   selector: 'app-users-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent, ProductLicensesComponent, ...I18N_IMPORTS],
   templateUrl: './users-dashboard.component.html',
 })
 export class UsersDashboardComponent implements OnInit {

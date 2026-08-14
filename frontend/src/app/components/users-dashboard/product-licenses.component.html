@@ -1,0 +1,87 @@
+<section class="card mb-6 animate-fade-in-up">
+  <div class="card-header-tinted">
+    <div class="form-section-header">
+      <div class="form-section-icon">
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <div>
+        <h2 class="card-title">{{ 'licenses.title' | t }}</h2>
+        <p class="card-description">{{ 'licenses.subtitle' | t }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-content pt-6 space-y-6">
+    <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+
+    <div *ngIf="!activeSubs().length" class="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+      {{ 'licenses.none' | t }}
+    </div>
+
+    <div *ngFor="let sub of activeSubs()" class="rounded-xl border border-border bg-muted/20 p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">{{ productEmoji(sub.productKey) }}</span>
+          <div>
+            <p class="font-medium">{{ productName(sub.productKey) | t }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ 'licenses.seats' | t }} : {{ seatsUsed(sub.productKey) }} / {{ seatsTotal(sub.productKey) }} · {{ sub.planId }} · {{ sub.billingPeriod }}
+            </p>
+          </div>
+        </div>
+        <span class="badge-secondary"><span class="badge-dot"></span>{{ sub.status }}</span>
+      </div>
+
+      <!-- Assignations actuelles -->
+      <ul class="mt-3 space-y-1.5" *ngIf="licensesOf(sub.productKey).length">
+        <li *ngFor="let l of licensesOf(sub.productKey)" class="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm">
+          <div class="min-w-0">
+            <p class="truncate font-medium">{{ userName(l) }}</p>
+            <p class="truncate text-xs text-muted-foreground">{{ userEmail(l) }}</p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <select
+              *ngIf="rolesOf(sub.productKey).length"
+              class="select !h-8 !w-auto !py-0 !text-xs"
+              [value]="roleOf(l)"
+              (change)="onRoleChange(sub, l, $event)"
+              [attr.aria-label]="'licenses.role' | t"
+            >
+              <option value="" disabled>{{ 'licenses.selectRole' | t }}</option>
+              <option *ngFor="let r of rolesOf(sub.productKey)" [value]="r.key">{{ r.nameKey | t }}</option>
+            </select>
+            <button type="button" class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              (click)="revoke(l)" [title]="'licenses.revoke' | t">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Assignation -->
+      <div class="mt-3 flex flex-wrap items-end gap-2">
+        <div class="min-w-[200px] flex-1">
+          <label class="field-label !text-xs">{{ 'licenses.user' | t }}</label>
+          <select [(ngModel)]="assignForm[sub.productKey].userId" class="select">
+            <option value="" disabled>{{ 'licenses.selectUser' | t }}</option>
+            <option *ngFor="let u of users" [value]="u._id">{{ u.email }}</option>
+          </select>
+        </div>
+        <div class="min-w-[180px]" *ngIf="rolesOf(sub.productKey).length">
+          <label class="field-label !text-xs">{{ 'licenses.role' | t }}</label>
+          <select [(ngModel)]="assignForm[sub.productKey].roleKey" class="select">
+            <option value="">{{ 'licenses.noRole' | t }}</option>
+            <option *ngFor="let r of rolesOf(sub.productKey)" [value]="r.key">{{ r.nameKey | t }}</option>
+          </select>
+        </div>
+        <button type="button" class="btn-primary btn-sm" [disabled]="busy || !assignForm[sub.productKey].userId"
+          (click)="assign(sub)">
+          {{ 'licenses.assign' | t }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
