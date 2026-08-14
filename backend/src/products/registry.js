@@ -993,6 +993,31 @@ function getPermissions(productKey) {
   return PERMISSIONS_BY_PRODUCT[productKey] || [];
 }
 
+
+/**
+ * Valide une transition de workflow pour un produit donné — moteur générique
+ * (états, transitions, permission requise, état terminal). Les futurs
+ * produits l'utilisent sans réécrire la logique.
+ *
+ * Retourne { ok, reason } avec reason ∈
+ *   'UNKNOWN_PRODUCT' | 'UNKNOWN_FROM' | 'UNKNOWN_TO' | 'TERMINAL_FROM'
+ *   | 'TRANSITION_NOT_ALLOWED' | 'PERMISSION_DENIED'
+ */
+function canTransition(productKey, from, to, permissions = []) {
+  const wf = WORKFLOWS[productKey];
+  if (!wf) return { ok: false, reason: 'UNKNOWN_PRODUCT' };
+  if (!wf.states.some((s) => s.key === from)) return { ok: false, reason: 'UNKNOWN_FROM' };
+  if (!wf.states.some((s) => s.key === to)) return { ok: false, reason: 'UNKNOWN_TO' };
+  const fromState = wf.states.find((s) => s.key === from);
+  if (fromState?.terminal) return { ok: false, reason: 'TERMINAL_FROM' };
+  const transition = wf.transitions.find((t) => t.to === to && (t.from === from || t.from === '*'));
+  if (!transition) return { ok: false, reason: 'TRANSITION_NOT_ALLOWED' };
+  if (transition.requiredPermission && !(permissions.includes('*') || permissions.includes(transition.requiredPermission))) {
+    return { ok: false, reason: 'PERMISSION_DENIED' };
+  }
+  return { ok: true, reason: 'OK' };
+}
+
 module.exports = {
   PRODUCT_STATUS,
   PRODUCTS,
@@ -1008,4 +1033,5 @@ module.exports = {
   rolePermissions,
   defaultProductRole,
   simpleWorkflow,
+  canTransition,
 };

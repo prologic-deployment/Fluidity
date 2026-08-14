@@ -94,7 +94,32 @@ for (const p of PRODUCTS) {
   );
 }
 
-console.log('Test 5 : rôle produit par défaut du principal');
+console.log('Test 5 : moteur de transitions générique (canTransition)');
+const { canTransition } = require('./registry');
+const proj = (p) => rolePermissions(p);
+check('projet : backlog → todo autorisé (permission)', () =>
+  assert.deepStrictEqual(canTransition('project_management', 'backlog', 'todo', proj('project_member')), { ok: true, reason: 'OK' })
+);
+check('projet : transition non déclarée refusée', () =>
+  assert.strictEqual(canTransition('project_management', 'backlog', 'completed', proj('project_member')).ok, false)
+);
+check('projet : permission manquante refusée (review→completed sans task.complete)', () =>
+  assert.strictEqual(canTransition('project_management', 'review', 'completed', ['project.task.read']).reason, 'PERMISSION_DENIED')
+);
+check('projet : wildcard admin autorisé (permissions [*])', () =>
+  assert.deepStrictEqual(canTransition('project_management', 'backlog', 'todo', ['*']), { ok: true, reason: 'OK' })
+);
+check('crm : won (terminal) sans transition sortante', () =>
+  assert.strictEqual(canTransition('crm', 'won', 'new', ['*']).reason, 'TERMINAL_FROM')
+);
+check('état source inconnu refusé', () =>
+  assert.strictEqual(canTransition('crm', 'inexistant', 'new', ['*']).reason, 'UNKNOWN_FROM')
+);
+check('produit inconnu refusé', () =>
+  assert.strictEqual(canTransition('inconnu', 'a', 'b', ['*']).reason, 'UNKNOWN_PRODUCT')
+);
+
+console.log('Test 6 : rôle produit par défaut du principal');
 const { defaultProductRole } = require('./registry');
 check('CLIENT → requester (servicedesk)', () =>
   assert.strictEqual(defaultProductRole('servicedesk', 'AGENT', 'CLIENT'), 'requester')
