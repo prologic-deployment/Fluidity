@@ -55,7 +55,7 @@ export class LoginComponent {
           ? '/plateforme/tenants'
           : this.auth.mustChangePassword()
             ? '/profile/security'
-            : '/demandes';
+            : '/workspace';
         this.router.navigate([destination]);
       },
       error: (err) => {

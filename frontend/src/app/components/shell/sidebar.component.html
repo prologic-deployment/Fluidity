@@ -42,6 +42,30 @@
 
   <div class="mx-4 h-px bg-white/10"></div>
 
+  <!-- Sélecteur de produit : uniquement les produits auxquels on a accès -->
+  <div class="mx-4 mt-1" *ngIf="productEntitlements.length">
+    <p class="px-1 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{{ 'nav.myProducts' | t }}</p>
+    <div class="space-y-0.5">
+      <a
+        *ngFor="let p of productEntitlements"
+        [routerLink]="p.route"
+        routerLinkActive="side-sublink-active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="side-sublink"
+        [title]="p.nameKey | t"
+      >
+        <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>
+        <span class="truncate">{{ p.emoji }} {{ p.nameKey | t }}</span>
+      </a>
+      <a routerLink="/services" class="side-sublink text-indigo-300/80">
+        <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        {{ 'nav.discoverServices' | t }}
+      </a>
+    </div>
+  </div>
+
+  <div class="mx-4 h-px bg-white/10"></div>
+
   <!-- Navigation -->
   <nav class="flex-1 overflow-y-auto px-3 py-2">
     <div *ngFor="let group of groups; trackBy: trackGroup">

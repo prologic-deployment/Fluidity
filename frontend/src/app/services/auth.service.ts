@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { TenantBranding } from '../models/tenant.model';
 import { ROLE_LABELS } from '../models/user.model';
+import { PlatformService } from './platform.service';
 
 export interface AuthResponse {
   token: string;
@@ -116,7 +117,7 @@ export class AuthService {
   private readonly sessionSubject = new BehaviorSubject<void>(undefined);
   readonly sessionChanged$: Observable<void> = this.sessionSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private platform: PlatformService) {}
 
   private notifySessionChanged(): void {
     this.sessionSubject.next();
@@ -243,6 +244,7 @@ export class AuthService {
       localStorage.removeItem(TENANT_KEY);
     }
     localStorage.removeItem(IMPERSONATION_KEY); // toute impersonation précédente est purgée
+    this.platform.resetCache(); // droits SaaS recalculés pour la nouvelle session
     this.notifySessionChanged();
   }
 
@@ -251,6 +253,7 @@ export class AuthService {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
     localStorage.removeItem(IMPERSONATION_KEY);
+    this.platform.resetCache();
     this.notifySessionChanged();
   }
 

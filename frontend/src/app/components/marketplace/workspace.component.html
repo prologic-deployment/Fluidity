@@ -1,0 +1,62 @@
+<div class="mx-auto max-w-6xl px-6 py-12">
+  <p class="text-sm text-muted-foreground">{{ 'marketplace.hello' | t }},</p>
+  <h1 class="text-3xl font-bold tracking-tight">{{ 'marketplace.myProducts' | t }}</h1>
+  <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.myProductsHint' | t }}</p>
+
+  <div *ngIf="loading" class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div *ngFor="let i of [1, 2, 3]" class="h-48 animate-pulse rounded-2xl border border-border bg-muted/40"></div>
+  </div>
+
+  <!-- Produits accessibles -->
+  <div *ngIf="!loading && myProducts().length" class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <a
+      *ngFor="let p of myProducts()"
+      [routerLink]="p.route"
+      class="group relative overflow-hidden rounded-2xl border border-border bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10"
+    >
+      <div class="absolute inset-x-0 top-0 h-1.5" [style.background]="p.color"></div>
+      <div class="flex items-start justify-between">
+        <span class="text-3xl">{{ p.emoji }}</span>
+        <span class="rounded-full bg-success/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
+          {{ 'marketplace.available' | t }}
+        </span>
+      </div>
+      <h2 class="mt-3 text-lg font-bold">{{ p.nameKey | t }}</h2>
+      <p class="mt-1 line-clamp-2 text-xs text-muted-foreground">{{ p.taglineKey | t }}</p>
+      <div class="mt-4 flex items-center justify-between text-xs">
+        <span class="rounded-md bg-muted px-2 py-1">{{ 'products.roles.' + (p.roleKey || 'viewer') | t }}</span>
+        <span class="font-semibold text-primary">{{ 'marketplace.open' | t }} →</span>
+      </div>
+    </a>
+  </div>
+
+  <div *ngIf="!loading && !myProducts().length" class="mt-8 rounded-2xl border border-border bg-card p-10 text-center">
+    <p class="text-4xl">🧭</p>
+    <h2 class="mt-3 text-lg font-semibold">{{ 'marketplace.noProducts' | t }}</h2>
+    <p class="mt-1 text-sm text-muted-foreground">{{ 'marketplace.noProductsHint' | t }}</p>
+    <a routerLink="/services" class="btn-primary mt-6">{{ 'marketplace.discoverServices' | t }}</a>
+  </div>
+
+  <!-- Découverte -->
+  <div *ngIf="discover().length" class="mt-12">
+    <h2 class="flex items-center gap-2 text-lg font-semibold">
+      <span class="h-2.5 w-2.5 rounded-full bg-warning"></span>{{ 'marketplace.discoverMore' | t }}
+    </h2>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <a
+        *ngFor="let p of discover()"
+        [routerLink]="['/services', p.key]"
+        class="group flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/40 hover:shadow-md"
+      >
+        <span class="text-2xl">{{ p.emoji }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate font-medium">{{ p.nameKey | t }}</p>
+          <p class="truncate text-xs text-muted-foreground">{{ p.taglineKey | t }}</p>
+        </div>
+        <span class="rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-warning">
+          {{ 'marketplace.comingSoonTag' | t }}
+        </span>
+      </a>
+    </div>
+  </div>
+</div>

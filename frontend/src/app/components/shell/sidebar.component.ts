@@ -14,6 +14,8 @@ import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
+import { PlatformService } from '../../services/platform.service';
+import { ProductEntitlement } from '../../models/product.model';
 
 interface SidebarChild {
   label: string;
@@ -56,6 +58,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
   tenant: TenantBranding | null = null;
   impersonation: Impersonation | null = null;
   groups: SidebarGroup[] = [];
+  /** Produits accessibles (entitlements serveur) — pour le sélecteur de produit. */
+  productEntitlements: ProductEntitlement[] = [];
 
   private readonly destroy$ = new Subject<void>();
 
@@ -63,7 +67,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     private auth: AuthService,
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private platform: PlatformService
   ) {}
 
   ngOnInit(): void {
@@ -74,6 +79,14 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     });
     this.i18n.lang$.pipe(takeUntil(this.destroy$)).subscribe(() => this.cdr.markForCheck());
+    // Sélecteur de produit : entitlement serveur (jamais de localStorage).
+    this.platform
+      .entitlements()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((e) => {
+        this.productEntitlements = e?.products.filter((p) => p.licensed) || [];
+        this.cdr.markForCheck();
+      });
   }
 
   ngOnDestroy(): void {
