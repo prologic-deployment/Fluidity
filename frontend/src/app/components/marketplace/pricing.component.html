@@ -1,6 +1,15 @@
 <app-marketplace-header></app-marketplace-header>
 
 <section class="mx-auto max-w-7xl px-6 py-16">
+  <nav class="mb-4 text-sm" aria-label="Breadcrumb">
+    <ol class="flex flex-wrap items-center justify-center gap-1.5 text-muted-foreground">
+      <li><a routerLink="/" class="transition-colors hover:text-foreground">{{ 'marketplace.home' | t }}</a></li>
+      <li aria-hidden="true" class="text-muted-foreground/50">›</li>
+      <li><a routerLink="/services" class="transition-colors hover:text-foreground">{{ 'marketplace.services' | t }}</a></li>
+      <li aria-hidden="true" class="text-muted-foreground/50">›</li>
+      <li aria-current="page" class="font-medium text-foreground">{{ 'marketplace.pricing' | t }}</li>
+    </ol>
+  </nav>
   <div class="text-center">
     <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{{ 'marketplace.pricingTitle' | t }}</h1>
     <p class="mx-auto mt-3 max-w-2xl text-muted-foreground">{{ 'marketplace.pricingSub' | t }}</p>
