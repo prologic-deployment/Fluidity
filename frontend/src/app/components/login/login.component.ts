@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-login',
@@ -58,7 +59,7 @@ export class LoginComponent {
         this.router.navigate([destination]);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Échec de la connexion';
+        this.error = apiErrorMessage(this.i18n, err, 'auth.loginFailed');
         this.loading = false;
       },
     });

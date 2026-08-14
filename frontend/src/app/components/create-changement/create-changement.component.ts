@@ -18,6 +18,7 @@ import { SpecificationsFormComponent } from '../shared/specifications-form.compo
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
 import { UploadedFile } from '../../services/upload.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 import {
   buildSpecificationControls,
   resetSpecsIncompatibles,
@@ -49,7 +50,8 @@ export class CreateChangementComponent implements OnInit {
     private fb: FormBuilder,
     private changementService: ChangementService,
     private contratService: ContratService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -180,7 +182,7 @@ export class CreateChangementComponent implements OnInit {
     this.changementService.create(payload).subscribe({
       next: () => this.router.navigate(['/changements']),
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la création du changement.';
+        this.error = apiErrorMessage(this.i18n, err, 'changements.createError');
         this.loading = false;
       },
     });

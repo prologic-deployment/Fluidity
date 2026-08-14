@@ -6,11 +6,14 @@ import { ContratService } from '../../services/contrat.service';
 import { ClientService } from '../../services/client.service';
 import { STATUTS_CONTRAT, TYPES_CONTRAT, Contrat } from '../../models/contrat.model';
 import { Client } from '../../models/client.model';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-create-contrat',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './create-contrat.component.html',
 })
 export class CreateContratComponent implements OnInit {
@@ -25,7 +28,8 @@ export class CreateContratComponent implements OnInit {
     private fb: FormBuilder,
     private contratService: ContratService,
     private clientService: ClientService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -68,7 +72,7 @@ export class CreateContratComponent implements OnInit {
     this.contratService.create(payload).subscribe({
       next: () => this.router.navigate(['/contrats']),
       error: (err) => {
-        this.error = err.error?.message || "Erreur lors de l'ouverture du contrat.";
+        this.error = apiErrorMessage(this.i18n, err, 'contracts.createError');
         this.loading = false;
       },
     });

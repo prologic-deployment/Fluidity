@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 import {
   EQUIPES_SUPPORT,
   Ticket,
@@ -129,7 +130,7 @@ export class TicketDetailsComponent implements OnInit {
           this.reload();
         },
         error: (err) => {
-          this.error = err.error?.message || 'Commentaire refusé.';
+          this.error = apiErrorMessage(this.i18n, err, 'tickets.commentError');
           this.commentLoading = false;
         },
       });
@@ -144,7 +145,7 @@ export class TicketDetailsComponent implements OnInit {
         this.reload();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Affectation refusée.';
+        this.error = apiErrorMessage(this.i18n, err, 'tickets.assignmentError');
         this.assignLoading = false;
       },
     });
@@ -161,11 +162,11 @@ export class TicketDetailsComponent implements OnInit {
   appliquerTransition(): void {
     if (!this.ticket?._id || !this.transitionCible) return;
     if (this.needsMotif(this.transitionCible) && !this.motif.trim()) {
-      this.error = 'Motif d’attente requis.';
+      this.error = this.i18n.t('tickets.waitReasonRequired');
       return;
     }
     if (this.needsResolution(this.transitionCible) && !this.resume.trim()) {
-      this.error = 'Résumé de résolution requis.';
+      this.error = this.i18n.t('tickets.resolutionRequired');
       return;
     }
     this.transitionLoading = true;
@@ -186,7 +187,7 @@ export class TicketDetailsComponent implements OnInit {
           this.reload();
         },
         error: (err) => {
-          this.error = err.error?.message || 'Transition refusée.';
+          this.error = apiErrorMessage(this.i18n, err, 'tickets.transitionError');
           this.transitionLoading = false;
         },
       });

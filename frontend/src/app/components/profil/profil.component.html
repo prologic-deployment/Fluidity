@@ -9,7 +9,7 @@
         <svg class="h-3.5 w-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
-        Sécurité
+        {{ 'nav.security' | t }}
       </a>
     </div>
   </header>
@@ -32,7 +32,7 @@
                 class="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center overflow-hidden rounded-2xl
                   border-4 border-card bg-gradient-to-br from-indigo-400 to-violet-500 text-2xl font-bold text-white shadow-lg"
               >
-                <img *ngIf="avatarPreview || avatarUrl" [src]="(avatarPreview || avatarUrl) | urlUpload" alt="Photo de profil"
+                <img *ngIf="avatarPreview || avatarUrl" [src]="(avatarPreview || avatarUrl) | urlUpload" [alt]="'nav.profilePhoto' | t"
                   class="h-full w-full object-cover" />
                 <ng-container *ngIf="!(avatarPreview || avatarUrl)">{{ initials }}</ng-container>
               </div>
@@ -41,7 +41,7 @@
                 for="avatar-input"
                 class="absolute inset-0 flex cursor-pointer items-center justify-center rounded-2xl bg-slate-950/55 text-white
                   opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                title="Changer la photo"
+                [title]="'profile.replacePhoto' | t"
               >
                 <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
@@ -60,7 +60,7 @@
                 <span class="badge-outline">{{ workspaceName }}</span>
                 <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
                   <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
-                  Actif
+                  {{ 'profile.active' | t }}
                 </span>
               </div>
             </div>
@@ -69,19 +69,19 @@
           <div class="flex flex-wrap items-center gap-2">
             <ng-container *ngIf="avatarPreview as preview">
               <button type="button" (click)="saveAvatar()" [disabled]="avatarUploading" class="btn-primary btn-sm">
-                {{ avatarUploading ? 'Envoi...' : 'Enregistrer cette photo' }}
+                {{ avatarUploading ? ('common.sending' | t) : ('profile.savePhoto' | t) }}
               </button>
               <button type="button" (click)="cancelAvatarPreview()" [disabled]="avatarUploading" class="btn-outline btn-sm">
-                Annuler
+                {{ 'common.cancel' | t }}
               </button>
             </ng-container>
             <ng-container *ngIf="!avatarPreview">
               <label for="avatar-input" class="btn-outline btn-sm cursor-pointer" [class.pointer-events-none]="avatarUploading">
-                {{ avatarUrl ? 'Remplacer la photo' : 'Ajouter une photo' }}
+                {{ avatarUrl ? ('profile.replacePhoto' | t) : ('profile.addPhoto' | t) }}
               </label>
               <button *ngIf="avatarUrl" type="button" (click)="removeAvatar()" [disabled]="avatarUploading"
                 class="btn-ghost btn-sm text-destructive hover:bg-destructive/10">
-                Supprimer
+                {{ 'common.delete' | t }}
               </button>
             </ng-container>
           </div>
@@ -89,7 +89,7 @@
 
         <p *ngIf="avatarError" class="field-error mt-3">{{ avatarError }}</p>
         <p *ngIf="avatarPreview" class="mt-2 text-xs text-muted-foreground">
-          Aperçu avant enregistrement — rien n'est encore sauvegardé.
+          {{ 'profile.previewHint' | t }}
         </p>
 
         <!-- Métadonnées du compte -->
@@ -112,13 +112,13 @@
               <rect x="3" y="4" width="18" height="18" rx="2"></rect>
               <path d="M16 2v4M8 2v4M3 10h18"></path>
             </svg>
-            <span>Membre depuis {{ profile?.createdAt ? (profile!.createdAt | date: 'MMMM yyyy') : '—' }}</span>
+            <span>{{ 'profile.memberSince' | t }} {{ profile?.createdAt ? (profile!.createdAt | dateLocale: 'monthYear') : '—' }}</span>
           </div>
           <div class="flex items-center gap-2.5 text-sm text-muted-foreground">
             <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path>
             </svg>
-            <span class="truncate">{{ (estClientPortail ? profile?.['telephone'] : form.value.phone) || 'Non renseigné' }}</span>
+            <span class="truncate">{{ (estClientPortail ? profile?.['telephone'] : form.value.phone) || ('profile.notProvided' | t) }}</span>
           </div>
         </div>
       </div>
@@ -134,8 +134,8 @@
             </svg>
           </div>
           <div>
-            <h2 class="card-title">Votre fiche client</h2>
-            <p class="card-description">Informations de votre société, gérées par votre fournisseur de services.</p>
+            <h2 class="card-title">{{ 'profile.clientCard' | t }}</h2>
+            <p class="card-description">{{ 'profile.clientCardHint2' | t }}</p>
           </div>
         </div>
       </div>
@@ -148,25 +148,24 @@
         </div>
         <dl *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
           <div>
-            <dt class="detail-label">Raison sociale</dt>
+            <dt class="detail-label">{{ 'profile.company' | t }}</dt>
             <dd class="detail-value">{{ profile?.['nom'] || '—' }}</dd>
           </div>
           <div>
-            <dt class="detail-label">Email de contact</dt>
+            <dt class="detail-label">{{ 'profile.contactEmail' | t }}</dt>
             <dd class="detail-value break-all">{{ profile?.['email'] || '—' }}</dd>
           </div>
           <div>
-            <dt class="detail-label">Téléphone</dt>
-            <dd class="detail-value">{{ profile?.['telephone'] || 'Non renseigné' }}</dd>
+            <dt class="detail-label">{{ 'profile.phone' | t }}</dt>
+            <dd class="detail-value">{{ profile?.['telephone'] || ('profile.notProvided' | t) }}</dd>
           </div>
           <div>
-            <dt class="detail-label">Adresse</dt>
-            <dd class="detail-value">{{ profile?.['adresse'] || 'Non renseignée' }}</dd>
+            <dt class="detail-label">{{ 'profile.address' | t }}</dt>
+            <dd class="detail-value">{{ profile?.['adresse'] || ('profile.notProvided' | t) }}</dd>
           </div>
         </dl>
         <p *ngIf="!loading" class="mt-5 rounded-lg border border-border bg-muted/30 px-3.5 py-2.5 text-xs text-muted-foreground">
-          La raison sociale et l'email de connexion sont administrés par votre fournisseur.
-          Vous pouvez mettre à jour votre photo, vos coordonnées personnelles et votre mot de passe.
+          {{ 'profile.clientCardHint3' | t }}
         </p>
       </div>
     </section>
@@ -182,8 +181,8 @@
             </svg>
           </div>
           <div>
-            <h2 class="card-title">Informations personnelles</h2>
-            <p class="card-description">Ces informations identifient votre compte dans l'espace de travail.</p>
+            <h2 class="card-title">{{ 'profile.personal' | t }}</h2>
+            <p class="card-description">{{ 'profile.personalHint' | t }}</p>
           </div>
         </div>
       </div>
@@ -200,51 +199,51 @@
         <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="field-label">Prénom</label>
-              <input formControlName="firstName" type="text" class="input" placeholder="ex : Amine" />
+              <label class="field-label">{{ 'profile.firstName' | t }}</label>
+              <input formControlName="firstName" type="text" class="input" [attr.placeholder]="'profile.firstNamePlaceholder' | t" />
             </div>
             <div>
-              <label class="field-label">Nom</label>
-              <input formControlName="lastName" type="text" class="input" placeholder="ex : Trabelsi" />
+              <label class="field-label">{{ 'profile.lastName' | t }}</label>
+              <input formControlName="lastName" type="text" class="input" [attr.placeholder]="'profile.lastNamePlaceholder' | t" />
             </div>
             <div>
-              <label class="field-label">Téléphone</label>
-              <input formControlName="phone" type="tel" class="input" placeholder="+216 20 000 000" />
+              <label class="field-label">{{ 'profile.phone' | t }}</label>
+              <input formControlName="phone" type="tel" class="input" [attr.placeholder]="'profile.phonePlaceholder' | t" />
               <p *ngIf="form.get('phone')?.hasError('pattern') && form.get('phone')?.touched" class="field-error">
-                Numéro invalide (chiffres, espaces, +, -, (), .).
+                {{ 'profile.phoneInvalid' | t }}
               </p>
             </div>
             <div *ngIf="!estClientPortail">
-              <label class="field-label">Intitulé de poste</label>
-              <input formControlName="jobTitle" type="text" class="input" placeholder="ex : Ingénieur Cloud" />
+              <label class="field-label">{{ 'profile.jobTitle' | t }}</label>
+              <input formControlName="jobTitle" type="text" class="input" [attr.placeholder]="'profile.jobTitlePlaceholder' | t" />
             </div>
             <div *ngIf="!estClientPortail">
-              <label class="field-label">Département</label>
+              <label class="field-label">{{ 'profile.department' | t }}</label>
               <input [value]="department" type="text" class="input opacity-60" disabled />
-              <p class="mt-1 text-xs text-muted-foreground">Géré par votre administrateur.</p>
+              <p class="mt-1 text-xs text-muted-foreground">{{ 'profile.departmentHint' | t }}</p>
             </div>
             <div>
-              <label class="field-label">Email (identifiant)</label>
+              <label class="field-label">{{ 'profile.email' | t }}</label>
               <input [value]="email" type="text" class="input opacity-60" disabled />
-              <p class="mt-1 text-xs text-muted-foreground">Sert de nom d'utilisateur — non modifiable.</p>
+              <p class="mt-1 text-xs text-muted-foreground">{{ 'profile.emailHint' | t }}</p>
             </div>
             <div class="md:col-span-2">
-              <label class="field-label">Adresse</label>
-              <input formControlName="address" type="text" class="input" placeholder="Adresse professionnelle" />
+              <label class="field-label">{{ 'profile.address' | t }}</label>
+              <input formControlName="address" type="text" class="input" [attr.placeholder]="'profile.addressPlaceholder' | t" />
             </div>
             <div class="md:col-span-2">
-              <label class="field-label">Biographie</label>
+              <label class="field-label">{{ 'profile.bio' | t }}</label>
               <textarea formControlName="bio" rows="3" class="textarea"
-                placeholder="Quelques mots sur vous (rôle, expertise...)"></textarea>
+                [attr.placeholder]="'profile.bioPlaceholder' | t"></textarea>
               <p class="mt-1 text-xs text-muted-foreground text-right">{{ form.value.bio?.length || 0 }}/1000</p>
             </div>
           </div>
 
           <div class="flex items-center justify-end gap-3 border-t border-border pt-4">
-            <p *ngIf="form.dirty" class="mr-auto text-xs text-muted-foreground">Modifications non enregistrées</p>
-            <button type="button" (click)="cancel()" [disabled]="saving || !form.dirty" class="btn-outline">Annuler</button>
+            <p *ngIf="form.dirty" class="mr-auto text-xs text-muted-foreground">{{ 'profile.unsaved' | t }}</p>
+            <button type="button" (click)="cancel()" [disabled]="saving || !form.dirty" class="btn-outline">{{ 'common.cancel' | t }}</button>
             <button type="submit" [disabled]="saving || !form.dirty" class="btn-primary">
-              {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+              {{ saving ? ('common.saving' | t) : ('common.save' | t) }}
             </button>
           </div>
         </form>

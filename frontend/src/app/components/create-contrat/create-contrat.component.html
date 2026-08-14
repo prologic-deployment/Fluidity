@@ -1,9 +1,9 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
     <div class="max-w-2xl mx-auto px-6 py-5">
-      <a routerLink="/contrats" class="btn-link">&larr; Retour aux contrats</a>
-      <h1 class="text-xl font-semibold tracking-tight mt-1">Ouvrir un contrat</h1>
-      <p class="text-sm text-muted-foreground">Réservé aux administrateurs — associe un contrat à un client.</p>
+      <a routerLink="/contrats" class="btn-link">&larr; {{ 'contracts.backTo' | t }}</a>
+      <h1 class="text-xl font-semibold tracking-tight mt-1">{{ 'contracts.new' | t }}</h1>
+      <p class="text-sm text-muted-foreground">{{ 'contracts.reservedAdmins' | t }}</p>
     </div>
   </header>
 
@@ -20,8 +20,8 @@
             </svg>
           </div>
           <div>
-            <h2 class="card-title">Détails du contrat</h2>
-            <p class="card-description">Rattaché à un client, sert de référence pour ses demandes et changements.</p>
+            <h2 class="card-title">{{ 'contracts.details' | t }}</h2>
+            <p class="card-description">{{ 'contracts.detailsHint' | t }}</p>
           </div>
         </div>
       </div>
@@ -32,58 +32,58 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="field-label">Client</label>
+            <label class="field-label">{{ 'contracts.client' | t }}</label>
             <select formControlName="clientId" class="select">
-              <option value="" disabled>Sélectionner un client...</option>
+              <option value="" disabled>{{ 'contracts.selectClient' | t }}</option>
               <option *ngFor="let cl of clients" [value]="cl._id">{{ cl.nom }} — {{ cl.email }}</option>
             </select>
-            <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="field-error">Champ requis.</p>
+            <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             <p *ngIf="clients.length === 0" class="mt-1 text-xs text-muted-foreground">
-              Aucun client disponible. <a routerLink="/clients/nouveau" class="btn-link">Créer un client</a> avant d'ouvrir un contrat.
+              {{ 'contracts.noClientAvailable' | t }} <a routerLink="/clients/nouveau" class="btn-link">{{ 'contracts.createClientFirst' | t }}</a> {{ 'contracts.beforeContract' | t }}
             </p>
           </div>
           <div>
-            <label class="field-label">Référence</label>
-            <input formControlName="reference" type="text" class="input" placeholder="ex: CTR-2026-003" />
-            <p *ngIf="form.get('reference')?.invalid && form.get('reference')?.touched" class="field-error">Champ requis.</p>
+            <label class="field-label">{{ 'contracts.reference' | t }}</label>
+            <input formControlName="reference" type="text" class="input" [attr.placeholder]="'contracts.referencePlaceholder' | t" />
+            <p *ngIf="form.get('reference')?.invalid && form.get('reference')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
           </div>
           <div class="md:col-span-2">
-            <label class="field-label">Intitulé</label>
+            <label class="field-label">{{ 'contracts.titleField' | t }}</label>
             <input formControlName="intitule" type="text" class="input" />
-            <p *ngIf="form.get('intitule')?.invalid && form.get('intitule')?.touched" class="field-error">Champ requis.</p>
+            <p *ngIf="form.get('intitule')?.invalid && form.get('intitule')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
           </div>
           <div>
-            <label class="field-label">Type de contrat</label>
+            <label class="field-label">{{ 'contracts.type' | t }}</label>
             <select formControlName="typeContrat" class="select">
-              <option *ngFor="let t of types" [value]="t">{{ t }}</option>
+              <option *ngFor="let t of types" [value]="t">{{ t | tl }}</option>
             </select>
           </div>
           <div>
             <label class="field-label">Statut</label>
             <select formControlName="statut" class="select">
-              <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
+              <option *ngFor="let s of statuts" [value]="s">{{ s | tl }}</option>
             </select>
           </div>
           <div>
-            <label class="field-label">Date de début</label>
+            <label class="field-label">{{ 'contracts.start' | t }}</label>
             <input formControlName="dateDebut" type="date" class="input" />
-            <p *ngIf="form.get('dateDebut')?.invalid && form.get('dateDebut')?.touched" class="field-error">Champ requis.</p>
+            <p *ngIf="form.get('dateDebut')?.invalid && form.get('dateDebut')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
           </div>
           <div>
-            <label class="field-label">Date de fin (optionnelle)</label>
+            <label class="field-label">{{ 'contracts.endOptional' | t }}</label>
             <input formControlName="dateFin" type="date" class="input" />
           </div>
         </div>
 
         <div>
-          <label class="field-label">Description</label>
+          <label class="field-label">{{ 'contracts.description' | t }}</label>
           <textarea formControlName="description" rows="3" class="textarea"></textarea>
         </div>
 
         <div class="flex justify-end space-x-3 pt-4 border-t border-border">
-          <a routerLink="/contrats" class="btn-outline">Annuler</a>
+          <a routerLink="/contrats" class="btn-outline">{{ 'common.cancel' | t }}</a>
           <button type="submit" [disabled]="loading" class="btn-primary">
-            {{ loading ? 'Ouverture...' : 'Ouvrir le contrat' }}
+            {{ loading ? ('common.saving' | t) : ('contracts.openContract' | t) }}
           </button>
         </div>
       </div>

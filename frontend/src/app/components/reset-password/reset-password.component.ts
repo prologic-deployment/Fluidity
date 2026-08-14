@@ -3,11 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './reset-password.component.html',
 })
 export class ResetPasswordComponent {
@@ -22,7 +25,8 @@ export class ResetPasswordComponent {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private auth: AuthService
+    private auth: AuthService,
+    private i18n: I18nService
   ) {
     this.token = this.route.snapshot.queryParamMap.get('token');
     this.forgotForm = this.fb.group({
@@ -43,11 +47,11 @@ export class ResetPasswordComponent {
     this.message = null;
     this.auth.forgotPassword(this.forgotForm.value.email).subscribe({
       next: (res) => {
-        this.message = res.message || 'Email de réinitialisation envoyé.';
+        this.message = res.message || this.i18n.t('auth.resetEmailSent');
         this.loading = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de l\'envoi.';
+        this.error = apiErrorMessage(this.i18n, err, 'auth.resetError');
         this.loading = false;
       },
     });
@@ -63,12 +67,12 @@ export class ResetPasswordComponent {
     this.message = null;
     this.auth.resetPassword(this.token, this.resetForm.value.password).subscribe({
       next: (res) => {
-        this.message = res.message || 'Mot de passe réinitialisé.';
+        this.message = res.message || this.i18n.t('auth.resetDone');
         this.loading = false;
         setTimeout(() => this.router.navigate(['/login']), 1500);
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la réinitialisation.';
+        this.error = apiErrorMessage(this.i18n, err, 'auth.resetError');
         this.loading = false;
       },
     });

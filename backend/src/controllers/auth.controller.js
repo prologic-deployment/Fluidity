@@ -8,6 +8,7 @@ const { supprimerFichierUpload } = require('../utils/upload-file.util');
 const { enregistrerActivite } = require('../utils/login-activity.util');
 const { Client } = require('../models/client.model');
 const { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL } = require('../utils/principals');
+const { apiError } = require('../utils/api-error');
 
 /** Message d'aide quand le compte provient de données pré-multi-tenant. */
 const LEGACY_MESSAGE =
@@ -42,13 +43,13 @@ const register = async (req, res) => {
 
     const tenant = await Tenant.findOne({ _id: tenantId, status: 'active' });
     if (!tenant) {
-      res.status(400).json({ message: 'Tenant invalide ou inactif' });
+      apiError(res, 400, 'TENANT_INVALID', 'Tenant invalide ou inactif');
       return;
     }
 
     const existing = await Utilisateur.findOne({ email });
     if (existing) {
-      res.status(409).json({ message: 'Cet email est déjà utilisé' });
+      apiError(res, 409, 'EMAIL_TAKEN', 'Cet email est déjà utilisé');
       return;
     }
 
@@ -165,13 +166,14 @@ const loginClient = async (req, res, email, password) => {
         succes: false, raisonEchec: 'MOT_DE_PASSE_INVALIDE',
       });
     }
-    res.status(401).json({ message: 'Identifiants invalides' });
+    apiError(res, 401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
     return true;
   }
   if (correspondances.length > 1) {
     // Quasi impossible (mots de passe aléatoires) — refus explicite plutôt
     // qu'une connexion sur le mauvais espace de travail.
     res.status(401).json({
+      code: 'MULTIPLE_WORKSPACES',
       message: 'Cet identifiant est présent sur plusieurs espaces. Contactez votre administrateur pour sécuriser l’accès.',
     });
     return true;
@@ -183,7 +185,7 @@ const loginClient = async (req, res, email, password) => {
       userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
       succes: false, raisonEchec: 'COMPTE_INACTIF',
     });
-    res.status(403).json({ message: 'Ce compte est inactif. Contactez votre administrateur.' });
+    apiError(res, 403, 'ACCOUNT_INACTIVE', 'Ce compte est inactif. Contactez votre administrateur.');
     return true;
   }
 
@@ -193,7 +195,7 @@ const loginClient = async (req, res, email, password) => {
       userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
       succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
     });
-    res.status(403).json({ message: "Cet espace de travail n'existe plus." });
+    apiError(res, 403, 'TENANT_NOT_FOUND', "Cet espace de travail n'existe plus.");
     return true;
   }
   if (tenant.status === 'suspended') {
@@ -202,6 +204,7 @@ const loginClient = async (req, res, email, password) => {
       succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
     });
     res.status(403).json({
+      code: 'TENANT_SUSPENDED',
       message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
     });
     return true;
@@ -256,7 +259,7 @@ const login = async (req, res) => {
         userId: user._id, tenantId: user.tenantId || null,
         succes: false, raisonEchec: 'COMPTE_SUSPENDU',
       });
-      res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
+      apiError(res, 403, 'ACCOUNT_SUSPENDED', 'Ce compte est suspendu. Contactez votre administrateur.');
       return;
     }
 
@@ -267,7 +270,7 @@ const login = async (req, res) => {
       enregistrerActivite(req, {
         userId: user._id, tenantId: null, succes: false, raisonEchec: 'DONNEES_HERITEES',
       });
-      res.status(403).json({ message: LEGACY_MESSAGE });
+      apiError(res, 403, 'LEGACY_DATA', LEGACY_MESSAGE);
       return;
     }
 
@@ -355,7 +358,7 @@ const resetPassword = async (req, res) => {
       resetTokenExpiry: { $gt: new Date() },
     });
     if (!user) {
-      res.status(400).json({ message: 'Token invalide ou expiré' });
+      apiError(res, 400, 'RESET_TOKEN_INVALID', 'Token invalide ou expiré');
       return;
     }
 
@@ -381,7 +384,7 @@ const me = async (req, res) => {
     if (req.principalType === PRINCIPAL_CLIENT) {
       const client = await Client.findOne({ _id: req.userId, tenantId: req.tenantId }).lean();
       if (!client) {
-        res.status(404).json({ message: 'Client introuvable' });
+        apiError(res, 404, 'CLIENT_NOT_FOUND', 'Client introuvable');
         return;
       }
       res.status(200).json({
@@ -408,7 +411,7 @@ const me = async (req, res) => {
     const user = await Utilisateur.findOne(filter).select('-password -resetToken -resetTokenExpiry');
 
     if (!user) {
-      res.status(404).json({ message: 'Utilisateur introuvable' });
+      apiError(res, 404, 'USER_NOT_FOUND', 'Utilisateur introuvable');
       return;
     }
     res.status(200).json({
@@ -505,11 +508,11 @@ const changePassword = async (req, res) => {
       }
       const valideClient = await client.comparePassword(currentPassword);
       if (!valideClient) {
-        res.status(401).json({ message: 'Mot de passe actuel incorrect' });
+        apiError(res, 401, 'CURRENT_PASSWORD_INVALID', 'Mot de passe actuel incorrect');
         return;
       }
       if (currentPassword === newPassword) {
-        res.status(400).json({ message: 'Le nouveau mot de passe doit être différent de l’actuel' });
+        apiError(res, 400, 'PASSWORD_SAME', 'Le nouveau mot de passe doit être différent de l’actuel');
         return;
       }
       client.password = newPassword; // hashé via le hook pre-save

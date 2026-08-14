@@ -5,13 +5,13 @@
       <div class="flex items-center gap-3">
         <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-900/20 font-bold">S</div>
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Plateforme — Tenants</h1>
-          <p class="text-sm text-muted-foreground">Supervision multi-tenant : abonnements, licences, cycle de vie.</p>
+          <h1 class="text-xl font-semibold tracking-tight">{{ 'tenants.title' | t }}</h1>
+          <p class="text-sm text-muted-foreground">{{ 'tenants.subtitle' | t }}</p>
         </div>
       </div>
       <button (click)="openCreate()" class="btn-primary transition-transform hover:scale-[1.03]">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-        Nouveau tenant
+        {{ 'tenants.create' | t }}
       </button>
     </div>
   </header>
@@ -23,27 +23,27 @@
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.tenants?.active ?? '—' }}</p>
-        <p class="text-xs text-muted-foreground">Tenants actifs</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.activeCount' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.tenants?.suspended ?? '—' }}</p>
-        <p class="text-xs text-muted-foreground">Tenants suspendus</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.suspendedCount' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.users ?? '—' }}</p>
-        <p class="text-xs text-muted-foreground">Utilisateurs</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.users' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.clients ?? '—' }}</p>
-        <p class="text-xs text-muted-foreground">Clients</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.clients' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.demandes ?? '—' }}</p>
-        <p class="text-xs text-muted-foreground">Demandes</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.demandes' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.changements ?? '—' }}</p>
-        <p class="text-xs text-muted-foreground">Changements</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.changements' | t }}</p>
       </div></div>
     </div>
 
@@ -54,16 +54,16 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un tenant..." class="search-input" />
+        <input type="text" [(ngModel)]="searchTerm" [attr.placeholder]="'tenants.searchPh' | t" class="search-input" />
       </div>
       <select [(ngModel)]="statutFiltre" class="filter-select">
-        <option value="">Tous les statuts</option>
-        <option value="active">Actif</option>
-        <option value="suspended">Suspendu</option>
+        <option value="">{{ 'tenants.allStatuses' | t }}</option>
+        <option value="active">{{ 'tenants.active' | t }}</option>
+        <option value="suspended">{{ 'tenants.suspended' | t }}</option>
       </select>
       <select [(ngModel)]="planFiltre" class="filter-select">
-        <option value="">Tous les plans</option>
-        <option *ngFor="let p of plans" [value]="p">{{ p }}</option>
+        <option value="">{{ 'tenants.allPlans' | t }}</option>
+        <option *ngFor="let p of plans" [value]="p">{{ p | tl }}</option>
       </select>
     </div>
 
@@ -82,7 +82,7 @@
 
     <div *ngIf="!loading && filteredTenants().length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
-        Aucun tenant ne correspond à ces critères.
+        {{ 'tenants.none' | t }}
       </div>
     </div>
 
@@ -90,13 +90,13 @@
       <table class="table">
         <thead>
           <tr>
-            <th>Tenant</th>
-            <th>Type</th>
-            <th>Plan</th>
-            <th>Licences</th>
-            <th>Activité</th>
-            <th>Statut</th>
-            <th class="text-right">Actions</th>
+            <th>{{ 'tenants.tenantCol' | t }}</th>
+            <th>{{ 'tenants.type' | t }}</th>
+            <th>{{ 'tenants.plan' | t }}</th>
+            <th>{{ 'tenants.licenses' | t }}</th>
+            <th>{{ 'tenants.activity' | t }}</th>
+            <th>{{ 'tenants.status' | t }}</th>
+            <th class="text-right">{{ 'common.actionsCol' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -113,45 +113,45 @@
                 </div>
               </div>
             </td>
-            <td class="text-muted-foreground">{{ t.type === 'Individual' ? 'Individu' : 'Entreprise' }}</td>
+            <td class="text-muted-foreground">{{ t.type === 'Individual' ? ('catalog.Individual' | t) : ('catalog.Company' | t) }}</td>
             <td><span class="badge-secondary"><span class="badge-dot"></span>{{ t.plan }}</span></td>
             <td>
               <div class="w-28">
-                <p class="text-xs mb-1">{{ t.stats?.license?.activeUsers ?? 0 }}/{{ t.stats?.license?.maxUsers ?? t.maxUsers ?? 0 }} utilisateurs</p>
+                <p class="text-xs mb-1">{{ t.stats?.license?.activeUsers ?? 0 }}/{{ t.stats?.license?.maxUsers ?? t.maxUsers ?? 0 }} {{ 'tenants.users' | t }}</p>
                 <div class="h-1.5 rounded-full bg-muted overflow-hidden">
                   <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" [style.width.%]="licensePct(t)"></div>
                 </div>
               </div>
             </td>
             <td class="text-muted-foreground text-xs">
-              {{ t.stats?.demandes ?? 0 }} demandes · {{ t.stats?.changements ?? 0 }} changements
+              {{ t.stats?.demandes ?? 0 }} {{ 'tenants.demandes' | t }} · {{ t.stats?.changements ?? 0 }} {{ 'tenants.changements' | t }}
             </td>
             <td>
               <span [class]="statutClass(t.status)"><span class="badge-dot"></span>{{ statutLabel(t.status) }}</span>
             </td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button (click)="consulter(t)" title="Consulter l'espace (impersonation)"
+                <button (click)="consulter(t)" [title]="'tenants.impersonate' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </button>
-                <button (click)="openEdit(t)" title="Modifier (plan, licences, marque)"
+                <button (click)="openEdit(t)" [title]="'common.edit' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                   </svg>
                 </button>
-                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? 'Suspendre' : 'Réactiver'"
+                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? ('tenants.suspend' | t) : ('tenants.reactivate' | t)"
                   class="btn-icon-sm text-muted-foreground hover:bg-warning/10 hover:text-amber-600">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="6" y="4" width="4" height="16" rx="1"></rect>
                     <rect x="14" y="4" width="4" height="16" rx="1"></rect>
                   </svg>
                 </button>
-                <button (click)="supprimer(t)" title="Supprimer le tenant"
+                <button (click)="supprimer(t)" [title]="'tenants.delete' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
@@ -168,68 +168,68 @@
 </div>
 
 <!-- Modal création -->
-<app-modal [open]="showCreate" [title]="'Nouveau tenant'" [subtitle]="'Créer un espace de travail isolé (entreprise ou individu)'" (closed)="closeCreate()">
+<app-modal [open]="showCreate" [title]="'tenants.create' | t" [subtitle]="'tenants.createSubtitle' | t" (closed)="closeCreate()">
   <form [formGroup]="createForm" (ngSubmit)="submitCreate()" class="space-y-4">
     <p *ngIf="formError" class="alert-destructive">{{ formError }}</p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="md:col-span-2">
-        <label class="field-label">Nom du tenant *</label>
-        <input formControlName="name" type="text" class="input" placeholder="ex : Acme Corp" />
+        <label class="field-label">{{ 'tenants.nameLabel' | t }}</label>
+        <input formControlName="name" type="text" class="input" [attr.placeholder]="'tenants.namePlaceholder' | t" />
       </div>
       <div>
-        <label class="field-label">Type</label>
+        <label class="field-label">{{ 'tenants.type' | t }}</label>
         <select formControlName="type" class="select">
-          <option *ngFor="let t of types" [value]="t">{{ t === 'Individual' ? 'Individu' : 'Entreprise' }}</option>
+          <option *ngFor="let t of types" [value]="t">{{ t === 'Individual' ? ('catalog.Individual' | t) : ('catalog.Company' | t) }}</option>
         </select>
       </div>
       <div>
-        <label class="field-label">Email de contact</label>
-        <input formControlName="contactEmail" type="email" class="input" placeholder="contact@acme.com" />
+        <label class="field-label">{{ 'tenants.contactEmail' | t }}</label>
+        <input formControlName="contactEmail" type="email" class="input" [attr.placeholder]="'tenants.emailPlaceholder' | t" />
       </div>
       <div>
-        <label class="field-label">Plan</label>
+        <label class="field-label">{{ 'tenants.plan' | t }}</label>
         <select formControlName="plan" class="select">
-          <option *ngFor="let p of plans" [value]="p">{{ p }}</option>
+          <option *ngFor="let p of plans" [value]="p">{{ p | tl }}</option>
         </select>
       </div>
       <div>
-        <label class="field-label">Licences utilisateurs</label>
+        <label class="field-label">{{ 'tenants.maxUsers' | t }}</label>
         <input formControlName="maxUsers" type="number" min="1" class="input" />
       </div>
       <div>
-        <label class="field-label">Couleur principale</label>
+        <label class="field-label">{{ 'tenants.primaryColor' | t }}</label>
         <input formControlName="primaryColor" type="color" class="input h-10" />
       </div>
       <div>
-        <label class="field-label">Couleur secondaire</label>
+        <label class="field-label">{{ 'tenants.secondaryColor' | t }}</label>
         <input formControlName="secondaryColor" type="color" class="input h-10" />
       </div>
     </div>
 
-    <p class="detail-section-title">Compte Tenant Admin (optionnel)</p>
+    <p class="detail-section-title">{{ 'tenants.adminAccount' | t }}</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
-        <label class="field-label">Email</label>
-        <input formControlName="adminEmail" type="email" class="input" placeholder="admin@acme.com" />
+        <label class="field-label">{{ 'tenants.adminEmail' | t }}</label>
+        <input formControlName="adminEmail" type="email" class="input" [attr.placeholder]="'tenants.adminEmailPlaceholder' | t" />
       </div>
       <div>
-        <label class="field-label">Mot de passe</label>
-        <input formControlName="adminPassword" type="password" class="input" placeholder="6 caractères minimum" />
+        <label class="field-label">{{ 'tenants.adminPassword' | t }}</label>
+        <input formControlName="adminPassword" type="password" class="input" [attr.placeholder]="'tenants.adminPasswordHint' | t" />
       </div>
     </div>
 
     <div class="flex justify-end gap-2 pt-4 border-t border-border">
-      <button type="button" (click)="closeCreate()" class="btn-outline">Annuler</button>
+      <button type="button" (click)="closeCreate()" class="btn-outline">{{ 'common.cancel' | t }}</button>
       <button type="submit" [disabled]="createForm.invalid || submitting" class="btn-primary">
-        {{ submitting ? 'Création...' : 'Créer le tenant' }}
+        {{ submitting ? ('common.creation' | t) + '...' : ('tenants.create' | t) }}
       </button>
     </div>
   </form>
 </app-modal>
 
 <!-- Modal édition -->
-<app-modal [open]="!!editing" [title]="editing?.name || ''" [subtitle]="'Plan, licences et marque (white-label)'" (closed)="closeEdit()">
+<app-modal [open]="!!editing" [title]="editing?.name || ''" [subtitle]="'tenants.editSubtitle' | t" (closed)="closeEdit()">
   <form [formGroup]="editForm" (ngSubmit)="submitEdit()" class="space-y-4">
     <p *ngIf="formError" class="alert-destructive">{{ formError }}</p>
 
@@ -237,7 +237,7 @@
       <div>
         <label class="field-label">Plan</label>
         <select formControlName="plan" class="select">
-          <option *ngFor="let p of plans" [value]="p">{{ p }}</option>
+          <option *ngFor="let p of plans" [value]="p">{{ p | tl }}</option>
         </select>
       </div>
       <div>
@@ -249,16 +249,16 @@
         <input formControlName="contactEmail" type="email" class="input" />
       </div>
       <div>
-        <label class="field-label">Téléphone</label>
+        <label class="field-label">{{ 'tenants.phone' | t }}</label>
         <input formControlName="phone" type="text" class="input" />
       </div>
       <div class="md:col-span-2">
-        <label class="field-label">Adresse</label>
+        <label class="field-label">{{ 'tenants.address' | t }}</label>
         <input formControlName="address" type="text" class="input" />
       </div>
       <div class="md:col-span-2">
-        <label class="field-label">Site web</label>
-        <input formControlName="website" type="text" class="input" placeholder="https://..." />
+        <label class="field-label">{{ 'tenants.website' | t }}</label>
+        <input formControlName="website" type="text" class="input" [attr.placeholder]="'tenants.websitePlaceholder' | t" />
       </div>
       <div>
         <label class="field-label">Couleur principale</label>
@@ -271,9 +271,9 @@
     </div>
 
     <div class="flex justify-end gap-2 pt-4 border-t border-border">
-      <button type="button" (click)="closeEdit()" class="btn-outline">Annuler</button>
+      <button type="button" (click)="closeEdit()" class="btn-outline">{{ 'common.cancel' | t }}</button>
       <button type="submit" [disabled]="editForm.invalid || submitting" class="btn-primary">
-        {{ submitting ? 'Enregistrement...' : 'Enregistrer' }}
+        {{ submitting ? ('common.saving' | t) : ('common.save' | t) }}
       </button>
     </div>
   </form>

@@ -27,8 +27,8 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
               <label class="field-label">{{ 'tickets.subject' | t }}</label>
-              <input formControlName="objet" type="text" maxlength="200" class="input" placeholder="Serveur de production inaccessible" />
-              <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">Objet requis (200 caractères max).</p>
+              <input formControlName="objet" type="text" maxlength="200" class="input" [attr.placeholder]="'tickets.subjectPlaceholder' | t" />
+              <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">{{ 'tickets.subjectRequired' | t }}</p>
             </div>
             <div>
               <label class="field-label">{{ 'tickets.contract' | t }}</label>
@@ -36,13 +36,13 @@
                 <option value="" disabled>{{ 'tickets.selectContract' | t }}</option>
                 <option *ngFor="let ct of contrats" [value]="ct._id">{{ ct.reference }} — {{ ct.intitule }}</option>
               </select>
-              <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Contrat requis.</p>
+              <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">{{ 'tickets.contractRequired' | t }}</p>
             </div>
             <div>
               <label class="field-label">{{ 'tickets.category' | t }}</label>
               <select formControlName="categorie" class="select">
                 <option value="" disabled>{{ 'common.select' | t }}</option>
-                <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+                <option *ngFor="let c of categories" [value]="c">{{ c | tl }}</option>
               </select>
               <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
@@ -55,7 +55,7 @@
               <label class="field-label">{{ 'tickets.subcategory' | t }}</label>
               <select formControlName="sousCategorie" class="select">
                 <option value="" disabled>{{ 'common.select' | t }}</option>
-                <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
+                <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc | tl }}</option>
               </select>
               <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
@@ -68,14 +68,14 @@
               <label class="field-label">{{ 'tickets.impact' | t }}</label>
               <select formControlName="impact" class="select">
                 <option value="" disabled>{{ 'common.select' | t }}</option>
-                <option *ngFor="let i of impacts" [value]="i">{{ i }}</option>
+                <option *ngFor="let i of impacts" [value]="i">{{ i | tl }}</option>
               </select>
             </div>
             <div>
               <label class="field-label">{{ 'tickets.urgency' | t }}</label>
               <select formControlName="urgence" class="select">
                 <option value="" disabled>{{ 'common.select' | t }}</option>
-                <option *ngFor="let u of urgences" [value]="u">{{ u }}</option>
+                <option *ngFor="let u of urgences" [value]="u">{{ u | tl }}</option>
               </select>
             </div>
             <div class="md:col-span-2">
@@ -99,12 +99,12 @@
             <label class="field-label">{{ 'tickets.description' | t }}</label>
             <textarea formControlName="descriptionDetaillee" rows="5" class="textarea"
               placeholder="{{ 'tickets.descriptionHint' | t }}"></textarea>
-            <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">Description requise (min. 10 caractères).</p>
+            <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">{{ 'tickets.descriptionRequired' | t }}</p>
           </div>
           <div>
             <label class="field-label">{{ 'tickets.attachments' | t }}</label>
             <app-dropzone categorie="tickets" accept=".pdf,.txt,.log,.png,.jpg,.jpeg,.zip" [multiple]="true"
-              hint="Captures, journaux, exports — 15 Mo max"
+              [hint]="'dropzone.ticketsHint2' | t"
               (filesChange)="onPiecesJointesChange($event)"></app-dropzone>
           </div>
         </div>

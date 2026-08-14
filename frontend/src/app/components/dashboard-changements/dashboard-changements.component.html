@@ -12,13 +12,13 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Changements d'infrastructure</h1>
-          <p class="text-sm text-muted-foreground">Suivi des demandes de changement soumises pour validation.</p>
+          <h1 class="text-xl font-semibold tracking-tight">{{ 'changements.title' | t }}</h1>
+          <p class="text-sm text-muted-foreground">{{ 'changements.subtitle' | t }}</p>
         </div>
       </div>
       <a *ngIf="auth.isClient()" routerLink="/changements/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-        Nouveau changement
+        {{ 'changements.new' | t }}
       </a>
     </div>
   </header>
@@ -37,7 +37,7 @@
           </span>
           <div class="min-w-0">
             <p class="text-2xl font-semibold leading-none tabular-nums">{{ totalCount }}</p>
-            <p class="mt-1.5 text-xs text-muted-foreground">Changements au total</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ 'changements.total' | t }}</p>
           </div>
         </div>
       </div>
@@ -50,7 +50,7 @@
           </span>
           <div class="min-w-0">
             <p class="text-2xl font-semibold leading-none tabular-nums">{{ enCoursCount }}</p>
-            <p class="mt-1.5 text-xs text-muted-foreground">En cours de traitement</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ 'changements.enCours' | t }}</p>
           </div>
         </div>
       </div>
@@ -63,7 +63,7 @@
           </span>
           <div class="min-w-0">
             <p class="text-2xl font-semibold leading-none tabular-nums">{{ aValiderCount }}</p>
-            <p class="mt-1.5 text-xs text-muted-foreground">À valider</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ 'changements.aValider' | t }}</p>
           </div>
         </div>
       </div>
@@ -76,7 +76,7 @@
           </span>
           <div class="min-w-0">
             <p class="text-2xl font-semibold leading-none tabular-nums">{{ terminesCount }}</p>
-            <p class="mt-1.5 text-xs text-muted-foreground">Implémentés / clôturés</p>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ 'changements.termines' | t }}</p>
           </div>
         </div>
       </div>
@@ -90,30 +90,30 @@
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
           </svg>
-          <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un objet, client, catégorie..." class="search-input" />
-          <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+          <input type="text" [(ngModel)]="searchTerm" [attr.placeholder]="'changements.searchPh' | t" class="search-input" />
+          <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" [title]="'common.clear' | t">
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
           </button>
         </div>
 
         <select [(ngModel)]="statutFiltre" class="filter-select">
-          <option value="">Tous les statuts</option>
-          <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
+          <option value="">{{ 'changements.allStatuses' | t }}</option>
+          <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s | tl }}</option>
         </select>
 
         <select [(ngModel)]="typeFiltre" class="filter-select">
-          <option value="">Tous les types</option>
-          <option *ngFor="let t of typesFiltrables" [value]="t">{{ t }}</option>
+          <option value="">{{ 'changements.allTypes' | t }}</option>
+          <option *ngFor="let t of typesFiltrables" [value]="t">{{ t | tl }}</option>
         </select>
 
         <select *ngIf="clientsFiltres.length > 1" [(ngModel)]="clientFiltre" class="filter-select">
-          <option value="">Tous les clients</option>
+          <option value="">{{ 'changements.allClients' | t }}</option>
           <option *ngFor="let cl of clientsFiltres" [value]="cl">{{ cl }}</option>
         </select>
 
         <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
           <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
-          Réinitialiser
+          {{ 'common.resetFilters' | t }}
         </button>
 
         <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading && changements.length > 0">
@@ -149,7 +149,7 @@
             <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
           </svg>
         </div>
-        Aucun changement pour le moment.
+        {{ 'changements.none' | t }}
       </div>
     </div>
 
@@ -161,8 +161,8 @@
             <path d="m21 21-4.35-4.35"></path>
           </svg>
         </div>
-        Aucun résultat pour ces filtres.
-        <br /><button (click)="resetFilters()" class="btn-link">Réinitialiser les filtres</button>
+        {{ 'changements.noResults' | t }}
+        <br /><button (click)="resetFilters()" class="btn-link">{{ 'common.resetFilters' | t }}</button>
       </div>
     </div>
 
@@ -172,7 +172,7 @@
           <tr>
             <th [attr.aria-sort]="triColonne === 'objet' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
               <button type="button" class="th-sort" (click)="trierPar('objet')">
-                Objet
+                {{ 'changements.objectCol' | t }}
                 <svg [ngClass]="triColonne === 'objet' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path [attr.d]="triColonne === 'objet' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
                 </svg>
@@ -180,7 +180,7 @@
             </th>
             <th [attr.aria-sort]="triColonne === 'client' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
               <button type="button" class="th-sort" (click)="trierPar('client')">
-                Client
+                {{ 'changements.clientCol' | t }}
                 <svg [ngClass]="triColonne === 'client' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path [attr.d]="triColonne === 'client' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
                 </svg>
@@ -188,7 +188,7 @@
             </th>
             <th class="hidden md:table-cell" [attr.aria-sort]="triColonne === 'categorie' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
               <button type="button" class="th-sort" (click)="trierPar('categorie')">
-                Catégorie
+                {{ 'demandes.category' | t }}
                 <svg [ngClass]="triColonne === 'categorie' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path [attr.d]="triColonne === 'categorie' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
                 </svg>
@@ -196,7 +196,7 @@
             </th>
             <th [attr.aria-sort]="triColonne === 'type' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
               <button type="button" class="th-sort" (click)="trierPar('type')">
-                Type
+                {{ 'changements.typeCol' | t }}
                 <svg [ngClass]="triColonne === 'type' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path [attr.d]="triColonne === 'type' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
                 </svg>
@@ -204,7 +204,7 @@
             </th>
             <th [attr.aria-sort]="triColonne === 'statut' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
               <button type="button" class="th-sort" (click)="trierPar('statut')">
-                Statut
+                {{ 'changements.statusCol' | t }}
                 <svg [ngClass]="triColonne === 'statut' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path [attr.d]="triColonne === 'statut' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
                 </svg>
@@ -212,13 +212,13 @@
             </th>
             <th class="hidden lg:table-cell" [attr.aria-sort]="triColonne === 'date' ? (triDirection === 1 ? 'ascending' : 'descending') : 'none'">
               <button type="button" class="th-sort" (click)="trierPar('date')">
-                Date
+                {{ 'changements.dateCol' | t }}
                 <svg [ngClass]="triColonne === 'date' ? '' : 'tri-inactif'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path [attr.d]="triColonne === 'date' && triDirection === -1 ? 'm6 9 6 6 6-6' : 'm18 15-6-6-6 6'"></path>
                 </svg>
               </button>
             </th>
-            <th class="text-right">Actions</th>
+            <th class="text-right">{{ 'common.actionsCol' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -230,17 +230,17 @@
               <p class="font-medium">{{ clientNom(c) }}</p>
               <p class="text-xs text-muted-foreground">{{ requesterEmail(c) }}</p>
             </td>
-            <td class="text-muted-foreground hidden md:table-cell">{{ c.categorie }} / {{ c.sousCategorie }}</td>
+            <td class="text-muted-foreground hidden md:table-cell">{{ c.categorie | tl }} / {{ c.sousCategorie | tl }}</td>
             <td>
-              <span [class]="typeClass(c.typeChangement)"><span class="badge-dot"></span>{{ c.typeChangement }}</span>
+              <span [class]="typeClass(c.typeChangement)"><span class="badge-dot"></span>{{ c.typeChangement | tl }}</span>
             </td>
             <td>
-              <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
+              <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut | tl }}</span>
             </td>
-            <td class="text-muted-foreground hidden lg:table-cell">{{ c.createdAt | date: 'dd/MM/yyyy' }}</td>
+            <td class="text-muted-foreground hidden lg:table-cell">{{ c.createdAt | dateLocale: 'short' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="isAnnulable(c)" (click)="$event.stopPropagation(); annulerChangement(c._id)" title="Annuler ce changement"
+                <button *ngIf="isAnnulable(c)" (click)="$event.stopPropagation(); annulerChangement(c._id)" [title]="'changements.cancel' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="9"></circle>
@@ -267,12 +267,12 @@
               <svg class="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path>
               </svg>
-              Répartition par statut
+              {{ 'changements.byStatus' | t }}
             </h3>
             <div class="space-y-2.5" *ngIf="distribution.length > 0; else aucuneDonnee">
               <div *ngFor="let row of distribution">
                 <div class="flex items-center justify-between gap-2 text-xs">
-                  <span class="truncate text-muted-foreground" [title]="row.label">{{ row.label }}</span>
+                  <span class="truncate text-muted-foreground" [title]="row.label | tl">{{ row.label | tl }}</span>
                   <span class="font-medium tabular-nums">{{ row.count }}</span>
                 </div>
                 <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -281,7 +281,7 @@
               </div>
             </div>
             <ng-template #aucuneDonnee>
-              <p class="text-xs text-muted-foreground">Aucune donnée à afficher.</p>
+              <p class="text-xs text-muted-foreground">{{ 'common.noData' | t }}</p>
             </ng-template>
           </div>
         </section>
@@ -292,23 +292,23 @@
               <svg class="h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
-              Actions rapides
+              {{ 'changements.quickActions' | t }}
             </h3>
             <a *ngIf="auth.isClient()" routerLink="/changements/nouveau" class="btn-primary w-full justify-center">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-              Nouveau changement
+              {{ 'changements.new' | t }}
             </a>
             <a routerLink="/demandes" class="btn-outline w-full justify-center">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
               </svg>
-              Voir les demandes
+              {{ 'changements.viewDemandes' | t }}
             </a>
             <a routerLink="/contrats" class="btn-outline w-full justify-center">
               <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>
               </svg>
-              Voir les contrats
+              {{ 'changements.viewContracts' | t }}
             </a>
           </div>
         </section>
@@ -318,11 +318,11 @@
 </div>
 
 <!-- Modal de détail (élargie : lecture confortable de toutes les informations) -->
-<app-modal size="xl" [open]="!!selected" [title]="selected?.objetChangement || ''" [subtitle]="selected?.categorie + ' / ' + selected?.sousCategorie" (closed)="closeDetails()">
+<app-modal size="xl" [open]="!!selected" [title]="selected?.objetChangement || ''" [subtitle]="(selected?.categorie | tl) + ' / ' + (selected?.sousCategorie | tl)" (closed)="closeDetails()">
   <ng-container *ngIf="selected as c">
     <div class="flex flex-wrap items-center gap-2 mb-5">
-      <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
-      <span [class]="typeClass(c.typeChangement)"><span class="badge-dot"></span>Type : {{ c.typeChangement }}</span>
+      <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut | tl }}</span>
+      <span [class]="typeClass(c.typeChangement)"><span class="badge-dot"></span>{{ 'changements.typeChangement' | t }} : {{ c.typeChangement | tl }}</span>
     </div>
 
     <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
@@ -330,7 +330,7 @@
       <div class="min-w-0 space-y-5">
         <!-- Frise de progression du workflow -->
         <section class="rounded-xl border border-border bg-muted/30 px-4 py-4">
-          <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Progression du workflow</p>
+          <p class="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'changements.progress' | t }}</p>
           <app-workflow-stepper
             [steps]="pisteWorkflow"
             [current]="etapeCourante(c.statut)"
@@ -340,14 +340,14 @@
 
         <!-- Informations générales -->
         <section>
-          <p class="detail-section-title">Informations générales</p>
+          <p class="detail-section-title">{{ 'changements.generalInfo' | t }}</p>
           <div class="detail-grid">
             <div>
-              <p class="detail-label">Service / Environnement</p>
-              <p class="detail-value">{{ c.serviceEnvironnement }}</p>
+              <p class="detail-label">{{ 'changements.serviceEnv' | t }}</p>
+              <p class="detail-value">{{ c.serviceEnvironnement | tl }}</p>
             </div>
             <div>
-              <p class="detail-label">Contrat</p>
+              <p class="detail-label">{{ 'changements.contract' | t }}</p>
               <p class="detail-value">{{ contratLabel(c) }}</p>
             </div>
           </div>
@@ -355,135 +355,134 @@
 
         <!-- Description -->
         <section>
-          <p class="detail-section-title">Description détaillée</p>
+          <p class="detail-section-title">{{ 'changements.detailedDescription' | t }}</p>
           <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ c.descriptionDetaillee }}</p>
         </section>
 
         <section>
-          <p class="detail-section-title">Plan de retour arrière</p>
+          <p class="detail-section-title">{{ 'changements.rollbackPlan' | t }}</p>
           <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ c.planRetourArriere }}</p>
         </section>
 
         <section *ngIf="c.prerequisNecessaires">
-          <p class="detail-section-title">Prérequis nécessaires</p>
+          <p class="detail-section-title">{{ 'changements.prerequisites' | t }}</p>
           <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ c.prerequisNecessaires }}</p>
         </section>
 
         <!-- Spécifications techniques -->
         <section *ngIf="c.specifications">
-          <p class="detail-section-title">Spécifications techniques</p>
-      <p class="detail-section-title">Spécifications techniques</p>
+          <p class="detail-section-title">{{ 'changements.technicalSpecs' | t }}</p>
       <div class="detail-grid">
         <ng-container *ngIf="c.specifications.general as g">
-          <div *ngIf="g.ressourcesConcernees"><p class="detail-label">Ressources concernées</p><p class="detail-value">{{ g.ressourcesConcernees }}</p></div>
+          <div *ngIf="g.ressourcesConcernees"><p class="detail-label">{{ 'specs.resources' | t }}</p><p class="detail-value">{{ g.ressourcesConcernees }}</p></div>
           <!-- <div *ngIf="g.environnement"><p class="detail-label">Environnement</p><p class="detail-value">{{ g.environnement }}</p></div> -->
         </ng-container>
         <ng-container *ngIf="c.specifications.serveur as s">
-          <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
-          <div *ngIf="s.hostname"><p class="detail-label">Hostname</p><p class="detail-value">{{ s.hostname }}</p></div>
-          <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
-          <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
-          <div *ngIf="$any(s).vmCible"><p class="detail-label">VM cible</p><p class="detail-value">{{ $any(s).vmCible }}</p></div>
-          <div *ngIf="$any(s).vmSource"><p class="detail-label">VM source</p><p class="detail-value">{{ $any(s).vmSource }}</p></div>
-          <div *ngIf="$any(s).nomSnapshot"><p class="detail-label">Snapshot</p><p class="detail-value">{{ $any(s).nomSnapshot }}</p></div>
+          <div *ngIf="s.os"><p class="detail-label">{{ 'specs.f.os' | t }}</p><p class="detail-value">{{ s.os }}</p></div>
+          <div *ngIf="s.hostname"><p class="detail-label">{{ 'specs.f.hostname' | t }}</p><p class="detail-value">{{ s.hostname }}</p></div>
+          <div *ngIf="s.cpuCores"><p class="detail-label">{{ 'specs.f.cpuCores' | t }}</p><p class="detail-value">{{ s.cpuCores }}</p></div>
+          <div *ngIf="s.ramGo"><p class="detail-label">{{ 'specs.f.ramGo' | t }}</p><p class="detail-value">{{ s.ramGo }}</p></div>
+          <div *ngIf="$any(s).vmCible"><p class="detail-label">{{ 'specs.f.vmCible' | t }}</p><p class="detail-value">{{ $any(s).vmCible }}</p></div>
+          <div *ngIf="$any(s).vmSource"><p class="detail-label">{{ 'specs.f.vmSource' | t }}</p><p class="detail-value">{{ $any(s).vmSource }}</p></div>
+          <div *ngIf="$any(s).nomSnapshot"><p class="detail-label">{{ 'specs.f.nomSnapshot' | t }}</p><p class="detail-value">{{ $any(s).nomSnapshot }}</p></div>
           <div *ngIf="s.disques?.length" class="md:col-span-2">
-            <p class="detail-label">Disques</p>
+            <p class="detail-label">{{ 'specs.f.disques' | t }}</p>
             <ul class="detail-value space-y-0.5">
-              <li *ngFor="let d of s.disques">{{ d.capaciteGo }} Go — {{ d.type === 'Autre' && d.typePrecision ? d.typePrecision : d.type }}</li>
+              <li *ngFor="let d of s.disques">{{ d.capaciteGo }} Go — {{ d.type === 'Autre' && d.typePrecision ? d.typePrecision : (d.type | tl) }}</li>
             </ul>
           </div>
           <!-- Ancien format (enregistrements historiques) -->
-          <div *ngIf="!s.disques?.length && $any(s).disqueNvmeGo"><p class="detail-label">Disque NVMe (Go)</p><p class="detail-value">{{ $any(s).disqueNvmeGo }}</p></div>
-          <div *ngIf="!s.disques?.length && $any(s).disqueSasGo"><p class="detail-label">Disque SAS (Go)</p><p class="detail-value">{{ $any(s).disqueSasGo }}</p></div>
+          <div *ngIf="!s.disques?.length && $any(s).disqueNvmeGo"><p class="detail-label">{{ 'specs.f.disqueNvmeGo' | t }}</p><p class="detail-value">{{ $any(s).disqueNvmeGo }}</p></div>
+          <div *ngIf="!s.disques?.length && $any(s).disqueSasGo"><p class="detail-label">{{ 'specs.f.disqueSasGo' | t }}</p><p class="detail-value">{{ $any(s).disqueSasGo }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.reseau as r">
-          <div *ngIf="r.vlan"><p class="detail-label">VLAN</p><p class="detail-value">{{ r.vlan }}</p></div>
-          <div *ngIf="r.adresseIp"><p class="detail-label">Adresse IP</p><p class="detail-value">{{ r.adresseIp }}</p></div>
-          <div *ngIf="r.masqueSousReseau"><p class="detail-label">Masque</p><p class="detail-value">{{ r.masqueSousReseau }}</p></div>
-          <div *ngIf="r.passerelle"><p class="detail-label">Passerelle</p><p class="detail-value">{{ r.passerelle }}</p></div>
-          <div *ngIf="r.dnsPrimaire"><p class="detail-label">DNS primaire</p><p class="detail-value">{{ r.dnsPrimaire }}</p></div>
-          <div *ngIf="r.dnsSecondaire"><p class="detail-label">DNS secondaire</p><p class="detail-value">{{ r.dnsSecondaire }}</p></div>
-          <div *ngIf="r.routage"><p class="detail-label">Routage</p><p class="detail-value">{{ r.routage }}</p></div>
-          <div *ngIf="$any(r).vlanName"><p class="detail-label">Nom VLAN</p><p class="detail-value">{{ $any(r).vlanName }}</p></div>
-          <div *ngIf="$any(r).zoneDns"><p class="detail-label">Zone DNS</p><p class="detail-value">{{ $any(r).zoneDns }}</p></div>
-          <div *ngIf="$any(r).typeEnregistrement"><p class="detail-label">Type d'enregistrement</p><p class="detail-value">{{ $any(r).typeEnregistrement }}</p></div>
-          <div *ngIf="$any(r).nomEnregistrement"><p class="detail-label">Nom d'enregistrement</p><p class="detail-value">{{ $any(r).nomEnregistrement }}</p></div>
-          <div *ngIf="$any(r).ssid"><p class="detail-label">SSID</p><p class="detail-value">{{ $any(r).ssid }}</p></div>
-          <div *ngIf="$any(r).typeVpn"><p class="detail-label">Type VPN</p><p class="detail-value">{{ $any(r).typeVpn }}</p></div>
-          <div *ngIf="$any(r).vip"><p class="detail-label">VIP</p><p class="detail-value">{{ $any(r).vip }}</p></div>
-          <div *ngIf="$any(r).typeProxy"><p class="detail-label">Type proxy</p><p class="detail-value">{{ $any(r).typeProxy }}</p></div>
+          <div *ngIf="r.vlan"><p class="detail-label">{{ 'specs.f.vlan' | t }}</p><p class="detail-value">{{ r.vlan }}</p></div>
+          <div *ngIf="r.adresseIp"><p class="detail-label">{{ 'specs.f.adresseIp' | t }}</p><p class="detail-value">{{ r.adresseIp }}</p></div>
+          <div *ngIf="r.masqueSousReseau"><p class="detail-label">{{ 'specs.f.masqueSousReseau' | t }}</p><p class="detail-value">{{ r.masqueSousReseau }}</p></div>
+          <div *ngIf="r.passerelle"><p class="detail-label">{{ 'specs.f.passerelle' | t }}</p><p class="detail-value">{{ r.passerelle }}</p></div>
+          <div *ngIf="r.dnsPrimaire"><p class="detail-label">{{ 'specs.f.dnsPrimaire' | t }}</p><p class="detail-value">{{ r.dnsPrimaire }}</p></div>
+          <div *ngIf="r.dnsSecondaire"><p class="detail-label">{{ 'specs.f.dnsSecondaire' | t }}</p><p class="detail-value">{{ r.dnsSecondaire }}</p></div>
+          <div *ngIf="r.routage"><p class="detail-label">{{ 'specs.f.routage' | t }}</p><p class="detail-value">{{ r.routage }}</p></div>
+          <div *ngIf="$any(r).vlanName"><p class="detail-label">{{ 'specs.f.vlanName' | t }}</p><p class="detail-value">{{ $any(r).vlanName }}</p></div>
+          <div *ngIf="$any(r).zoneDns"><p class="detail-label">{{ 'specs.f.zoneDns' | t }}</p><p class="detail-value">{{ $any(r).zoneDns }}</p></div>
+          <div *ngIf="$any(r).typeEnregistrement"><p class="detail-label">{{ 'specs.f.typeEnregistrement' | t }}</p><p class="detail-value">{{ $any(r).typeEnregistrement }}</p></div>
+          <div *ngIf="$any(r).nomEnregistrement"><p class="detail-label">{{ 'specs.f.nomEnregistrement' | t }}</p><p class="detail-value">{{ $any(r).nomEnregistrement }}</p></div>
+          <div *ngIf="$any(r).ssid"><p class="detail-label">{{ 'specs.f.ssid' | t }}</p><p class="detail-value">{{ $any(r).ssid }}</p></div>
+          <div *ngIf="$any(r).typeVpn"><p class="detail-label">{{ 'specs.f.typeVpn' | t }}</p><p class="detail-value">{{ $any(r).typeVpn }}</p></div>
+          <div *ngIf="$any(r).vip"><p class="detail-label">{{ 'specs.f.vip' | t }}</p><p class="detail-value">{{ $any(r).vip }}</p></div>
+          <div *ngIf="$any(r).typeProxy"><p class="detail-label">{{ 'specs.f.typeProxy' | t }}</p><p class="detail-value">{{ $any(r).typeProxy }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.firewall as fw">
           <div *ngIf="fw.reglesPareFeu" class="md:col-span-2">
-            <p class="detail-label">Règles pare-feu</p>
+            <p class="detail-label">{{ 'specs.f.reglesPareFeu' | t }}</p>
             <p class="detail-value whitespace-pre-line">{{ fw.reglesPareFeu }}</p>
           </div>
-          <div *ngIf="fw.ports"><p class="detail-label">Ports</p><p class="detail-value">{{ fw.ports }}</p></div>
-          <div *ngIf="fw.nat"><p class="detail-label">NAT</p><p class="detail-value">{{ fw.nat }}</p></div>
-          <div *ngIf="fw.zones"><p class="detail-label">Zones</p><p class="detail-value">{{ fw.zones }}</p></div>
-          <div *ngIf="fw.politique"><p class="detail-label">Politique par défaut</p><p class="detail-value">{{ fw.politique }}</p></div>
-          <div *ngIf="fw.vpn"><p class="detail-label">VPN</p><p class="detail-value">{{ fw.vpn }}</p></div>
-          <div *ngIf="$any(fw).source"><p class="detail-label">Source</p><p class="detail-value">{{ $any(fw).source }}</p></div>
-          <div *ngIf="$any(fw).destination"><p class="detail-label">Destination</p><p class="detail-value">{{ $any(fw).destination }}</p></div>
-          <div *ngIf="$any(fw).action"><p class="detail-label">Action</p><p class="detail-value">{{ $any(fw).action }}</p></div>
-          <div *ngIf="$any(fw).justification"><p class="detail-label">Justification</p><p class="detail-value">{{ $any(fw).justification }}</p></div>
+          <div *ngIf="fw.ports"><p class="detail-label">{{ 'specs.f.ports' | t }}</p><p class="detail-value">{{ fw.ports }}</p></div>
+          <div *ngIf="fw.nat"><p class="detail-label">{{ 'specs.f.nat' | t }}</p><p class="detail-value">{{ fw.nat }}</p></div>
+          <div *ngIf="fw.zones"><p class="detail-label">{{ 'specs.f.zones' | t }}</p><p class="detail-value">{{ fw.zones }}</p></div>
+          <div *ngIf="fw.politique"><p class="detail-label">{{ 'specs.f.politique' | t }}</p><p class="detail-value">{{ fw.politique }}</p></div>
+          <div *ngIf="fw.vpn"><p class="detail-label">{{ 'specs.f.vpn' | t }}</p><p class="detail-value">{{ fw.vpn }}</p></div>
+          <div *ngIf="$any(fw).source"><p class="detail-label">{{ 'specs.f.source' | t }}</p><p class="detail-value">{{ $any(fw).source }}</p></div>
+          <div *ngIf="$any(fw).destination"><p class="detail-label">{{ 'specs.f.destination' | t }}</p><p class="detail-value">{{ $any(fw).destination }}</p></div>
+          <div *ngIf="$any(fw).action"><p class="detail-label">{{ 'specs.f.action' | t }}</p><p class="detail-value">{{ $any(fw).action }}</p></div>
+          <div *ngIf="$any(fw).justification"><p class="detail-label">{{ 'specs.f.justification' | t }}</p><p class="detail-value">{{ $any(fw).justification }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
-          <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
-          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention souhaitée</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
-          <div *ngIf="b.frequenceSauvegarde"><p class="detail-label">Fréquence</p><p class="detail-value">{{ b.frequenceSauvegarde }}</p></div>
-          <div *ngIf="b.destinationBackup"><p class="detail-label">Destination</p><p class="detail-value">{{ b.destinationBackup }}</p></div>
-          <div *ngIf="b.compression"><p class="detail-label">Compression</p><p class="detail-value">{{ b.compression }}</p></div>
-          <div *ngIf="b.chiffrement"><p class="detail-label">Chiffrement</p><p class="detail-value">{{ b.chiffrement }}</p></div>
-          <div *ngIf="b.licencesNecessaires"><p class="detail-label">Licences nécessaires</p><p class="detail-value">{{ b.licencesNecessaires }}</p></div>
+          <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">{{ 'specs.f.espaceBackupSupplementaireGo' | t }}</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
+          <div *ngIf="b.retentionSouhaitee"><p class="detail-label">{{ 'specs.f.retentionSouhaitee' | t }}</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.frequenceSauvegarde"><p class="detail-label">{{ 'specs.f.frequenceSauvegarde' | t }}</p><p class="detail-value">{{ b.frequenceSauvegarde }}</p></div>
+          <div *ngIf="b.destinationBackup"><p class="detail-label">{{ 'specs.f.destination' | t }}</p><p class="detail-value">{{ b.destinationBackup }}</p></div>
+          <div *ngIf="b.compression"><p class="detail-label">{{ 'specs.f.compression' | t }}</p><p class="detail-value">{{ b.compression }}</p></div>
+          <div *ngIf="b.chiffrement"><p class="detail-label">{{ 'specs.f.chiffrement' | t }}</p><p class="detail-value">{{ b.chiffrement }}</p></div>
+          <div *ngIf="b.licencesNecessaires"><p class="detail-label">{{ 'specs.f.licencesNecessaires' | t }}</p><p class="detail-value">{{ b.licencesNecessaires }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.baseDeDonnees as db">
-          <div *ngIf="db.moteur"><p class="detail-label">Moteur BDD</p><p class="detail-value">{{ db.moteur }}</p></div>
-          <div *ngIf="db.version"><p class="detail-label">Version</p><p class="detail-value">{{ db.version }}</p></div>
-          <div *ngIf="db.tailleGo"><p class="detail-label">Taille (Go)</p><p class="detail-value">{{ db.tailleGo }}</p></div>
+          <div *ngIf="db.moteur"><p class="detail-label">{{ 'specs.f.moteurBdd' | t }}</p><p class="detail-value">{{ db.moteur }}</p></div>
+          <div *ngIf="db.version"><p class="detail-label">{{ 'specs.f.version' | t }}</p><p class="detail-value">{{ db.version }}</p></div>
+          <div *ngIf="db.tailleGo"><p class="detail-label">{{ 'specs.f.tailleGo' | t }}</p><p class="detail-value">{{ db.tailleGo }}</p></div>
         </ng-container>
         <!-- Stockage — supporte plusieurs configurations (legacy single + tableau) -->
         <ng-container *ngIf="getStockages(c).length > 0">
           <div *ngFor="let s of getStockages(c); let idx = index" class="md:col-span-2 rounded-lg border border-border bg-muted/20 p-3">
-            <p class="detail-label font-semibold mb-1">Stockage {{ idx + 1 }}</p>
+            <p class="detail-label font-semibold mb-1">{{ 'specs.storageN' | t: { n: idx + 1 } }}</p>
             <div class="detail-grid">
-              <div *ngIf="displayStockageType(s)"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ displayStockageType(s) }}</p></div>
-              <div *ngIf="s.capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ s.capaciteGo }}</p></div>
-              <div *ngIf="displayStockageProtocole(s)"><p class="detail-label">Protocole</p><p class="detail-value">{{ displayStockageProtocole(s) }}</p></div>
+              <div *ngIf="displayStockageType(s)"><p class="detail-label">{{ 'specs.f.typeStockage' | t }}</p><p class="detail-value">{{ displayStockageType(s) }}</p></div>
+              <div *ngIf="s.capaciteGo"><p class="detail-label">{{ 'specs.f.capaciteGo' | t }}</p><p class="detail-value">{{ s.capaciteGo }}</p></div>
+              <div *ngIf="displayStockageProtocole(s)"><p class="detail-label">{{ 'specs.f.protocoleStockage' | t }}</p><p class="detail-value">{{ displayStockageProtocole(s) }}</p></div>
             </div>
           </div>
         </ng-container>
         <!-- Fallback legacy : stockage objet unique non normalisé (sécurité) -->
         <ng-container *ngIf="getStockages(c).length === 0 && $any(c.specifications).stockage as st">
-          <div *ngIf="$any(st).typeStockage || $any(st).storageType"><p class="detail-label">Type de stockage</p><p class="detail-value">{{ displayStockageType($any(st)) }}</p></div>
-          <div *ngIf="$any(st).capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ $any(st).capaciteGo }}</p></div>
-          <div *ngIf="$any(st).protocole || $any(st).protocol"><p class="detail-label">Protocole</p><p class="detail-value">{{ displayStockageProtocole($any(st)) }}</p></div>
+          <div *ngIf="$any(st).typeStockage || $any(st).storageType"><p class="detail-label">{{ 'specs.f.typeStockage' | t }}</p><p class="detail-value">{{ displayStockageType($any(st)) }}</p></div>
+          <div *ngIf="$any(st).capaciteGo"><p class="detail-label">{{ 'specs.f.capaciteGo' | t }}</p><p class="detail-value">{{ $any(st).capaciteGo }}</p></div>
+          <div *ngIf="$any(st).protocole || $any(st).protocol"><p class="detail-label">{{ 'specs.f.protocoleStockage' | t }}</p><p class="detail-value">{{ displayStockageProtocole($any(st)) }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.portailWeb as pw">
-          <div *ngIf="pw.domaine"><p class="detail-label">Domaine</p><p class="detail-value">{{ pw.domaine }}</p></div>
-          <div *ngIf="pw.sslRequis"><p class="detail-label">SSL requis</p><p class="detail-value">{{ pw.sslRequis }}</p></div>
-          <div *ngIf="pw.technologie"><p class="detail-label">Technologie</p><p class="detail-value">{{ pw.technologie }}</p></div>
+          <div *ngIf="pw.domaine"><p class="detail-label">{{ 'specs.f.domaine' | t }}</p><p class="detail-value">{{ pw.domaine }}</p></div>
+          <div *ngIf="pw.sslRequis"><p class="detail-label">{{ 'specs.f.sslRequis' | t }}</p><p class="detail-value">{{ pw.sslRequis }}</p></div>
+          <div *ngIf="pw.technologie"><p class="detail-label">{{ 'specs.f.technologie' | t }}</p><p class="detail-value">{{ pw.technologie }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.conteneurs as ct">
-          <div *ngIf="ct.plateforme"><p class="detail-label">Plateforme</p><p class="detail-value">{{ ct.plateforme }}</p></div>
-          <div *ngIf="ct.nombreReplicas"><p class="detail-label">Réplicas</p><p class="detail-value">{{ ct.nombreReplicas }}</p></div>
-          <div *ngIf="ct.cpuAlloue"><p class="detail-label">CPU alloué</p><p class="detail-value">{{ ct.cpuAlloue }}</p></div>
-          <div *ngIf="ct.memoireAllouee"><p class="detail-label">Mémoire allouée</p><p class="detail-value">{{ ct.memoireAllouee }}</p></div>
+          <div *ngIf="ct.plateforme"><p class="detail-label">{{ 'specs.f.plateforme' | t }}</p><p class="detail-value">{{ ct.plateforme }}</p></div>
+          <div *ngIf="ct.nombreReplicas"><p class="detail-label">{{ 'specs.f.nombreReplicas' | t }}</p><p class="detail-value">{{ ct.nombreReplicas }}</p></div>
+          <div *ngIf="ct.cpuAlloue"><p class="detail-label">{{ 'specs.f.cpuAlloue' | t }}</p><p class="detail-value">{{ ct.cpuAlloue }}</p></div>
+          <div *ngIf="ct.memoireAllouee"><p class="detail-label">{{ 'specs.f.memoireAllouee' | t }}</p><p class="detail-value">{{ ct.memoireAllouee }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.iaGpu as gpu">
-          <div *ngIf="gpu.typeGpu"><p class="detail-label">Type de GPU</p><p class="detail-value">{{ gpu.typeGpu }}</p></div>
-          <div *ngIf="gpu.nombreGpu"><p class="detail-label">Nombre de GPU</p><p class="detail-value">{{ gpu.nombreGpu }}</p></div>
-          <div *ngIf="gpu.vramGo"><p class="detail-label">VRAM / GPU (Go)</p><p class="detail-value">{{ gpu.vramGo }}</p></div>
-          <div *ngIf="gpu.framework"><p class="detail-label">Framework</p><p class="detail-value">{{ gpu.framework }}</p></div>
-          <div *ngIf="gpu.versionCuda"><p class="detail-label">Version CUDA</p><p class="detail-value">{{ gpu.versionCuda }}</p></div>
-          <div *ngIf="gpu.versionPilote"><p class="detail-label">Version du pilote</p><p class="detail-value">{{ gpu.versionPilote }}</p></div>
+          <div *ngIf="gpu.typeGpu"><p class="detail-label">{{ 'specs.f.typeGpu' | t }}</p><p class="detail-value">{{ gpu.typeGpu }}</p></div>
+          <div *ngIf="gpu.nombreGpu"><p class="detail-label">{{ 'specs.f.nombreGpu' | t }}</p><p class="detail-value">{{ gpu.nombreGpu }}</p></div>
+          <div *ngIf="gpu.vramGo"><p class="detail-label">{{ 'specs.f.vramGo' | t }}</p><p class="detail-value">{{ gpu.vramGo }}</p></div>
+          <div *ngIf="gpu.framework"><p class="detail-label">{{ 'specs.f.framework' | t }}</p><p class="detail-value">{{ gpu.framework }}</p></div>
+          <div *ngIf="gpu.versionCuda"><p class="detail-label">{{ 'specs.f.versionCuda' | t }}</p><p class="detail-value">{{ gpu.versionCuda }}</p></div>
+          <div *ngIf="gpu.versionPilote"><p class="detail-label">{{ 'specs.f.versionPilote' | t }}</p><p class="detail-value">{{ gpu.versionPilote }}</p></div>
         </ng-container>
         <ng-container *ngIf="c.specifications.securite as sec">
-          <div *ngIf="sec.perimetre"><p class="detail-label">Périmètre</p><p class="detail-value">{{ sec.perimetre }}</p></div>
-          <div *ngIf="sec.niveauCriticite"><p class="detail-label">Criticité</p><p class="detail-value">{{ sec.niveauCriticite }}</p></div>
+          <div *ngIf="sec.perimetre"><p class="detail-label">{{ 'specs.f.perimetre' | t }}</p><p class="detail-value">{{ sec.perimetre }}</p></div>
+          <div *ngIf="sec.niveauCriticite"><p class="detail-label">{{ 'specs.f.niveauCriticite' | t }}</p><p class="detail-value">{{ sec.niveauCriticite }}</p></div>
         </ng-container>
         <div *ngIf="c.specifications.general?.commentaire" class="md:col-span-2">
-          <p class="detail-label">Commentaire</p>
+          <p class="detail-label">{{ 'specs.comment' | t }}</p>
           <p class="detail-value whitespace-pre-line">{{ c.specifications.general?.commentaire }}</p>
         </div>
       </div>
@@ -491,7 +490,7 @@
 
         <!-- Pièces jointes -->
         <section *ngIf="c.piecesJointes?.length">
-          <p class="detail-section-title">Pièces jointes ({{ c.piecesJointes?.length }})</p>
+          <p class="detail-section-title">{{ 'changements.attachments' | t }} ({{ c.piecesJointes?.length }})</p>
           <ul class="grid gap-2 sm:grid-cols-2">
             <li *ngFor="let pj of c.piecesJointes">
               <a [href]="pj | urlUpload" target="_blank" rel="noopener"
@@ -513,7 +512,7 @@
       <aside class="space-y-4 lg:pl-5 lg:border-l lg:border-border">
         <!-- Client -->
         <section class="rounded-xl border border-border px-4 py-3.5">
-          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Client</p>
+          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'changements.client' | t }}</p>
           <div class="flex items-center gap-2.5">
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
               {{ clientNom(c).charAt(0).toUpperCase() }}
@@ -524,26 +523,26 @@
             </div>
           </div>
           <p *ngIf="statutClient(c)" class="mt-2">
-            <span class="badge-secondary !text-[10px]">Fiche {{ statutClient(c) | lowercase }}</span>
+            <span class="badge-secondary !text-[10px]">{{ 'changements.record' | t }} {{ (statutClient(c) | tl) | lowercase }}</span>
           </p>
         </section>
 
         <!-- Chronologie -->
         <section class="rounded-xl border border-border px-4 py-3.5">
-          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Chronologie</p>
+          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'changements.timeline' | t }}</p>
           <ul class="space-y-2 text-xs">
             <li class="flex items-start gap-2">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-success"></span>
               <div>
-                <p class="font-medium">Soumis le</p>
-                <p class="text-muted-foreground">{{ c.createdAt | date: 'dd/MM/yyyy à HH:mm' }}</p>
+                <p class="font-medium">{{ 'changements.createdOn' | t }}</p>
+                <p class="text-muted-foreground">{{ c.createdAt | dateLocale: 'medium' }}</p>
               </div>
             </li>
             <li class="flex items-start gap-2">
               <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
               <div>
-                <p class="font-medium">Dernière mise à jour</p>
-                <p class="text-muted-foreground">{{ c.updatedAt | date: 'dd/MM/yyyy à HH:mm' }}</p>
+                <p class="font-medium">{{ 'changements.updatedOn' | t }}</p>
+                <p class="text-muted-foreground">{{ c.updatedAt | dateLocale: 'medium' }}</p>
               </div>
             </li>
           </ul>
@@ -551,7 +550,7 @@
 
         <!-- Actions workflow -->
         <section *ngIf="prochainesEtapes().length" class="rounded-xl border border-border px-4 py-3.5">
-          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faire avancer</p>
+          <p class="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'changements.advance' | t }}</p>
           <p *ngIf="transitionError" class="alert-destructive mb-3">{{ transitionError }}</p>
           <div class="flex flex-col gap-1.5">
             <button *ngFor="let etape of prochainesEtapes()" [disabled]="transitionLoading"
@@ -560,7 +559,7 @@
               <svg *ngIf="transitionLoading" class="h-3.5 w-3.5 mr-1.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
               </svg>
-              <span *ngIf="!transitionLoading">→ {{ etape }}</span>
+              <span *ngIf="!transitionLoading">→ {{ etape | tl }}</span>
             </button>
           </div>
         </section>
@@ -570,13 +569,13 @@
             <circle cx="12" cy="12" r="9"></circle>
             <path d="m5.6 5.6 12.8 12.8"></path>
           </svg>
-          Annuler le changement
+          {{ 'changements.cancel' | t }}
         </button>
       </aside>
     </div>
 
     <p *ngIf="c.statut === 'Annulé'" class="mt-6 pt-4 border-t border-border text-xs text-muted-foreground">
-      Ce dossier est annulé : il reste visible dans l'historique mais ne suit plus aucun traitement et ne peut plus être modifié.
+      {{ 'changements.cancelledNote' | t }}
     </p>
   </ng-container>
 </app-modal>

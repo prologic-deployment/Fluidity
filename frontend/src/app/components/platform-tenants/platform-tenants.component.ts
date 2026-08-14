@@ -9,6 +9,9 @@ import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Tableau de bord PLATEFORME (Super Admin) :
@@ -19,7 +22,7 @@ import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
 @Component({
   selector: 'app-platform-tenants',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './platform-tenants.component.html',
 })
 export class PlatformTenantsComponent implements OnInit {
@@ -51,6 +54,8 @@ export class PlatformTenantsComponent implements OnInit {
     private router: Router,
     private confirmDialog: ConfirmDialogService,
     private fb: FormBuilder
+  ,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -132,7 +137,7 @@ export class PlatformTenantsComponent implements OnInit {
   submitCreate(): void {
     const raw = this.createForm.value;
     if (raw.adminEmail && (!raw.adminPassword || raw.adminPassword.length < 6)) {
-      this.formError = 'Un mot de passe (6+ caractères) est requis pour créer le Tenant Admin.';
+      this.formError = this.i18n.t('tenants.passwordRequired');
       return;
     }
     this.submitting = true;
@@ -155,7 +160,7 @@ export class PlatformTenantsComponent implements OnInit {
         this.load();
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Échec de la création du tenant.';
+        this.formError = apiErrorMessage(this.i18n, err, 'tenants.createError');
         this.submitting = false;
       },
     });
@@ -193,7 +198,7 @@ export class PlatformTenantsComponent implements OnInit {
         this.load();
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Échec de la mise à jour.';
+        this.formError = apiErrorMessage(this.i18n, err, 'tenants.updateError');
         this.submitting = false;
       },
     });
@@ -208,26 +213,26 @@ export class PlatformTenantsComponent implements OnInit {
       message: suspendre
         ? 'Tous les utilisateurs de ce tenant seront immédiatement déconnectés et bloqués.'
         : 'Les utilisateurs de ce tenant pourront de nouveau accéder à leur espace.',
-      confirmLabel: suspendre ? 'Suspendre' : 'Réactiver',
+      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : this.i18n.t('tenants.reactivate'),
       variant: suspendre ? 'destructive' : 'default',
     });
     if (!ok) return;
     const req = suspendre ? this.tenantService.suspend(t._id) : this.tenantService.activate(t._id);
-    req.subscribe({ next: () => this.load(), error: (err) => (this.error = err.error?.message || 'Échec de l\'opération.') });
+    req.subscribe({ next: () => this.load(), error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.opError')) });
   }
 
   async supprimer(t: Tenant): Promise<void> {
     if (!t._id) return;
     const ok = await this.confirmDialog.confirm({
       title: `Supprimer le tenant « ${t.name} » ?`,
-      message: 'Suppression douce : l\'espace devient inaccessible mais les données sont conservées (audit). Cette action est irréversible depuis l\'interface.',
+      message: this.i18n.t('tenants.deleteMessage'),
       confirmLabel: 'Supprimer',
       variant: 'destructive',
     });
     if (!ok) return;
     this.tenantService.delete(t._id).subscribe({
       next: () => this.load(),
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.deleteError')),
     });
   }
 

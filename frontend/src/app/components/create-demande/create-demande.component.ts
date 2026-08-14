@@ -17,6 +17,7 @@ import { DropzoneComponent } from '../shared/dropzone.component';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
 import { UploadedFile } from '../../services/upload.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 const AUTRE = 'Autre';
 
@@ -42,7 +43,8 @@ export class CreateDemandeComponent implements OnInit {
     private fb: FormBuilder,
     private demandeService: DemandeService,
     private contratService: ContratService,
-    private router: Router
+    private router: Router,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -152,7 +154,7 @@ export class CreateDemandeComponent implements OnInit {
     this.demandeService.create(payload).subscribe({
       next: () => this.router.navigate(['/demandes']),
       error: (err) => {
-        this.error = err.error?.message || 'Erreur lors de la création de la demande.';
+        this.error = apiErrorMessage(this.i18n, err, 'demandes.createError');
         this.loading = false;
       },
     });

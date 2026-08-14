@@ -1,8 +1,8 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
     <div class="max-w-4xl mx-auto px-6 py-5 flex items-center justify-between">
-      <a routerLink="/changements" class="btn-link">&larr; Retour</a>
-      <h1 class="text-xl font-semibold tracking-tight">Nouveau Changement</h1>
+      <a routerLink="/changements" class="btn-link">&larr; {{ 'common.back' | t }}</a>
+      <h1 class="text-xl font-semibold tracking-tight">{{ 'changements.new' | t }}</h1>
       <span></span>
     </div>
   </header>
@@ -25,104 +25,104 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Informations générales</h2>
-              <p class="card-description">Nature et portée du changement.</p>
+              <h2 class="card-title">{{ 'changements.generalInfo' | t }}</h2>
+              <p class="card-description">{{ 'changements.nature' | t }}</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6 space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="field-label">Objet du changement</label>
-              <input formControlName="objetChangement" type="text" class="input" placeholder="ex: Augmentation RAM serveur DB-PROD-02" />
-              <p *ngIf="form.get('objetChangement')?.invalid && form.get('objetChangement')?.touched" class="field-error">Champ requis.</p>
+              <label class="field-label">{{ 'changements.object' | t }}</label>
+              <input formControlName="objetChangement" type="text" class="input" [attr.placeholder]="'changements.objectPlaceholder' | t" />
+              <p *ngIf="form.get('objetChangement')?.invalid && form.get('objetChangement')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div>
-              <label class="field-label">Service / Environnement</label>
+              <label class="field-label">{{ 'changements.env' | t }}</label>
               <select formControlName="serviceEnvironnement" class="select">
-                <option value="" disabled>Sélectionner...</option>
-                <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s }}</option>
+                <option value="" disabled>{{ 'common.select' | t }}</option>
+                <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s | tl }}</option>
               </select>
-              <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'">
-              <label class="field-label">Précisez votre Service / Environnement</label>
+              <label class="field-label">{{ 'changements.specifyEnv' | t }}</label>
               <input formControlName="serviceEnvironnementAutre" type="text" class="input" />
-              <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div>
-              <label class="field-label">Type de changement</label>
+              <label class="field-label">{{ 'changements.typeChangement' | t }}</label>
               <select formControlName="typeChangement" class="select">
-                <option value="" disabled>Sélectionner...</option>
-                <option *ngFor="let t of typesChangement" [value]="t">{{ t }}</option>
+                <option value="" disabled>{{ 'common.select' | t }}</option>
+                <option *ngFor="let t of typesChangement" [value]="t">{{ t | tl }}</option>
               </select>
             </div>
             <div>
-              <label class="field-label">Catégorie</label>
+              <label class="field-label">{{ 'changements.categorie' | t }}</label>
               <select formControlName="categorie" class="select">
-                <option value="" disabled>Sélectionner...</option>
-                <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+                <option value="" disabled>{{ 'common.select' | t }}</option>
+                <option *ngFor="let c of categories" [value]="c">{{ c | tl }}</option>
               </select>
-              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">Précisez votre catégorie</label>
+              <label class="field-label">{{ 'demandes.specifyCategory' | t }}</label>
               <input formControlName="categorieAutre" type="text" class="input" />
-              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
             <div *ngIf="form.get('categorie')?.value !== 'Autre'">
-              <label class="field-label">Sous-catégorie</label>
+              <label class="field-label">{{ 'changements.sousCategorie' | t }}</label>
               <select formControlName="sousCategorie" class="select">
-                <option value="" disabled>Sélectionner...</option>
-                <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc }}</option>
+                <option value="" disabled>{{ 'common.select' | t }}</option>
+                <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc | tl }}</option>
               </select>
-              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div *ngIf="form.get('sousCategorie')?.value === 'Autre' || form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">Précisez votre sous-catégorie</label>
+              <label class="field-label">{{ 'demandes.specifySub' | t }}</label>
               <input formControlName="sousCategorieAutre" type="text" class="input" />
-              <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
             <div>
-              <label class="field-label">Prérequis nécessaires</label>
+              <label class="field-label">{{ 'changements.prereq' | t }}</label>
               <input formControlName="prerequisNecessaires" type="text" class="input" />
             </div>
             <div class="md:col-span-2">
-              <label class="field-label">Contrat</label>
+              <label class="field-label">{{ 'changements.contract' | t }}</label>
               <select formControlName="contrat" class="select">
-                <option value="" disabled>Sélectionner un contrat...</option>
+                <option value="" disabled>{{ 'changements.selectContract' | t }}</option>
                 <option *ngFor="let ct of contrats" [value]="ct._id">
                   {{ ct.reference }} — {{ ct.intitule }}
                 </option>
               </select>
-              <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
               <p *ngIf="contrats.length === 0" class="mt-1 text-xs text-muted-foreground">
-                Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour votre compte.
+                {{ 'changements.noContractAvailable' | t }}
               </p>
             </div>
           </div>
           <div>
-            <label class="field-label">Description détaillée</label>
+            <label class="field-label">{{ 'changements.detailedDescription' | t }}</label>
             <textarea formControlName="descriptionDetaillee" rows="4" class="textarea"
-              placeholder="Décrivez le changement (minimum 10 caractères)"></textarea>
+              [attr.placeholder]="'changements.descriptionPlaceholder' | t"></textarea>
             <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">
-              Description requise (min. 10 caractères).
+              {{ 'changements.descriptionRequired' | t }}
             </p>
           </div>
           <div>
-            <label class="field-label">Plan de retour arrière</label>
+            <label class="field-label">{{ 'changements.rollback' | t }}</label>
             <textarea formControlName="planRetourArriere" rows="3" class="textarea"></textarea>
-            <p *ngIf="form.get('planRetourArriere')?.invalid && form.get('planRetourArriere')?.touched" class="field-error">Champ requis.</p>
+            <p *ngIf="form.get('planRetourArriere')?.invalid && form.get('planRetourArriere')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
           </div>
           <div>
-            <label class="field-label">Pièces jointes</label>
+            <label class="field-label">{{ 'changements.attachments' | t }}</label>
             <app-dropzone
               categorie="changements"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               [multiple]="true"
-              hint="Plan d'intervention, schéma, devis — PDF, images, documents (15 Mo max)"
+              [hint]="'dropzone.changementsHint' | t"
               (filesChange)="onPiecesJointesChange($event)">
             </app-dropzone>
           </div>
@@ -132,9 +132,9 @@
       <app-specifications-form [form]="form"></app-specifications-form>
 
       <div class="flex justify-end space-x-3">
-        <a routerLink="/changements" class="btn-outline">Annuler</a>
+        <a routerLink="/changements" class="btn-outline">{{ 'common.cancel' | t }}</a>
         <button type="submit" [disabled]="loading" class="btn-primary">
-          {{ loading ? 'Envoi...' : 'Soumettre le changement' }}
+          {{ loading ? ('common.sending' | t) : ('changements.submit' | t) }}
         </button>
       </div>
     </form>

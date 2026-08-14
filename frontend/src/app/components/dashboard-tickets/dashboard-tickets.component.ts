@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { Ticket, TicketStats, STATUTS_TICKET } from '../../models/ticket.model';
 import { CATEGORIES } from '../../models/demande.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 
 @Component({
   selector: 'app-dashboard-tickets',
@@ -30,7 +31,7 @@ export class DashboardTicketsComponent implements OnInit {
   categories = CATEGORIES;
   priorites = ['P1', 'P2', 'P3', 'P4'];
 
-  constructor(private tickets: TicketService, public auth: AuthService, private router: Router) {}
+  constructor(private tickets: TicketService, public auth: AuthService, private router: Router, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.tickets.stats().subscribe({ next: (s) => (this.stats = s) });
@@ -59,7 +60,7 @@ export class DashboardTicketsComponent implements OnInit {
           this.loading = false;
         },
         error: () => {
-          this.error = 'Impossible de charger les tickets.';
+          this.error = this.i18n.t('tickets.loadError');
           this.loading = false;
         },
       });
@@ -96,8 +97,8 @@ export class DashboardTicketsComponent implements OnInit {
 
   techLabel(t: Ticket): string {
     const a = t.assignedTo;
-    if (!a || typeof a === 'string') return t.assignedTeam || 'Non affecté';
-    return `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email;
+    if (!a || typeof a === 'string') return t.assignedTeam || this.i18n.t('tickets.notAssigned');
+    return `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.email || this.i18n.t('tickets.notAssigned');
   }
 
   prioriteClass(p?: string): string {

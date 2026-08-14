@@ -8,6 +8,7 @@ import { UploadService } from '../../services/upload.service';
 import { ToastService } from '../../services/toast.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Page « Mon profil » — expérience de compte moderne (style Microsoft Account /
@@ -115,7 +116,7 @@ export class ProfilComponent implements OnInit {
   }
 
   get roleLabel(): string {
-    return this.auth.roleLabel();
+    return this.i18n.t('roles.' + (this.auth.getRole() || 'Utilisateur'));
   }
 
   get workspaceName(): string {
@@ -135,11 +136,11 @@ export class ProfilComponent implements OnInit {
     input.value = ''; // permet de re-sélectionner le même fichier
     if (!file) return;
     if (!this.ACCEPTED_TYPES.includes(file.type)) {
-      this.avatarError = 'Format accepté : PNG, JPEG ou WEBP.';
+      this.avatarError = this.i18n.t('profile.formatError');
       return;
     }
     if (file.size > this.MAX_AVATAR_MB * 1024 * 1024) {
-      this.avatarError = `Photo trop lourde (max ${this.MAX_AVATAR_MB} Mo).`;
+      this.avatarError = this.i18n.t('profile.tooHeavy', { n: this.MAX_AVATAR_MB });
       return;
     }
     this.avatarFile = file;
@@ -170,12 +171,12 @@ export class ProfilComponent implements OnInit {
           },
           error: () => {
             this.avatarUploading = false;
-            this.toast.error('Échec de l’enregistrement de la photo.');
+            this.toast.error(this.i18n.t('profile.photoError'));
           },
         }),
       error: () => {
         this.avatarUploading = false;
-        this.avatarError = 'Échec de l’envoi du fichier. Réessayez.';
+        this.avatarError = this.i18n.t('profile.uploadError');
       },
     });
   }
@@ -192,7 +193,7 @@ export class ProfilComponent implements OnInit {
       },
       error: () => {
         this.avatarUploading = false;
-        this.toast.error('Impossible de supprimer la photo.');
+        this.toast.error(this.i18n.t('profile.photoDeleteError'));
       },
     });
   }
@@ -211,11 +212,11 @@ export class ProfilComponent implements OnInit {
         this.auth.syncSessionUser(user);
         this.saving = false;
         this.form.markAsPristine();
-        this.toast.success('Profil enregistré.');
+        this.toast.success(this.i18n.t('profile.saved'));
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err.error?.message || 'Échec de l’enregistrement du profil.');
+        this.toast.error(apiErrorMessage(this.i18n, err, 'profile.saveError'));
       },
     });
   }

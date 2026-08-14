@@ -1,6 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ModalComponent } from './modal.component';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 /**
  * Modale « identifiants affichés une seule fois » — écran unique utilisé
@@ -14,10 +16,11 @@ import { ModalComponent } from './modal.component';
 @Component({
   selector: 'app-credentials-modal',
   standalone: true,
-  imports: [CommonModule, ModalComponent],
+  imports: [CommonModule, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './credentials-modal.component.html',
 })
 export class CredentialsModalComponent {
+  constructor(private i18n: I18nService) {}
   @Input() open = false;
   @Input() email = '';
   @Input() motDePasse = '';
@@ -29,13 +32,13 @@ export class CredentialsModalComponent {
   copieMdp = false;
 
   get titre(): string {
-    return 'Identifiants de connexion';
+    return this.i18n.t('credentials.title');
   }
 
   get sousTitre(): string {
     return this.contexte === 'regeneration'
-      ? 'Nouvel accès portail généré — l’ancien mot de passe est invalidé'
-      : 'Accès portail créé — à communiquer au client';
+      ? this.i18n.t('credentials.subtitleRegen')
+      : this.i18n.t('credentials.subtitleCreate');
   }
 
   /** Copie presse-papiers avec repli (contextes sans API clipboard). */

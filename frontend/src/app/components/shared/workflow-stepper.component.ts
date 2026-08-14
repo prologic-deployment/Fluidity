@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 /**
  * Frise de progression d'un dossier dans son workflow (« timeline »).
@@ -11,7 +12,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-workflow-stepper',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ...I18N_IMPORTS],
   templateUrl: './workflow-stepper.component.html',
 })
 export class WorkflowStepperComponent {

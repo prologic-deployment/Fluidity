@@ -125,6 +125,25 @@
             ></span>
           </span>
         </button>
+
+        <!-- Sélecteur de langue : change instantanément toute l'interface -->
+        <div role="menuitem" class="menu-item !cursor-default">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M2 12h20"></path>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span class="flex-1 text-left">{{ 'nav.language' | t }}</span>
+          <select
+            [value]="i18n.lang"
+            (change)="onLang($event)"
+            class="select !h-8 !w-auto !py-0 !text-xs"
+            [attr.aria-label]="'nav.language' | t"
+          >
+            <option value="fr">{{ 'nav.french' | t }}</option>
+            <option value="en">{{ 'nav.english' | t }}</option>
+          </select>
+        </div>
       </nav>
 
       <div class="border-t border-border p-1.5">

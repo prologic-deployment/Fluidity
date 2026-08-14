@@ -51,12 +51,12 @@
       <p class="truncate text-sm font-medium text-foreground">{{ item.name }}</p>
       <p class="text-xs text-muted-foreground">
         {{ formatSize(item.size) }}
-        <span *ngIf="item.status === 'uploading'"> — envoi en cours...</span>
-        <span *ngIf="item.status === 'error'" class="text-destructive"> — {{ item.errorMsg }}</span>
+        <span *ngIf="item.status === 'uploading'"> — {{ 'dropzone.uploading' | t }}</span>
+        <span *ngIf="item.status === 'error'" class="text-destructive"> — {{ (item.errorMsg || '') | t }}</span>
       </p>
     </div>
 
-    <button type="button" (click)="remove(item.id); $event.stopPropagation()" title="Retirer"
+    <button type="button" (click)="remove(item.id); $event.stopPropagation()" [title]="'common.remove' | t"
       class="btn-icon-sm shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
     </button>

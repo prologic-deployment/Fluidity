@@ -11,11 +11,14 @@ import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 import { requesterEmail, requesterClientNom, requesterStatut, nomFichierDepuisUrl } from '../../utils/requester.util';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent, UrlUploadPipe],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
@@ -86,6 +89,8 @@ export class DashboardChangementsComponent implements OnInit {
     public auth: AuthService,
     private router: Router,
     private confirmDialog: ConfirmDialogService
+  ,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -104,7 +109,7 @@ export class DashboardChangementsComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des changements.';
+        this.error = apiErrorMessage(this.i18n, err, 'changements.loadError');
         this.loading = false;
       },
     });
@@ -325,7 +330,7 @@ export class DashboardChangementsComponent implements OnInit {
       title: 'Annuler ce changement ?',
       message:
         'Le changement sera conservé dans l\'historique avec le statut « Annulé ». Cette action est définitive : aucune reprise ne sera possible.',
-      confirmLabel: 'Annuler le changement',
+      confirmLabel: this.i18n.t('changements.cancel'),
       variant: 'destructive',
     });
     if (!ok) return;
@@ -334,7 +339,7 @@ export class DashboardChangementsComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'changements.cancelError')),
     });
   }
 
@@ -342,8 +347,8 @@ export class DashboardChangementsComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler ce changement ?',
-      message: 'Le changement restera visible dans l\'historique mais ne pourra plus être traité.',
-      confirmLabel: 'Annuler le changement',
+      message: this.i18n.t('changements.cancelMessage'),
+      confirmLabel: this.i18n.t('changements.cancel'),
       variant: 'destructive',
     });
     if (!ok) return;
@@ -352,7 +357,7 @@ export class DashboardChangementsComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'changements.cancelError')),
     });
   }
 
@@ -374,7 +379,7 @@ export class DashboardChangementsComponent implements OnInit {
         this.load();
       },
       error: (err) => {
-        this.transitionError = err.error?.message || 'Transition refusée.';
+        this.transitionError = apiErrorMessage(this.i18n, err, 'changements.transitionError');
         this.transitionLoading = false;
       },
     });

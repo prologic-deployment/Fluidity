@@ -7,6 +7,9 @@ import { AppUser, AppRole, LicenseInfo, APP_ROLES, ROLE_LABELS, USER_STATUS_LABE
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Tableau de bord UTILISATEURS (Tenant Admin) :
@@ -18,7 +21,7 @@ import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 @Component({
   selector: 'app-users-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './users-dashboard.component.html',
 })
 export class UsersDashboardComponent implements OnInit {
@@ -48,6 +51,8 @@ export class UsersDashboardComponent implements OnInit {
     private auth: AuthService,
     private confirmDialog: ConfirmDialogService,
     private fb: FormBuilder
+  ,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -100,11 +105,13 @@ export class UsersDashboardComponent implements OnInit {
   }
 
   roleLabel(role?: string): string {
-    return ROLE_LABELS[role || ''] || role || '—';
+    return this.i18n.t('roles.' + (role || 'Utilisateur'));
   }
 
   statutLabel(statut?: string): string {
-    return USER_STATUS_LABELS[statut || ''] || statut || '—';
+    const key = statut || '';
+    const t = this.i18n.t('catalog.' + key);
+    return t === 'catalog.' + key ? (USER_STATUS_LABELS[key] || key || '—') : t;
   }
 
   statutClass(statut?: string): string {
@@ -146,7 +153,7 @@ export class UsersDashboardComponent implements OnInit {
 
   submitCreate(): void {
     if (this.createForm.invalid) {
-      this.formError = 'Vérifiez les champs : email valide et mot de passe de 6 caractères minimum.';
+      this.formError = this.i18n.t('users.formError');
       return;
     }
     this.submitting = true;
@@ -158,7 +165,7 @@ export class UsersDashboardComponent implements OnInit {
         this.applyMutation(res);
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Échec de la création de l\u2019utilisateur.';
+        this.formError = apiErrorMessage(this.i18n, err, 'users.createError');
         this.submitting = false;
       },
     });
@@ -187,7 +194,7 @@ export class UsersDashboardComponent implements OnInit {
         this.applyMutation(res);
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Échec de la mise à jour.';
+        this.formError = apiErrorMessage(this.i18n, err, 'users.updateError');
         this.submitting = false;
       },
     });
@@ -202,13 +209,13 @@ export class UsersDashboardComponent implements OnInit {
       message: suspendre
         ? 'Le compte sera immédiatement bloqué et son siège de licence libéré.'
         : 'Le compte consommera de nouveau un siège de licence.',
-      confirmLabel: suspendre ? 'Suspendre' : 'Réactiver',
+      confirmLabel: suspendre ? this.i18n.t('users.suspendTitle') : this.i18n.t('users.reactivateTitle'),
       variant: suspendre ? 'destructive' : 'default',
     });
     if (!ok) return;
     this.userService.update(u._id, { status: suspendre ? 'suspended' : 'active' }).subscribe({
       next: (res) => this.applyMutation(res),
-      error: (err) => (this.error = err.error?.message || 'Échec de l\u2019opération.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'users.opError')),
     });
   }
 
@@ -216,7 +223,7 @@ export class UsersDashboardComponent implements OnInit {
     if (!u._id) return;
     const ok = await this.confirmDialog.confirm({
       title: `Réinitialiser le mot de passe de « ${u.email} » ?`,
-      message: 'Un lien sécurisé de réinitialisation sera envoyé à cet utilisateur par email.',
+      message: this.i18n.t('users.resetMessage'),
       confirmLabel: 'Envoyer le lien',
     });
     if (!ok) return;
@@ -225,7 +232,7 @@ export class UsersDashboardComponent implements OnInit {
         this.info = res.message;
         setTimeout(() => (this.info = null), 5000);
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\u2019envoi du lien.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'users.resetError')),
     });
   }
 
@@ -233,14 +240,14 @@ export class UsersDashboardComponent implements OnInit {
     if (!u._id || this.isSelf(u)) return;
     const ok = await this.confirmDialog.confirm({
       title: `Supprimer le compte « ${u.email} » ?`,
-      message: 'Cette action supprime définitivement le compte. Son siège de licence sera libéré.',
+      message: this.i18n.t('users.deleteMessage'),
       confirmLabel: 'Supprimer',
       variant: 'destructive',
     });
     if (!ok) return;
     this.userService.delete(u._id).subscribe({
       next: (res) => this.applyMutation(res),
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'users.deleteError')),
     });
   }
 }

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UploadService, UploadedFile, CategorieUpload } from '../../services/upload.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
 
 interface DropzoneItem {
@@ -22,7 +23,7 @@ interface DropzoneItem {
 @Component({
   selector: 'app-dropzone',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ...I18N_IMPORTS],
   templateUrl: './dropzone.component.html',
 })
 export class DropzoneComponent {
@@ -111,7 +112,7 @@ export class DropzoneComponent {
       error: () => {
         pending.forEach((item) => {
           item.status = 'error';
-          item.errorMsg = "Échec de l'envoi";
+          item.errorMsg = 'dropzone.uploadFailed';
         });
       },
     });
@@ -128,9 +129,9 @@ export class DropzoneComponent {
   }
 
   formatSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} o`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} Ko`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+    if (bytes < 1024) return `${bytes} ${this.i18n.t('dropzone.bytes')}`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} ${this.i18n.t('dropzone.kb')}`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} ${this.i18n.t('dropzone.mb')}`;
   }
 
   private generateId(): string {

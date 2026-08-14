@@ -6,7 +6,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development"
+    "watch": "ng build --watch --configuration development",
+    "test": "node scripts/i18n.test.mjs",
+    "i18n:audit": "node scripts/i18n-audit.mjs"
   },
   "private": true,
   "dependencies": {

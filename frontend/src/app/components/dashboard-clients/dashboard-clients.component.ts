@@ -8,11 +8,14 @@ import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { CredentialsModalComponent } from '../shared/credentials-modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-dashboard-clients',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, CredentialsModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, CredentialsModalComponent, ...I18N_IMPORTS],
   templateUrl: './dashboard-clients.component.html',
 })
 export class DashboardClientsComponent implements OnInit {
@@ -32,6 +35,8 @@ export class DashboardClientsComponent implements OnInit {
     private clientService: ClientService,
     public auth: AuthService,
     private confirmDialog: ConfirmDialogService
+  ,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -110,7 +115,7 @@ export class DashboardClientsComponent implements OnInit {
       },
       error: (err) => {
         this.regenerationEnCours = false;
-        this.error = err.error?.message || "Échec de la régénération de l'accès.";
+        this.error = apiErrorMessage(this.i18n, err, 'clients.regenerateError');
       },
     });
   }
@@ -123,7 +128,7 @@ export class DashboardClientsComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Supprimer ce client ?',
-      message: 'Cette action est définitive. Les contrats déjà rattachés à ce client ne seront pas supprimés.',
+      message: this.i18n.t('clients.deleteMessage'),
       confirmLabel: 'Supprimer',
       variant: 'destructive',
     });
@@ -133,7 +138,7 @@ export class DashboardClientsComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'clients.deleteError')),
     });
   }
 }

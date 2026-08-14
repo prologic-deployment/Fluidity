@@ -1,10 +1,11 @@
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 @Component({
   selector: 'app-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ...I18N_IMPORTS],
   templateUrl: './modal.component.html',
 })
 export class ModalComponent {

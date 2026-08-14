@@ -39,7 +39,7 @@
         <option *ngFor="let c of categories" [value]="c">{{ c | tl }}</option>
       </select>
       <button type="button" class="btn-ghost btn-sm" (click)="resetFilters()">{{ 'common.reset' | t }}</button>
-      <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading">{{ total }} ticket(s)</span>
+      <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading">{{ 'tickets.ticketsCount' | t: { n: total } }}</span>
     </div>
 
     <div *ngIf="loading" class="table-wrap p-4 space-y-3">
@@ -72,7 +72,7 @@
             <td><span [class]="prioriteClass(t.priorite)"><span class="badge-dot"></span>{{ t.priorite | tl }}</span></td>
             <td><span [class]="statutClass(t.statut)"><span class="badge-dot"></span>{{ t.statut | tl }}</span></td>
             <td class="hidden lg:table-cell text-sm text-muted-foreground">{{ techLabel(t) }}</td>
-            <td class="hidden xl:table-cell text-muted-foreground">{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td class="hidden xl:table-cell text-muted-foreground">{{ t.openedAt | dateLocale: 'medium' }}</td>
           </tr>
         </tbody>
       </table>

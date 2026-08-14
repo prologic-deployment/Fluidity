@@ -25,6 +25,7 @@ import {
 import { RETENTION_MAX_PAR_PERIODE } from '../../models/changement.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 const AUTRE = 'Autre';
 
@@ -242,7 +243,7 @@ export class CreateTicketComponent implements OnInit {
     req$.subscribe({
       next: (t) => this.router.navigate(['/tickets', t._id || this.editId]),
       error: (err) => {
-        this.error = err.error?.message || this.i18n.t('tickets.createError');
+        this.error = apiErrorMessage(this.i18n, err, 'tickets.createError');
         this.loading = false;
       },
     });

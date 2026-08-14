@@ -36,66 +36,65 @@
         <div class="flex items-start gap-3">
           <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
             <span class="h-1.5 w-1.5 rounded-full bg-current opacity-60"></span>
-            Désactivée
+            {{ 'twofa.stateOff' | t }}
           </span>
           <p class="text-sm text-muted-foreground max-w-md">
-            Protégez votre compte : après votre mot de passe, un code à 6 chiffres de votre
-            application d'authentification sera demandé à chaque connexion.
+            {{ 'twofa.stateOffHint' | t }}
           </p>
         </div>
         <button type="button" (click)="startSetup()" class="btn-primary shrink-0">
           <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           </svg>
-          Activer la double authentification
+          {{ 'twofa.enableBtn' | t }}
         </button>
       </div>
 
       <!-- ============ ACTIVATION : QR + CLÉ + VÉRIFICATION ============ -->
       <div *ngIf="setupView" class="space-y-5">
         <ol class="space-y-1 text-sm text-muted-foreground list-decimal list-inside">
-          <li>Scannez ce QR code avec <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong> ou <strong>Authy</strong>.</li>
-          <li>Saisissez le code à 6 chiffres affiché par l'application.</li>
+          <li>{{ 'twofa.step1' | t }}</li>
+          <li>{{ 'twofa.step2' | t }}</li>
         </ol>
 
         <div class="flex flex-col md:flex-row gap-6 items-start">
           <!-- QR code (affiché uniquement pendant le setup) -->
           <div class="rounded-xl border border-border bg-white p-3 shadow-sm">
-            <img [src]="qrCode" alt="QR code de configuration Google/Microsoft Authenticator" width="220" height="220" class="block" />
+            <img [src]="qrCode" [alt]="'twofa.qrAlt' | t" width="220" height="220" class="block" />
           </div>
 
           <div class="flex-1 space-y-4 w-full">
             <!-- Clé manuelle -->
             <div>
-              <p class="field-label">Impossible de scanner ? Saisie manuelle</p>
+              <p class="field-label">{{ 'twofa.manualEntry' | t }}</p>
               <div class="flex items-center gap-2">
                 <code class="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm tracking-[0.2em] select-all">
                   {{ manualKeyVisible ? manualKey : '•••• •••• •••• •••• •••• •••• •••• ••••' }}
                 </code>
                 <button type="button" (click)="manualKeyVisible = !manualKeyVisible" class="btn-outline btn-sm">
-                  {{ manualKeyVisible ? 'Masquer' : 'Afficher' }}
+                  {{ manualKeyVisible ? ('security.hide' | t) : ('security.show' | t) }}
                 </button>
               </div>
               <p class="mt-1 text-xs text-muted-foreground">
-                Choisissez « Saisir une clé de configuration » dans votre application, puis copiez ce code.
+                {{ 'twofa.manualKeyHint' | t }}
               </p>
             </div>
 
             <!-- Code de vérification -->
             <form [formGroup]="verifyForm" (ngSubmit)="confirmSetup()" class="space-y-3">
               <div>
-                <label class="field-label">Entrez le code de vérification à 6 chiffres</label>
+                <label class="field-label">{{ 'twofa.enterVerifyCode' | t }}</label>
                 <input type="text" formControlName="code" class="input max-w-[220px] tracking-[0.35em] font-mono"
                   placeholder="123456" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
                 <p *ngIf="verifyForm.get('code')?.invalid && verifyForm.get('code')?.touched" class="field-error">
-                  Code à 6 chiffres requis.
+                  {{ 'twofa.code6Required' | t }}
                 </p>
               </div>
               <div class="flex gap-3">
                 <button type="submit" [disabled]="verifying" class="btn-primary">
-                  {{ verifying ? 'Vérification...' : 'Vérifier et activer' }}
+                  {{ verifying ? ('twofa.verifying' | t) : ('twofa.verifyAndEnable' | t) }}
                 </button>
-                <button type="button" (click)="cancelSetup()" [disabled]="verifying" class="btn-outline">Annuler</button>
+                <button type="button" (click)="cancelSetup()" [disabled]="verifying" class="btn-outline">{{ 'common.cancel' | t }}</button>
               </div>
             </form>
           </div>
@@ -111,10 +110,9 @@
             <path d="M12 17h.01"></path>
           </svg>
           <div>
-            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Double authentification activée — conservez vos codes de secours</p>
+            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">{{ 'twofa.enabledBackupTitle' | t }}</p>
             <p class="text-xs text-amber-800 dark:text-amber-300/80 mt-0.5">
-              Ces {{ backupCodes.length }} codes remplacent votre téléphone (usage unique chacun).
-              <strong>Ils ne seront plus jamais affichés</strong> : copiez-les et rangez-les en lieu sûr.
+              {{ 'twofa.enabledBackupText' | t: { n: backupCodes.length } }}
             </p>
           </div>
         </div>
@@ -126,10 +124,10 @@
         </div>
         <div class="flex gap-3">
           <button type="button" (click)="copyBackupCodes()" class="btn-outline btn-sm">
-            {{ backupCopied ? 'Copiés ✓' : 'Copier les codes' }}
+            {{ backupCopied ? ('common.copied' | t) + ' ✓' : ('twofa.copyCodes' | t) }}
           </button>
           <button type="button" (click)="acknowledgeBackupCodes()" class="btn-outline btn-sm">
-            J'ai conservé mes codes
+            {{ 'twofa.codesKept' | t }}
           </button>
         </div>
       </div>
@@ -140,44 +138,44 @@
           <div class="flex items-start gap-3">
             <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
               <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              Activée
+              {{ 'twofa.stateOn' | t }}
             </span>
             <div class="text-sm text-muted-foreground">
               <p>
-                Votre compte exige un code OTP à chaque connexion
-                <span *ngIf="status.createdAt">— activée le {{ status.createdAt | date: 'dd/MM/yyyy' }}</span>.
+                {{ 'twofa.otpRequired' | t }}
+                <span *ngIf="status.createdAt">— {{ 'twofa.enabledOn' | t }} {{ status.createdAt | dateLocale: 'short' }}</span>.
               </p>
-              <p class="text-xs mt-0.5">{{ status.backupCodesRemaining }} code(s) de secours restant(s).</p>
+              <p class="text-xs mt-0.5">{{ 'twofa.backupLeft' | t: { n: status.backupCodesRemaining } }}.</p>
             </div>
           </div>
           <button *ngIf="!disableView" type="button" (click)="startDisable()" class="btn-outline shrink-0">
-            Désactiver la double authentification
+            {{ 'twofa.disableBtn' | t }}
           </button>
         </div>
 
         <!-- Désactivation : preuve requise -->
         <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()"
           class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-          <p class="text-sm font-medium">Confirmez la désactivation</p>
+          <p class="text-sm font-medium">{{ 'twofa.confirmDisableTitle' | t }}</p>
           <p class="text-xs text-muted-foreground">
-            Pour votre sécurité, prouvez votre identité : mot de passe <em>ou</em> code d'authentification valide.
+            {{ 'twofa.confirmDisableHint' | t }}
           </p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="field-label">Mot de passe du compte</label>
+              <label class="field-label">{{ 'twofa.accountPassword' | t }}</label>
               <input type="password" formControlName="password" class="input" autocomplete="current-password" />
             </div>
             <div>
-              <label class="field-label">ou code d'authentification</label>
+              <label class="field-label">{{ 'twofa.orAuthCode' | t }}</label>
               <input type="text" formControlName="code" class="input tracking-[0.2em] font-mono"
-                placeholder="123456 ou XXXX-XXXX" maxlength="9" />
+                [attr.placeholder]="'twofa.codeOrBackup' | t" maxlength="9" />
             </div>
           </div>
           <div class="flex gap-3">
             <button type="submit" [disabled]="disabling" class="btn-primary">
-              {{ disabling ? 'Désactivation...' : 'Confirmer la désactivation' }}
+              {{ disabling ? ('twofa.disabling' | t) : ('twofa.confirmDisableBtn' | t) }}
             </button>
-            <button type="button" (click)="cancelDisable()" [disabled]="disabling" class="btn-outline">Annuler</button>
+            <button type="button" (click)="cancelDisable()" [disabled]="disabling" class="btn-outline">{{ 'common.cancel' | t }}</button>
           </div>
         </form>
       </div>

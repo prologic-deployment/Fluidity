@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService } from '../../services/toast.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
 /**
  * Conteneur global des notifications toast — placé une fois au niveau racine.
@@ -9,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-toast',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ...I18N_IMPORTS],
   template: `
     <div class="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-[min(92vw,24rem)] flex-col gap-2" aria-live="polite">
       <div
@@ -32,7 +33,7 @@ import { ToastService } from '../../services/toast.service';
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
         </svg>
         <p class="flex-1 text-sm font-medium">{{ toast.message }}</p>
-        <button type="button" (click)="toastService.dismiss(toast.id)" aria-label="Fermer la notification"
+        <button type="button" (click)="toastService.dismiss(toast.id)" [attr.aria-label]="'toast.close' | t"
           class="shrink-0 rounded-md opacity-70 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>

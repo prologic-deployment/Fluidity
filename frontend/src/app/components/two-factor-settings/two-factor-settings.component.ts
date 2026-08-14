@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService, TwoFactorStatus } from '../../services/auth.service';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Section « Double authentification » du profil : chaque utilisateur gère SA
@@ -14,7 +17,7 @@ import { AuthService, TwoFactorStatus } from '../../services/auth.service';
 @Component({
   selector: 'app-two-factor-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ...I18N_IMPORTS],
   templateUrl: './two-factor-settings.component.html',
 })
 export class TwoFactorSettingsComponent implements OnInit {
@@ -38,7 +41,7 @@ export class TwoFactorSettingsComponent implements OnInit {
   disableForm: FormGroup;
   disabling = false;
 
-  constructor(private fb: FormBuilder, private auth: AuthService) {
+  constructor(private fb: FormBuilder, private auth: AuthService, private i18n: I18nService) {
     this.verifyForm = this.fb.group({
       code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });
@@ -61,7 +64,7 @@ export class TwoFactorSettingsComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.error = 'Impossible de charger l’état de la double authentification.';
+        this.error = this.i18n.t('security.load2faError');
         this.loading = false;
       },
     });
@@ -81,7 +84,7 @@ export class TwoFactorSettingsComponent implements OnInit {
         this.setupView = true;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Impossible de générer la configuration 2FA.';
+        this.error = apiErrorMessage(this.i18n, err, 'security.generate2faError');
       },
     });
   }
@@ -109,7 +112,7 @@ export class TwoFactorSettingsComponent implements OnInit {
         this.refresh();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Code invalide. Réessayez.';
+        this.error = apiErrorMessage(this.i18n, err, 'security.invalidCodeRetry');
         this.verifying = false;
       },
     });
@@ -143,7 +146,7 @@ export class TwoFactorSettingsComponent implements OnInit {
   confirmDisable(): void {
     const { password, code } = this.disableForm.value;
     if (!password && !code) {
-      this.error = 'Saisissez votre mot de passe ou un code d’authentification.';
+      this.error = this.i18n.t('security.confirmDisableHint');
       return;
     }
     this.disabling = true;
@@ -155,7 +158,7 @@ export class TwoFactorSettingsComponent implements OnInit {
         this.refresh();
       },
       error: (err) => {
-        this.error = err.error?.message || 'Désactivation impossible : preuve invalide.';
+        this.error = apiErrorMessage(this.i18n, err, 'security.disableError');
         this.disabling = false;
       },
     });

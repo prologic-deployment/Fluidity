@@ -1,5 +1,5 @@
 <!-- Frise de progression du workflow (scroll horizontal sur mobile) -->
-<div class="select-none" role="group" aria-label="Progression du workflow">
+<div class="select-none" role="group" [attr.aria-label]="'workflow.progress' | t">
   <ng-container *ngIf="!offTrack; else sortieDePiste">
     <div class="flex items-start overflow-x-auto pb-1">
       <ng-container *ngFor="let step of steps; let i = index">
@@ -22,8 +22,8 @@
           <span
             class="text-[10px] leading-tight"
             [ngClass]="stateOf(i) === 'current' ? 'font-semibold text-foreground' : stateOf(i) === 'done' ? 'text-foreground/70' : 'text-muted-foreground'"
-            [title]="step"
-          >{{ step }}</span>
+            [title]="step | tl"
+          >{{ step | tl }}</span>
         </div>
         <!-- Connecteur -->
         <div
@@ -41,7 +41,7 @@
         <circle cx="12" cy="12" r="9"></circle>
         <path d="m5.6 5.6 12.8 12.8"></path>
       </svg>
-      Parcours interrompu — statut final : {{ offTrack }}
+      {{ 'workflow.offTrack' | t }} : {{ offTrack | tl }}
     </div>
   </ng-template>
 </div>

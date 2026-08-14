@@ -7,11 +7,14 @@ import { Contrat, STATUTS_CONTRAT } from '../../models/contrat.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-dashboard-contrats',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './dashboard-contrats.component.html',
 })
 export class DashboardContratsComponent implements OnInit {
@@ -28,6 +31,8 @@ export class DashboardContratsComponent implements OnInit {
     private contratService: ContratService,
     public auth: AuthService,
     private confirmDialog: ConfirmDialogService
+  ,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -97,7 +102,7 @@ export class DashboardContratsComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Supprimer ce contrat ?',
-      message: 'Cette action est définitive et ne pourra pas être annulée.',
+      message: this.i18n.t('contracts.deleteMessage'),
       confirmLabel: 'Supprimer',
       variant: 'destructive',
     });
@@ -107,7 +112,7 @@ export class DashboardContratsComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de la suppression.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'contracts.deleteError')),
     });
   }
 

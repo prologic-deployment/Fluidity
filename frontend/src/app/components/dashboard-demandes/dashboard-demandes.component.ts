@@ -11,11 +11,14 @@ import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
 import { requesterEmail, requesterClientNom, requesterStatut, nomFichierDepuisUrl } from '../../utils/requester.util';
+import { I18nService } from '../../i18n/i18n.service';
+import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent, UrlUploadPipe],
+  imports: [CommonModule, FormsModule, RouterLink, ModalComponent, WorkflowStepperComponent, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
@@ -82,6 +85,8 @@ export class DashboardDemandesComponent implements OnInit {
     public auth: AuthService,
     private router: Router,
     private confirmDialog: ConfirmDialogService
+  ,
+    private i18n: I18nService
   ) {}
 
   ngOnInit(): void {
@@ -100,7 +105,7 @@ export class DashboardDemandesComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des demandes.';
+        this.error = apiErrorMessage(this.i18n, err, 'demandes.loadError');
         this.loading = false;
       },
     });
@@ -291,7 +296,7 @@ export class DashboardDemandesComponent implements OnInit {
       title: 'Annuler cette demande ?',
       message:
         'La demande sera conservée dans l\'historique avec le statut « Annulé ». Cette action est définitive : aucune reprise ne sera possible.',
-      confirmLabel: 'Annuler la demande',
+      confirmLabel: this.i18n.t('demandes.cancel'),
       variant: 'destructive',
     });
     if (!ok) return;
@@ -300,7 +305,7 @@ export class DashboardDemandesComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'demandes.cancelError')),
     });
   }
 
@@ -308,8 +313,8 @@ export class DashboardDemandesComponent implements OnInit {
     if (!id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler cette demande ?',
-      message: 'La demande restera visible dans l\'historique mais ne pourra plus être traitée.',
-      confirmLabel: 'Annuler la demande',
+      message: this.i18n.t('demandes.cancelMessage'),
+      confirmLabel: this.i18n.t('demandes.cancel'),
       variant: 'destructive',
     });
     if (!ok) return;
@@ -318,7 +323,7 @@ export class DashboardDemandesComponent implements OnInit {
         this.load();
         this.closeDetails();
       },
-      error: (err) => (this.error = err.error?.message || 'Échec de l\'annulation.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'demandes.cancelError')),
     });
   }
 
@@ -340,7 +345,7 @@ export class DashboardDemandesComponent implements OnInit {
         this.load();
       },
       error: (err) => {
-        this.transitionError = err.error?.message || 'Transition refusée.';
+        this.transitionError = apiErrorMessage(this.i18n, err, 'demandes.transitionError');
         this.transitionLoading = false;
       },
     });

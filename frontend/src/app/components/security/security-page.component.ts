@@ -7,6 +7,7 @@ import { ToastService } from '../../services/toast.service';
 import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-settings.component';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Page Sécurité (/profile/security) :
@@ -117,14 +118,14 @@ export class SecurityPageComponent implements OnInit {
   /** Libellé français d'une raison d'échec (code stocké en base). */
   libelleEchec(raison: string | null): string {
     const libelles: Record<string, string> = {
-      MOT_DE_PASSE_INVALIDE: 'Mot de passe incorrect',
-      COMPTE_SUSPENDU: 'Compte suspendu',
-      COMPTE_INACTIF: 'Compte inactif',
-      CODE_2FA_INVALIDE: 'Code 2FA invalide',
-      TENANT_INDISPONIBLE: 'Espace de travail indisponible',
-      DONNEES_HERITEES: 'Données à migrer',
+      MOT_DE_PASSE_INVALIDE: 'security.reasonBadPassword',
+      COMPTE_SUSPENDU: 'security.reasonSuspended',
+      COMPTE_INACTIF: 'security.reasonInactive',
+      CODE_2FA_INVALIDE: 'security.reasonBad2fa',
+      TENANT_INDISPONIBLE: 'security.reasonTenantUnavailable',
+      DONNEES_HERITEES: 'security.reasonLegacyData',
     };
-    return (raison && libelles[raison]) || 'Échec';
+    return (raison && this.i18n.t(libelles[raison])) || this.i18n.t('security.failed');
   }
 
   /** Date + heure françaises compactes (fuseau du navigateur). */
@@ -151,7 +152,7 @@ export class SecurityPageComponent implements OnInit {
   }
 
   get strengthLabel(): string {
-    return ['Très faible', 'Faible', 'Correct', 'Fort', 'Excellent'][this.strengthScore] || '';
+    return this.i18n.t('security.strengthLabels.' + this.strengthScore) || '';
   }
 
   get newPasswordValue(): string {
@@ -175,13 +176,13 @@ export class SecurityPageComponent implements OnInit {
           // Obligation levée côté serveur : synchroniser la session puis
           // ouvrir l'accès à l'application (la garde de route s'appuie dessus).
           this.auth.patchSessionUser({ mustChangePassword: false });
-          this.toast.success('Votre accès est désormais actif — bienvenue !');
+          this.toast.success(this.i18n.t('security.accessActive'));
           this.router.navigate(['/demandes']);
         }
       },
       error: (err) => {
         this.savingPassword = false;
-        this.toast.error(err.error?.message || 'Échec de la modification du mot de passe.');
+        this.toast.error(apiErrorMessage(this.i18n, err, 'security.pwdChangeError'));
       },
     });
   }
@@ -201,8 +202,8 @@ export class SecurityPageComponent implements OnInit {
   }
 
   get securityScoreLabel(): string {
-    if (this.securityScore >= 90) return '— Excellente, compte bien protégé.';
-    if (this.securityScore >= 60) return '— Bonne, quelques points à consolider.';
+    if (this.securityScore >= 90) return this.i18n.t('security.scoreExcellent');
+    if (this.securityScore >= 60) return this.i18n.t('security.scoreGood');
     return '— À renforcer : activez la double authentification.';
   }
 
@@ -220,14 +221,14 @@ export class SecurityPageComponent implements OnInit {
       {
         ok: twoFaOn,
         text: twoFaOn
-          ? 'Double authentification activée — votre compte est bien protégé.'
-          : 'Activez la double authentification pour protéger votre compte.',
+          ? this.i18n.t('security.rec2faOn')
+          : this.i18n.t('security.rec2faOff'),
       },
       {
         ok: (this.twoFactorStatus?.backupCodesRemaining ?? 0) > 0 || !twoFaOn,
         text: twoFaOn
-          ? 'Conservez vos codes de secours en lieu sûr (accès sans téléphone).'
-          : 'Notez vos codes de secours en lieu sûr lors de l’activation de la 2FA.',
+          ? this.i18n.t('security.recBackupOn')
+          : this.i18n.t('security.recBackupOff'),
       },
       {
         ok: true,

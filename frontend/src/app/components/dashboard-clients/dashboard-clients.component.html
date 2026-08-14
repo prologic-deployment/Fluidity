@@ -12,13 +12,13 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Clients</h1>
-          <p class="text-sm text-muted-foreground">Comptes clients du tenant, rattachés à leurs contrats.</p>
+          <h1 class="text-xl font-semibold tracking-tight">{{ 'clients.title' | t }}</h1>
+          <p class="text-sm text-muted-foreground">{{ 'clients.subtitle' | t }}</p>
         </div>
       </div>
       <a *ngIf="auth.isAdmin()" routerLink="/clients/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-        Nouveau client
+        {{ 'clients.new' | t }}
       </a>
     </div>
   </header>
@@ -32,20 +32,20 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un nom, un email..." class="search-input" />
-        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
+        <input type="text" [(ngModel)]="searchTerm" [attr.placeholder]="'clients.searchPh' | t" class="search-input" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" [title]="'common.clear' | t">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
       </div>
 
       <select [(ngModel)]="statutFiltre" class="filter-select">
-        <option value="">Tous les statuts</option>
-        <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
+        <option value="">{{ 'clients.allStatuses' | t }}</option>
+        <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s | tl }}</option>
       </select>
 
       <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
         <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
-        Réinitialiser
+        {{ 'common.resetFilters' | t }}
       </button>
     </div>
 
@@ -68,17 +68,17 @@
             <circle cx="9" cy="7" r="4"></circle>
           </svg>
         </div>
-        Aucun client pour le moment.
+        {{ 'clients.none' | t }}
         <span *ngIf="auth.isAdmin()">
-          <br /><a routerLink="/clients/nouveau" class="btn-link">Créer le premier client</a>
+          <br /><a routerLink="/clients/nouveau" class="btn-link">{{ 'clients.firstClient' | t }}</a>
         </span>
       </div>
     </div>
 
     <div *ngIf="!loading && clients.length > 0 && filteredClients().length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
-        Aucun résultat pour ces filtres.
-        <br /><button (click)="resetFilters()" class="btn-link">Réinitialiser les filtres</button>
+        {{ 'clients.noResults' | t }}
+        <br /><button (click)="resetFilters()" class="btn-link">{{ 'common.resetFilters' | t }}</button>
       </div>
     </div>
 
@@ -86,11 +86,11 @@
       <table class="table">
         <thead>
           <tr>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Téléphone</th>
-            <th>Statut</th>
-            <th class="text-right">Actions</th>
+            <th>{{ 'clients.name' | t }}</th>
+            <th>{{ 'clients.email' | t }}</th>
+            <th>{{ 'clients.phone' | t }}</th>
+            <th>{{ 'clients.status' | t }}</th>
+            <th class="text-right">{{ 'common.actionsCol' | t }}</th>
           </tr>
         </thead>
         <tbody>
@@ -99,11 +99,11 @@
             <td class="text-muted-foreground">{{ c.email }}</td>
             <td class="text-muted-foreground">{{ c.telephone || '—' }}</td>
             <td>
-              <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
+              <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut | tl }}</span>
             </td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <button *ngIf="auth.isAdmin()" (click)="$event.stopPropagation(); deleteClient(c._id)" title="Supprimer"
+                <button *ngIf="auth.isAdmin()" (click)="$event.stopPropagation(); deleteClient(c._id)" [title]="'common.delete' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
@@ -122,7 +122,7 @@
     </div>
 
     <p *ngIf="!loading && clients.length > 0" class="mt-3 text-xs text-muted-foreground">
-      {{ filteredClients().length }} sur {{ clients.length }} client(s) affiché(s)
+      {{ 'clients.count' | t: { shown: filteredClients().length, total: clients.length } }}
     </p>
   </main>
 </div>
@@ -130,37 +130,37 @@
 <app-modal [open]="!!selected" [title]="selected?.nom || ''" [subtitle]="selected?.email || ''" (closed)="closeDetails()">
   <ng-container *ngIf="selected as c">
     <div class="flex flex-wrap gap-2 mb-5">
-      <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
-      <span *ngIf="c.mustChangePassword" class="badge-warning" title="Le mot de passe provisoire n'a pas encore été remplacé">
-        <span class="badge-dot"></span>Mot de passe provisoire en attente
+      <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut | tl }}</span>
+      <span *ngIf="c.mustChangePassword" class="badge-warning" [title]="'clients.pendingPwdTitle' | t">
+        <span class="badge-dot"></span>{{ 'clients.pendingPwd' | t }}
       </span>
     </div>
 
     <div class="detail-grid">
       <div>
-        <p class="detail-label">Email</p>
+        <p class="detail-label">{{ 'clients.email' | t }}</p>
         <p class="detail-value">{{ c.email }}</p>
       </div>
       <div>
-        <p class="detail-label">Téléphone</p>
+        <p class="detail-label">{{ 'clients.phone' | t }}</p>
         <p class="detail-value">{{ c.telephone || '—' }}</p>
       </div>
       <div class="sm:col-span-2">
-        <p class="detail-label">Adresse</p>
+        <p class="detail-label">{{ 'clients.address' | t }}</p>
         <p class="detail-value">{{ c.adresse || '—' }}</p>
       </div>
     </div>
 
     <ng-container *ngIf="c.notes">
-      <p class="detail-section-title">Notes</p>
+      <p class="detail-section-title">{{ 'clients.notes' | t }}</p>
       <p class="detail-value whitespace-pre-line">{{ c.notes }}</p>
     </ng-container>
 
     <div class="flex flex-wrap justify-end gap-3 pt-6 mt-6 border-t border-border" *ngIf="auth.isAdmin()">
       <button (click)="regenererAcces(c)" [disabled]="regenerationEnCours" class="btn-outline">
-        {{ regenerationEnCours ? 'Régénération...' : "Régénérer l'accès portail" }}
+        {{ regenerationEnCours ? ('clients.regenerating' | t) : ('clients.regenerateAccess' | t) }}
       </button>
-      <button (click)="deleteClient(c._id)" class="btn-destructive">Supprimer le client</button>
+      <button (click)="deleteClient(c._id)" class="btn-destructive">{{ 'clients.delete' | t }}</button>
     </div>
   </ng-container>
 </app-modal>

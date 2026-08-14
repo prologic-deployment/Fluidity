@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { I18nService } from '../i18n/i18n.service';
 
 export interface ConfirmOptions {
   title: string;
@@ -30,14 +31,16 @@ export class ConfirmDialogService {
   readonly state$ = this.stateSubject.asObservable();
   private resolver: ((value: boolean) => void) | null = null;
 
+  constructor(private i18n: I18nService) {}
+
   confirm(options: ConfirmOptions): Promise<boolean> {
     // Toute confirmation en attente est annulée si une nouvelle est demandée
     if (this.resolver) {
       this.resolver(false);
     }
     this.stateSubject.next({
-      confirmLabel: 'Confirmer',
-      cancelLabel: 'Annuler',
+      confirmLabel: this.i18n.t('confirm.confirm'),
+      cancelLabel: this.i18n.t('confirm.cancel'),
       variant: 'default',
       ...options,
       open: true,
