@@ -348,8 +348,7 @@ function hrScene(ctx: SceneBuilderContext): ProductSceneHandle {
     c.group.rotation.y = time.t * 0.1;
     core.rotation.y = -time.t * 0.2;
     employees.forEach((e, i) => {
-      const base = 0.6 + 0.25 * Math.sin(time.t * 1.8 + i * 0.8);
-      (e.material as any).opacity = Math.min(1, base);
+      // Pulsation d'échelle uniquement (l'opacité est gérée par l'entrée).
       e.scale.setScalar(0.9 + Math.sin(time.t * 2 + i) * 0.12);
     });
   };
@@ -738,8 +737,10 @@ function biScene(ctx: SceneBuilderContext): ProductSceneHandle {
     bars.push(b);
   }
   const entrance = (c: SceneBuilderContext) => {
+    // Entrée par translation (pas d'échelle : onFrame pilote scale.y).
     const tl = c.gsap.timeline();
-    bars.forEach((b, i) => tl.fromTo(b.scale, { y: 0.05 }, { y: 1, duration: 0.55, ease: 'power2.out' }, 0.08 + i * 0.07));
+    bars.forEach((b, i) => tl.fromTo(b.position, { y: -2.2 }, { y: -1.7 + b.userData.targetH / 2, duration: 0.6, ease: 'power2.out' }, 0.08 + i * 0.07));
+    tl.fromTo(bars, { opacity: 0 }, { opacity: 1, duration: 0.5 }, 0.2);
     c.tweens.push(tl);
   };
   const onFrame = (c: SceneBuilderContext, time: SceneTime) => {

@@ -61,7 +61,10 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
         this.loadError = true;
       },
     });
-    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(() => this.resolveFromRoute());
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      // Ne résout qu'une fois le catalogue chargé (évite un flash 404).
+      if (this.catalog.length > 0 || this.loadError) this.resolveFromRoute();
+    });
   }
 
   ngOnDestroy(): void {
