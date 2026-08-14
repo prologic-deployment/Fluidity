@@ -24,17 +24,27 @@ export class PricingComponent implements OnInit {
   products: ProductInfo[] = [];
   billing: 'monthly' | 'annual' = 'monthly';
   loading = true;
+  loadError = false;
 
   constructor(private platform: PlatformService, private seo: SeoService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.seo.setPage(this.i18n.t('seo.pricing.title'), this.i18n.t('seo.pricing.description'));
+    this.load();
+  }
+
+  load(): void {
+    this.loading = true;
+    this.loadError = false;
     this.platform.catalog().subscribe({
       next: (p) => {
         this.products = p;
         this.loading = false;
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.loadError = true;
+      },
     });
   }
 

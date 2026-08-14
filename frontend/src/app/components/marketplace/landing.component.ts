@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RevealDirective } from '../../directives/reveal.directive';
 import { RouterLink } from '@angular/router';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { MarketplaceHeaderComponent } from './marketplace-header.component';
@@ -18,7 +19,7 @@ import { ProductInfo } from '../../models/product.model';
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule, RouterLink, ...I18N_IMPORTS, MarketplaceHeaderComponent, MarketplaceFooterComponent],
+  imports: [CommonModule, RouterLink, RevealDirective, ...I18N_IMPORTS, MarketplaceHeaderComponent, MarketplaceFooterComponent],
   templateUrl: './landing.component.html',
 })
 export class LandingComponent implements OnInit {

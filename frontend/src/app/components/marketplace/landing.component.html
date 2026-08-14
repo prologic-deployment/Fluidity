@@ -7,20 +7,20 @@
   <div class="pointer-events-none absolute inset-0 opacity-[0.04]" style="background-image: radial-gradient(circle, #6366f1 1px, transparent 1px); background-size: 32px 32px;"></div>
 
   <div class="relative mx-auto max-w-7xl px-6 py-24 text-center lg:py-32">
-    <p class="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+    <p appReveal="0.05" class="mx-auto inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
       {{ 'marketplace.badge' | t }}
     </p>
-    <h1 class="mx-auto mt-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+    <h1 appReveal="0.12" class="mx-auto mt-6 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
       {{ 'marketplace.heroTitle1' | t }}<br />
       <span class="bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">{{ 'marketplace.heroTitle2' | t }}</span>
     </h1>
-    <p class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">{{ 'marketplace.heroSub' | t }}</p>
-    <div class="mt-10 flex flex-wrap items-center justify-center gap-4">
+    <p appReveal="0.2" class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">{{ 'marketplace.heroSub' | t }}</p>
+    <div appReveal="0.28" class="mt-10 flex flex-wrap items-center justify-center gap-4">
       <a routerLink="/services" class="btn-primary px-6 py-3 text-base">{{ 'marketplace.discoverServices' | t }}</a>
       <a routerLink="/pricing" class="btn-outline px-6 py-3 text-base">{{ 'marketplace.seePricing' | t }}</a>
     </div>
 
-    <dl class="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-6 text-left sm:grid-cols-4">
+    <dl class="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-6 text-left sm:grid-cols-4" appReveal="0.15">
       <div class="rounded-xl border border-border bg-card/60 p-4">
         <dt class="text-sm font-semibold">{{ 'marketplace.propModular' | t }}</dt>
         <dd class="mt-1 text-xs text-muted-foreground">{{ 'marketplace.propModularHint' | t }}</dd>
@@ -41,67 +41,129 @@
   </div>
 </section>
 
-<!-- ============ PRODUIT DISPONIBLE ============ -->
-<section class="mx-auto max-w-7xl px-6 py-16">
-  <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.availableNow' | t }}</h2>
-  <p class="mt-2 max-w-2xl text-sm text-muted-foreground">{{ 'marketplace.availableNowHint' | t }}</p>
+<!-- ============ COMMENT ÇA MARCHE ============ -->
+<section class="border-t border-border bg-muted/20 py-16">
+  <div class="mx-auto max-w-7xl px-6">
+    <h2 class="text-center text-2xl font-bold tracking-tight">{{ 'marketplace.howTitle' | t }}</h2>
+    <p class="mx-auto mt-2 max-w-2xl text-center text-sm text-muted-foreground">{{ 'marketplace.howSub' | t }}</p>
+    <ol class="mt-10 grid gap-6 md:grid-cols-3">
+      <li appReveal="0.1" class="relative rounded-2xl border border-border bg-card p-6">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">1</span>
+        <h3 class="mt-4 font-semibold">{{ 'marketplace.how1' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.how1Hint' | t }}</p>
+      </li>
+      <li appReveal="0.1" class="relative rounded-2xl border border-border bg-card p-6">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">2</span>
+        <h3 class="mt-4 font-semibold">{{ 'marketplace.how2' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.how2Hint' | t }}</p>
+      </li>
+      <li appReveal="0.1" class="relative rounded-2xl border border-border bg-card p-6">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">3</span>
+        <h3 class="mt-4 font-semibold">{{ 'marketplace.how3' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.how3Hint' | t }}</p>
+      </li>
+    </ol>
+  </div>
+</section>
 
-  <div class="mt-8 grid gap-6 lg:grid-cols-2" *ngIf="!loading">
-    <ng-container *ngFor="let p of available()">
-      <a
-        [routerLink]="['/services', p.key]"
-        class="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10"
-      >
-        <div class="h-1.5 w-full" [style.background]="p.color"></div>
-        <div class="p-7">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-wide text-success">
-                <span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-success align-middle"></span>{{ 'marketplace.available' | t }}
-              </p>
-              <h3 class="mt-2 text-2xl font-bold tracking-tight">{{ p.emoji }} {{ p.nameKey | t }}</h3>
-              <p class="mt-1 text-sm text-muted-foreground">{{ p.taglineKey | t }}</p>
+<!-- ============ LA PLATEFORME ============ -->
+<section class="mx-auto max-w-7xl px-6 py-16">
+  <div class="grid gap-6 md:grid-cols-3" appReveal="0.1">
+    <div class="rounded-2xl border border-border bg-card p-7">
+      <p class="text-3xl">👤</p>
+      <h3 class="mt-4 text-lg font-bold">{{ 'marketplace.platLicense' | t }}</h3>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.platLicenseHint' | t }}</p>
+    </div>
+    <div class="rounded-2xl border border-border bg-card p-7">
+      <p class="text-3xl">🏢</p>
+      <h3 class="mt-4 text-lg font-bold">{{ 'marketplace.platTenant' | t }}</h3>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.platTenantHint' | t }}</p>
+    </div>
+    <div class="rounded-2xl border border-border bg-card p-7">
+      <p class="text-3xl">🔒</p>
+      <h3 class="mt-4 text-lg font-bold">{{ 'marketplace.platSecurity' | t }}</h3>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'marketplace.platSecurityHint' | t }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUIT DISPONIBLE ============ -->
+<section class="border-t border-border bg-muted/20 py-16">
+  <div class="mx-auto max-w-7xl px-6">
+    <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.availableNow' | t }}</h2>
+    <p class="mt-2 max-w-2xl text-sm text-muted-foreground">{{ 'marketplace.availableNowHint' | t }}</p>
+
+    <div class="mt-8 grid gap-6 lg:grid-cols-2" *ngIf="!loading; else availableSkeleton">
+      <ng-container *ngFor="let p of available()">
+        <a
+          [routerLink]="['/services', p.slug]"
+          class="group relative overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-900/10"
+        >
+          <div class="h-1.5 w-full" [style.background]="p.color"></div>
+          <div class="p-7">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-success">
+                  <span class="mr-1.5 inline-block h-2 w-2 rounded-full bg-success align-middle"></span>{{ 'marketplace.available' | t }}
+                </p>
+                <h3 class="mt-2 text-2xl font-bold tracking-tight">{{ p.emoji }} {{ p.nameKey | t }}</h3>
+                <p class="mt-1 text-sm text-muted-foreground">{{ p.taglineKey | t }}</p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm text-muted-foreground">{{ p.descriptionKey | t }}</p>
+            <ul class="mt-4 grid gap-1.5 text-sm text-muted-foreground" *ngIf="p.featuresKey?.length">
+              <li *ngFor="let f of p.featuresKey.slice(0, 3)" class="flex items-center gap-2">
+                <svg class="h-3.5 w-3.5 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span class="truncate">{{ f | t }}</span>
+              </li>
+            </ul>
+            <div class="mt-6 flex items-center gap-3">
+              <span class="btn-primary btn-sm">{{ 'marketplace.discoverProduct' | t }}</span>
+              <span class="text-xs text-muted-foreground">{{ 'marketplace.from' | t }} {{ p.plans[0].pricePerSeatMonthly }} € / {{ 'marketplace.perUserMonth' | t }}</span>
             </div>
           </div>
-          <p class="mt-4 text-sm text-muted-foreground">{{ p.descriptionKey | t }}</p>
-          <div class="mt-6 flex items-center gap-3">
-            <span class="btn-primary btn-sm">{{ 'marketplace.discoverProduct' | t }}</span>
-            <span class="text-xs text-muted-foreground">{{ 'marketplace.from' | t }} {{ p.plans[0].pricePerSeatMonthly }} € / {{ 'marketplace.perUserMonth' | t }}</span>
-          </div>
-        </div>
-      </a>
-    </ng-container>
+        </a>
+      </ng-container>
+    </div>
+    <ng-template #availableSkeleton>
+      <div class="mt-8 grid gap-6 lg:grid-cols-2">
+        <div *ngFor="let i of [1, 2]" class="h-72 animate-pulse rounded-2xl bg-muted/60"></div>
+      </div>
+    </ng-template>
   </div>
 </section>
 
 <!-- ============ BIENTÔT DISPONIBLE ============ -->
-<section class="border-t border-border bg-muted/20 py-16">
-  <div class="mx-auto max-w-7xl px-6">
-    <div class="flex items-end justify-between gap-4">
-      <div>
-        <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.comingSoon' | t }}</h2>
-        <p class="mt-2 max-w-2xl text-sm text-muted-foreground">{{ 'marketplace.comingSoonHint' | t }}</p>
-      </div>
-      <a routerLink="/services" class="btn-ghost btn-sm shrink-0">{{ 'marketplace.viewAll' | t }} →</a>
+<section class="mx-auto max-w-7xl px-6 py-16">
+  <div class="flex items-end justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight">{{ 'marketplace.comingSoon' | t }}</h2>
+      <p class="mt-2 max-w-2xl text-sm text-muted-foreground">{{ 'marketplace.comingSoonHint' | t }}</p>
     </div>
-
-    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" *ngIf="!loading">
-      <a
-        *ngFor="let p of comingSoon()"
-        [routerLink]="['/services', p.key]"
-        class="group rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-2xl">{{ p.emoji }}</span>
-          <span class="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
-            {{ 'marketplace.comingSoonTag' | t }}
-          </span>
-        </div>
-        <h3 class="mt-3 font-semibold">{{ p.nameKey | t }}</h3>
-        <p class="mt-1 line-clamp-2 text-xs text-muted-foreground">{{ p.taglineKey | t }}</p>
-      </a>
-    </div>
+    <a routerLink="/services" class="btn-ghost btn-sm shrink-0">{{ 'marketplace.viewAll' | t }} →</a>
   </div>
+
+  <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" *ngIf="!loading; else soonSkeleton">
+    <a
+      *ngFor="let p of comingSoon()"
+      [routerLink]="['/services', p.slug]"
+      class="group rounded-xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+    >
+      <div class="flex items-center justify-between">
+        <span class="text-2xl">{{ p.emoji }}</span>
+        <span class="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
+          {{ 'marketplace.comingSoonTag' | t }}
+        </span>
+      </div>
+      <h3 class="mt-3 font-semibold">{{ p.nameKey | t }}</h3>
+      <p class="mt-1 line-clamp-2 text-xs text-muted-foreground">{{ p.taglineKey | t }}</p>
+    </a>
+  </div>
+  <ng-template #soonSkeleton>
+    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div *ngFor="let i of [1, 2, 3, 4]" class="h-32 animate-pulse rounded-xl bg-muted/60"></div>
+    </div>
+  </ng-template>
 </section>
 
 <!-- ============ CTA TARIFS ============ -->

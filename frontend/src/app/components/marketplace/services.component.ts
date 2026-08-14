@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RevealDirective } from '../../directives/reveal.directive';
 import { RouterLink } from '@angular/router';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { MarketplaceHeaderComponent } from './marketplace-header.component';
@@ -12,23 +13,33 @@ import { ProductInfo } from '../../models/product.model';
 @Component({
   selector: 'app-services',
   standalone: true,
-  imports: [CommonModule, RouterLink, ...I18N_IMPORTS, MarketplaceHeaderComponent, MarketplaceFooterComponent],
+  imports: [CommonModule, RouterLink, RevealDirective, ...I18N_IMPORTS, MarketplaceHeaderComponent, MarketplaceFooterComponent],
   templateUrl: './services.component.html',
 })
 export class ServicesComponent implements OnInit {
   products: ProductInfo[] = [];
   loading = true;
+  loadError = false;
 
   constructor(private platform: PlatformService, private seo: SeoService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.seo.setPage(this.i18n.t('seo.services.title'), this.i18n.t('seo.services.description'));
+    this.load();
+  }
+
+  load(): void {
+    this.loading = true;
+    this.loadError = false;
     this.platform.catalog().subscribe({
       next: (p) => {
         this.products = p;
         this.loading = false;
       },
-      error: () => (this.loading = false),
+      error: () => {
+        this.loading = false;
+        this.loadError = true;
+      },
     });
   }
 
