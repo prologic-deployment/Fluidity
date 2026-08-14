@@ -18,6 +18,8 @@ export interface ProductRole {
 /** Produit du catalogue (métadonnées marketing + plans). */
 export interface ProductInfo {
   key: string;
+  /** Slug d'URL publique (ex. 'project-management') — URL propre et stable. */
+  slug: string;
   nameKey: string;
   taglineKey: string;
   descriptionKey: string;
@@ -29,8 +31,21 @@ export interface ProductInfo {
   available: boolean;
   route: string;
   featuresKey: string[];
+  benefitsKey: string[];
+  useCasesKey: string[];
+  /** Clés produits liés (recommandés sur la page service). */
+  related: string[];
   plans: ProductPlan[];
   roles: ProductRole[];
+  /** États du workflow produit (clés i18n) — présent dans le catalogue. */
+  workflow?: { states: { key: string; nameKey: string; terminal?: boolean }[] } | null;
+}
+
+/** État de workflow normalisé exposé par le catalogue. */
+export interface ProductWorkflowState {
+  key: string;
+  nameKey: string;
+  terminal?: boolean;
 }
 
 /** Droits SaaS du principal connecté (calculés côté serveur). */

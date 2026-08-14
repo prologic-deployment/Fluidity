@@ -1,6 +1,7 @@
 const { Subscription, LicenseAssignment, RoleAssignment, Product } = require('../models/saas.models');
 const {
   getProduct,
+  getWorkflow,
   rolePermissions,
   defaultProductRole,
   PRODUCTS,
@@ -156,6 +157,7 @@ async function assertProductAccess({ tenantId, userId, principalType, internalRo
 function publicCatalog() {
   return PRODUCTS.map((p) => ({
     key: p.key,
+    slug: p.slug || p.key,
     nameKey: p.nameKey,
     taglineKey: p.taglineKey,
     descriptionKey: p.descriptionKey,
@@ -167,8 +169,22 @@ function publicCatalog() {
     available: p.available,
     route: p.route,
     featuresKey: p.featuresKey,
+    benefitsKey: p.benefitsKey || [],
+    useCasesKey: p.useCasesKey || [],
+    related: p.related || [],
     plans: p.plans,
     roles: p.roles,
+    // États de workflow (clés i18n) — normalisés pour tous les produits,
+    // y compris ServiceDesk dont les états n'ont pas de nameKey dans le registre.
+    workflow: getWorkflow(p.key)
+      ? {
+          states: getWorkflow(p.key).states.map((st) => ({
+            key: st.key,
+            nameKey: st.nameKey || `products.workflows.${p.key}.states.${st.key}`,
+            terminal: !!st.terminal,
+          })),
+        }
+      : null,
   }));
 }
 

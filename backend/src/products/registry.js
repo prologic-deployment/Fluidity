@@ -421,9 +421,13 @@ const PRODUCTS = [
     color: '#6366f1',
     status: PRODUCT_STATUS.AVAILABLE,
     category: 'operations',
+    slug: 'servicedesk', // URL publique du service
     route: '/demandes', // entrée de l'application ServiceDesk (workflow existant)
     available: true,
     featuresKey: ['products.servicedesk.f1', 'products.servicedesk.f2', 'products.servicedesk.f3', 'products.servicedesk.f4'],
+    benefitsKey: ['products.servicedesk.b1', 'products.servicedesk.b2', 'products.servicedesk.b3'],
+    useCasesKey: ['products.servicedesk.u1', 'products.servicedesk.u2', 'products.servicedesk.u3'],
+    related: ['monitoring', 'knowledge_center', 'backup_management'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -444,9 +448,13 @@ const PRODUCTS = [
     color: '#0ea5e9',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'collaboration',
+    slug: 'project-management', // URL publique du service
     route: '/apps/project_management',
     available: false,
     featuresKey: ['products.project_management.f1', 'products.project_management.f2', 'products.project_management.f3', 'products.project_management.f4'],
+    benefitsKey: ['products.project_management.b1', 'products.project_management.b2', 'products.project_management.b3'],
+    useCasesKey: ['products.project_management.u1', 'products.project_management.u2', 'products.project_management.u3'],
+    related: ['collaboration', 'time_tracking', 'business_intelligence'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -467,9 +475,13 @@ const PRODUCTS = [
     color: '#f59e0b',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'operations',
+    slug: 'fleet-management', // URL publique du service
     route: '/apps/fleet_management',
     available: false,
     featuresKey: ['products.fleet_management.f1', 'products.fleet_management.f2', 'products.fleet_management.f3', 'products.fleet_management.f4'],
+    benefitsKey: ['products.fleet_management.b1', 'products.fleet_management.b2', 'products.fleet_management.b3'],
+    useCasesKey: ['products.fleet_management.u1', 'products.fleet_management.u2', 'products.fleet_management.u3'],
+    related: ['asset_management', 'procurement', 'monitoring'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -490,9 +502,13 @@ const PRODUCTS = [
     color: '#ec4899',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'people',
+    slug: 'hr-center', // URL publique du service
     route: '/apps/hr_center',
     available: false,
     featuresKey: ['products.hr_center.f1', 'products.hr_center.f2', 'products.hr_center.f3', 'products.hr_center.f4'],
+    benefitsKey: ['products.hr_center.b1', 'products.hr_center.b2', 'products.hr_center.b3'],
+    useCasesKey: ['products.hr_center.u1', 'products.hr_center.u2', 'products.hr_center.u3'],
+    related: ['time_tracking', 'document_management', 'project_management'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -513,9 +529,13 @@ const PRODUCTS = [
     color: '#10b981',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'sales',
+    slug: 'crm', // URL publique du service
     route: '/apps/crm',
     available: false,
     featuresKey: ['products.crm.f1', 'products.crm.f2', 'products.crm.f3', 'products.crm.f4'],
+    benefitsKey: ['products.crm.b1', 'products.crm.b2', 'products.crm.b3'],
+    useCasesKey: ['products.crm.u1', 'products.crm.u2', 'products.crm.u3'],
+    related: ['business_intelligence', 'contract_management', 'ai_assistant'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -536,9 +556,13 @@ const PRODUCTS = [
     color: '#8b5cf6',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'operations',
+    slug: 'contracts', // URL publique du service
     route: '/apps/contract_management',
     available: false,
     featuresKey: ['products.contract_management.f1', 'products.contract_management.f2', 'products.contract_management.f3', 'products.contract_management.f4'],
+    benefitsKey: ['products.contract_management.b1', 'products.contract_management.b2', 'products.contract_management.b3'],
+    useCasesKey: ['products.contract_management.u1', 'products.contract_management.u2', 'products.contract_management.u3'],
+    related: ['document_management', 'crm', 'security_center'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -559,9 +583,13 @@ const PRODUCTS = [
     color: '#14b8a6',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'operations',
+    slug: 'assets', // URL publique du service
     route: '/apps/asset_management',
     available: false,
     featuresKey: ['products.asset_management.f1', 'products.asset_management.f2', 'products.asset_management.f3', 'products.asset_management.f4'],
+    benefitsKey: ['products.asset_management.b1', 'products.asset_management.b2', 'products.asset_management.b3'],
+    useCasesKey: ['products.asset_management.u1', 'products.asset_management.u2', 'products.asset_management.u3'],
+    related: ['fleet_management', 'procurement', 'monitoring'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -582,9 +610,13 @@ const PRODUCTS = [
     color: '#f43f5e',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'collaboration',
+    slug: 'knowledge', // URL publique du service
     route: '/apps/knowledge_center',
     available: false,
     featuresKey: ['products.knowledge_center.f1', 'products.knowledge_center.f2', 'products.knowledge_center.f3', 'products.knowledge_center.f4'],
+    benefitsKey: ['products.knowledge_center.b1', 'products.knowledge_center.b2', 'products.knowledge_center.b3'],
+    useCasesKey: ['products.knowledge_center.u1', 'products.knowledge_center.u2', 'products.knowledge_center.u3'],
+    related: ['document_management', 'collaboration', 'ai_assistant'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -605,9 +637,13 @@ const PRODUCTS = [
     color: '#22c55e',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'itops',
+    slug: 'monitoring', // URL publique du service
     route: '/apps/monitoring',
     available: false,
     featuresKey: ['products.monitoring.f1', 'products.monitoring.f2', 'products.monitoring.f3', 'products.monitoring.f4'],
+    benefitsKey: ['products.monitoring.b1', 'products.monitoring.b2', 'products.monitoring.b3'],
+    useCasesKey: ['products.monitoring.u1', 'products.monitoring.u2', 'products.monitoring.u3'],
+    related: ['servicedesk', 'backup_management', 'security_center'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -628,9 +664,13 @@ const PRODUCTS = [
     color: '#3b82f6',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'itops',
+    slug: 'backup', // URL publique du service
     route: '/apps/backup_management',
     available: false,
     featuresKey: ['products.backup_management.f1', 'products.backup_management.f2', 'products.backup_management.f3', 'products.backup_management.f4'],
+    benefitsKey: ['products.backup_management.b1', 'products.backup_management.b2', 'products.backup_management.b3'],
+    useCasesKey: ['products.backup_management.u1', 'products.backup_management.u2', 'products.backup_management.u3'],
+    related: ['servicedesk', 'monitoring', 'security_center'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -651,9 +691,13 @@ const PRODUCTS = [
     color: '#ef4444',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'security',
+    slug: 'security', // URL publique du service
     route: '/apps/security_center',
     available: false,
     featuresKey: ['products.security_center.f1', 'products.security_center.f2', 'products.security_center.f3', 'products.security_center.f4'],
+    benefitsKey: ['products.security_center.b1', 'products.security_center.b2', 'products.security_center.b3'],
+    useCasesKey: ['products.security_center.u1', 'products.security_center.u2', 'products.security_center.u3'],
+    related: ['monitoring', 'backup_management', 'document_management'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -674,9 +718,13 @@ const PRODUCTS = [
     color: '#a855f7',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'collaboration',
+    slug: 'documents', // URL publique du service
     route: '/apps/document_management',
     available: false,
     featuresKey: ['products.document_management.f1', 'products.document_management.f2', 'products.document_management.f3', 'products.document_management.f4'],
+    benefitsKey: ['products.document_management.b1', 'products.document_management.b2', 'products.document_management.b3'],
+    useCasesKey: ['products.document_management.u1', 'products.document_management.u2', 'products.document_management.u3'],
+    related: ['knowledge_center', 'contract_management', 'collaboration'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -697,9 +745,13 @@ const PRODUCTS = [
     color: '#06b6d4',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'analytics',
+    slug: 'bi', // URL publique du service
     route: '/apps/business_intelligence',
     available: false,
     featuresKey: ['products.business_intelligence.f1', 'products.business_intelligence.f2', 'products.business_intelligence.f3', 'products.business_intelligence.f4'],
+    benefitsKey: ['products.business_intelligence.b1', 'products.business_intelligence.b2', 'products.business_intelligence.b3'],
+    useCasesKey: ['products.business_intelligence.u1', 'products.business_intelligence.u2', 'products.business_intelligence.u3'],
+    related: ['crm', 'project_management', 'monitoring'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -720,9 +772,13 @@ const PRODUCTS = [
     color: '#d946ef',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'intelligence',
+    slug: 'ai', // URL publique du service
     route: '/apps/ai_assistant',
     available: false,
     featuresKey: ['products.ai_assistant.f1', 'products.ai_assistant.f2', 'products.ai_assistant.f3', 'products.ai_assistant.f4'],
+    benefitsKey: ['products.ai_assistant.b1', 'products.ai_assistant.b2', 'products.ai_assistant.b3'],
+    useCasesKey: ['products.ai_assistant.u1', 'products.ai_assistant.u2', 'products.ai_assistant.u3'],
+    related: ['knowledge_center', 'business_intelligence', 'crm'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -743,9 +799,13 @@ const PRODUCTS = [
     color: '#64748b',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'operations',
+    slug: 'procurement', // URL publique du service
     route: '/apps/procurement',
     available: false,
     featuresKey: ['products.procurement.f1', 'products.procurement.f2', 'products.procurement.f3', 'products.procurement.f4'],
+    benefitsKey: ['products.procurement.b1', 'products.procurement.b2', 'products.procurement.b3'],
+    useCasesKey: ['products.procurement.u1', 'products.procurement.u2', 'products.procurement.u3'],
+    related: ['asset_management', 'contract_management', 'fleet_management'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -766,9 +826,13 @@ const PRODUCTS = [
     color: '#eab308',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'people',
+    slug: 'time-tracking', // URL publique du service
     route: '/apps/time_tracking',
     available: false,
     featuresKey: ['products.time_tracking.f1', 'products.time_tracking.f2', 'products.time_tracking.f3', 'products.time_tracking.f4'],
+    benefitsKey: ['products.time_tracking.b1', 'products.time_tracking.b2', 'products.time_tracking.b3'],
+    useCasesKey: ['products.time_tracking.u1', 'products.time_tracking.u2', 'products.time_tracking.u3'],
+    related: ['project_management', 'hr_center', 'collaboration'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,
@@ -789,9 +853,13 @@ const PRODUCTS = [
     color: '#84cc16',
     status: PRODUCT_STATUS.COMING_SOON,
     category: 'collaboration',
+    slug: 'collaboration', // URL publique du service
     route: '/apps/collaboration',
     available: false,
     featuresKey: ['products.collaboration.f1', 'products.collaboration.f2', 'products.collaboration.f3', 'products.collaboration.f4'],
+    benefitsKey: ['products.collaboration.b1', 'products.collaboration.b2', 'products.collaboration.b3'],
+    useCasesKey: ['products.collaboration.u1', 'products.collaboration.u2', 'products.collaboration.u3'],
+    related: ['project_management', 'document_management', 'knowledge_center'],
     plans: PLANS.map((p) => ({
       id: p,
       nameKey: `products.plans.${p}`,

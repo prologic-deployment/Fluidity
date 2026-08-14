@@ -18,8 +18,13 @@ const ProductSchema = new Schema(
     color: { type: String, default: '#6366f1' },
     status: { type: String, enum: ['available', 'coming_soon'], default: 'coming_soon' },
     category: { type: String, default: 'operations' },
+    slug: { type: String, default: '' },
     route: { type: String, default: '' },
     available: { type: Boolean, default: false },
+    featuresKey: [{ type: String }],
+    benefitsKey: [{ type: String }],
+    useCasesKey: [{ type: String }],
+    related: [{ type: String }],
     plans: [
       {
         id: String,
