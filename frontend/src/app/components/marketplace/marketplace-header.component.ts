@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { PLATFORM_NAME } from '../../branding';
 import { AuthService } from '../../services/auth.service';
+import { I18nService } from '../../i18n/i18n.service';
 
 /**
  * En-tête public du marketplace SaaS : logo, navigation (Services, Tarifs),
@@ -31,6 +32,18 @@ import { AuthService } from '../../services/auth.service';
         </nav>
 
         <div class="flex items-center gap-3">
+          <!-- Sélecteur de langue (FR/EN) — réagit instantanément -->
+          <label class="relative hidden sm:block" [attr.aria-label]="'nav.language' | t">
+            <select
+              class="select !h-8 !w-auto !py-0 !text-xs"
+              [value]="i18n.lang"
+              (change)="onLang($event)"
+              [attr.aria-label]="'nav.language' | t"
+            >
+              <option value="fr">{{ 'nav.french' | t }}</option>
+              <option value="en">{{ 'nav.english' | t }}</option>
+            </select>
+          </label>
           <ng-container *ngIf="auth.isAuthenticated()">
             <a routerLink="/workspace" class="btn-ghost btn-sm hidden sm:inline-flex">{{ 'marketplace.mySpace' | t }}</a>
             <a routerLink="/workspace" class="btn-primary btn-sm">{{ 'marketplace.openApp' | t }}</a>
@@ -61,6 +74,13 @@ import { AuthService } from '../../services/auth.service';
         aria-label="Navigation mobile"
       >
         <div class="flex flex-col gap-1">
+          <div class="flex items-center justify-between rounded-lg px-3 py-2.5">
+            <span class="text-sm font-medium">{{ 'nav.language' | t }}</span>
+            <div class="inline-flex overflow-hidden rounded-lg border border-border">
+              <button type="button" (click)="setLang('fr')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'fr'" [class.text-primary-foreground]="i18n.lang === 'fr'">FR</button>
+              <button type="button" (click)="setLang('en')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'en'" [class.text-primary-foreground]="i18n.lang === 'en'">EN</button>
+            </div>
+          </div>
           <a routerLink="/services" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.services' | t }}</a>
           <a routerLink="/pricing" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.pricing' | t }}</a>
           <ng-container *ngIf="auth.isAuthenticated()">
@@ -77,8 +97,15 @@ import { AuthService } from '../../services/auth.service';
 export class MarketplaceHeaderComponent {
   platformName = PLATFORM_NAME;
   menuOpen = false;
-  constructor(public auth: AuthService) {}
+  constructor(public auth: AuthService, public i18n: I18nService) {}
   get brandInitial(): string {
     return PLATFORM_NAME.charAt(0);
+  }
+  onLang(event: Event): void {
+    const v = (event.target as HTMLSelectElement).value;
+    if (v === 'fr' || v === 'en') this.i18n.setLang(v);
+  }
+  setLang(lang: 'fr' | 'en'): void {
+    this.i18n.setLang(lang);
   }
 }
