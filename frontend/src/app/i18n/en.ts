@@ -1857,4 +1857,5 @@ export const EN: Record<string, unknown> = {
   'marketplace.platSecurity': 'Built-in security',
   'marketplace.platSecurityHint': 'Two-level RBAC, full audit and 2FA to protect every access.',
   'marketplace.menu': 'Menu',
+  'marketplace.scrollHint': 'Scroll to explore',
 };

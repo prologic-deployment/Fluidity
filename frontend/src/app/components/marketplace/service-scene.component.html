@@ -1,17 +1,25 @@
 <div
-  class="relative h-[300px] w-full overflow-hidden rounded-2xl border border-border bg-card/60 sm:h-[380px]"
+  [ngClass]="
+    mode === 'hero'
+      ? 'absolute inset-0 h-full w-full overflow-hidden'
+      : 'relative h-[300px] w-full overflow-hidden rounded-2xl border border-border bg-card/60 sm:h-[380px]'
+  "
   role="img"
   [attr.aria-label]="(labelKey | t) || undefined"
 >
   <!-- Halo de fond adapté au thème (CSS) -->
   <div
     class="pointer-events-none absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
-    [style.background]="color + '26'"
+    [style.background]="color + (dark ? '1f' : '26')"
     aria-hidden="true"
   ></div>
 
-  <!-- Canvas Three.js (WebGL) -->
-  <canvas #canvas class="absolute inset-0 h-full w-full" aria-hidden="true"></canvas>
+  <!-- Canvas Three.js (WebGL) — toujours pointer-events:none (décoratif) -->
+  <canvas
+    #canvas
+    class="pointer-events-none absolute inset-0 h-full w-full"
+    [attr.aria-hidden]="true"
+  ></canvas>
 
   <!-- Shimmer de chargement (masqué quand la scène est prête) -->
   <div
@@ -23,33 +31,36 @@
     <p class="text-xs text-muted-foreground">{{ 'scene.loading' | t }}</p>
   </div>
 
-  <!-- Fallback SVG/CSS (WebGL indisponible ou échec) -->
+  <!-- Fallback SVG/CSS (WebGL indisponible ou perte de contexte) -->
   <div
     *ngIf="fallback"
-    class="absolute inset-0 flex flex-col items-center justify-center gap-3"
+    class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3"
     aria-hidden="true"
   >
-    <svg width="220" height="170" viewBox="0 0 220 170" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="110" cy="85" r="58" [attr.stroke]="color" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 8" />
+    <svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg" class="opacity-80">
+      <circle cx="120" cy="90" r="62" [attr.stroke]="color" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 8" />
       <g [attr.stroke]="color" stroke-width="2" stroke-linecap="round">
-        <line x1="110" y1="85" x2="62" y2="42" />
-        <line x1="110" y1="85" x2="160" y2="52" />
-        <line x1="110" y1="85" x2="78" y2="130" />
-        <line x1="110" y1="85" x2="146" y2="124" />
-        <line x1="62" y1="42" x2="160" y2="52" />
-        <line x1="78" y1="130" x2="146" y2="124" />
+        <line x1="120" y1="90" x2="66" y2="44" />
+        <line x1="120" y1="90" x2="172" y2="54" />
+        <line x1="120" y1="90" x2="84" y2="138" />
+        <line x1="120" y1="90" x2="158" y2="130" />
+        <line x1="66" y1="44" x2="172" y2="54" />
+        <line x1="84" y1="138" x2="158" y2="130" />
       </g>
-      <circle cx="110" cy="85" r="8" [attr.fill]="color" />
-      <circle cx="62" cy="42" r="5.5" [attr.fill]="color" opacity="0.85" />
-      <circle cx="160" cy="52" r="5.5" [attr.fill]="color" opacity="0.85" />
-      <circle cx="78" cy="130" r="5.5" [attr.fill]="color" opacity="0.85" />
-      <circle cx="146" cy="124" r="5.5" [attr.fill]="color" opacity="0.85" />
+      <circle cx="120" cy="90" r="9" [attr.fill]="color" />
+      <circle cx="66" cy="44" r="6" [attr.fill]="color" opacity="0.85" />
+      <circle cx="172" cy="54" r="6" [attr.fill]="color" opacity="0.85" />
+      <circle cx="84" cy="138" r="6" [attr.fill]="color" opacity="0.85" />
+      <circle cx="158" cy="130" r="6" [attr.fill]="color" opacity="0.85" />
     </svg>
     <p class="text-xs text-muted-foreground">{{ labelKey | t }}</p>
   </div>
 
-  <!-- Badge décoratif -->
-  <span class="pointer-events-none absolute right-4 top-4 rounded-full border border-border bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur">
+  <!-- Badge décoratif — masqué en mode hero (fond plein écran) -->
+  <span
+    *ngIf="mode === 'card'"
+    class="pointer-events-none absolute right-4 top-4 rounded-full border border-border bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur"
+  >
     {{ 'scene.techLabel' | t }}
   </span>
 </div>

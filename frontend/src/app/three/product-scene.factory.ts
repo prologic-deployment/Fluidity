@@ -43,6 +43,61 @@ export interface ProductSceneHandle {
   entrance?: (ctx: SceneBuilderContext) => void;
   /** Nettoyage supplémentaire spécifique à la scène. */
   dispose?: (ctx: SceneBuilderContext) => void;
+  /**
+   * Choregraphie scroll (storytelling) : étapes interpolées par la
+   * progression du scroll (GSAP ScrollTrigger -> RAF). Chaque produit
+   * raconte son histoire : la caméra avance, le groupe tourne, la
+   * lumière évolue.
+   */
+  scrollStages?: ScrollStage[];
+}
+
+/** Une étape de la choregraphie scroll d'un produit. */
+export interface ScrollStage {
+  /** Progression 0..1 (début → fin du bloc héro). */
+  progress: number;
+  /** Position caméra sur Z (profondeur). */
+  cameraZ?: number;
+  /** Rotation du groupe (radians). */
+  groupRotY?: number;
+  groupRotX?: number;
+  /** Échelle du groupe. */
+  groupScale?: number;
+  /** Intensité lumineuse. */
+  light?: number;
+}
+
+/**
+ * Étapes par défaut pour un produit : l'utilisateur « entre » dans la
+ * scène (caméra rapprochée) pendant que le groupe tourne et s'intensifie.
+ */
+export function heroStages(
+  deepZ: number,
+  rotY: number,
+  opts: { rotX?: number; scale?: number; light?: number; mid?: { progress: number; cameraZ: number } } = {}
+): ScrollStage[] {
+  const stages: ScrollStage[] = [
+    { progress: 0, cameraZ: 9.6, groupRotY: 0, groupRotX: 0, groupScale: 1, light: 1 },
+  ];
+  if (opts.mid) {
+    stages.push({
+      progress: opts.mid.progress,
+      cameraZ: opts.mid.cameraZ,
+      groupRotY: rotY * 0.5,
+      groupRotX: (opts.rotX || 0) * 0.5,
+      groupScale: 1 + (opts.scale || 1.15 - 1) * 0.5,
+      light: 1 + ((opts.light || 1.25) - 1) * 0.5,
+    });
+  }
+  stages.push({
+    progress: 1,
+    cameraZ: deepZ,
+    groupRotY: rotY,
+    groupRotX: opts.rotX || 0,
+    groupScale: opts.scale || 1.15,
+    light: opts.light || 1.25,
+  });
+  return stages;
 }
 
 // ---------------------------------------------------------------------------
@@ -200,7 +255,7 @@ function servicedeskScene(ctx: SceneBuilderContext): ProductSceneHandle {
     c.group.rotation.x += (-ny * 0.16 - c.group.rotation.x) * 0.04;
   };
 
-  return { entrance, onFrame, onPointer };
+  return { entrance, onFrame, onPointer, scrollStages: heroStages(6.8, Math.PI * 2, { rotX: 0.15, scale: 1.1, light: 1.3, mid: { progress: 0.5, cameraZ: 8.0 } }) };
 }
 
 /** Gestion de Projet — timeline 3D : jalons, tâches, progression. */
@@ -253,7 +308,7 @@ function projectScene(ctx: SceneBuilderContext): ProductSceneHandle {
     c.group.rotation.y = Math.sin(time.t * 0.08) * 0.06;
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.4, -Math.PI, { rotX: 0.1, scale: 1.15, light: 1.25 }) };
 }
 
 /** Gestion de Parc — flotte connectée : anneaux et véhicules en mouvement. */
@@ -306,7 +361,7 @@ function fleetScene(ctx: SceneBuilderContext): ProductSceneHandle {
     hub.scale.setScalar(1 + Math.sin(time.t * 1.5) * 0.05);
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.2, Math.PI, { rotX: 0.2, scale: 1.1, light: 1.2 }) };
 }
 
 /** RH Center — organigramme 3D : cœur entreprise, départements, employés. */
@@ -353,7 +408,7 @@ function hrScene(ctx: SceneBuilderContext): ProductSceneHandle {
     });
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(7.0, Math.PI * 2, { rotX: 0.05, scale: 1.1, light: 1.2 }) };
 }
 
 /** CRM — tunnel commercial : opportunités qui progressent par étape. */
@@ -395,7 +450,7 @@ function crmScene(ctx: SceneBuilderContext): ProductSceneHandle {
     c.group.rotation.y = Math.sin(time.t * 0.07) * 0.15;
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(5.6, Math.PI * 0.5, { rotX: 0.1, scale: 1.2, light: 1.35, mid: { progress: 0.45, cameraZ: 7.4 } }) };
 }
 
 /** Security Center — réseau protégé : bouclier, nœuds, menaces en orbite. */
@@ -445,7 +500,7 @@ function securityScene(ctx: SceneBuilderContext): ProductSceneHandle {
     shield.rotation.z = Math.PI / 2 + Math.sin(time.t * 0.5) * 0.04;
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.6, Math.PI, { rotX: 0.12, scale: 1.15, light: 1.3 }) };
 }
 
 /** Backup Management — réplication de données : paquets en transit. */
@@ -492,7 +547,7 @@ function backupScene(ctx: SceneBuilderContext): ProductSceneHandle {
     nodeA.scale.setScalar(1 + Math.sin(time.t * 1.3) * 0.05);
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.0, Math.PI * 2, { rotX: 0.15, scale: 1.15, light: 1.25 }) };
 }
 
 /** Monitoring — topologie : serveurs, pulsations, indicateurs de santé. */
@@ -540,7 +595,7 @@ function monitoringScene(ctx: SceneBuilderContext): ProductSceneHandle {
     });
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.4, Math.PI * 2, { rotX: 0.05, scale: 1.2, light: 1.2 }) };
 }
 
 /** AI Assistant — réseau de neurones : flux de données entrée → sortie. */
@@ -602,7 +657,7 @@ function aiScene(ctx: SceneBuilderContext): ProductSceneHandle {
     );
   };
 
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(5.8, Math.PI, { rotX: 0.2, scale: 1.2, light: 1.4, mid: { progress: 0.5, cameraZ: 7.2 } }) };
 }
 
 // ---------------------------------------------------------------------------
@@ -637,7 +692,7 @@ function contractScene(ctx: SceneBuilderContext): ProductSceneHandle {
     orb.rotation.y = time.t * 0.35;
     docs.forEach((d, i) => (d.position.y = -1.3 + i * 0.62 + Math.sin(time.t * 0.8 + i) * 0.03));
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.6, Math.PI, { rotX: 0.1, scale: 1.1, light: 1.2 }) };
 }
 
 /** Actifs — grille d'inventaire avec balayage. */
@@ -668,7 +723,7 @@ function assetsScene(ctx: SceneBuilderContext): ProductSceneHandle {
     });
     c.group.rotation.y = Math.sin(time.t * 0.1) * 0.2;
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.8, Math.PI * 2, { rotX: 0.1, scale: 1.15, light: 1.2 }) };
 }
 
 /** Knowledge — strates de connaissance + orbite. */
@@ -695,7 +750,7 @@ function knowledgeScene(ctx: SceneBuilderContext): ProductSceneHandle {
     orb.rotation.y = time.t * 0.3;
     layers.forEach((l, i) => (l.position.y = -1.1 + i * 0.55 + Math.sin(time.t * 0.9 + i) * 0.03));
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.8, Math.PI * 2, { rotX: 0.08, scale: 1.1, light: 1.2 }) };
 }
 
 /** Documents — hélice de documents flottants. */
@@ -722,7 +777,7 @@ function documentsScene(ctx: SceneBuilderContext): ProductSceneHandle {
       d.rotation.y = -d.userData.angle * 0.5;
     });
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.6, Math.PI, { rotX: 0.15, scale: 1.1, light: 1.2 }) };
 }
 
 /** BI — barres de reporting animées + ligne de tendance. */
@@ -749,7 +804,7 @@ function biScene(ctx: SceneBuilderContext): ProductSceneHandle {
       b.scale.y = h / b.userData.targetH;
     });
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.6, Math.PI * 2, { rotX: 0.1, scale: 1.15, light: 1.2 }) };
 }
 
 /** Procurement — flux de commandes : paquets à travers les étapes. */
@@ -782,7 +837,7 @@ function procurementScene(ctx: SceneBuilderContext): ProductSceneHandle {
       p.rotation.y += 0.06;
     });
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.4, Math.PI, { rotX: 0.1, scale: 1.15, light: 1.25 }) };
 }
 
 /** Time Tracking — cadran : points de temps en orbite. */
@@ -811,7 +866,7 @@ function timeScene(ctx: SceneBuilderContext): ProductSceneHandle {
       (t.material as any).emissiveIntensity = 0.3 + 0.4 * Math.max(0, Math.sin(time.t * 1.5 - i * 0.5));
     });
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.6, Math.PI, { rotX: 0.1, scale: 1.1, light: 1.2 }) };
 }
 
 /** Collaboration — réseau d'équipes hexagonales. */
@@ -842,7 +897,7 @@ function collaborationScene(ctx: SceneBuilderContext): ProductSceneHandle {
       t.position.y += Math.sin(time.t * 1.3 + i * 0.9) * 0.0015;
     });
   };
-  return { entrance, onFrame };
+  return { entrance, onFrame, scrollStages: heroStages(6.8, Math.PI * 2, { rotX: 0.1, scale: 1.15, light: 1.2 }) };
 }
 
 // ---------------------------------------------------------------------------
