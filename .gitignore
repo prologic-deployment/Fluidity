@@ -25,3 +25,4 @@ backend/uploads/
 
 # QA headless (captures E2E)
 backend/e2e-shots/
+e2e-shots/
