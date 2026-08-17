@@ -82,6 +82,7 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
     const found = this.catalog.find((p) => p.key === key || p.slug === key) || null;
     this.loading = false;
     this.loadError = false;
+    const changed = this.product?.key !== (found?.key ?? null);
     this.product = found;
     this.notFound = !found;
     this.faqOpen = null;
@@ -91,6 +92,9 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
         this.i18n.t('seo.service.title', { name }),
         this.i18n.t('seo.service.description', { name })
       );
+      // Navigation service → service (même route, param changé) : on remonte
+      // en haut pour que l'expérience cinématique démarre à l'étape 1.
+      if (changed && typeof window !== 'undefined') window.scrollTo(0, 0);
     }
   }
 

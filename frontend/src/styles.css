@@ -465,14 +465,28 @@
   50% { transform: translateY(-10px); }
 }
 
-/* Story stages : transitions douces gérées par GSAP, mais on garantit
-   un état initial correct si JS est lent. */
+/* Story stages : transitions douces gérées par GSAP. Par défaut TOUTES les
+   étapes sont masquées (opacity 0) : aucun chevauchement possible avant que
+   la timeline maîtresse ne soit créée. La première étape est rendue visible
+   par gsap.set au moment de setupStory. */
 .story-stage {
+  opacity: 0;
   will-change: transform, opacity;
+}
+/* Repli sans JS : la première étape reste lisible. */
+.story-stage:first-child {
+  opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {
   .fallback-ring,
   .fallback-orbit {
     animation: none;
+  }
+  /* Motion réduit : seule la première étape est visible (pas de chevauchement). */
+  .story-stage {
+    opacity: 0;
+  }
+  .story-stage:first-child {
+    opacity: 1;
   }
 }
