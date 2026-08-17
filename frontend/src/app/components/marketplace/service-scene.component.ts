@@ -178,7 +178,7 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
   // Mise en page
   // -------------------------------------------------------------------------
   private computeHeight(): string {
-    if (this.reduced) return '115vh';
+    if (this.reduced) return 'auto';
     const count = this.storyStages.length;
     const factor = this.three.isMobileWidth(window.innerWidth) ? 0.9 : 1;
     const vh = Math.round(Math.max(4, count * 0.95) * factor * 100);
@@ -246,11 +246,14 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
       reduced: this.reduced,
       mobile,
       dark: this.dark,
-      userData: {},
+      userData: { diagnostics: {} },
       disposables: [],
       tweens: [],
     };
     this.ctx = sceneContext;
+    // Référence de diagnostic sans mutation DOM : utilisée par la QA pour
+    // vérifier les invariants physiques (distance/roues) dans le vrai runtime.
+    (section as any).__fluidityDiagnostics = sceneContext.userData.diagnostics;
 
     this.handle = createCinematicScene(this.productKey, sceneContext);
     if (!this.reduced && this.handle.entrance) this.handle.entrance(sceneContext);
@@ -430,6 +433,8 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
     this.resizeObserver = null;
 
     const canvas = this.canvasRef?.nativeElement;
+    const section = this.cinSectionRef?.nativeElement as any;
+    if (section) delete section.__fluidityDiagnostics;
     if (canvas && this.onContextLost) canvas.removeEventListener('webglcontextlost', this.onContextLost);
     if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
     if (this.onResize) {

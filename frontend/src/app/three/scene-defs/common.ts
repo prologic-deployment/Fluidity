@@ -103,7 +103,9 @@ export function mesh(
 ): any {
   ctx.disposables.push(geometry, material);
   const m = new ctx.THREE.Mesh(geometry, material);
-  m.castShadow = ctx.quality === 'high';
+  // Les ombres sont activées explicitement sur les volumes principaux ; les
+  // centaines de petits détails restent receveurs sans multiplier les passes.
+  m.castShadow = false;
   m.receiveShadow = true;
   ctx.group.add(m);
   return m;
@@ -354,6 +356,7 @@ export function lowPolyCar(
   const roof = box(ctx, 1.62, 0.12, 2.8, '#e5e9ed', { roughness: 0.55, metalness: 0.08 });
   roof.position.set(0, 1.74, 0.2);
   shell.add(roof);
+  if (ctx.quality === 'high') [body, cabin, roof].forEach((part) => (part.castShadow = true));
 
   // Vitrage sombre et bande d'identité d'entreprise.
   const windshield = box(ctx, 1.36, 0.52, 0.055, '#273846', { roughness: 0.12, metalness: 0.35 });
@@ -490,6 +493,10 @@ export function building(
   const roof = box(ctx, opts.w + 0.3, 0.18, opts.d + 0.3, opts.roof ?? '#5f6b7a', { roughness: 0.7 });
   roof.position.set(0, opts.h + 0.09, 0);
   g.add(roof);
+  if (ctx.quality === 'high') {
+    body.castShadow = true;
+    roof.castShadow = true;
+  }
   // Fenêtres (lueurs)
   if (opts.h > 2 && opts.d > 2) {
     const winMat = new ctx.THREE.MeshStandardMaterial({ color: '#ffedb0', emissive: '#ffd88a', emissiveIntensity: 0.5 });

@@ -508,8 +508,14 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
     const travelledDistance = carT * routeLength;
     const wheelAngle = -travelledDistance / hero.userData.wheelRadius;
     hero.userData.wheels.forEach((wheel: any) => (wheel.rotation.y = wheelAngle));
-    sceneContext.userData.vehicleTravelDistance = travelledDistance;
-    sceneContext.userData.wheelRotation = wheelAngle;
+    Object.assign(sceneContext.userData.diagnostics, {
+      progress: p,
+      pathPosition: carT,
+      vehicleTravelDistance: travelledDistance,
+      wheelRadius: hero.userData.wheelRadius,
+      wheelRotation: wheelAngle,
+      vehicleYaw: hero.rotation.y,
+    });
 
     // Éclairage du dépôt puis extinction graduelle avec le lever du jour.
     const wake = smoothstep(mapRange(p, 0.06, 0.2, 0, 1));
