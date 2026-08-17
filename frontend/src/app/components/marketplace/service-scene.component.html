@@ -11,11 +11,18 @@
 <section
   #cinSection
   class="cinematic-section relative w-full"
+  [class.cinematic-section--reduced]="reduced"
   [style.height]="sectionHeight"
+  [attr.data-product-key]="productKey"
+  [attr.data-scene-ready]="ready"
   [attr.aria-label]="(labelKey | t) || undefined"
-  role="img"
+  [attr.aria-busy]="!ready"
+  role="region"
 >
-  <div class="sticky top-0 h-screen w-full overflow-hidden">
+  <div
+    class="w-full overflow-hidden"
+    [ngClass]="reduced ? 'relative min-h-screen' : 'sticky top-0 h-screen'"
+  >
     <!-- Canvas Three.js (plein écran, décoratif) -->
     <canvas
       #canvas
@@ -33,12 +40,23 @@
       aria-hidden="true"
     ></div>
 
-    <!-- Étapes de texte du storytelling -->
-    <div class="pointer-events-none absolute inset-0 z-10">
+    <!-- Étapes de texte du storytelling. Tant que le runtime n'est pas prêt,
+         le conteneur reste masqué derrière l'état de préparation. -->
+    <div
+      #storyOverlay
+      class="scene-overlay pointer-events-none absolute inset-0 z-10 transition-opacity duration-300"
+      [class.hidden]="reduced"
+      [class.invisible]="!ready"
+      [class.opacity-0]="!ready"
+      [class.opacity-100]="ready"
+      [attr.aria-hidden]="reduced"
+    >
       <div
         *ngFor="let stage of storyStages; let i = index"
         #stageEl
         class="story-stage absolute inset-0 flex items-center px-6 pb-24 sm:px-14 lg:px-24"
+        [class.story-stage--first]="i === 0"
+        [attr.data-step]="i"
         [ngClass]="stageClass(stage)"
       >
         <div
@@ -76,8 +94,39 @@
       </div>
     </div>
 
+    <!-- Mode mouvement réduit : aucun pinning long ni textes superposés.
+         Tous les chapitres restent lisibles dans un flux HTML normal. -->
+    <div
+      *ngIf="reduced"
+      class="relative z-10 mx-auto grid max-w-6xl gap-4 px-6 py-20 sm:grid-cols-2 lg:px-10"
+    >
+      <article
+        *ngFor="let stage of storyStages; let i = index"
+        class="rounded-2xl border border-border/60 bg-background/80 p-6 shadow-lg shadow-black/5 backdrop-blur-md"
+        [attr.data-static-step]="i"
+      >
+        <p
+          *ngIf="stage.kickerKey"
+          class="text-xs font-semibold uppercase tracking-[0.2em]"
+          [style.color]="color"
+        >{{ stage.kickerKey | t }}</p>
+        <h2 class="mt-2 text-2xl font-bold leading-tight text-foreground">
+          {{ stage.titleKey | t }}
+        </h2>
+        <p *ngIf="stage.textKey" class="mt-3 text-sm leading-relaxed text-foreground/80">
+          {{ stage.textKey | t }}
+        </p>
+        <a
+          *ngIf="stage.cta && ctaRoute"
+          [routerLink]="ctaRoute"
+          class="btn-primary mt-5 inline-flex items-center gap-2"
+        >{{ ctaLabelKey | t }} <span aria-hidden="true">→</span></a>
+      </article>
+    </div>
+
     <!-- Indicateur de scroll -->
     <div
+      *ngIf="!reduced"
       class="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-center"
       aria-hidden="true"
     >
@@ -99,17 +148,18 @@
     <!-- Chargement -->
     <div
       *ngIf="!ready && !fallback"
-      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-[1px]"
-      aria-hidden="true"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-[2px]"
+      role="status"
+      aria-live="polite"
     >
-      <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></div>
-      <p class="text-xs text-muted-foreground">{{ 'scene.loading' | t }}</p>
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" aria-hidden="true"></div>
+      <p class="text-sm font-medium text-muted-foreground">{{ 'scene.loading' | t }}</p>
     </div>
 
     <!-- Repli WebGL (animation CSS, jamais d'écran vide) -->
     <div
       *ngIf="fallback"
-      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 overflow-hidden"
+      class="pointer-events-none absolute inset-0 z-[2] flex flex-col items-center justify-center gap-5 overflow-hidden"
       aria-hidden="true"
     >
       <div class="fallback-orbit relative h-40 w-40">
