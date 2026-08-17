@@ -166,6 +166,79 @@
   </ng-template>
 </section>
 
+<!-- ============ À PROPOS / POURQUOI SERVICEDESK ============ -->
+<section id="about" class="border-t border-border bg-muted/20 py-20">
+  <div class="mx-auto max-w-7xl px-6">
+    <header class="max-w-3xl">
+      <p class="text-xs font-semibold uppercase tracking-widest text-primary">{{ 'about.eyebrow' | t }}</p>
+      <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{{ 'about.title' | t }}</h2>
+      <p class="mt-4 text-muted-foreground">{{ 'about.lead' | t }}</p>
+    </header>
+
+    <!-- Concept de la plateforme -->
+    <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div appReveal="0.05" class="rounded-2xl border border-border bg-card p-6">
+        <p class="text-3xl">🏢</p>
+        <h3 class="mt-3 font-semibold">{{ 'about.cards.mt.title' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'about.cards.mt.hint' | t }}</p>
+      </div>
+      <div appReveal="0.12" class="rounded-2xl border border-border bg-card p-6">
+        <p class="text-3xl">🧩</p>
+        <h3 class="mt-3 font-semibold">{{ 'about.cards.modular.title' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'about.cards.modular.hint' | t }}</p>
+      </div>
+      <div appReveal="0.19" class="rounded-2xl border border-border bg-card p-6">
+        <p class="text-3xl">👤</p>
+        <h3 class="mt-3 font-semibold">{{ 'about.cards.licenses.title' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'about.cards.licenses.hint' | t }}</p>
+      </div>
+      <div appReveal="0.26" class="rounded-2xl border border-border bg-card p-6">
+        <p class="text-3xl">🚀</p>
+        <h3 class="mt-3 font-semibold">{{ 'about.cards.growth.title' | t }}</h3>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'about.cards.growth.hint' | t }}</p>
+      </div>
+    </div>
+
+    <!-- Pourquoi ServiceDesk -->
+    <div class="mt-20">
+      <header class="max-w-3xl">
+        <h3 class="text-2xl font-bold tracking-tight">{{ 'about.why.title' | t }}</h3>
+        <p class="mt-2 text-muted-foreground">{{ 'about.why.lead' | t }}</p>
+      </header>
+      <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div *ngFor="let i of [1,2,3,4,5,6,7,8,9]" appReveal="0.03"
+          class="flex gap-3 rounded-xl border border-border bg-card p-5">
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-bold text-primary">{{ i }}</span>
+          <div>
+            <h4 class="font-semibold">{{ ('about.b' + i + '.t') | t }}</h4>
+            <p class="mt-1 text-sm text-muted-foreground">{{ ('about.b' + i + '.d') | t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflow du cycle de vie d'un ticket -->
+    <div class="mt-16 rounded-2xl border border-border bg-card p-8">
+      <h3 class="text-lg font-bold">{{ 'about.workflow.title' | t }}</h3>
+      <ol class="mt-6 flex flex-wrap items-center gap-y-3 gap-x-2">
+        <ng-container *ngFor="let s of serviceDeskWorkflow(); let idx = index">
+          <li class="flex items-center gap-2">
+            <span class="rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium">{{ s | t }}</span>
+            <svg *ngIf="idx < serviceDeskWorkflow().length - 1" class="h-3.5 w-3.5 text-muted-foreground/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </li>
+        </ng-container>
+      </ol>
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-14 flex flex-col items-center gap-3 rounded-2xl border border-border bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent p-10 text-center">
+      <h3 class="text-2xl font-bold tracking-tight">{{ 'about.cta' | t }}</h3>
+      <p class="max-w-xl text-sm text-muted-foreground">{{ 'about.ctaHint' | t }}</p>
+      <a routerLink="/services/servicedesk" class="btn-primary mt-4 px-6 py-3">{{ 'marketplace.discoverProduct' | t }}</a>
+    </div>
+  </div>
+</section>
+
 <!-- ============ CTA TARIFS ============ -->
 <section class="mx-auto max-w-7xl px-6 py-16">
   <div class="rounded-2xl border border-border bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-transparent p-10 text-center">

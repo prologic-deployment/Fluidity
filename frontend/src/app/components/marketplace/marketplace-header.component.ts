@@ -27,6 +27,7 @@ import { I18nService } from '../../i18n/i18n.service';
 
         <!-- Navigation desktop -->
         <nav class="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Navigation principale">
+          <a routerLink="/" [fragment]="'about'" class="transition-colors hover:text-primary">{{ 'marketplace.about' | t }}</a>
           <a routerLink="/services" routerLinkActive="text-primary" class="transition-colors hover:text-primary">{{ 'marketplace.services' | t }}</a>
           <a routerLink="/pricing" routerLinkActive="text-primary" class="transition-colors hover:text-primary">{{ 'marketplace.pricing' | t }}</a>
         </nav>
@@ -81,6 +82,7 @@ import { I18nService } from '../../i18n/i18n.service';
               <button type="button" (click)="setLang('en')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'en'" [class.text-primary-foreground]="i18n.lang === 'en'">🇬🇧 EN</button>
             </div>
           </div>
+          <a routerLink="/" [fragment]="'about'" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.about' | t }}</a>
           <a routerLink="/services" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.services' | t }}</a>
           <a routerLink="/pricing" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.pricing' | t }}</a>
           <ng-container *ngIf="auth.isAuthenticated()">
