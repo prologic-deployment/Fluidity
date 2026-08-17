@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RevealDirective } from '../../directives/reveal.directive';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ElementRef } from '@angular/core';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { MarketplaceHeaderComponent } from './marketplace-header.component';
 import { MarketplaceFooterComponent } from './marketplace-footer.component';
@@ -9,6 +10,7 @@ import { ServiceSceneComponent } from './service-scene.component';
 import { PlatformService } from '../../services/platform.service';
 import { SeoService } from '../../services/seo.service';
 import { I18nService } from '../../i18n/i18n.service';
+import { ThemeService } from '../../services/theme.service';
 import { ProductInfo } from '../../models/product.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -38,6 +40,12 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
 
   billing: 'monthly' | 'annual' = 'monthly';
   faqOpen: number | null = null;
+  /** Thème courant — transmis à la scène 3D (éclairage adapté). */
+  dark = false;
+
+  /** Choregraphie scroll du hero (GSAP ScrollTrigger) — nettoyée à la destruction. */
+  private scrollTriggers: { kill(): void }[] = [];
+  private heroTweens: { kill(): void }[] = [];
 
   private readonly destroy$ = new Subject<void>();
   /** Catalogue en cache pour la session — une seule requête, partagée. */
@@ -47,7 +55,9 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private platform: PlatformService,
     private seo: SeoService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private theme: ThemeService,
+    private el: ElementRef<HTMLElement>
   ) {}
 
   ngOnInit(): void {
@@ -65,11 +75,18 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
       // Ne résout qu'une fois le catalogue chargé (évite un flash 404).
       if (this.catalog.length > 0 || this.loadError) this.resolveFromRoute();
     });
+    this.theme.dark$.pipe(takeUntil(this.destroy$)).subscribe((d) => (this.dark = d));
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.scrollTriggers.forEach((st) => {
+      try { st.kill(); } catch { /* ignore */ }
+    });
+    this.heroTweens.forEach((tw) => {
+      try { tw.kill(); } catch { /* ignore */ }
+    });
   }
 
   /** Résout le produit depuis le paramètre de route (key ou slug). */
@@ -88,6 +105,38 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
         this.i18n.t('seo.service.description', { name })
       );
     }
+    // La choregraphie scroll du hero démarre une fois le DOM produit rendu.
+    setTimeout(() => this.setupHeroScroll(), 0);
+  }
+
+  /**
+   * Choregraphie scroll du hero (texte) : le contenu s'estompe et remonte
+   * pendant que l'on défile au-delà du hero, synchronisé avec le mouvement
+   * de la caméra 3D (même plage de scroll). Respecte prefers-reduced-motion.
+   */
+  private setupHeroScroll(): void {
+    if (typeof window === 'undefined') return;
+    const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) return;
+    const hero = this.el.nativeElement.querySelector('.hero-3d');
+    const content = this.el.nativeElement.querySelector('.hero-3d-content');
+    if (!hero || !content) return;
+    void import('gsap').then(async (mod) => {
+      if (this.destroy$.closed) return;
+      const gsap = (mod as { gsap: any }).gsap;
+      const ScrollTrigger = (await import('gsap/ScrollTrigger')).ScrollTrigger;
+      gsap.registerPlugin(ScrollTrigger);
+      const tween = gsap.to(content, { opacity: 0, y: -70, ease: 'none' });
+      const st = ScrollTrigger.create({
+        trigger: hero,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 0.5,
+        animation: tween,
+      });
+      this.scrollTriggers.push(st);
+      this.heroTweens.push(tween);
+    });
   }
 
   retry(): void {
