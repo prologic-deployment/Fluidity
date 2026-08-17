@@ -1,66 +1,129 @@
-<div
-  [ngClass]="
-    mode === 'hero'
-      ? 'absolute inset-0 h-full w-full overflow-hidden'
-      : 'relative h-[300px] w-full overflow-hidden rounded-2xl border border-border bg-card/60 sm:h-[380px]'
-  "
-  role="img"
+<!--
+  Expérience cinématique plein écran : section haute + viewport collant.
+  Le canvas couvre TOUT le fond ; les étapes de texte racontent le parcours
+  du service au fil du scroll (synchronisées par GSAP ScrollTrigger).
+-->
+<!--
+  IMPORTANT : pas d'overflow hidden sur la section — il casserait
+  position:sticky du viewport collant (le parent devient un conteneur de
+  défilement). Le clipping se fait sur le div sticky (h-screen overflow-hidden).
+-->
+<section
+  #cinSection
+  class="cinematic-section relative w-full"
+  [style.height]="sectionHeight"
   [attr.aria-label]="(labelKey | t) || undefined"
+  role="img"
 >
-  <!-- Halo de fond adapté au thème (CSS) -->
-  <div
-    class="pointer-events-none absolute left-1/2 top-1/2 h-3/4 w-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full blur-3xl"
-    [style.background]="color + (dark ? '1f' : '26')"
-    aria-hidden="true"
-  ></div>
+  <div class="sticky top-0 h-screen w-full overflow-hidden">
+    <!-- Canvas Three.js (plein écran, décoratif) -->
+    <canvas
+      #canvas
+      class="pointer-events-none absolute inset-0 block h-full w-full"
+      aria-hidden="true"
+    ></canvas>
 
-  <!-- Canvas Three.js (WebGL) — toujours pointer-events:none (décoratif) -->
-  <canvas
-    #canvas
-    class="pointer-events-none absolute inset-0 h-full w-full"
-    [attr.aria-hidden]="true"
-  ></canvas>
+    <!-- Dégradés de lisibilité (ne bloquent pas les clics) -->
+    <div
+      class="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-background/75 via-background/15 to-background/75 dark:from-background/85 dark:via-background/20 dark:to-background/85"
+      aria-hidden="true"
+    ></div>
+    <div
+      class="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(2,6,23,0.10)_100%)] dark:bg-[radial-gradient(ellipse_at_center,transparent_20%,rgba(2,6,23,0.42)_100%)]"
+      aria-hidden="true"
+    ></div>
 
-  <!-- Shimmer de chargement (masqué quand la scène est prête) -->
-  <div
-    *ngIf="!ready && !fallback"
-    class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-card/40 backdrop-blur-[1px]"
-    aria-hidden="true"
-  >
-    <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></div>
-    <p class="text-xs text-muted-foreground">{{ 'scene.loading' | t }}</p>
+    <!-- Étapes de texte du storytelling -->
+    <div class="pointer-events-none absolute inset-0 z-10">
+      <div
+        *ngFor="let stage of storyStages; let i = index"
+        #stageEl
+        class="story-stage absolute inset-0 flex items-center px-6 pb-24 sm:px-14 lg:px-24"
+        [ngClass]="stageClass(stage)"
+      >
+        <div
+          class="w-full max-w-xl rounded-2xl border border-border/50 bg-background/45 p-6 shadow-xl shadow-black/10 backdrop-blur-md sm:p-8 dark:bg-background/50"
+          [ngClass]="stageInnerClass(stage)"
+        >
+          <p
+            *ngIf="stage.kickerKey"
+            class="text-xs font-semibold uppercase tracking-[0.22em]"
+            [style.color]="color"
+          >
+            {{ stage.kickerKey | t }}
+          </p>
+          <h2
+            class="mt-3 text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl"
+          >
+            {{ stage.titleKey | t }}
+          </h2>
+          <p
+            *ngIf="stage.textKey"
+            class="mt-4 max-w-md text-base leading-relaxed text-foreground/85 sm:text-lg"
+            [ngClass]="stage.align === 'center' ? 'mx-auto' : ''"
+          >
+            {{ stage.textKey | t }}
+          </p>
+          <a
+            *ngIf="stage.cta && ctaRoute"
+            [routerLink]="ctaRoute"
+            class="btn-primary pointer-events-auto mt-7 inline-flex items-center gap-2 px-6 py-3 text-base"
+          >
+            {{ ctaLabelKey | t }}
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Indicateur de scroll -->
+    <div
+      class="pointer-events-none absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-center"
+      aria-hidden="true"
+    >
+      <p class="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+        {{ 'marketplace.scrollHint' | t }}
+      </p>
+      <svg
+        class="mx-auto mt-1.5 h-4 w-4 animate-bounce text-muted-foreground"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      >
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    </div>
+
+    <!-- Chargement -->
+    <div
+      *ngIf="!ready && !fallback"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-[1px]"
+      aria-hidden="true"
+    >
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+      <p class="text-xs text-muted-foreground">{{ 'scene.loading' | t }}</p>
+    </div>
+
+    <!-- Repli WebGL (animation CSS, jamais d'écran vide) -->
+    <div
+      *ngIf="fallback"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 overflow-hidden"
+      aria-hidden="true"
+    >
+      <div class="fallback-orbit relative h-40 w-40">
+        <span class="fallback-ring fallback-ring-1" [style.border-color]="color"></span>
+        <span class="fallback-ring fallback-ring-2" [style.border-color]="color"></span>
+        <span class="fallback-ring fallback-ring-3" [style.border-color]="color"></span>
+        <span
+          class="fallback-core absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          [style.background]="color"
+        ></span>
+      </div>
+      <p class="max-w-xs text-center text-xs text-muted-foreground">
+        {{ 'scene.fallback' | t }}
+      </p>
+    </div>
   </div>
-
-  <!-- Fallback SVG/CSS (WebGL indisponible ou perte de contexte) -->
-  <div
-    *ngIf="fallback"
-    class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3"
-    aria-hidden="true"
-  >
-    <svg width="240" height="180" viewBox="0 0 240 180" fill="none" xmlns="http://www.w3.org/2000/svg" class="opacity-80">
-      <circle cx="120" cy="90" r="62" [attr.stroke]="color" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="6 8" />
-      <g [attr.stroke]="color" stroke-width="2" stroke-linecap="round">
-        <line x1="120" y1="90" x2="66" y2="44" />
-        <line x1="120" y1="90" x2="172" y2="54" />
-        <line x1="120" y1="90" x2="84" y2="138" />
-        <line x1="120" y1="90" x2="158" y2="130" />
-        <line x1="66" y1="44" x2="172" y2="54" />
-        <line x1="84" y1="138" x2="158" y2="130" />
-      </g>
-      <circle cx="120" cy="90" r="9" [attr.fill]="color" />
-      <circle cx="66" cy="44" r="6" [attr.fill]="color" opacity="0.85" />
-      <circle cx="172" cy="54" r="6" [attr.fill]="color" opacity="0.85" />
-      <circle cx="84" cy="138" r="6" [attr.fill]="color" opacity="0.85" />
-      <circle cx="158" cy="130" r="6" [attr.fill]="color" opacity="0.85" />
-    </svg>
-    <p class="text-xs text-muted-foreground">{{ labelKey | t }}</p>
-  </div>
-
-  <!-- Badge décoratif — masqué en mode hero (fond plein écran) -->
-  <span
-    *ngIf="mode === 'card'"
-    class="pointer-events-none absolute right-4 top-4 rounded-full border border-border bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground backdrop-blur"
-  >
-    {{ 'scene.techLabel' | t }}
-  </span>
-</div>
+</section>

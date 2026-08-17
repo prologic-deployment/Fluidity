@@ -1,8 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RevealDirective } from '../../directives/reveal.directive';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ElementRef } from '@angular/core';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { MarketplaceHeaderComponent } from './marketplace-header.component';
 import { MarketplaceFooterComponent } from './marketplace-footer.component';
@@ -26,7 +24,7 @@ import { takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-service-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, RevealDirective, ...I18N_IMPORTS, MarketplaceHeaderComponent, MarketplaceFooterComponent, ServiceSceneComponent],
+  imports: [CommonModule, RouterLink, ...I18N_IMPORTS, MarketplaceHeaderComponent, MarketplaceFooterComponent, ServiceSceneComponent],
   templateUrl: './service-detail.component.html',
 })
 export class ServiceDetailComponent implements OnInit, OnDestroy {
@@ -43,10 +41,6 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
   /** Thème courant — transmis à la scène 3D (éclairage adapté). */
   dark = false;
 
-  /** Choregraphie scroll du hero (GSAP ScrollTrigger) — nettoyée à la destruction. */
-  private scrollTriggers: { kill(): void }[] = [];
-  private heroTweens: { kill(): void }[] = [];
-
   private readonly destroy$ = new Subject<void>();
   /** Catalogue en cache pour la session — une seule requête, partagée. */
   private catalog: ProductInfo[] = [];
@@ -57,7 +51,6 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
     private seo: SeoService,
     private i18n: I18nService,
     private theme: ThemeService,
-    private el: ElementRef<HTMLElement>
   ) {}
 
   ngOnInit(): void {
@@ -81,12 +74,6 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.scrollTriggers.forEach((st) => {
-      try { st.kill(); } catch { /* ignore */ }
-    });
-    this.heroTweens.forEach((tw) => {
-      try { tw.kill(); } catch { /* ignore */ }
-    });
   }
 
   /** Résout le produit depuis le paramètre de route (key ou slug). */
@@ -105,38 +92,6 @@ export class ServiceDetailComponent implements OnInit, OnDestroy {
         this.i18n.t('seo.service.description', { name })
       );
     }
-    // La choregraphie scroll du hero démarre une fois le DOM produit rendu.
-    setTimeout(() => this.setupHeroScroll(), 0);
-  }
-
-  /**
-   * Choregraphie scroll du hero (texte) : le contenu s'estompe et remonte
-   * pendant que l'on défile au-delà du hero, synchronisé avec le mouvement
-   * de la caméra 3D (même plage de scroll). Respecte prefers-reduced-motion.
-   */
-  private setupHeroScroll(): void {
-    if (typeof window === 'undefined') return;
-    const reduced = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) return;
-    const hero = this.el.nativeElement.querySelector('.hero-3d');
-    const content = this.el.nativeElement.querySelector('.hero-3d-content');
-    if (!hero || !content) return;
-    void import('gsap').then(async (mod) => {
-      if (this.destroy$.closed) return;
-      const gsap = (mod as { gsap: any }).gsap;
-      const ScrollTrigger = (await import('gsap/ScrollTrigger')).ScrollTrigger;
-      gsap.registerPlugin(ScrollTrigger);
-      const tween = gsap.to(content, { opacity: 0, y: -70, ease: 'none' });
-      const st = ScrollTrigger.create({
-        trigger: hero,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: 0.5,
-        animation: tween,
-      });
-      this.scrollTriggers.push(st);
-      this.heroTweens.push(tween);
-    });
   }
 
   retry(): void {

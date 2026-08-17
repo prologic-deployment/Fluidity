@@ -428,3 +428,51 @@
     @apply rotate-90;
   }
 }
+
+/* ============================================================
+   Expérience cinématique des pages service (repli WebGL CSS)
+   ============================================================ */
+.fallback-orbit {
+  animation: fallbackFloat 6s ease-in-out infinite;
+}
+.fallback-ring {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid;
+  border-radius: 9999px;
+  opacity: 0.35;
+}
+.fallback-ring-1 {
+  animation: fallbackSpin 9s linear infinite;
+}
+.fallback-ring-2 {
+  inset: 18%;
+  animation: fallbackSpin 6s linear infinite reverse;
+}
+.fallback-ring-3 {
+  inset: 36%;
+  border-style: dashed;
+  animation: fallbackSpin 4s linear infinite;
+}
+.fallback-core {
+  box-shadow: 0 0 22px 4px rgba(120, 130, 255, 0.35);
+}
+@keyframes fallbackSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fallbackFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Story stages : transitions douces gérées par GSAP, mais on garantit
+   un état initial correct si JS est lent. */
+.story-stage {
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fallback-ring,
+  .fallback-orbit {
+    animation: none;
+  }
+}
