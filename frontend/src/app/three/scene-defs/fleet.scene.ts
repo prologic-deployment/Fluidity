@@ -500,6 +500,13 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
       try {
         (window as any).__fleetWheelX = hero.userData.wheels[0].rotation.x;
         (window as any).__fleetVanT = t;
+        // Diagnostics QA sur la section (backend/qa/service-scene-lifecycle.js)
+        if (c.hostEl) {
+          const d = ((c.hostEl as any).__fluidityDiagnostics ||= {});
+          d.vehicleTravelDistance = L * t;
+          d.wheelRotation = hero.userData.wheels[0].rotation.x;
+          d.wheelRadius = hero.userData.wheelRadius;
+        }
       } catch { /* ignore */ }
       // Moteur : vibration subtile (ajoutée APRÈS la position de la route)
       const engineP = lightP * Math.max(0, 1 - mapRange(p, 0.2, 0.3, 0, 1));

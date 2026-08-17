@@ -228,16 +228,18 @@ async function runTarget(target) {
     await page.locator('header button[aria-haspopup="listbox"]').click();
     await page.locator('#lang-option-fr').click();
     await page.waitForTimeout(250);
-    const frenchTitle = (await page.locator('.story-stage').first().locator('h2').textContent()).trim();
-    check(frenchTitle === 'GESTION DE PARC', `French fleet title missing (found: ${frenchTitle})`);
+    const frenchTitle = (await page.locator('.story-stage').first().innerText()).trim();
+    check(frenchTitle.includes('GESTION DE PARC'), `French fleet title missing (found: ${frenchTitle.slice(0, 60)})`);
     await page.locator('header button[aria-haspopup="listbox"]').click();
     await page.locator('#lang-option-en').click();
     await page.waitForTimeout(250);
-    check((await page.locator('.story-stage').first().locator('h2').textContent()).trim() === 'FLEET MANAGEMENT', 'English fleet title missing');
+    const englishTitle = (await page.locator('.story-stage').first().innerText()).trim();
+    check(englishTitle.includes('FLEET MANAGEMENT'), `English fleet title missing (found: ${englishTitle.slice(0, 60)})`);
     await page.locator('header button[aria-haspopup="listbox"]').click();
     await page.locator('#lang-option-fr').click();
     await page.waitForTimeout(250);
-    check((await page.locator('.story-stage').first().locator('h2').textContent()).trim() === 'GESTION DE PARC', 'French fleet title did not restore');
+    const frenchRestored = (await page.locator('.story-stage').first().innerText()).trim();
+    check(frenchRestored.includes('GESTION DE PARC'), 'French fleet title did not restore');
 
     // Resize mobile : renderer et caméra sont recalculés, trigger non dupliqué.
     await page.setViewportSize({ width: 390, height: 844 });

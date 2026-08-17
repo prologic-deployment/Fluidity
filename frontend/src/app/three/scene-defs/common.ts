@@ -28,6 +28,8 @@ export interface SceneContext {
   reduced: boolean;
   mobile: boolean;
   dark: boolean;
+  /** Élément DOM hôte (section) — utilisé pour les diagnostics QA. */
+  hostEl?: HTMLElement;
   /** Canal de communication scène <-> orchestrateur (lumières, monde…). */
   userData: any;
   disposables: { dispose(): void }[];

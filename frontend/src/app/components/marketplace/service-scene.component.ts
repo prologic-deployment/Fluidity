@@ -253,6 +253,7 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
       reduced: this.reduced,
       mobile,
       dark: this.dark,
+      hostEl: section,
       userData: {},
       disposables: [],
       tweens: [],
@@ -407,6 +408,11 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
           onUpdate: (self: { progress: number }) => {
             this.progress = self.progress;
             tl.progress(self.progress);
+            // Diagnostics QA (consommés par backend/qa/service-scene-lifecycle.js)
+            try {
+              const d = ((section as any).__fluidityDiagnostics ||= {});
+              d.progress = self.progress;
+            } catch { /* ignore */ }
           },
         });
         try { (window as any).__fluidityStCount = ScrollTrigger.getAll().length; } catch { /* ignore */ }
