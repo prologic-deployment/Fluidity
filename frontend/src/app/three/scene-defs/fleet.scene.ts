@@ -48,17 +48,19 @@ const ROUTE_POINTS: [number, number, number][] = [
   [-11, 0.08, -67],
 ];
 
-/** Position du véhicule le long du trajet pour les sept chapitres existants. */
+/** Position déterministe du véhicule pour les onze étapes de l'histoire. */
 function carCurveT(progress: number): number {
   const p = clamp01(progress);
-  if (p < 0.16) return 0;
-  if (p < 0.44) return smoothstep(mapRange(p, 0.16, 0.44, 0, 0.5)) * 0.5;
-  if (p < 0.52) return 0.5 + smoothstep(mapRange(p, 0.44, 0.52, 0, 1)) * 0.06;
-  if (p < 0.6) return 0.56;
-  if (p < 0.66) return 0.56 + smoothstep(mapRange(p, 0.6, 0.66, 0, 1)) * 0.07;
-  if (p < 0.76) return 0.63;
-  if (p < 0.84) return 0.63 + smoothstep(mapRange(p, 0.76, 0.84, 0, 1)) * 0.09;
-  return 0.72 + smoothstep(mapRange(p, 0.86, 0.98, 0, 1)) * 0.26;
+  if (p < 0.27) return 0; // dépôt, porte et démarrage
+  if (p < 0.45) return smoothstep(mapRange(p, 0.27, 0.45, 0, 1)) * 0.5; // sortie + suivi
+  if (p < 0.53) return 0.5 + smoothstep(mapRange(p, 0.45, 0.53, 0, 1)) * 0.06; // route suivie
+  if (p < 0.65) return 0.56; // maintenance
+  if (p < 0.69) return 0.56 + smoothstep(mapRange(p, 0.65, 0.69, 0, 1)) * 0.07;
+  if (p < 0.74) return 0.63; // carburant / coûts
+  if (p < 0.78) return 0.63 + smoothstep(mapRange(p, 0.74, 0.78, 0, 1)) * 0.09;
+  if (p < 0.83) return 0.72; // documents / conformité
+  if (p < 0.92) return 0.72 + smoothstep(mapRange(p, 0.83, 0.92, 0, 1)) * 0.26;
+  return 0.98; // vue flotte + CTA
 }
 
 function addParkingBay(ctx: SceneContext, x: number, z: number, length = 4.9): void {
@@ -405,88 +407,90 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
   }
 
   // =========================================================================
-  // Choregraphie actuelle (la timeline à onze pas est définie ensuite)
+  // Caméra à onze poses : chaque dixième de scroll correspond à un chapitre.
+  // Les poses adjacentes sont interpolées, puis légèrement amorties au rendu.
   // =========================================================================
   const desiredCamera = new THREE.Vector3();
   const desiredLook = new THREE.Vector3();
   const cameraLook = new THREE.Vector3(0, 0.8, 2);
 
+  function cameraPose(step: number, p: number): { pos: any; lookAt: any } {
+    const t = carCurveT(p);
+    const carPos = route.getPointAt(t);
+    const tangent = route.getTangentAt(t).normalize();
+    const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+    const carLook = carPos.clone().add(new THREE.Vector3(0, 0.78, 0));
+
+    switch (step) {
+      case 0: // dépôt, large et haut
+        return { pos: new THREE.Vector3(-13.5, 9.2, -9.5), lookAt: new THREE.Vector3(0, 1.05, 4.2) };
+      case 1: // porte du garage
+        return { pos: new THREE.Vector3(-8.4, 5.4, -2.1), lookAt: new THREE.Vector3(0, 1.05, 4.1) };
+      case 2: // démarrage, angle plus bas
+        return { pos: new THREE.Vector3(-5.1, 2.65, 0.2), lookAt: new THREE.Vector3(0, 0.92, 4.25) };
+      case 3: // sortie : vue avant trois-quarts
+        return {
+          pos: carPos.clone().addScaledVector(tangent, 4.6).addScaledVector(side, -3.5).add(new THREE.Vector3(0, 2.5, 0)),
+          lookAt: carLook,
+        };
+      case 4: // poursuite arrière
+        return {
+          pos: carPos.clone().addScaledVector(tangent, -5.2).addScaledVector(side, 2.1).add(new THREE.Vector3(0, 2.75, 0)),
+          lookAt: carPos.clone().addScaledVector(tangent, 5.5).add(new THREE.Vector3(0, 0.7, 0)),
+        };
+      case 5: // suivi de route légèrement élevé
+        return {
+          pos: carPos.clone().addScaledVector(tangent, -3.6).addScaledVector(side, 1.1).add(new THREE.Vector3(0, 6.4, 0)),
+          lookAt: carPos.clone().addScaledVector(tangent, 7).add(new THREE.Vector3(0, 0.25, 0)),
+        };
+      case 6: // maintenance
+        return { pos: new THREE.Vector3(7.2, 4.4, -30.2), lookAt: new THREE.Vector3(12.7, 1.2, -24.2) };
+      case 7: // carburant et coûts
+        return { pos: new THREE.Vector3(14.2, 3.1, -33.2), lookAt: new THREE.Vector3(fuelX, 1.2, fuelZ) };
+      case 8: // documents et conformité
+        return { pos: new THREE.Vector3(7.2, 4.1, -57.4), lookAt: new THREE.Vector3(13.5, 1.9, -52.1) };
+      case 9: // vue complète de la flotte et du trajet
+        return { pos: new THREE.Vector3(7, 18, 10), lookAt: new THREE.Vector3(0, 0.7, -17) };
+      default: // CTA final, panorama légèrement décalé
+        return { pos: new THREE.Vector3(16, 14.5, 3), lookAt: new THREE.Vector3(1, 0.6, -20) };
+    }
+  }
+
   function cameraTarget(p: number): { pos: any; lookAt: any } {
-    const k = ctx.mobile ? 0.9 : 1;
-    if (p < 0.16) {
-      const f = smoothstep(mapRange(p, 0, 0.16, 0, 1));
-      desiredCamera.set(-13.5, 9.2, -9.5).lerp(new THREE.Vector3(-7.2, 5.2, -1.8), f).multiplyScalar(k);
-      desiredLook.set(0, 1.05, 4.2);
-      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
+    const scaled = clamp01(p) * 10;
+    const fromStep = Math.min(10, Math.floor(scaled));
+    const toStep = Math.min(10, fromStep + 1);
+    const blend = fromStep === toStep ? 0 : smoothstep(scaled - fromStep);
+    const from = cameraPose(fromStep, p);
+    const to = cameraPose(toStep, p);
+    desiredCamera.copy(from.pos).lerp(to.pos, blend);
+    desiredLook.copy(from.lookAt).lerp(to.lookAt, blend);
+
+    if (ctx.mobile) {
+      // Resserre la distance autour du point regardé sans déplacer le sujet.
+      desiredCamera.sub(desiredLook).multiplyScalar(0.88).add(desiredLook);
     }
-    if (p < 0.28) {
-      // Vue extérieure de trois-quarts pendant l'ouverture et la sortie :
-      // aucun mur du garage ne peut masquer le véhicule.
-      const t = carCurveT(p);
-      const carPos = route.getPointAt(t);
-      const tangent = route.getTangentAt(t).normalize();
-      const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
-      desiredCamera.copy(carPos)
-        .addScaledVector(tangent, 4.5 * k)
-        .addScaledVector(side, -3.6 * k)
-        .add(new THREE.Vector3(0, 2.55, 0));
-      desiredLook.copy(carPos).add(new THREE.Vector3(0, 0.8, 0));
-      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
-    }
-    if (p < 0.52) {
-      const t = carCurveT(p);
-      const carPos = route.getPointAt(t);
-      const tangent = route.getTangentAt(t).normalize();
-      const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
-      desiredCamera.copy(carPos)
-        .addScaledVector(tangent, -5.2 * k)
-        .addScaledVector(side, 2.15 * k)
-        .add(new THREE.Vector3(0, 2.8, 0));
-      desiredLook.copy(carPos).addScaledVector(tangent, 5.5).add(new THREE.Vector3(0, 0.72, 0));
-      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
-    }
-    if (p < 0.64) {
-      const f = smoothstep(mapRange(p, 0.52, 0.62, 0, 1));
-      desiredCamera.set(7.2, 4.4, -30.2).lerp(new THREE.Vector3(9.3, 2.8, -28.3), f);
-      desiredLook.set(12.7, 1.2, -24.2);
-      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
-    }
-    if (p < 0.76) {
-      const f = smoothstep(mapRange(p, 0.64, 0.73, 0, 1));
-      desiredCamera.set(14.2, 3.1, -33.2).lerp(new THREE.Vector3(16, 2.2, -35.1), f);
-      desiredLook.set(fuelX, 1.2, fuelZ);
-      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
-    }
-    if (p < 0.86) {
-      const f = smoothstep(mapRange(p, 0.76, 0.84, 0, 1));
-      desiredCamera.set(7.2, 4.1, -57.4).lerp(new THREE.Vector3(9, 2.8, -55.4), f);
-      desiredLook.set(13.5, 1.9, -52.1);
-      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
-    }
-    const f = smoothstep(mapRange(p, 0.86, 0.99, 0, 1));
-    desiredCamera.set(9, 2.8, -55.4).lerp(new THREE.Vector3(7, 18 * k, 10), f);
-    desiredLook.set(0, 0.7, -17);
-    return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
+    return { pos: desiredCamera, lookAt: desiredLook };
   }
 
   const update = (sceneContext: SceneContext, time: SceneTime, progress: number) => {
     const p = clamp01(progress);
 
     // Porte sectionnelle : les lames se regroupent au linteau, sans disparaître.
-    const garageOpen = smoothstep(mapRange(p, 0.08, 0.18, 0, 1));
+    const garageOpen = smoothstep(mapRange(p, 0.075, 0.17, 0, 1));
     garageDoorPanels.forEach((panel, index) => {
       panel.position.y = panel.userData.closedY + (3.72 + index * 0.025 - panel.userData.closedY) * garageOpen;
       panel.position.z = 3.86 + garageOpen * Math.max(0, index - 6) * 0.08;
     });
 
-    const gateOpen = smoothstep(mapRange(p, 0.14, 0.24, 0, 1));
+    const gateOpen = smoothstep(mapRange(p, 0.25, 0.34, 0, 1));
     leftBarrier.rotation.z = gateOpen * 1.34;
     rightBarrier.rotation.z = -gateOpen * 1.34;
 
-    const lightP = smoothstep(mapRange(p, 0.12, 0.2, 0, 1));
+    const lightP = smoothstep(mapRange(p, 0.165, 0.245, 0, 1));
     hero.userData.heads.forEach((head: any) => (head.material.emissiveIntensity = 0.28 + lightP * 2.35));
     if (heroLight) heroLight.intensity = lightP * 2.2;
-    const engineP = lightP * (1 - smoothstep(mapRange(p, 0.2, 0.27, 0, 1)));
+    const engineP = lightP * (1 - smoothstep(mapRange(p, 0.245, 0.31, 0, 1)));
     const shell = hero.userData.shell;
     shell.position.y = !sceneContext.reduced ? Math.sin(time.t * 32) * 0.008 * engineP : 0;
     shell.rotation.z = !sceneContext.reduced ? Math.sin(time.t * 19) * 0.0025 * engineP : 0;
@@ -515,7 +519,10 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
     });
     garageLamp.material.emissiveIntensity = 0.35 + wake * 0.72;
 
-    const routeP = smoothstep(mapRange(p, 0.38, 0.56, 0, 1));
+    const routeFocus = smoothstep(mapRange(p, 0.43, 0.475, 0, 1))
+      * (1 - smoothstep(mapRange(p, 0.565, 0.61, 0, 1)));
+    const overviewP = smoothstep(mapRange(p, 0.82, 0.9, 0, 1));
+    const routeP = Math.max(routeFocus, overviewP * 0.28);
     routeMat.opacity = routeP * 0.62;
     routeMarkers.forEach((marker, index) => {
       const reached = carT >= marker.userData.routeT - 0.08;
@@ -524,11 +531,14 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
       marker.position.y = 0.08 + routeP * (0.08 + Math.sin(time.t * 2 + index) * 0.025);
     });
 
-    const maintenanceP = smoothstep(mapRange(p, 0.52, 0.64, 0, 1));
+    const maintenanceP = smoothstep(mapRange(p, 0.53, 0.575, 0, 1))
+      * (1 - smoothstep(mapRange(p, 0.655, 0.695, 0, 1)));
     const alert = 0.5 + 0.5 * Math.sin(time.t * 4.2);
+    bayCar.position.y = 0.08 + maintenanceP * 0.57;
     bayLight.material.emissiveIntensity = 0.22 + maintenanceP * (0.45 + alert * 0.65);
 
-    const fuelP = smoothstep(mapRange(p, 0.64, 0.76, 0, 1));
+    const fuelP = smoothstep(mapRange(p, 0.63, 0.675, 0, 1))
+      * (1 - smoothstep(mapRange(p, 0.75, 0.79, 0, 1)));
     fuelDrops.forEach((drop: any, index: number) => {
       drop.userData.phase = (drop.userData.phase + time.dt * 0.34) % 1;
       const phase = drop.userData.phase;
@@ -541,7 +551,8 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
       drop.material.opacity = fuelP * Math.sin(phase * Math.PI) * 0.72;
     });
 
-    const documentP = smoothstep(mapRange(p, 0.76, 0.86, 0, 1));
+    const documentP = smoothstep(mapRange(p, 0.725, 0.765, 0, 1))
+      * (1 - smoothstep(mapRange(p, 0.845, 0.885, 0, 1)));
     calDots.forEach((dot, index) => {
       const pulse = 0.5 + 0.5 * Math.sin(time.t * 3.4 + index * 1.9);
       dot.material.emissiveIntensity = 0.12 + documentP * (0.22 + pulse * 0.55);

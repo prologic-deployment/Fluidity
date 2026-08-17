@@ -382,7 +382,10 @@ export function lowPolyCar(
   const wheelMat = new ctx.THREE.MeshStandardMaterial({ color: '#161a1d', roughness: 0.92 });
   const rimGeo = new ctx.THREE.CylinderGeometry(0.17, 0.17, 0.258, 14);
   const rimMat = new ctx.THREE.MeshStandardMaterial({ color: '#9aa2a7', roughness: 0.38, metalness: 0.72 });
-  ctx.disposables.push(wheelGeo, wheelMat, rimGeo, rimMat);
+  const spokeHorizontalGeo = new ctx.THREE.BoxGeometry(0.27, 0.27, 0.045);
+  const spokeVerticalGeo = new ctx.THREE.BoxGeometry(0.045, 0.27, 0.27);
+  const spokeMat = new ctx.THREE.MeshStandardMaterial({ color: '#596167', roughness: 0.4, metalness: 0.66 });
+  ctx.disposables.push(wheelGeo, wheelMat, rimGeo, rimMat, spokeHorizontalGeo, spokeVerticalGeo, spokeMat);
   const wheels: any[] = [];
   for (const [x, z] of [
     [-0.91, 1.28],
@@ -397,7 +400,9 @@ export function lowPolyCar(
     axle.rotation.z = -Math.PI / 2;
     const wheel = new ctx.THREE.Mesh(wheelGeo, wheelMat);
     const rim = new ctx.THREE.Mesh(rimGeo, rimMat);
-    wheel.add(rim);
+    const spokeHorizontal = new ctx.THREE.Mesh(spokeHorizontalGeo, spokeMat);
+    const spokeVertical = new ctx.THREE.Mesh(spokeVerticalGeo, spokeMat);
+    wheel.add(rim, spokeHorizontal, spokeVertical);
     axle.add(wheel);
     axle.position.set(x, wheelRadius, z);
     car.add(axle);
