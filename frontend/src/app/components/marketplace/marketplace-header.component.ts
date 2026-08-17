@@ -7,15 +7,17 @@ import { PLATFORM_NAME } from '../../branding';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { I18nService } from '../../i18n/i18n.service';
+import { LanguageSwitcherComponent } from './language-switcher.component';
 
 /**
  * En-tête public du marketplace SaaS : logo, navigation (Services, Tarifs),
- * connexion + CTA. Menu mobile repliable (accessibilité clavier). FR/EN.
+ * connexion + CTA. Menu mobile repliable (accessibilité clavier). FR/EN
+ * (drapeaux SVG inline — rendus identiques dans tous les navigateurs).
  */
 @Component({
   selector: 'app-marketplace-header',
   standalone: true,
-  imports: [CommonModule, RouterLink, ...I18N_IMPORTS],
+  imports: [CommonModule, RouterLink, ...I18N_IMPORTS, LanguageSwitcherComponent],
   template: `
     <header class="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
@@ -46,18 +48,10 @@ import { I18nService } from '../../i18n/i18n.service';
             <svg *ngIf="isDark" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 4.93l1.41 1.41"></path></svg>
             <svg *ngIf="!isDark" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
           </button>
-          <!-- Sélecteur de langue (FR/EN) — réagit instantanément -->
-          <label class="relative hidden sm:block" [attr.aria-label]="'nav.language' | t">
-            <select
-              class="select !h-8 !w-auto !py-0 !text-xs"
-              [value]="i18n.lang"
-              (change)="onLang($event)"
-              [attr.aria-label]="'nav.language' | t"
-            >
-              <option value="fr">🇫🇷 {{ 'nav.french' | t }}</option>
-              <option value="en">🇬🇧 {{ 'nav.english' | t }}</option>
-            </select>
-          </label>
+          <!-- Sélecteur de langue (FR/EN) — dropdown accessible, drapeaux SVG -->
+          <div class="hidden sm:block">
+            <app-language-switcher appearance="dropdown"></app-language-switcher>
+          </div>
           <ng-container *ngIf="auth.isAuthenticated()">
             <a routerLink="/workspace" class="btn-ghost btn-sm hidden sm:inline-flex">{{ 'marketplace.mySpace' | t }}</a>
             <a routerLink="/workspace" class="btn-primary btn-sm">{{ 'marketplace.openApp' | t }}</a>
@@ -103,10 +97,7 @@ import { I18nService } from '../../i18n/i18n.service';
           </div>
           <div class="flex items-center justify-between rounded-lg px-3 py-2.5">
             <span class="text-sm font-medium">{{ 'nav.language' | t }}</span>
-            <div class="inline-flex overflow-hidden rounded-lg border border-border">
-              <button type="button" (click)="setLang('fr')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'fr'" [class.text-primary-foreground]="i18n.lang === 'fr'">🇫🇷 FR</button>
-              <button type="button" (click)="setLang('en')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'en'" [class.text-primary-foreground]="i18n.lang === 'en'">🇬🇧 EN</button>
-            </div>
+            <app-language-switcher appearance="segmented"></app-language-switcher>
           </div>
           <a routerLink="/" [fragment]="'about'" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.about' | t }}</a>
           <a routerLink="/services" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.services' | t }}</a>
@@ -138,12 +129,5 @@ export class MarketplaceHeaderComponent implements OnDestroy {
   }
   get brandInitial(): string {
     return PLATFORM_NAME.charAt(0);
-  }
-  onLang(event: Event): void {
-    const v = (event.target as HTMLSelectElement).value;
-    if (v === 'fr' || v === 'en') this.i18n.setLang(v);
-  }
-  setLang(lang: 'fr' | 'en'): void {
-    this.i18n.setLang(lang);
   }
 }
