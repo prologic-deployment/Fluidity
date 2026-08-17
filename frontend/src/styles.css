@@ -465,14 +465,26 @@
   50% { transform: translateY(-10px); }
 }
 
-/* Story stages : transitions douces gérées par GSAP, mais on garantit
-   un état initial correct si JS est lent. */
+/* Story stages : avant même le chargement de GSAP, un seul panneau peut être
+   visible. GSAP écrit ensuite des styles inline (autoAlpha + translateY), qui
+   prennent proprement le relais sans flash ni empilement de messages. */
 .story-stage {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 2.25rem, 0);
   will-change: transform, opacity;
+}
+.story-stage.story-stage--first {
+  opacity: 1;
+  visibility: visible;
+  transform: translate3d(0, 0, 0);
 }
 @media (prefers-reduced-motion: reduce) {
   .fallback-ring,
   .fallback-orbit {
     animation: none;
+  }
+  .story-stage {
+    will-change: auto;
   }
 }

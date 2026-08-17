@@ -11,9 +11,13 @@
 <section
   #cinSection
   class="cinematic-section relative w-full"
+  [class.cinematic-section--reduced]="reduced"
   [style.height]="sectionHeight"
+  [attr.data-product-key]="productKey"
+  [attr.data-scene-ready]="ready"
   [attr.aria-label]="(labelKey | t) || undefined"
-  role="img"
+  [attr.aria-busy]="!ready"
+  role="region"
 >
   <div class="sticky top-0 h-screen w-full overflow-hidden">
     <!-- Canvas Three.js (plein écran, décoratif) -->
@@ -33,12 +37,21 @@
       aria-hidden="true"
     ></div>
 
-    <!-- Étapes de texte du storytelling -->
-    <div class="pointer-events-none absolute inset-0 z-10">
+    <!-- Étapes de texte du storytelling. Tant que le runtime n'est pas prêt,
+         le conteneur reste masqué derrière l'état de préparation. -->
+    <div
+      #storyOverlay
+      class="scene-overlay pointer-events-none absolute inset-0 z-10 transition-opacity duration-300"
+      [class.invisible]="!ready"
+      [class.opacity-0]="!ready"
+      [class.opacity-100]="ready"
+    >
       <div
         *ngFor="let stage of storyStages; let i = index"
         #stageEl
         class="story-stage absolute inset-0 flex items-center px-6 pb-24 sm:px-14 lg:px-24"
+        [class.story-stage--first]="i === 0"
+        [attr.data-step]="i"
         [ngClass]="stageClass(stage)"
       >
         <div
@@ -99,11 +112,12 @@
     <!-- Chargement -->
     <div
       *ngIf="!ready && !fallback"
-      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/40 backdrop-blur-[1px]"
-      aria-hidden="true"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-[2px]"
+      role="status"
+      aria-live="polite"
     >
-      <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary"></div>
-      <p class="text-xs text-muted-foreground">{{ 'scene.loading' | t }}</p>
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" aria-hidden="true"></div>
+      <p class="text-sm font-medium text-muted-foreground">{{ 'scene.loading' | t }}</p>
     </div>
 
     <!-- Repli WebGL (animation CSS, jamais d'écran vide) -->

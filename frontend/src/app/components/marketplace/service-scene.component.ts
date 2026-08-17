@@ -1,16 +1,20 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   Input,
+  NgZone,
+  OnChanges,
   OnDestroy,
+  QueryList,
+  SimpleChanges,
   ViewChild,
   ViewChildren,
-  QueryList,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription, take, takeUntil } from 'rxjs';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ThreeSceneService } from '../../three/three-scene.service';
 import { ThemeService } from '../../services/theme.service';
@@ -23,19 +27,13 @@ import {
 } from '../../three/scene-defs/common';
 
 /**
- * Expérience cinématique plein écran d'une page service.
+ * Orchestrateur d'une expérience service.
  *
- * - Section haute (N × 100vh) avec viewport collant : le canvas Three.js
- *   occupe TOUT le fond, les étapes de texte racontent le parcours.
- * - GSAP ScrollTrigger (scrub) pilote la progression 0..1 : la caméra et
- *   le monde 3D évoluent (scene.update) et les textes apparaissent/
- *   disparaissent en synchronisation (timeline maîtresse unique).
- * - Une seule boucle RAF, mise en pause hors écran / onglet caché.
- * - Thème clair/sombre : ciel, brouillard, sol et lumières s'adaptent sans
- *   recréer le canvas.
- * - Repli élégant si WebGL indisponible (animation CSS) ; respect de
- *   prefers-reduced-motion (scène stable + texte accessible) ; nettoyage
- *   complet à la destruction.
+ * L'ordre d'initialisation est volontairement strict : inputs/configuration,
+ * rendu Angular, canvas + étapes DOM, Three.js, timeline GSAP, ScrollTrigger,
+ * puis refresh après le prochain rendu. Une modification de `productKey`
+ * invalide l'initialisation asynchrone précédente, détruit son runtime et
+ * reconstruit la scène sur la même instance de route Angular.
  */
 @Component({
   selector: 'app-service-scene',
@@ -43,39 +41,50 @@ import {
   imports: [CommonModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './service-scene.component.html',
 })
-export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
+export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() productKey = 'servicedesk';
   @Input() color = '#6366f1';
   @Input() dark = false;
-  /** Route du bouton CTA final (produit dispo : app ; sinon /pricing). */
+  /** Route du bouton CTA final (produit disponible : app ; sinon tarifs). */
   @Input() ctaRoute: string | null = null;
   /** Clé i18n du libellé du CTA. */
   @Input() ctaLabelKey = 'marketplace.ctaOpenApp';
 
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('cinSection', { static: true }) cinSectionRef!: ElementRef<HTMLElement>;
+  @ViewChild('storyOverlay', { static: true }) storyOverlayRef!: ElementRef<HTMLElement>;
   @ViewChildren('stageEl') stageEls!: QueryList<ElementRef<HTMLElement>>;
 
-  storyStages: StoryStage[] = [];
-  labelKey = '';
+  storyStages: StoryStage[] = getCinematicStages('servicedesk');
+  labelKey = 'scene.servicedesk.label';
   sectionHeight = '520vh';
   ready = false;
   fallback = false;
+  reduced = false;
+
+  private static nextInstanceId = 0;
+  private readonly instanceId = ++ServiceSceneComponent.nextInstanceId;
+  private readonly destroyed$ = new Subject<void>();
 
   private handle: any = null;
   private ctx: SceneContext | null = null;
   private renderer: any = null;
   private raf = 0;
+  private layoutRaf = 0;
+  private refreshRaf = 0;
   private running = false;
   private visible = true;
+  private viewReady = false;
+  private disposed = false;
+  private generation = 0;
   private observer: IntersectionObserver | null = null;
+  private resizeObserver: ResizeObserver | null = null;
   private scrollTrigger: any = null;
   private masterTl: any = null;
+  private gsapContext: any = null;
   private progress = 0;
   private time = { t: 0, dt: 0 };
   private lastFrame = 0;
-  private disposed = false;
-  private reduced = false;
   private onContextLost: ((e: Event) => void) | null = null;
   private onVisibility: (() => void) | null = null;
   private onResize: (() => void) | null = null;
@@ -83,73 +92,86 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
 
   constructor(
     private three: ThreeSceneService,
-    private theme: ThemeService
+    private theme: ThemeService,
+    private zone: NgZone,
+    private cdr: ChangeDetectorRef
   ) {}
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['dark'] && this.ctx) applyThemeToWorld(this.ctx, this.dark);
+
+    if (!changes['productKey'] && !changes['color']) return;
+
+    const generation = ++this.generation;
+    this.configureStory();
+
+    if (!this.viewReady || this.disposed) return;
+
+    // Angular réutilise ServiceDetailComponent pour /services/:key. Le
+    // runtime enfant doit donc être explicitement remplacé à chaque clé.
+    this.destroyRuntime();
+    this.ready = false;
+    this.fallback = false;
+
+    // Attend la fin du cycle qui rend le nouveau *ngFor. Ce n'est pas un
+    // délai arbitraire : on initialise exactement lorsque Angular est stable.
+    this.zone.onStable
+      .pipe(take(1), takeUntil(this.destroyed$))
+      .subscribe(() => this.initialize(generation));
+  }
+
   ngAfterViewInit(): void {
-    this.labelKey = `scene.${this.productKey}.label`;
-    this.storyStages = getCinematicStages(this.productKey);
-    this.reduced = this.three.prefersReducedMotion();
-    this.sectionHeight = this.computeHeight();
-
-    const webgl = this.three.webglAvailable();
-    if (!webgl) {
-      this.enterFallback('WEBGL_UNAVAILABLE');
-      return;
-    }
-
-    this.three.loadLibraries().then(({ THREE, gsap }) => {
-      if (this.disposed) return;
-      return import('gsap/ScrollTrigger')
-        .then((m) => m.ScrollTrigger || m.default)
-        .then((ScrollTrigger) => {
-          if (this.disposed) return;
-          try {
-            this.buildScene(THREE, gsap, ScrollTrigger);
-            this.ready = true;
-          } catch (e) {
-            console.error('[ServiceScene] build error:', e);
-            if (!this.disposed) this.enterFallback('INIT_ERROR');
-          }
-        })
-        .catch(() => {
-          if (this.disposed) return;
-          try {
-            this.buildScene(THREE, gsap, null);
-            this.ready = true;
-          } catch (e) {
-            console.error('[ServiceScene] build error (no ST):', e);
-            if (!this.disposed) this.enterFallback('INIT_ERROR');
-          }
-        });
-    }).catch(() => {
-      if (!this.disposed) this.enterFallback('LIBS_ERROR');
-    });
+    this.viewReady = true;
+    this.initialize(this.generation);
   }
 
   ngOnDestroy(): void {
     this.disposed = true;
-    cancelAnimationFrame(this.raf);
-    this.observer?.disconnect();
-    try { this.scrollTrigger?.kill(); } catch { /* ignore */ }
-    try { this.masterTl?.kill(); } catch { /* ignore */ }
-    this.themeSub?.unsubscribe();
-    const canvas = this.canvasRef?.nativeElement;
-    if (canvas && this.onContextLost) {
-      canvas.removeEventListener('webglcontextlost', this.onContextLost as EventListener);
+    ++this.generation;
+    this.destroyed$.next();
+    this.destroyed$.complete();
+    this.destroyRuntime();
+  }
+
+  private configureStory(): void {
+    this.labelKey = `scene.${this.productKey}.label`;
+    this.storyStages = getCinematicStages(this.productKey);
+    this.reduced = this.three.prefersReducedMotion();
+    this.sectionHeight = this.computeHeight();
+  }
+
+  /** Initialise uniquement la génération de configuration encore active. */
+  private async initialize(generation: number): Promise<void> {
+    if (this.disposed || !this.viewReady || generation !== this.generation) return;
+
+    if (!this.three.webglAvailable()) {
+      this.enterFallback('WEBGL_UNAVAILABLE', generation);
+      return;
     }
-    if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
-    if (this.onResize) window.removeEventListener('resize', this.onResize);
-    this.ctx?.tweens.forEach((tw) => {
-      try { tw.kill(); } catch { /* ignore */ }
-    });
-    this.handle?.dispose?.(this.ctx as SceneContext);
-    this.ctx?.disposables.forEach((d) => {
-      try { d.dispose(); } catch { /* ignore */ }
-    });
-    try { this.renderer?.dispose(); } catch { /* ignore */ }
-    this.handle = null;
-    this.ctx = null;
+
+    try {
+      const { THREE, gsap } = await this.three.loadLibraries();
+      if (this.disposed || generation !== this.generation) return;
+
+      let ScrollTrigger: any = null;
+      try {
+        const module = await import('gsap/ScrollTrigger');
+        ScrollTrigger = module.ScrollTrigger || module.default;
+      } catch {
+        // Three.js reste utilisable ; le premier panneau fournit un repli
+        // lisible si le module de scroll est indisponible.
+      }
+      if (this.disposed || generation !== this.generation) return;
+
+      this.buildScene(THREE, gsap, ScrollTrigger, generation);
+      this.ready = true;
+      this.cdr.markForCheck();
+      this.requestScrollRefresh(ScrollTrigger);
+    } catch (error) {
+      if (this.disposed || generation !== this.generation) return;
+      console.error('[ServiceScene] initialization failed:', error);
+      this.enterFallback('INIT_ERROR', generation);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -157,20 +179,20 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
   // -------------------------------------------------------------------------
   private computeHeight(): string {
     if (this.reduced) return '115vh';
-    const n = this.storyStages.length;
-    const factor = this.three.isMobileWidth(window.innerWidth) ? 0.85 : 1;
-    const vh = Math.round(Math.min(7, Math.max(4, n * 1.05)) * factor * 100);
-    return vh + 'vh';
+    const count = this.storyStages.length;
+    const factor = this.three.isMobileWidth(window.innerWidth) ? 0.9 : 1;
+    const vh = Math.round(Math.max(4, count * 0.95) * factor * 100);
+    return `${vh}vh`;
   }
 
-  /** Classe d'alignement horizontale de l'étape. */
+  /** Classe d'alignement horizontal de l'étape. */
   stageClass(stage: StoryStage): string {
     if (stage.align === 'right') return 'justify-end';
     if (stage.align === 'center') return 'justify-center';
     return 'justify-start';
   }
 
-  /** Alignement du texte dans le bloc. */
+  /** Alignement du texte dans le panneau. */
   stageInnerClass(stage: StoryStage): string {
     if (stage.align === 'center') return 'text-center';
     if (stage.align === 'right') return 'text-right';
@@ -180,30 +202,25 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
   // -------------------------------------------------------------------------
   // Scène 3D
   // -------------------------------------------------------------------------
-  private buildScene(THREE: any, gsap: any, ScrollTrigger: any): void {
-    const canvas = this.canvasRef.nativeElement as HTMLCanvasElement;
-    const section = this.cinSectionRef.nativeElement as HTMLElement;
-    // Hauteur = viewport collant (h-screen), pas la section haute.
-    const width = section.clientWidth || window.innerWidth || 1280;
-    const height = window.innerHeight || section.clientHeight || 800;
+  private buildScene(THREE: any, gsap: any, ScrollTrigger: any, generation: number): void {
+    const canvas = this.canvasRef.nativeElement;
+    const section = this.cinSectionRef.nativeElement;
+    const width = Math.max(1, section.clientWidth || window.innerWidth || 1280);
+    const height = Math.max(1, window.innerHeight || section.clientHeight || 800);
     const { quality, pixelRatio } = this.three.qualityFor(width, window.devicePixelRatio || 1);
     const mobile = quality === 'low';
 
-    // Renderer : sans powerPreference (compatibilité Firefox/ANGLE maximale),
-    // repli sans antialias si la création échoue.
     let renderer: any;
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: !mobile, preserveDrawingBuffer: true });
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: !mobile });
     } catch {
-      try {
-        renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, preserveDrawingBuffer: true });
-      } catch {
-        throw new Error('WEBGL_UNAVAILABLE');
-      }
+      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
     }
-    if (!renderer || !renderer.getContext()) throw new Error('WEBGL_UNAVAILABLE');
-    renderer.setSize(width, height, false);
+    if (!renderer?.getContext()) throw new Error('WEBGL_UNAVAILABLE');
+
     renderer.setPixelRatio(pixelRatio);
+    renderer.setSize(width, height, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer = renderer;
 
     const scene = new THREE.Scene();
@@ -213,7 +230,7 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
     const group = new THREE.Group();
     scene.add(group);
 
-    const sctx: SceneContext = {
+    const sceneContext: SceneContext = {
       THREE,
       gsap,
       scene,
@@ -229,44 +246,36 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
       disposables: [],
       tweens: [],
     };
-    this.ctx = sctx;
+    this.ctx = sceneContext;
 
-    // Construction du monde + des objets (spécifique au produit)
-    this.handle = createCinematicScene(this.productKey, sctx);
-
-    // Entrée GSAP (sautée en motion réduit)
-    if (!this.reduced && this.handle.entrance) this.handle.entrance(sctx);
-
-    // Thème initial
-    applyThemeToWorld(sctx, this.dark);
+    this.handle = createCinematicScene(this.productKey, sceneContext);
+    if (!this.reduced && this.handle.entrance) this.handle.entrance(sceneContext);
+    applyThemeToWorld(sceneContext, this.dark);
 
     const renderFrame = () => renderer.render(scene, camera);
     renderFrame();
 
-    // --- Boucle d'animation (unique) ---
     const loop = (now: number) => {
-      if (this.disposed || !this.running) return;
+      if (this.disposed || generation !== this.generation || !this.running) return;
       this.raf = requestAnimationFrame(loop);
       const dt = this.lastFrame ? Math.min(0.05, (now - this.lastFrame) / 1000) : 0.016;
       this.lastFrame = now;
       this.time.t += dt;
       this.time.dt = dt;
-      if (this.handle?.update) this.handle.update(sctx, this.time, this.progress);
+      this.handle?.update?.(sceneContext, this.time, this.progress);
       renderFrame();
     };
 
     if (this.reduced) {
-      // Vue stable : converge la caméra vers la position milieu du scroll.
       this.progress = 0.32;
-      if (this.handle.update) this.handle.update(sctx, { t: 0, dt: 1 }, this.progress);
+      this.handle?.update?.(sceneContext, { t: 0, dt: 1 }, this.progress);
       renderFrame();
     } else {
+      this.setupStory(gsap, ScrollTrigger, section);
       this.running = true;
       this.raf = requestAnimationFrame(loop);
-      this.setupStory(gsap, ScrollTrigger, section);
     }
 
-    // --- Observateur : pause hors écran ---
     if (typeof IntersectionObserver !== 'undefined') {
       this.observer = new IntersectionObserver((entries) => {
         this.visible = entries[0]?.isIntersecting ?? true;
@@ -282,16 +291,16 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
       this.observer.observe(section);
     }
 
-    // --- Perte de contexte WebGL (pilotes Firefox/ANGLE) ---
-    this.onContextLost = (e: Event) => {
-      e.preventDefault();
+    this.onContextLost = (event: Event) => {
+      event.preventDefault();
       this.running = false;
       cancelAnimationFrame(this.raf);
-      if (!this.disposed) this.enterFallback('CONTEXT_LOST');
+      if (!this.disposed && generation === this.generation) {
+        this.enterFallback('CONTEXT_LOST', generation);
+      }
     };
-    canvas.addEventListener('webglcontextlost', this.onContextLost as EventListener);
+    canvas.addEventListener('webglcontextlost', this.onContextLost);
 
-    // --- Visibilité de l'onglet ---
     this.onVisibility = () => {
       if (document.hidden) {
         this.running = false;
@@ -304,93 +313,183 @@ export class ServiceSceneComponent implements AfterViewInit, OnDestroy {
     };
     document.addEventListener('visibilitychange', this.onVisibility);
 
-    // --- Resize ---
-    this.onResize = () => {
-      const w = section.clientWidth || window.innerWidth || 1280;
-      const h = window.innerHeight || section.clientHeight || 800;
-      camera.aspect = w / h;
+    const updateLayout = () => {
+      if (this.disposed || generation !== this.generation || !this.renderer) return;
+      const nextWidth = Math.max(1, section.clientWidth || window.innerWidth || 1280);
+      const nextHeight = Math.max(1, window.innerHeight || section.clientHeight || 800);
+      const nextQuality = this.three.qualityFor(nextWidth, window.devicePixelRatio || 1);
+      camera.aspect = nextWidth / nextHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h, false);
-      try { ScrollTrigger?.refresh(); } catch { /* ignore */ }
+      renderer.setPixelRatio(nextQuality.pixelRatio);
+      renderer.setSize(nextWidth, nextHeight, false);
+      renderFrame();
+      this.requestScrollRefresh(ScrollTrigger);
     };
-    window.addEventListener('resize', this.onResize);
-    window.addEventListener('load', () => {
-      try { ScrollTrigger?.refresh(); } catch { /* ignore */ }
-    });
+    this.onResize = () => {
+      cancelAnimationFrame(this.layoutRaf);
+      this.layoutRaf = requestAnimationFrame(updateLayout);
+    };
+    window.addEventListener('resize', this.onResize, { passive: true });
+    window.addEventListener('orientationchange', this.onResize, { passive: true });
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this.onResize);
+      this.resizeObserver.observe(section);
+    }
 
-    // --- Thème : adaptation sans recréation du canvas ---
-    this.themeSub = this.theme.dark$.subscribe((d) => {
-      this.dark = d;
-      if (this.ctx) applyThemeToWorld(this.ctx, d);
+    this.themeSub = this.theme.dark$.subscribe((isDark) => {
+      this.dark = isDark;
+      if (this.ctx) applyThemeToWorld(this.ctx, isDark);
     });
   }
 
   // -------------------------------------------------------------------------
-  // Storytelling texte (timeline maîtresse + ScrollTrigger scrub)
+  // Storytelling texte (contexte GSAP local + ScrollTrigger unique)
   // -------------------------------------------------------------------------
   private setupStory(gsap: any, ScrollTrigger: any, section: HTMLElement): void {
     if (!ScrollTrigger || this.reduced) return;
-    const els = this.stageEls.toArray().map((e) => e.nativeElement as HTMLElement);
-    if (!els.length) return;
-    // Enregistrement robuste : ScrollTrigger doit être lié à l'instance gsap
-    // utilisée par l'application (gestion des bundles Angular + import
-    // dynamique). On expose aussi gsap globalement si absent, ce que
-    // ScrollTrigger attend en dernier recours.
-    try {
-      if (typeof window !== 'undefined' && !(window as any).gsap) (window as any).gsap = gsap;
-      gsap.registerPlugin(ScrollTrigger);
-    } catch { /* ignore */ }
+    const elements = this.stageEls.toArray().map((entry) => entry.nativeElement);
+    if (elements.length !== this.storyStages.length) {
+      throw new Error(`STORY_DOM_NOT_READY:${elements.length}/${this.storyStages.length}`);
+    }
 
-    els.forEach((el, i) => {
-      if (i === 0) gsap.set(el, { opacity: 1, y: 0 });
-      else gsap.set(el, { opacity: 0, y: 46 });
-    });
+    if (typeof window !== 'undefined' && !(window as any).gsap) (window as any).gsap = gsap;
+    gsap.registerPlugin(ScrollTrigger);
 
-    const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } });
-    tl.totalDuration(1);
-    this.storyStages.forEach((stage, i) => {
-      const el = els[i];
-      if (!el) return;
-      const dIn = Math.max(0.05, (stage.to - stage.from) * 0.5);
-      if (i === 0) {
-        tl.to(el, { opacity: 0, y: -46, duration: dIn, ease: 'none' }, Math.max(0, stage.to - dIn));
-      } else {
-        tl.to(el, { opacity: 1, y: 0, duration: dIn, ease: 'none' }, stage.from);
-        tl.to(el, { opacity: 0, y: -46, duration: dIn, ease: 'none' }, Math.max(stage.from + dIn, stage.to - dIn));
-      }
-    });
-    this.masterTl = tl;
+    this.gsapContext = gsap.context(() => {
+      gsap.set(elements, { autoAlpha: 0, y: 36 });
+      gsap.set(elements[0], { autoAlpha: 1, y: 0 });
 
-    this.scrollTrigger = ScrollTrigger.create({
-      trigger: section,
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: 0.6,
-      onUpdate: (self: { progress: number }) => {
-        this.progress = self.progress;
-        tl.progress(self.progress);
-      },
+      const timeline = gsap.timeline({ paused: true, defaults: { ease: 'none' } });
+      timeline.to({}, { duration: 1 });
+
+      this.storyStages.forEach((stage, index) => {
+        const element = elements[index];
+        const transition = Math.min(0.045, Math.max(0.025, (stage.to - stage.from) * 0.28));
+
+        if (index > 0) {
+          timeline.to(
+            element,
+            { autoAlpha: 1, y: 0, duration: transition, ease: 'power1.out' },
+            stage.from
+          );
+        }
+        if (!stage.cta) {
+          timeline.to(
+            element,
+            { autoAlpha: 0, y: -32, duration: transition, ease: 'power1.in' },
+            Math.max(stage.from + transition, stage.to - transition)
+          );
+        }
+      });
+      this.masterTl = timeline;
+
+      this.scrollTrigger = ScrollTrigger.create({
+        id: `service-scene-${this.instanceId}`,
+        trigger: section,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: 0.45,
+        invalidateOnRefresh: true,
+        onUpdate: (self: { progress: number }) => {
+          this.progress = self.progress;
+          timeline.progress(self.progress);
+        },
+      });
+      this.progress = this.scrollTrigger.progress || 0;
+      timeline.progress(this.progress);
+    }, this.storyOverlayRef.nativeElement);
+  }
+
+  /** Un seul refresh après que le navigateur a appliqué le layout courant. */
+  private requestScrollRefresh(ScrollTrigger: any): void {
+    if (!ScrollTrigger || this.disposed) return;
+    cancelAnimationFrame(this.refreshRaf);
+    this.refreshRaf = requestAnimationFrame(() => {
+      if (!this.disposed) ScrollTrigger.refresh();
     });
+  }
+
+  // -------------------------------------------------------------------------
+  // Nettoyage — appelé à la destruction ET au changement de paramètre route
+  // -------------------------------------------------------------------------
+  private destroyRuntime(): void {
+    this.running = false;
+    cancelAnimationFrame(this.raf);
+    cancelAnimationFrame(this.layoutRaf);
+    cancelAnimationFrame(this.refreshRaf);
+    this.raf = this.layoutRaf = this.refreshRaf = 0;
+
+    this.observer?.disconnect();
+    this.observer = null;
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+
+    const canvas = this.canvasRef?.nativeElement;
+    if (canvas && this.onContextLost) canvas.removeEventListener('webglcontextlost', this.onContextLost);
+    if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
+    if (this.onResize) {
+      window.removeEventListener('resize', this.onResize);
+      window.removeEventListener('orientationchange', this.onResize);
+    }
+    this.onContextLost = null;
+    this.onVisibility = null;
+    this.onResize = null;
+
+    this.themeSub?.unsubscribe();
+    this.themeSub = null;
+
+    // Le contexte ne contient que les animations de CE composant. Aucun
+    // ScrollTrigger d'une autre page n'est tué globalement.
+    try { this.gsapContext?.revert(); } catch { /* no-op */ }
+    try { this.scrollTrigger?.kill(); } catch { /* no-op */ }
+    try { this.masterTl?.kill(); } catch { /* no-op */ }
+    this.gsapContext = null;
+    this.scrollTrigger = null;
+    this.masterTl = null;
+
+    this.ctx?.tweens.forEach((tween) => {
+      try { tween.kill(); } catch { /* no-op */ }
+    });
+    try { this.handle?.dispose?.(this.ctx as SceneContext); } catch { /* no-op */ }
+    this.ctx?.disposables.forEach((resource) => {
+      try { resource.dispose(); } catch { /* no-op */ }
+    });
+    try { this.ctx?.scene?.clear?.(); } catch { /* no-op */ }
+    try { this.renderer?.renderLists?.dispose?.(); } catch { /* no-op */ }
+    try { this.renderer?.dispose?.(); } catch { /* no-op */ }
+
+    this.handle = null;
+    this.ctx = null;
+    this.renderer = null;
+    this.progress = 0;
+    this.time = { t: 0, dt: 0 };
+    this.lastFrame = 0;
   }
 
   // -------------------------------------------------------------------------
   // Repli (WebGL indisponible / erreur / perte de contexte)
   // -------------------------------------------------------------------------
-  private enterFallback(_reason: string): void {
-    if (this.disposed) return;
+  private enterFallback(_reason: string, generation: number): void {
+    if (this.disposed || generation !== this.generation) return;
+    this.destroyRuntime();
     this.fallback = true;
     this.ready = true;
-    // Les textes restent synchronisés au scroll même sans WebGL.
+    this.cdr.markForCheck();
+
+    // Le storytelling HTML reste piloté si seul WebGL est indisponible.
     if (!this.reduced) {
-      void import('gsap')
-        .then(async (m) => {
-          if (this.disposed) return;
-          const gsap = m.gsap || m.default || m;
-          const ScrollTrigger = (await import('gsap/ScrollTrigger')).ScrollTrigger;
-          gsap.registerPlugin?.(ScrollTrigger);
-          this.setupStory(gsap, ScrollTrigger, this.cinSectionRef.nativeElement as HTMLElement);
-        })
-        .catch(() => { /* texte statique : acceptable */ });
+      void this.three.loadLibraries().then(async ({ gsap }) => {
+        if (this.disposed || generation !== this.generation) return;
+        try {
+          const module = await import('gsap/ScrollTrigger');
+          const ScrollTrigger = module.ScrollTrigger || module.default;
+          if (this.disposed || generation !== this.generation) return;
+          this.setupStory(gsap, ScrollTrigger, this.cinSectionRef.nativeElement);
+          this.requestScrollRefresh(ScrollTrigger);
+        } catch {
+          // L'état CSS garantit qu'un seul panneau reste visible.
+        }
+      });
     }
   }
 }
