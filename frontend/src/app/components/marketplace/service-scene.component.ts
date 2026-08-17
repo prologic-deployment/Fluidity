@@ -90,7 +90,7 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
   private time = { t: 0, dt: 0 };
   private lastFrame = 0;
   private initialized = false;
-  private reduced = false;
+  reduced = false;
   private themeSub: Subscription | null = null;
   private stageWaitSub: Subscription | null = null;
   private onContextLost: ((e: Event) => void) | null = null;

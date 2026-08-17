@@ -14,9 +14,10 @@ const { chromium } = require('playwright');
     return {
       sectionHeight: section ? Math.round(section.getBoundingClientRect().height) : 0,
       stages: document.querySelectorAll('.story-stage').length,
+      staticSteps: document.querySelectorAll('[data-static-step]').length,
       canvas: !!document.querySelector('canvas'),
       fallback: !!document.querySelector('.fallback-orbit'),
-      stage1Text: document.querySelector('.story-stage')?.innerText.slice(0, 40),
+      stage1Text: document.querySelector('[data-static-step="0"]')?.innerText.slice(0, 40) || document.querySelector('.story-stage')?.innerText.slice(0, 40),
     };
   });
   console.log('REDUCED MOTION:', JSON.stringify(info));
