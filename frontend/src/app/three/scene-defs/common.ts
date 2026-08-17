@@ -301,14 +301,19 @@ export function lowPolyCar(
   opts: { body?: string; accent?: string; wheels?: number } = {}
 ): any {
   const car = new ctx.THREE.Group();
+  const shell = new ctx.THREE.Group();
+  car.add(shell);
   ctx.group.add(car);
+
   const body = box(ctx, 1.6, 0.4, 3.1, opts.body ?? '#f3f4f6', { roughness: 0.3, metalness: 0.25 });
   body.position.y = 0.55;
-  car.add(body);
+  shell.add(body);
   const cabin = box(ctx, 1.15, 0.5, 1.45, opts.accent ?? ctx.colorHex, { roughness: 0.25, metalness: 0.35 });
   cabin.position.set(0, 0.98, -0.3);
-  car.add(cabin);
-  const wheelGeo = new ctx.THREE.CylinderGeometry(0.34, 0.34, 0.24, 14);
+  shell.add(cabin);
+
+  const wheelRadius = 0.34;
+  const wheelGeo = new ctx.THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.24, 14);
   const wheelMat = new ctx.THREE.MeshStandardMaterial({ color: '#17181c', roughness: 0.9 });
   ctx.disposables.push(wheelGeo, wheelMat);
   const wheels: any[] = [];
@@ -318,17 +323,19 @@ export function lowPolyCar(
     [-0.85, -1.05],
     [0.85, -1.05],
   ]) {
-    // Groupe roue : axe (cylindre) orienté selon X via rotation Z, rotation
-    // autour de l'axe sur le cylindre interne (compatible tous navigateurs).
-    const hub = new ctx.THREE.Group();
-    const w = new ctx.THREE.Mesh(wheelGeo, wheelMat);
-    w.rotation.z = Math.PI / 2; // axe du cylindre le long de X
-    hub.add(w);
-    hub.position.set(x, 0.34, z);
-    car.add(hub);
-    wheels.push(w);
+    // Hiérarchie à deux rotations : le support aligne l'axe local Y du pneu
+    // sur l'axe +X du véhicule ; `wheel.rotation.y` reste alors un angle de
+    // roulement pur, indépendant du lacet pris par la voiture dans le monde.
+    const axle = new ctx.THREE.Group();
+    axle.rotation.z = -Math.PI / 2;
+    const wheel = new ctx.THREE.Mesh(wheelGeo, wheelMat);
+    axle.add(wheel);
+    axle.position.set(x, wheelRadius, z);
+    car.add(axle);
+    wheels.push(wheel);
   }
-  // Phares (2 petits plans émissifs à l'avant, -Z)
+
+  // Phares (avant du véhicule = axe local -Z).
   const headGeo = new ctx.THREE.BoxGeometry(0.42, 0.14, 0.06);
   const headMat = new ctx.THREE.MeshStandardMaterial({
     color: '#fff7d6',
@@ -338,24 +345,29 @@ export function lowPolyCar(
   ctx.disposables.push(headGeo, headMat);
   const heads: any[] = [];
   for (const x of [-0.55, 0.55]) {
-    const h = new ctx.THREE.Mesh(headGeo, headMat);
-    h.position.set(x, 0.62, -1.55);
-    car.add(h);
-    heads.push(h);
+    const head = new ctx.THREE.Mesh(headGeo, headMat);
+    head.position.set(x, 0.62, -1.55);
+    shell.add(head);
+    heads.push(head);
   }
-  // Feux arrière
+
   const tailGeo = new ctx.THREE.BoxGeometry(0.42, 0.12, 0.05);
   const tailMat = new ctx.THREE.MeshStandardMaterial({ color: '#ff4d4d', emissive: '#ff2d2d', emissiveIntensity: 0.7 });
   ctx.disposables.push(tailGeo, tailMat);
+  const tails: any[] = [];
   for (const x of [-0.55, 0.55]) {
-    const t = new ctx.THREE.Mesh(tailGeo, tailMat);
-    t.position.set(x, 0.62, 1.56);
-    car.add(t);
+    const tail = new ctx.THREE.Mesh(tailGeo, tailMat);
+    tail.position.set(x, 0.62, 1.56);
+    shell.add(tail);
+    tails.push(tail);
   }
-  // Position par défaut : au sol
+
   car.position.y = 0;
+  car.userData.shell = shell;
   car.userData.wheels = wheels;
+  car.userData.wheelRadius = wheelRadius;
   car.userData.heads = heads;
+  car.userData.tails = tails;
   return car;
 }
 

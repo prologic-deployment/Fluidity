@@ -143,8 +143,10 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
 
   // --- Route (courbe) ---
   const route = makeCurve(ctx, ROUTE_POINTS);
+  const routeLength = route.getLength();
   road(ctx, route, 1.15, ctx.dark ? '#232c38' : '#3b4450');
   ctx.userData.route = route;
+  ctx.userData.routeLength = routeLength;
 
   // --- Lampadaires le long de la route ---
   const lampSpots: [number, number][] = [
@@ -254,9 +256,9 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
   // --- Feux de la vedette (halo) ---
   let heroLight: any = null;
   if (high) {
-    heroLight = new THREE.PointLight(0xffedb0, 0, 14, 1.6);
-    heroLight.position.set(0, 0.8, 1.4);
-    ctx.scene.add(heroLight);
+    heroLight = new THREE.PointLight(0xffedb0, 0, 11, 1.8);
+    heroLight.position.set(0, 0.72, -1.75);
+    hero.add(heroLight); // suit le véhicule et son orientation sur la courbe
     ctx.userData.heroLight = heroLight;
   }
 
@@ -329,31 +331,39 @@ export function fleetScene(ctx: SceneContext): CinematicScene {
     gateLeft.position.x = -1.7 - gateP * 1.7;
     gateRight.position.x = 1.7 + gateP * 1.7;
 
-    // --- Phares + moteur ---
+    // --- Phares + démarrage moteur ---
     const lightP = smoothstep(mapRange(p, 0.14, 0.2, 0, 1));
-    hero.userData.heads.forEach((h: any) => (h.material.emissiveIntensity = 0.5 + lightP * 2.6));
-    if (heroLight) heroLight.intensity = lightP * 2.2;
-    const engineP = lightP * Math.max(0, 1 - mapRange(p, 0.2, 0.26, 0, 1));
-    if (engineP > 0 && !c.reduced) {
-      hero.position.x += Math.sin(time.t * 38) * 0.008 * engineP;
-      hero.position.z += Math.cos(time.t * 31) * 0.006 * engineP;
-    }
+    hero.userData.heads.forEach((head: any) => (head.material.emissiveIntensity = 0.35 + lightP * 2.4));
+    if (heroLight) heroLight.intensity = lightP * 1.8;
+    const engineP = lightP * (1 - smoothstep(mapRange(p, 0.2, 0.27, 0, 1)));
+    const shell = hero.userData.shell;
+    shell.position.y = !c.reduced && engineP > 0
+      ? Math.sin(time.t * 32) * 0.008 * engineP
+      : 0;
+    shell.rotation.z = !c.reduced && engineP > 0
+      ? Math.sin(time.t * 19) * 0.0025 * engineP
+      : 0;
 
     // --- Vedette sur la courbe ---
     const carT = c.reduced ? 0 : carCurveT(p);
     const carPos = route.getPointAt(carT);
-    hero.position.x = carPos.x;
-    hero.position.z = carPos.z;
-    if (carT <= 0.01) {
-      hero.rotation.y = 0; // garée, face à la sortie (-Z)
+    hero.position.copy(carPos);
+    if (carT <= 0.0001) {
+      hero.rotation.y = 0; // garée, avant local -Z tourné vers la sortie
     } else {
-      // Orientation selon la tangente de la route
-      const tangent = route.getTangentAt(carT);
+      const tangent = route.getTangentAt(carT).normalize();
+      // Le modèle regarde -Z : ce lacet aligne -Z avec la tangente réelle.
       hero.rotation.y = Math.atan2(tangent.x, tangent.z) + Math.PI;
     }
-    // Roues (rotation autour de l'axe)
-    const wheelSpin = carT > 0.01 ? time.dt * (4 + carT * 6) : 0;
-    hero.userData.wheels.forEach((w: any) => (w.rotation.y += wheelSpin));
+
+    // Roulement déterministe et réversible. getPointAt() utilise la distance
+    // normalisée de la courbe : distance parcourue = t × longueur totale.
+    // Pour un avant local -Z et un axe de roue local +X, l'angle est négatif.
+    const travelledDistance = carT * routeLength;
+    const wheelAngle = -travelledDistance / hero.userData.wheelRadius;
+    hero.userData.wheels.forEach((wheel: any) => (wheel.rotation.y = wheelAngle));
+    c.userData.vehicleTravelDistance = travelledDistance;
+    c.userData.wheelRotation = wheelAngle;
 
     // --- Lampadaires : éveil puis aube ---
     const wake = smoothstep(mapRange(p, 0.08, 0.2, 0, 1));
