@@ -1,23 +1,11 @@
 /**
- * GESTION DE PARC — scène cinématique immersive.
+ * GESTION DE PARC — dépôt professionnel stylisé-réaliste.
  *
- * Une aube méditerranéenne sur un dépôt de flotte moderne : camionnette
- * vedette, entrepôts, bâtiment d'exploitation, portail coulissant, routes,
- * lampadaires, arbres, montagnes lointaines. Le scroll fait :
- *
- *   0.00-0.12  ouverture : caméra au-dessus/derrière la vedette,
- *              vue sur le dépôt et la route.
- *   0.12-0.20  le dépôt s'éveille : portail ouvert, phares allumés,
- *              moteur démarré, la vedette quitte son emplacement.
- *   0.20-0.42  la vedette roule sur la courbe, caméra en poursuite
- *              (tracé fluide, aucun mouvement brusque).
- *   0.42-0.55  maintenance : atelier + véhicule sur pont, alerte pulsante.
- *   0.55-0.66  carburant / coûts : station-service + flux carburant.
- *   0.66-0.78  documents / conformité : kiosque + échéances pulsantes.
- *   0.78-1.00  vue d'ensemble finale : caméra élevée, dépôt + flotte + routes.
- *
- * La route est une CatmullRomCurve3 ; la caméra suit avec damping
- * (interpolation exponentielle) — jamais de mouvement saccadé.
+ * Le monde reste volontairement procédural et léger : aucun téléchargement de
+ * modèle/texture n'est nécessaire, mais les proportions, les matériaux, les
+ * marquages et la lumière racontent un véritable site d'exploitation. La
+ * camionnette vedette suit une CatmullRomCurve3 en distance normalisée ; son
+ * lacet vient de la tangente et ses roues de la distance réellement parcourue.
  */
 import {
   SceneContext,
@@ -26,7 +14,6 @@ import {
   clamp01,
   smoothstep,
   mapRange,
-  damp,
   dampVec3,
   box,
   sphere,
@@ -44,387 +31,535 @@ import {
 } from './common';
 import { getCinematicStages } from './stages';
 
-
-
-/** Point de la route (courbe Catmull-Rom). */
+/** Trajet crédible : garage → cour → portail → route → zones métier. */
 const ROUTE_POINTS: [number, number, number][] = [
-  [0, 0, 2.6], // emplacement de départ (vedette)
-  [0, 0, -1.2], // portail
-  [1.6, 0, -5.5], // allée
-  [5.5, 0, -11], // jonction
-  [10, 0, -17.5], // ligne droite
-  [13.5, 0, -24.5], // atelier (maintenance)
-  [16.5, 0, -31.5], // transition
-  [18.5, 0, -38], // station carburant
-  [16.5, 0, -45], // transition
-  [12.5, 0, -51.5], // kiosque conformité
-  [6, 0, -58], // virage
-  [-2, 0, -63.5], // ligne finale
-  [-10, 0, -67], // horizon
+  [0, 0.08, 4.6],
+  [0, 0.08, 1.2],
+  [0.8, 0.08, -3.8],
+  [4.2, 0.08, -9.2],
+  [8.5, 0.08, -15.8],
+  [13.2, 0.08, -23.8],
+  [16.1, 0.08, -31.2],
+  [18.2, 0.08, -38.2],
+  [16.4, 0.08, -45.1],
+  [12.2, 0.08, -51.5],
+  [5.5, 0.08, -58.1],
+  [-2.5, 0.08, -63.2],
+  [-11, 0.08, -67],
 ];
 
-/** Phases de la vedette le long de la courbe selon la progression scroll. */
+/** Position du véhicule le long du trajet pour les sept chapitres existants. */
 function carCurveT(progress: number): number {
   const p = clamp01(progress);
-  if (p < 0.16) return 0; // garée dans le dépôt
-  if (p < 0.44) return smoothstep(mapRange(p, 0.16, 0.44, 0, 0.5)) * 0.5; // départ + route
-  if (p < 0.52) return 0.5 + smoothstep(mapRange(p, 0.44, 0.52, 0, 1)) * 0.06; // poursuite
-  if (p < 0.6) return 0.56; // à l'atelier (maintenance)
-  if (p < 0.66) return 0.56 + smoothstep(mapRange(p, 0.6, 0.66, 0, 1)) * 0.07; // vers la pompe
-  if (p < 0.76) return 0.63; // à la station carburant
-  if (p < 0.84) return 0.63 + smoothstep(mapRange(p, 0.76, 0.84, 0, 1)) * 0.09; // vers le kiosque
-  return 0.72 + smoothstep(mapRange(p, 0.86, 0.98, 0, 1)) * 0.26; // ligne finale
+  if (p < 0.16) return 0;
+  if (p < 0.44) return smoothstep(mapRange(p, 0.16, 0.44, 0, 0.5)) * 0.5;
+  if (p < 0.52) return 0.5 + smoothstep(mapRange(p, 0.44, 0.52, 0, 1)) * 0.06;
+  if (p < 0.6) return 0.56;
+  if (p < 0.66) return 0.56 + smoothstep(mapRange(p, 0.6, 0.66, 0, 1)) * 0.07;
+  if (p < 0.76) return 0.63;
+  if (p < 0.84) return 0.63 + smoothstep(mapRange(p, 0.76, 0.84, 0, 1)) * 0.09;
+  return 0.72 + smoothstep(mapRange(p, 0.86, 0.98, 0, 1)) * 0.26;
+}
+
+function addParkingBay(ctx: SceneContext, x: number, z: number, length = 4.9): void {
+  const paint = '#e8e8df';
+  for (const side of [-1, 1]) {
+    const line = box(ctx, 0.075, 0.025, length, paint, { roughness: 0.95 });
+    line.position.set(x + side * 1.15, 0.105, z);
+  }
+  const stop = box(ctx, 2.35, 0.025, 0.075, paint, { roughness: 0.95 });
+  stop.position.set(x, 0.105, z + length / 2);
+}
+
+function addRoadMarkings(ctx: SceneContext, curve: any): void {
+  const count = ctx.mobile ? 24 : 42;
+  for (let i = 2; i < count; i += 2) {
+    const t = i / count;
+    const point = curve.getPointAt(t);
+    const tangent = curve.getTangentAt(t).normalize();
+    const dash = box(ctx, 0.11, 0.028, 1.25, '#eeeade', { roughness: 0.95 });
+    dash.position.set(point.x, point.y + 0.06, point.z);
+    dash.rotation.y = Math.atan2(tangent.x, tangent.z);
+    dash.castShadow = false;
+  }
+}
+
+function addFenceRun(
+  ctx: SceneContext,
+  x: number,
+  z: number,
+  length: number,
+  alongX: boolean
+): void {
+  const posts = Math.max(2, Math.floor(length / 3));
+  for (let i = 0; i <= posts; i++) {
+    const f = i / posts - 0.5;
+    const post = cyl(ctx, 0.045, 0.055, 1.55, '#55616a', { radial: 7, roughness: 0.7 });
+    post.position.set(x + (alongX ? f * length : 0), 0.78, z + (alongX ? 0 : f * length));
+  }
+  for (const y of [0.52, 1.18]) {
+    const rail = box(
+      ctx,
+      alongX ? length : 0.055,
+      0.045,
+      alongX ? 0.055 : length,
+      '#68747c',
+      { roughness: 0.72, metalness: 0.25 }
+    );
+    rail.position.set(x, y, z);
+  }
+}
+
+function addOliveTree(ctx: SceneContext, x: number, z: number, scale = 1): void {
+  const trunk = cyl(ctx, 0.12 * scale, 0.17 * scale, 1.25 * scale, '#70543d', { radial: 7, roughness: 1 });
+  trunk.position.set(x, 0.62 * scale, z);
+  for (const [dx, dy, dz, s] of [
+    [-0.34, 1.36, 0, 0.72],
+    [0.28, 1.45, 0.08, 0.78],
+    [0, 1.68, -0.14, 0.7],
+  ] as [number, number, number, number][]) {
+    const crown = sphere(ctx, 0.68 * scale, '#62785a', { segments: 10, roughness: 1 });
+    crown.position.set(x + dx * scale, dy * scale, z + dz * scale);
+    crown.scale.set(1.25 * s, 0.7 * s, s);
+  }
+}
+
+function addPalm(ctx: SceneContext, x: number, z: number, scale = 1): void {
+  const trunk = cyl(ctx, 0.1 * scale, 0.16 * scale, 3.2 * scale, '#856849', { radial: 8, roughness: 0.95 });
+  trunk.position.set(x, 1.6 * scale, z);
+  for (let i = 0; i < 7; i++) {
+    const leaf = box(ctx, 0.16 * scale, 0.045 * scale, 1.65 * scale, '#496d4c', { roughness: 0.95 });
+    leaf.position.set(x, 3.28 * scale, z);
+    leaf.rotation.y = (i / 7) * Math.PI * 2;
+    leaf.rotation.x = -0.28;
+  }
 }
 
 export function fleetScene(ctx: SceneContext): CinematicScene {
   const { THREE } = ctx;
   const high = ctx.quality === 'high' && !ctx.mobile;
 
-  // --- Monde ---
-  buildGround(ctx, { color: ctx.dark ? '#101a2a' : '#a9bac6', size: 320 });
+  // -------------------------------------------------------------------------
+  // Atmosphère tunisienne / méditerranéenne, tôt le matin
+  // -------------------------------------------------------------------------
+  buildGround(ctx, { color: ctx.dark ? '#111923' : '#b8b49e', size: 340 });
   const lights = buildLights(ctx);
-  lights.dir.position.set(14, 20, 6);
-  ctx.scene.fog = new THREE.Fog(ctx.dark ? 0x0b1322 : 0xcfe0e8, 18, 110);
-  ctx.scene.background = new THREE.Color(ctx.dark ? 0x0b1322 : 0xcfe0e8);
-  ctx.userData.palette = { skyLight: 0xcfe0e8, skyDark: 0x0b1322, groundLight: 0xa9bac6, groundDark: 0x101a2a };
+  lights.dir.position.set(18, 24, 11);
+  ctx.scene.fog = new THREE.Fog(ctx.dark ? 0x0c1520 : 0xd7d6c8, 22, 125);
+  ctx.scene.background = new THREE.Color(ctx.dark ? 0x0c1520 : 0xd7d6c8);
+  ctx.userData.palette = {
+    skyLight: 0xd7d6c8,
+    skyDark: 0x0c1520,
+    groundLight: 0xb8b49e,
+    groundDark: 0x111923,
+  };
 
-  // Soleil matinal (sphère chaude à l'horizon)
-  const sun = sphere(ctx, 2.6, ctx.dark ? '#2a3c55' : '#ffd9a0', { emissive: ctx.dark ? 0.1 : 0.85, segments: 24 });
-  sun.position.set(34, 7, -70);
+  const sun = sphere(ctx, 2.2, ctx.dark ? '#344154' : '#ffd29a', {
+    emissive: ctx.dark ? 0.08 : 0.72,
+    segments: 20,
+    roughness: 0.9,
+  });
+  sun.position.set(42, 8, -78);
+  sun.castShadow = false;
   ctx.userData.sun = sun;
 
-  // --- Dépôt : cours + emplacements ---
-  const yard = box(ctx, 26, 0.12, 18, ctx.dark ? '#1a2334' : '#97a8b4', { roughness: 0.95 });
-  yard.position.set(0, 0.01, 4);
+  // -------------------------------------------------------------------------
+  // Cour d'exploitation, trottoirs, marquages et bâtiments
+  // -------------------------------------------------------------------------
+  const yard = box(ctx, 34, 0.14, 27, ctx.dark ? '#202a32' : '#969a91', { roughness: 0.98 });
+  yard.position.set(0, 0.04, 5.5);
+  yard.receiveShadow = true;
   ctx.userData.yard = yard;
 
-  // --- Entrepôts + bâtiment d'exploitation ---
-  building(ctx, { x: -11, z: 7, w: 9, h: 4.4, d: 7, color: '#93a2b2', roof: '#64748b', rotY: 0.12 });
-  building(ctx, { x: 10.5, z: 9, w: 7, h: 3.6, d: 6, color: '#8da0b0', roof: '#5c6b7c', rotY: -0.1 });
-  building(ctx, { x: 6.5, z: 15, w: 5.5, h: 3, d: 5, color: '#a7b5c2', roof: '#6b7a8a' });
+  const sidewalkLeft = box(ctx, 2.1, 0.22, 23, '#b8b6aa', { roughness: 0.98 });
+  sidewalkLeft.position.set(-15.3, 0.12, 6.5);
+  const sidewalkRight = box(ctx, 2.1, 0.22, 23, '#b8b6aa', { roughness: 0.98 });
+  sidewalkRight.position.set(15.3, 0.12, 6.5);
+  const entranceWalk = box(ctx, 6.5, 0.2, 1.4, '#bdbbae', { roughness: 0.98 });
+  entranceWalk.position.set(8.6, 0.12, -6.6);
 
-  // --- Portail coulissant du dépôt (2 panneaux) ---
-  const gateLeft = box(ctx, 1.6, 3.2, 0.24, '#475569', { roughness: 0.6 });
-  gateLeft.position.set(-1.7, 1.6, -1.6);
-  const gateRight = box(ctx, 1.6, 3.2, 0.24, '#475569', { roughness: 0.6 });
-  gateRight.position.set(1.7, 1.6, -1.6);
-  const gateFrame = box(ctx, 5.2, 0.3, 0.3, '#334155', { roughness: 0.6 });
-  gateFrame.position.set(0, 3.35, -1.6);
-  ctx.userData.gate = { gateLeft, gateRight };
+  // Entrepôt à gauche, bureaux d'exploitation vitrés à droite.
+  building(ctx, { x: -11.1, z: 11.8, w: 8.4, h: 4.8, d: 9.2, color: '#a9aca7', roof: '#59636b' });
+  building(ctx, { x: 10.8, z: 11.6, w: 8.2, h: 4.1, d: 8.2, color: '#b2b4af', roof: '#5b656c' });
+  const officeGlass = box(ctx, 5.6, 1.55, 0.09, '#38515f', { roughness: 0.16, metalness: 0.28 });
+  officeGlass.position.set(10.8, 2.25, 7.46);
+  const officeSign = box(ctx, 3.6, 0.72, 0.12, ctx.colorHex, { roughness: 0.52, metalness: 0.12 });
+  officeSign.position.set(10.8, 3.48, 7.38);
 
-  // --- Vedette (camionnette blanche, accent produit) ---
-  const hero = lowPolyCar(ctx, { body: '#f5f6f8', accent: ctx.colorHex });
-  hero.position.set(0, 0, 2.6);
-  hero.rotation.y = 0; // face au portail (-Z), phares vers la sortie
+  // Garage central construit avec une vraie ouverture frontale.
+  const garage = new THREE.Group();
+  ctx.group.add(garage);
+  const garageWallColor = '#a6aaa6';
+  for (const x of [-3.2, 3.2]) {
+    const side = box(ctx, 0.55, 4.35, 8.4, garageWallColor, { roughness: 0.9 });
+    side.position.set(x, 2.18, 8.1);
+    garage.add(side);
+  }
+  const garageBack = box(ctx, 6.95, 4.35, 0.5, garageWallColor, { roughness: 0.9 });
+  garageBack.position.set(0, 2.18, 12.05);
+  garage.add(garageBack);
+  const garageRoof = box(ctx, 7.2, 0.28, 8.8, '#59636b', { roughness: 0.78, metalness: 0.12 });
+  garageRoof.position.set(0, 4.42, 8.05);
+  garage.add(garageRoof);
+  const garageLintel = box(ctx, 6.9, 0.52, 0.62, '#626d74', { roughness: 0.8 });
+  garageLintel.position.set(0, 4.03, 3.92);
+  garage.add(garageLintel);
+
+  const garageDoorPanels: any[] = [];
+  for (let i = 0; i < 9; i++) {
+    const panel = box(ctx, 5.72, 0.39, 0.105, i % 2 ? '#69757c' : '#748087', {
+      roughness: 0.62,
+      metalness: 0.28,
+    });
+    panel.position.set(0, 0.28 + i * 0.405, 3.86);
+    panel.userData.closedY = panel.position.y;
+    garage.add(panel);
+    garageDoorPanels.push(panel);
+  }
+  const garageLamp = box(ctx, 0.65, 0.12, 0.2, '#fff0bf', { emissive: 0.75, roughness: 0.4 });
+  garageLamp.position.set(0, 3.82, 3.58);
+  garage.add(garageLamp);
+  ctx.userData.garageDoorPanels = garageDoorPanels;
+
+  // Parking matérialisé : chaque véhicule occupe une place distincte.
+  const bayXs = [-11.6, -8.9, -6.2, 6.2, 8.9, 11.6];
+  bayXs.forEach((x) => addParkingBay(ctx, x, 1.6));
+
+  // Camionnette vedette, blanche avec bande produit.
+  const hero = lowPolyCar(ctx, { body: '#f2f3f2', accent: ctx.colorHex });
+  hero.position.copy(new THREE.Vector3(...ROUTE_POINTS[0]));
+  hero.rotation.y = 0;
   ctx.userData.hero = hero;
 
-  // --- Autres véhicules du parc (garés) ---
-  const parkedColors = ['#cfd6dd', '#8fa3b5', '#d9b98c', '#b8c4cf', '#6f7d8c'];
+  const parkedColors = ['#d5d8d6', '#8294a0', '#ece9e1', '#344b61', '#b9c0c1', '#707a80'];
   const parked: any[] = [];
-  const parkedSpots: [number, number, number][] = [
-    [-2.6, 0, 5.2],
-    [-4.9, 0, 6.4],
-    [2.6, 0, 5.6],
-    [4.8, 0, 6.6],
-    [-2.2, 0, 3.2],
-  ];
-  parkedSpots.slice(0, ctx.mobile ? 3 : 5).forEach(([x, y, z], i) => {
-    const c = lowPolyCar(ctx, { body: parkedColors[i % parkedColors.length], accent: '#8a97a6' });
-    c.position.set(x, y, z);
-    c.rotation.y = (i % 2 ? Math.PI : Math.PI * 0.92) + (i % 3) * 0.05;
-    parked.push(c);
+  bayXs.slice(0, ctx.mobile ? 4 : 6).forEach((x, index) => {
+    const vehicle = lowPolyCar(ctx, { body: parkedColors[index], accent: index === 3 ? '#233d56' : '#68777f' });
+    vehicle.scale.setScalar(index === 1 ? 0.9 : 0.94);
+    vehicle.position.set(x, 0.08, 1.45 + (index % 2) * 0.34);
+    vehicle.rotation.y = index % 2 ? Math.PI + 0.03 : -0.025;
+    parked.push(vehicle);
   });
+  ctx.userData.parked = parked;
 
-  // --- Véhicule sur pont (atelier de maintenance) ---
-  const bayCar = lowPolyCar(ctx, { body: '#e7eaee', accent: '#9aa8b6' });
-  bayCar.position.set(12.2, 0, -23.6);
-  bayCar.rotation.y = Math.PI * 0.92;
-  ctx.userData.bayCar = bayCar;
+  // -------------------------------------------------------------------------
+  // Portail de sécurité et clôture de la parcelle
+  // -------------------------------------------------------------------------
+  addFenceRun(ctx, -10.7, -7.4, 12.5, true);
+  addFenceRun(ctx, 10.8, -7.4, 12.2, true);
+  addFenceRun(ctx, -16.3, 5.4, 25.5, false);
+  addFenceRun(ctx, 16.3, 5.4, 25.5, false);
+  addFenceRun(ctx, 0, 18.2, 32.5, true);
 
-  // --- Route (courbe) ---
+  const leftBarrier = new THREE.Group();
+  leftBarrier.position.set(-3.15, 0.9, -6.8);
+  const leftArm = box(ctx, 5.6, 0.16, 0.18, '#ece8dc', { roughness: 0.72 });
+  leftArm.position.x = 2.8;
+  leftBarrier.add(leftArm);
+  ctx.group.add(leftBarrier);
+  const rightBarrier = new THREE.Group();
+  rightBarrier.position.set(3.15, 0.9, -6.8);
+  const rightArm = box(ctx, 5.6, 0.16, 0.18, '#ece8dc', { roughness: 0.72 });
+  rightArm.position.x = -2.8;
+  rightBarrier.add(rightArm);
+  ctx.group.add(rightBarrier);
+  for (const x of [-3.15, 3.15]) {
+    const base = box(ctx, 0.46, 1.15, 0.55, '#39454d', { roughness: 0.72, metalness: 0.25 });
+    base.position.set(x, 0.58, -6.8);
+  }
+  ctx.userData.securityGate = { leftBarrier, rightBarrier };
+
+  building(ctx, { x: 6.1, z: -5.3, w: 3.2, h: 2.6, d: 2.8, color: '#aeb1aa', roof: '#56616a' });
+  const gateSign = box(ctx, 2.6, 0.9, 0.12, ctx.colorHex, { roughness: 0.52 });
+  gateSign.position.set(-7.2, 1.75, -7.25);
+
+  // -------------------------------------------------------------------------
+  // Route, marquages, éclairage public et végétation
+  // -------------------------------------------------------------------------
   const route = makeCurve(ctx, ROUTE_POINTS);
   const routeLength = route.getLength();
-  road(ctx, route, 1.15, ctx.dark ? '#232c38' : '#3b4450');
+  road(ctx, route, 2.15, ctx.dark ? '#252c31' : '#3f4242');
+  addRoadMarkings(ctx, route);
   ctx.userData.route = route;
   ctx.userData.routeLength = routeLength;
 
-  // --- Lampadaires le long de la route ---
   const lampSpots: [number, number][] = [
-    [0, -0.2],
-    [2.8, -7],
-    [7.5, -14],
-    [11.5, -21],
-    [15.5, -29],
-    [18, -36],
-    [15, -44],
-    [9, -53],
-    [1, -60],
+    [-4.5, -4], [5.2, -8], [8.8, -15], [12.2, -22], [16.7, -29],
+    [20.8, -37], [19.7, -45], [13.8, -53], [5.8, -60], [-4.2, -64],
   ];
   const lamps = lampSpots
-    .slice(0, ctx.mobile ? 6 : 9)
-    .map(([x, z]) => streetlight(ctx, x, z, { h: 5.4, emissive: 1.3 }));
+    .slice(0, ctx.mobile ? 6 : 10)
+    .map(([x, z]) => streetlight(ctx, x, z, { h: 5.8, emissive: 0.75 }));
   ctx.userData.lamps = lamps;
 
-  // --- Arbres ---
-  const treeSpots: [number, number, number][] = [
-    [-7.5, 11, 1.2],
-    [-14, 12, 1.5],
-    [13, 16, 1.3],
-    [16.5, 13, 1.1],
-    [-9, -2, 1.4],
-    [4, -4, 1.2],
-    [9, -8, 1.0],
-    [14, -12, 1.3],
-    [20, -20, 1.1],
-    [21, -33, 1.4],
-    [20, -47, 1.2],
-    [14, -57, 1.1],
-    [-6, -58, 1.3],
-    [-14, -63, 1.5],
+  const oliveSpots: [number, number, number][] = [
+    [-14.5, 14.5, 1.15], [14.1, 15.2, 1.05], [-12.6, -2.7, 0.9],
+    [10.2, -3.7, 1.05], [8.4, -11, 0.95], [13.6, -17.5, 1.1],
+    [20.8, -25, 1.05], [22, -34, 1.18], [20.5, -48, 1.08],
+    [14.7, -58, 0.98], [-7.5, -59, 1.2], [-14.5, -64, 1.25],
   ];
-  treeSpots.slice(0, ctx.mobile ? 8 : 14).forEach(([x, z, s]) => tree(ctx, x, z, s));
+  oliveSpots.slice(0, ctx.mobile ? 7 : 12).forEach(([x, z, scale]) => addOliveTree(ctx, x, z, scale));
+  if (!ctx.mobile) {
+    addPalm(ctx, 13.8, 5.1, 0.9);
+    addPalm(ctx, -13.8, 6.8, 0.82);
+  }
 
-  // --- Montagnes (atmosphère tunisienne/méditerranéenne) ---
-  const mColor = ctx.dark ? '#1c2b40' : '#b6c8d4';
-  mountain(ctx, -32, -72, 16, 20, mColor);
-  mountain(ctx, 30, -78, 20, 24, mColor);
-  mountain(ctx, -52, -58, 14, 16, mColor);
-  mountain(ctx, 46, -62, 12, 15, mColor);
-  mountain(ctx, 8, -90, 30, 26, mColor);
+  const mountainColor = ctx.dark ? '#22303b' : '#a8aa9f';
+  mountain(ctx, -35, -78, 18, 19, mountainColor);
+  mountain(ctx, 31, -83, 22, 24, mountainColor);
+  mountain(ctx, -58, -61, 14, 15, mountainColor);
+  mountain(ctx, 51, -65, 14, 16, mountainColor);
+  mountain(ctx, 4, -97, 31, 27, mountainColor);
 
-  // --- Atelier de maintenance ---
-  building(ctx, { x: 13.5, z: -20, w: 6, h: 3.2, d: 5, color: '#8fa0ae', roof: '#5f6e7e', rotY: -0.5 });
-  const bayLight = sphere(ctx, 0.16, '#ffb02e', { emissive: 0.9, segments: 12 });
-  bayLight.position.set(12.2, 2.8, -23.6);
+  // -------------------------------------------------------------------------
+  // Zones métier : maintenance, carburant/coûts, conformité
+  // -------------------------------------------------------------------------
+  building(ctx, { x: 13.4, z: -20.7, w: 7.2, h: 3.8, d: 6.4, color: '#9da5a5', roof: '#515e66', rotY: -0.45 });
+  const bayCar = lowPolyCar(ctx, { body: '#dedfdd', accent: '#697981' });
+  bayCar.scale.setScalar(0.9);
+  bayCar.position.set(12.7, 0.65, -24.4);
+  bayCar.rotation.y = Math.PI * 0.92;
+  const liftLeft = box(ctx, 0.22, 1.25, 2.2, '#c9a23d', { roughness: 0.62, metalness: 0.22 });
+  liftLeft.position.set(11.7, 0.65, -24.4);
+  const liftRight = box(ctx, 0.22, 1.25, 2.2, '#c9a23d', { roughness: 0.62, metalness: 0.22 });
+  liftRight.position.set(13.7, 0.65, -24.4);
+  const bayLight = sphere(ctx, 0.16, '#e5a93f', { emissive: 0.55, segments: 10 });
+  bayLight.position.set(12.7, 3.15, -24.2);
+  ctx.userData.bayCar = bayCar;
   ctx.userData.bayLight = bayLight;
 
-  // --- Station carburant ---
-  const fuelX = 19.6;
-  const fuelZ = -38.5;
-  const pump1 = box(ctx, 0.9, 1.7, 0.6, '#e14b4b', { roughness: 0.5 });
-  pump1.position.set(fuelX - 1.1, 0.85, fuelZ);
-  const pump2 = box(ctx, 0.9, 1.7, 0.6, '#e14b4b', { roughness: 0.5 });
-  pump2.position.set(fuelX + 1.1, 0.85, fuelZ);
-  // Auvent
-  const canopy = box(ctx, 6.5, 0.22, 4, '#5c6b7c', { roughness: 0.6 });
-  canopy.position.set(fuelX, 3.1, fuelZ);
-  for (const [dx, dz] of [
-    [-2.9, -1.7],
-    [2.9, -1.7],
-    [-2.9, 1.7],
-    [2.9, 1.7],
-  ]) {
-    const pole = cyl(ctx, 0.09, 0.11, 3, '#3a414d', { radial: 8 });
-    pole.position.set(fuelX + dx, 1.5, fuelZ + dz);
+  const fuelX = 19.8;
+  const fuelZ = -38.7;
+  const pump1 = box(ctx, 0.82, 1.75, 0.72, '#be3f3a', { roughness: 0.48, metalness: 0.18 });
+  pump1.position.set(fuelX - 1.05, 0.9, fuelZ);
+  const pump2 = box(ctx, 0.82, 1.75, 0.72, '#be3f3a', { roughness: 0.48, metalness: 0.18 });
+  pump2.position.set(fuelX + 1.05, 0.9, fuelZ);
+  for (const pump of [pump1, pump2]) {
+    const display = box(ctx, 0.48, 0.34, 0.04, '#263944', { emissive: 0.08, roughness: 0.18 });
+    display.position.copy(pump.position).add(new THREE.Vector3(0, 0.32, -0.38));
+  }
+  const canopy = box(ctx, 6.8, 0.24, 4.4, '#58656c', { roughness: 0.66, metalness: 0.15 });
+  canopy.position.set(fuelX, 3.25, fuelZ);
+  for (const [dx, dz] of [[-3, -1.85], [3, -1.85], [-3, 1.85], [3, 1.85]]) {
+    const pole = cyl(ctx, 0.09, 0.11, 3.2, '#414a50', { radial: 8, roughness: 0.62 });
+    pole.position.set(fuelX + dx, 1.6, fuelZ + dz);
   }
   ctx.userData.fuel = { pump1, pump2, fuelX, fuelZ };
 
-  // --- Kiosque conformité (échéances) ---
-  building(ctx, { x: 12.2, z: -48.5, w: 4.6, h: 3, d: 4.4, color: '#9aa7b5', roof: '#5f6e7e', rotY: 0.4 });
-  const calBoard = box(ctx, 1.5, 1.1, 0.12, '#f3f4f6', { roughness: 0.5 });
-  calBoard.position.set(13.9, 1.9, -52.2);
-  calBoard.rotation.y = -0.7;
+  building(ctx, { x: 12, z: -49.2, w: 5.4, h: 3.25, d: 5, color: '#a9aca6', roof: '#59646b', rotY: 0.38 });
+  const calBoard = box(ctx, 1.75, 1.2, 0.12, '#e9e8e0', { roughness: 0.6 });
+  calBoard.position.set(13.9, 2.05, -52.7);
+  calBoard.rotation.y = -0.68;
   const calDots: any[] = [];
   for (let i = 0; i < 3; i++) {
-    const dot = sphere(ctx, 0.09, '#ef4444', { emissive: 0.9, segments: 10 });
-    dot.position.set(13.9 + (i - 1) * 0.4, 2.0 + (i % 2) * 0.18, -52.15);
+    const dot = sphere(ctx, 0.085, i === 0 ? '#b23b36' : '#d0953e', { emissive: 0.3, segments: 9 });
+    dot.position.set(13.55 + i * 0.38, 2.02 + (i % 2) * 0.2, -52.61);
     calDots.push(dot);
   }
   ctx.userData.calDots = calDots;
 
-  // --- Pylônes de route (jalons du tracé) ---
-  const pylons: any[] = [];
-  const pylonCount = ctx.mobile ? 6 : 12;
-  for (let i = 0; i < pylonCount; i++) {
-    const t = 0.08 + (i / pylonCount) * 0.85;
-    const pt = route.getPointAt(t);
-    const py = cone(ctx, 0.14, 0.5, ctx.colorHex, { emissive: 0.35, radial: 8, y: 0.25 });
-    py.position.set(pt.x + 2.4, 0, pt.z + (i % 2 ? 0.4 : -0.2));
-    pylons.push(py);
-  }
-  ctx.userData.pylons = pylons;
+  // Tracé de données discret au-dessus de la chaussée.
+  const routeGeo = new THREE.TubeGeometry(route, ctx.mobile ? 80 : 150, 0.045, 6, false);
+  const routeMat = new THREE.MeshBasicMaterial({
+    color: ctx.colorHex,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  ctx.disposables.push(routeGeo, routeMat);
+  const routeTrace = new THREE.Mesh(routeGeo, routeMat);
+  routeTrace.position.y = 0.13;
+  routeTrace.castShadow = false;
+  ctx.group.add(routeTrace);
+  ctx.userData.routeTrace = routeTrace;
 
-  // --- Flux carburant (particules) ---
+  const routeMarkers: any[] = [];
+  const markerCount = ctx.mobile ? 5 : 9;
+  for (let i = 0; i < markerCount; i++) {
+    const t = 0.12 + (i / markerCount) * 0.78;
+    const point = route.getPointAt(t);
+    const marker = cone(ctx, 0.13, 0.46, ctx.colorHex, { emissive: 0.12, opacity: 0.65, radial: 8, y: 0.23 });
+    marker.position.set(point.x + 2.65, point.y, point.z);
+    marker.userData.routeT = t;
+    routeMarkers.push(marker);
+  }
+  ctx.userData.routeMarkers = routeMarkers;
+
   const fuelDrops: any[] = [];
-  for (let i = 0; i < (ctx.mobile ? 3 : 6); i++) {
-    const d = sphere(ctx, 0.07, '#ffd166', { emissive: 0.9, segments: 8 });
-    d.userData.phase = i / (ctx.mobile ? 3 : 6);
-    fuelDrops.push(d);
+  for (let i = 0; i < (ctx.mobile ? 3 : 5); i++) {
+    const drop = sphere(ctx, 0.065, '#d8a73d', { emissive: 0.32, opacity: 0.01, segments: 8 });
+    drop.userData.phase = i / (ctx.mobile ? 3 : 5);
+    fuelDrops.push(drop);
   }
   ctx.userData.fuelDrops = fuelDrops;
 
-  // --- Feux de la vedette (halo) ---
   let heroLight: any = null;
   if (high) {
-    heroLight = new THREE.PointLight(0xffedb0, 0, 11, 1.8);
-    heroLight.position.set(0, 0.72, -1.75);
-    hero.add(heroLight); // suit le véhicule et son orientation sur la courbe
+    heroLight = new THREE.SpotLight(0xffe2a3, 0, 16, 0.34, 0.55, 1.4);
+    heroLight.position.set(0, 0.78, -1.9);
+    const target = new THREE.Object3D();
+    target.position.set(0, 0.2, -10);
+    hero.add(heroLight, target);
+    heroLight.target = target;
     ctx.userData.heroLight = heroLight;
   }
 
   // =========================================================================
-  // Choregraphie scroll
+  // Choregraphie actuelle (la timeline à onze pas est définie ensuite)
   // =========================================================================
-  const cam = new THREE.Vector3();
-  const look = new THREE.Vector3();
+  const desiredCamera = new THREE.Vector3();
+  const desiredLook = new THREE.Vector3();
+  const cameraLook = new THREE.Vector3(0, 0.8, 2);
 
   function cameraTarget(p: number): { pos: any; lookAt: any } {
-    const k = ctx.mobile ? 0.92 : 1;
+    const k = ctx.mobile ? 0.9 : 1;
     if (p < 0.16) {
-      cam.set(2.9, 3.1, 5.9).multiplyScalar(k);
-      look.set(0, 0.8, 0.2);
-      return { pos: cam.clone(), lookAt: look.clone() };
+      const f = smoothstep(mapRange(p, 0, 0.16, 0, 1));
+      desiredCamera.set(-13.5, 9.2, -9.5).lerp(new THREE.Vector3(-7.2, 5.2, -1.8), f).multiplyScalar(k);
+      desiredLook.set(0, 1.05, 4.2);
+      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
     }
-    if (p < 0.52) {
-      // Poursuite de la vedette (départ, route, vue d'ensemble en mouvement)
+    if (p < 0.28) {
+      // Vue extérieure de trois-quarts pendant l'ouverture et la sortie :
+      // aucun mur du garage ne peut masquer le véhicule.
       const t = carCurveT(p);
       const carPos = route.getPointAt(t);
-      const tangent = route.getTangentAt(t);
-      const right = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
-      const up = new THREE.Vector3(0, 1, 0);
-      const h = p < 0.44 ? 2.0 * k : 2.6 * k; // légère élévation pendant la vue d'ensemble
-      cam.copy(carPos)
-        .addScaledVector(tangent, -2.4 * k)
-        .addScaledVector(right, 1.7 * k)
-        .addScaledVector(up, h);
-      look.copy(carPos).addScaledVector(tangent, 5 * k).addScaledVector(up, 0.5);
-      return { pos: cam.clone(), lookAt: look.clone() };
+      const tangent = route.getTangentAt(t).normalize();
+      const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+      desiredCamera.copy(carPos)
+        .addScaledVector(tangent, 4.5 * k)
+        .addScaledVector(side, -3.6 * k)
+        .add(new THREE.Vector3(0, 2.55, 0));
+      desiredLook.copy(carPos).add(new THREE.Vector3(0, 0.8, 0));
+      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
+    }
+    if (p < 0.52) {
+      const t = carCurveT(p);
+      const carPos = route.getPointAt(t);
+      const tangent = route.getTangentAt(t).normalize();
+      const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+      desiredCamera.copy(carPos)
+        .addScaledVector(tangent, -5.2 * k)
+        .addScaledVector(side, 2.15 * k)
+        .add(new THREE.Vector3(0, 2.8, 0));
+      desiredLook.copy(carPos).addScaledVector(tangent, 5.5).add(new THREE.Vector3(0, 0.72, 0));
+      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
     }
     if (p < 0.64) {
-      // Maintenance : caméra vers l'atelier
-      const f = smoothstep(mapRange(p, 0.52, 0.58, 0, 1));
-      cam.set(12.6, 1.4, -21.6).multiplyScalar(k);
-      cam.lerp(new THREE.Vector3(11.8, 1.5, -22.4), f);
-      look.set(12.6, 1.1, -23.4);
-      return { pos: cam.clone(), lookAt: look.clone() };
+      const f = smoothstep(mapRange(p, 0.52, 0.62, 0, 1));
+      desiredCamera.set(7.2, 4.4, -30.2).lerp(new THREE.Vector3(9.3, 2.8, -28.3), f);
+      desiredLook.set(12.7, 1.2, -24.2);
+      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
     }
     if (p < 0.76) {
-      // Carburant / coûts : station-service
-      const f = smoothstep(mapRange(p, 0.64, 0.7, 0, 1));
-      cam.set(19.6 - 4.2, 1.8, -38.5 + 4.6).multiplyScalar(k);
-      cam.lerp(new THREE.Vector3(19.6 - 3.4 * k, 1.6, -38.5 + 3.2 * k), f);
-      look.set(19.6, 1.1, -38.5);
-      return { pos: cam.clone(), lookAt: look.clone() };
+      const f = smoothstep(mapRange(p, 0.64, 0.73, 0, 1));
+      desiredCamera.set(14.2, 3.1, -33.2).lerp(new THREE.Vector3(16, 2.2, -35.1), f);
+      desiredLook.set(fuelX, 1.2, fuelZ);
+      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
     }
     if (p < 0.86) {
-      // Documents / conformité : kiosque
-      const f = smoothstep(mapRange(p, 0.76, 0.82, 0, 1));
-      cam.set(14.5, 2.1, -53.5).multiplyScalar(k);
-      cam.lerp(new THREE.Vector3(13.6, 1.9, -53.8), f);
-      look.set(13.8, 1.9, -52);
-      return { pos: cam.clone(), lookAt: look.clone() };
+      const f = smoothstep(mapRange(p, 0.76, 0.84, 0, 1));
+      desiredCamera.set(7.2, 4.1, -57.4).lerp(new THREE.Vector3(9, 2.8, -55.4), f);
+      desiredLook.set(13.5, 1.9, -52.1);
+      return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
     }
-    // Final : vue d'ensemble élevée (dépôt + flotte + routes)
     const f = smoothstep(mapRange(p, 0.86, 0.99, 0, 1));
-    cam.set(13.8, 1.9, -53.8).multiplyScalar(k);
-    const highPos = new THREE.Vector3(5, 15 * k, 6);
-    cam.lerp(highPos, f);
-    look.set(0, 0.6, -18);
-    return { pos: cam.clone(), lookAt: look.clone() };
+    desiredCamera.set(9, 2.8, -55.4).lerp(new THREE.Vector3(7, 18 * k, 10), f);
+    desiredLook.set(0, 0.7, -17);
+    return { pos: desiredCamera.clone(), lookAt: desiredLook.clone() };
   }
 
-  const update = (c: SceneContext, time: SceneTime, progress: number) => {
+  const update = (sceneContext: SceneContext, time: SceneTime, progress: number) => {
     const p = clamp01(progress);
 
-    // --- Portail ---
-    const gateP = smoothstep(mapRange(p, 0.12, 0.2, 0, 1));
-    gateLeft.position.x = -1.7 - gateP * 1.7;
-    gateRight.position.x = 1.7 + gateP * 1.7;
+    // Porte sectionnelle : les lames se regroupent au linteau, sans disparaître.
+    const garageOpen = smoothstep(mapRange(p, 0.08, 0.18, 0, 1));
+    garageDoorPanels.forEach((panel, index) => {
+      panel.position.y = panel.userData.closedY + (3.72 + index * 0.025 - panel.userData.closedY) * garageOpen;
+      panel.position.z = 3.86 + garageOpen * Math.max(0, index - 6) * 0.08;
+    });
 
-    // --- Phares + démarrage moteur ---
-    const lightP = smoothstep(mapRange(p, 0.14, 0.2, 0, 1));
-    hero.userData.heads.forEach((head: any) => (head.material.emissiveIntensity = 0.35 + lightP * 2.4));
-    if (heroLight) heroLight.intensity = lightP * 1.8;
+    const gateOpen = smoothstep(mapRange(p, 0.14, 0.24, 0, 1));
+    leftBarrier.rotation.z = gateOpen * 1.34;
+    rightBarrier.rotation.z = -gateOpen * 1.34;
+
+    const lightP = smoothstep(mapRange(p, 0.12, 0.2, 0, 1));
+    hero.userData.heads.forEach((head: any) => (head.material.emissiveIntensity = 0.28 + lightP * 2.35));
+    if (heroLight) heroLight.intensity = lightP * 2.2;
     const engineP = lightP * (1 - smoothstep(mapRange(p, 0.2, 0.27, 0, 1)));
     const shell = hero.userData.shell;
-    shell.position.y = !c.reduced && engineP > 0
-      ? Math.sin(time.t * 32) * 0.008 * engineP
-      : 0;
-    shell.rotation.z = !c.reduced && engineP > 0
-      ? Math.sin(time.t * 19) * 0.0025 * engineP
-      : 0;
+    shell.position.y = !sceneContext.reduced ? Math.sin(time.t * 32) * 0.008 * engineP : 0;
+    shell.rotation.z = !sceneContext.reduced ? Math.sin(time.t * 19) * 0.0025 * engineP : 0;
 
-    // --- Vedette sur la courbe ---
-    const carT = c.reduced ? 0 : carCurveT(p);
+    const carT = sceneContext.reduced ? 0 : carCurveT(p);
     const carPos = route.getPointAt(carT);
     hero.position.copy(carPos);
     if (carT <= 0.0001) {
-      hero.rotation.y = 0; // garée, avant local -Z tourné vers la sortie
+      hero.rotation.y = 0;
     } else {
       const tangent = route.getTangentAt(carT).normalize();
-      // Le modèle regarde -Z : ce lacet aligne -Z avec la tangente réelle.
       hero.rotation.y = Math.atan2(tangent.x, tangent.z) + Math.PI;
     }
 
-    // Roulement déterministe et réversible. getPointAt() utilise la distance
-    // normalisée de la courbe : distance parcourue = t × longueur totale.
-    // Pour un avant local -Z et un axe de roue local +X, l'angle est négatif.
     const travelledDistance = carT * routeLength;
     const wheelAngle = -travelledDistance / hero.userData.wheelRadius;
     hero.userData.wheels.forEach((wheel: any) => (wheel.rotation.y = wheelAngle));
-    c.userData.vehicleTravelDistance = travelledDistance;
-    c.userData.wheelRotation = wheelAngle;
+    sceneContext.userData.vehicleTravelDistance = travelledDistance;
+    sceneContext.userData.wheelRotation = wheelAngle;
 
-    // --- Lampadaires : éveil puis aube ---
-    const wake = smoothstep(mapRange(p, 0.08, 0.2, 0, 1));
-    const dawn = 1 - smoothstep(mapRange(p, 0.5, 0.8, 0, 1)) * 0.55;
-    lamps.forEach((l, i) => {
-      l.material.emissiveIntensity = 0.25 + wake * (1.1 - i * 0.03) * dawn;
+    // Éclairage du dépôt puis extinction graduelle avec le lever du jour.
+    const wake = smoothstep(mapRange(p, 0.06, 0.2, 0, 1));
+    const dawn = 1 - smoothstep(mapRange(p, 0.5, 0.82, 0, 1)) * 0.6;
+    lamps.forEach((lamp, index) => {
+      lamp.material.emissiveIntensity = 0.18 + wake * (0.86 - index * 0.025) * dawn;
+    });
+    garageLamp.material.emissiveIntensity = 0.35 + wake * 0.72;
+
+    const routeP = smoothstep(mapRange(p, 0.38, 0.56, 0, 1));
+    routeMat.opacity = routeP * 0.62;
+    routeMarkers.forEach((marker, index) => {
+      const reached = carT >= marker.userData.routeT - 0.08;
+      marker.material.opacity = routeP * (reached ? 0.72 : 0.2);
+      marker.material.emissiveIntensity = reached ? 0.28 : 0.04;
+      marker.position.y = 0.08 + routeP * (0.08 + Math.sin(time.t * 2 + index) * 0.025);
     });
 
-    // --- Pylônes : jalonnement du tracé selon la position de la vedette ---
-    pylons.forEach((py, i) => {
-      const t = 0.08 + (i / pylons.length) * 0.85;
-      const lit = carT > t - 0.12 ? 1 : 0;
-      const pulse = 0.5 + 0.5 * Math.sin(time.t * 3 + i * 0.9);
-      py.material.emissiveIntensity = lit ? 0.5 + pulse * 0.8 : 0.22;
-    });
+    const maintenanceP = smoothstep(mapRange(p, 0.52, 0.64, 0, 1));
+    const alert = 0.5 + 0.5 * Math.sin(time.t * 4.2);
+    bayLight.material.emissiveIntensity = 0.22 + maintenanceP * (0.45 + alert * 0.65);
 
-    // --- Atelier maintenance : alerte pulsante ---
-    const maintP = smoothstep(mapRange(p, 0.52, 0.64, 0, 1));
-    const alert = 0.5 + 0.5 * Math.sin(time.t * 5);
-    bayLight.material.emissiveIntensity = 0.4 + maintP * (0.6 + alert * 1.1);
-
-    // --- Station carburant : flux ---
     const fuelP = smoothstep(mapRange(p, 0.64, 0.76, 0, 1));
-    const { fuelX, fuelZ, fuelDrops } = ctx.userData;
-    fuelDrops.forEach((d: any, i: number) => {
-      d.userData.phase = (d.userData.phase + time.dt * 0.45) % 1;
-      const ph = d.userData.phase;
-      d.position.set(
-        fuelX - 1.1 + ph * 2.2,
-        0.9 + Math.sin(ph * Math.PI) * 0.5,
-        fuelZ + (i % 2 ? 0.35 : -0.35)
+    fuelDrops.forEach((drop: any, index: number) => {
+      drop.userData.phase = (drop.userData.phase + time.dt * 0.34) % 1;
+      const phase = drop.userData.phase;
+      drop.position.set(
+        fuelX - 1 + phase * 2,
+        1 + Math.sin(phase * Math.PI) * 0.42,
+        fuelZ + (index % 2 ? 0.32 : -0.32)
       );
-      d.visible = fuelP > 0.05;
-      d.material.opacity = fuelP * (0.5 + 0.5 * Math.sin(ph * Math.PI));
+      drop.visible = fuelP > 0.02;
+      drop.material.opacity = fuelP * Math.sin(phase * Math.PI) * 0.72;
     });
 
-    // --- Kiosque conformité : échéances pulsantes ---
-    const docP = smoothstep(mapRange(p, 0.76, 0.86, 0, 1));
-    calDots.forEach((dot, i) => {
-      const pulse = 0.5 + 0.5 * Math.sin(time.t * 4 + i * 2.1);
-      dot.material.emissiveIntensity = 0.3 + docP * (0.5 + pulse);
-      dot.scale.setScalar(0.85 + docP * pulse * 0.4);
+    const documentP = smoothstep(mapRange(p, 0.76, 0.86, 0, 1));
+    calDots.forEach((dot, index) => {
+      const pulse = 0.5 + 0.5 * Math.sin(time.t * 3.4 + index * 1.9);
+      dot.material.emissiveIntensity = 0.12 + documentP * (0.22 + pulse * 0.55);
+      dot.scale.setScalar(0.9 + documentP * pulse * 0.22);
     });
 
-    // --- Caméra (damping) ---
-    if (!c.reduced) {
+    if (!sceneContext.reduced) {
       const target = cameraTarget(p);
-      dampVec3(c.camera.position, target.pos, 3.2, time.dt);
-      dampVec3(look, target.lookAt, 3.2, time.dt);
-      c.camera.lookAt(look);
+      dampVec3(sceneContext.camera.position, target.pos, 4, time.dt);
+      dampVec3(cameraLook, target.lookAt, 4.4, time.dt);
+      sceneContext.camera.lookAt(cameraLook);
     } else {
-      // Vue stable en motion réduit : 3/4 avant au-dessus de la vedette
-      c.camera.position.set(3.2, 3.6, 6.4);
-      c.camera.lookAt(0, 0.6, -2);
+      sceneContext.camera.position.set(7.5, 7, 13);
+      sceneContext.camera.lookAt(0, 0.9, 2);
     }
 
-    // --- Soleil doucement levé ---
-    if (ctx.userData['sun'] && !c.reduced) {
-      ctx.userData['sun'].position.y = 6 + p * 3;
-      sun.material.emissiveIntensity = ctx.dark ? 0.1 : 0.7 + p * 0.4;
-    }
+    sun.position.y = 7 + p * 3.2;
+    sun.material.emissiveIntensity = ctx.dark ? 0.08 : 0.64 + p * 0.32;
   };
 
   return {

@@ -221,6 +221,10 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = this.dark ? 0.9 : 1.02;
+    renderer.shadowMap.enabled = quality === 'high';
+    if (quality === 'high') renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer = renderer;
 
     const scene = new THREE.Scene();
@@ -338,6 +342,7 @@ export class ServiceSceneComponent implements OnChanges, AfterViewInit, OnDestro
 
     this.themeSub = this.theme.dark$.subscribe((isDark) => {
       this.dark = isDark;
+      renderer.toneMappingExposure = isDark ? 0.9 : 1.02;
       if (this.ctx) applyThemeToWorld(this.ctx, isDark);
     });
   }

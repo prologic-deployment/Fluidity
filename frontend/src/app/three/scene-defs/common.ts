@@ -103,6 +103,8 @@ export function mesh(
 ): any {
   ctx.disposables.push(geometry, material);
   const m = new ctx.THREE.Mesh(geometry, material);
+  m.castShadow = ctx.quality === 'high';
+  m.receiveShadow = true;
   ctx.group.add(m);
   return m;
 }
@@ -224,16 +226,37 @@ export function makeCurve(ctx: SceneContext, points: [number, number, number][])
   return curve;
 }
 
-/** Ruban (route) le long d'une courbe — géométrie TubeGeometry aplatie. */
+/** Ruban routier horizontal construit de part et d'autre d'une courbe. */
 export function road(ctx: SceneContext, curve: any, halfWidth: number, color: string): any {
-  const geo = new ctx.THREE.TubeGeometry(curve, 160, halfWidth, 4, false);
-  const mat = new ctx.THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0 });
+  const segments = ctx.mobile ? 90 : 180;
+  const positions: number[] = [];
+  const indices: number[] = [];
+  const up = new ctx.THREE.Vector3(0, 1, 0);
+
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const point = curve.getPointAt(t);
+    const tangent = curve.getTangentAt(t).normalize();
+    const side = new ctx.THREE.Vector3().crossVectors(up, tangent).normalize();
+    const left = point.clone().addScaledVector(side, halfWidth);
+    const right = point.clone().addScaledVector(side, -halfWidth);
+    positions.push(left.x, left.y + 0.035, left.z, right.x, right.y + 0.035, right.z);
+    if (i < segments) {
+      const base = i * 2;
+      indices.push(base, base + 2, base + 1, base + 1, base + 2, base + 3);
+    }
+  }
+
+  const geo = new ctx.THREE.BufferGeometry();
+  geo.setAttribute('position', new ctx.THREE.Float32BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  const mat = new ctx.THREE.MeshStandardMaterial({ color, roughness: 0.96, metalness: 0 });
   ctx.disposables.push(geo, mat);
-  const m = new ctx.THREE.Mesh(geo, mat);
-  m.scale.y = 0.045; // aplati au sol
-  m.position.y = 0.02;
-  ctx.group.add(m);
-  return m;
+  const ribbon = new ctx.THREE.Mesh(geo, mat);
+  ribbon.receiveShadow = true;
+  ctx.group.add(ribbon);
+  return ribbon;
 }
 
 /** Sol du monde (grand plan discret). */
@@ -259,11 +282,26 @@ export function buildGround(ctx: SceneContext, opts: { color?: string; size?: nu
 
 /** Lumières de base du monde. Retourne { ambient, dir, rim }. */
 export function buildLights(ctx: SceneContext): { ambient: any; dir: any; rim: any } {
-  const ambient = new ctx.THREE.AmbientLight(ctx.dark ? 0x8aa0c8 : 0xffffff, ctx.dark ? 0.55 : 0.9);
-  const dir = new ctx.THREE.DirectionalLight(ctx.dark ? 0xbfd4ff : 0xffe8c8, 1.1);
-  dir.position.set(12, 18, 10);
-  const rim = new ctx.THREE.DirectionalLight(0x88bbff, 0.35);
-  rim.position.set(-10, -4, -12);
+  const ambient = new ctx.THREE.HemisphereLight(
+    ctx.dark ? 0x8aa0c8 : 0xfff4df,
+    ctx.dark ? 0x172033 : 0x66715c,
+    ctx.dark ? 0.58 : 0.82
+  );
+  const dir = new ctx.THREE.DirectionalLight(ctx.dark ? 0xbfd4ff : 0xffd6a0, ctx.dark ? 1 : 1.35);
+  dir.position.set(14, 20, 8);
+  if (ctx.quality === 'high') {
+    dir.castShadow = true;
+    dir.shadow.mapSize.set(1024, 1024);
+    dir.shadow.camera.near = 1;
+    dir.shadow.camera.far = 80;
+    dir.shadow.camera.left = -34;
+    dir.shadow.camera.right = 34;
+    dir.shadow.camera.top = 34;
+    dir.shadow.camera.bottom = -34;
+    dir.shadow.bias = -0.0004;
+  }
+  const rim = new ctx.THREE.DirectionalLight(ctx.dark ? 0x7799cc : 0x9fc4d3, 0.28);
+  rim.position.set(-12, 8, -16);
   ctx.scene.add(ambient, dir, rim);
   ctx.userData.lights = { ambient, dir, rim };
   return { ambient, dir, rim };
@@ -305,23 +343,52 @@ export function lowPolyCar(
   car.add(shell);
   ctx.group.add(car);
 
-  const body = box(ctx, 1.6, 0.4, 3.1, opts.body ?? '#f3f4f6', { roughness: 0.3, metalness: 0.25 });
-  body.position.y = 0.55;
+  const bodyColor = opts.body ?? '#f3f4f6';
+  const accentColor = opts.accent ?? ctx.colorHex;
+  const body = box(ctx, 1.78, 0.48, 3.9, bodyColor, { roughness: 0.42, metalness: 0.18 });
+  body.position.y = 0.62;
   shell.add(body);
-  const cabin = box(ctx, 1.15, 0.5, 1.45, opts.accent ?? ctx.colorHex, { roughness: 0.25, metalness: 0.35 });
-  cabin.position.set(0, 0.98, -0.3);
+  const cabin = box(ctx, 1.58, 0.88, 2.75, bodyColor, { roughness: 0.38, metalness: 0.16 });
+  cabin.position.set(0, 1.24, 0.2);
   shell.add(cabin);
+  const roof = box(ctx, 1.62, 0.12, 2.8, '#e5e9ed', { roughness: 0.55, metalness: 0.08 });
+  roof.position.set(0, 1.74, 0.2);
+  shell.add(roof);
 
-  const wheelRadius = 0.34;
-  const wheelGeo = new ctx.THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.24, 14);
-  const wheelMat = new ctx.THREE.MeshStandardMaterial({ color: '#17181c', roughness: 0.9 });
-  ctx.disposables.push(wheelGeo, wheelMat);
+  // Vitrage sombre et bande d'identité d'entreprise.
+  const windshield = box(ctx, 1.36, 0.52, 0.055, '#273846', { roughness: 0.12, metalness: 0.35 });
+  windshield.position.set(0, 1.3, -1.2);
+  shell.add(windshield);
+  for (const x of [-0.805, 0.805]) {
+    const sideWindow = box(ctx, 0.045, 0.5, 0.72, '#304655', { roughness: 0.14, metalness: 0.3 });
+    sideWindow.position.set(x, 1.32, -0.76);
+    shell.add(sideWindow);
+    const mirror = box(ctx, 0.18, 0.13, 0.28, '#25313a', { roughness: 0.5 });
+    mirror.position.set(x * 1.18, 1.2, -1.05);
+    shell.add(mirror);
+  }
+  const stripe = box(ctx, 1.81, 0.14, 2.35, accentColor, { roughness: 0.4, metalness: 0.12 });
+  stripe.position.set(0, 0.86, 0.38);
+  shell.add(stripe);
+  const frontBumper = box(ctx, 1.68, 0.16, 0.16, '#333c43', { roughness: 0.85 });
+  frontBumper.position.set(0, 0.45, -2.0);
+  shell.add(frontBumper);
+  const rearBumper = box(ctx, 1.68, 0.16, 0.16, '#333c43', { roughness: 0.85 });
+  rearBumper.position.set(0, 0.45, 2.0);
+  shell.add(rearBumper);
+
+  const wheelRadius = 0.36;
+  const wheelGeo = new ctx.THREE.CylinderGeometry(wheelRadius, wheelRadius, 0.25, 18);
+  const wheelMat = new ctx.THREE.MeshStandardMaterial({ color: '#161a1d', roughness: 0.92 });
+  const rimGeo = new ctx.THREE.CylinderGeometry(0.17, 0.17, 0.258, 14);
+  const rimMat = new ctx.THREE.MeshStandardMaterial({ color: '#9aa2a7', roughness: 0.38, metalness: 0.72 });
+  ctx.disposables.push(wheelGeo, wheelMat, rimGeo, rimMat);
   const wheels: any[] = [];
   for (const [x, z] of [
-    [-0.85, 1.05],
-    [0.85, 1.05],
-    [-0.85, -1.05],
-    [0.85, -1.05],
+    [-0.91, 1.28],
+    [0.91, 1.28],
+    [-0.91, -1.28],
+    [0.91, -1.28],
   ]) {
     // Hiérarchie à deux rotations : le support aligne l'axe local Y du pneu
     // sur l'axe +X du véhicule ; `wheel.rotation.y` reste alors un angle de
@@ -329,6 +396,8 @@ export function lowPolyCar(
     const axle = new ctx.THREE.Group();
     axle.rotation.z = -Math.PI / 2;
     const wheel = new ctx.THREE.Mesh(wheelGeo, wheelMat);
+    const rim = new ctx.THREE.Mesh(rimGeo, rimMat);
+    wheel.add(rim);
     axle.add(wheel);
     axle.position.set(x, wheelRadius, z);
     car.add(axle);
@@ -336,7 +405,10 @@ export function lowPolyCar(
   }
 
   // Phares (avant du véhicule = axe local -Z).
-  const headGeo = new ctx.THREE.BoxGeometry(0.42, 0.14, 0.06);
+  const grille = box(ctx, 0.82, 0.22, 0.055, '#27313a', { roughness: 0.78, metalness: 0.18 });
+  grille.position.set(0, 0.69, -1.975);
+  shell.add(grille);
+  const headGeo = new ctx.THREE.BoxGeometry(0.46, 0.16, 0.06);
   const headMat = new ctx.THREE.MeshStandardMaterial({
     color: '#fff7d6',
     emissive: '#ffedb0',
@@ -346,7 +418,7 @@ export function lowPolyCar(
   const heads: any[] = [];
   for (const x of [-0.55, 0.55]) {
     const head = new ctx.THREE.Mesh(headGeo, headMat);
-    head.position.set(x, 0.62, -1.55);
+    head.position.set(x, 0.78, -1.98);
     shell.add(head);
     heads.push(head);
   }
@@ -357,7 +429,7 @@ export function lowPolyCar(
   const tails: any[] = [];
   for (const x of [-0.55, 0.55]) {
     const tail = new ctx.THREE.Mesh(tailGeo, tailMat);
-    tail.position.set(x, 0.62, 1.56);
+    tail.position.set(x, 0.76, 1.98);
     shell.add(tail);
     tails.push(tail);
   }
