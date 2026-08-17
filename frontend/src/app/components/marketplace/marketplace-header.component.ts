@@ -40,8 +40,8 @@ import { I18nService } from '../../i18n/i18n.service';
               (change)="onLang($event)"
               [attr.aria-label]="'nav.language' | t"
             >
-              <option value="fr">{{ 'nav.french' | t }}</option>
-              <option value="en">{{ 'nav.english' | t }}</option>
+              <option value="fr">🇫🇷 {{ 'nav.french' | t }}</option>
+              <option value="en">🇬🇧 {{ 'nav.english' | t }}</option>
             </select>
           </label>
           <ng-container *ngIf="auth.isAuthenticated()">
@@ -77,8 +77,8 @@ import { I18nService } from '../../i18n/i18n.service';
           <div class="flex items-center justify-between rounded-lg px-3 py-2.5">
             <span class="text-sm font-medium">{{ 'nav.language' | t }}</span>
             <div class="inline-flex overflow-hidden rounded-lg border border-border">
-              <button type="button" (click)="setLang('fr')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'fr'" [class.text-primary-foreground]="i18n.lang === 'fr'">FR</button>
-              <button type="button" (click)="setLang('en')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'en'" [class.text-primary-foreground]="i18n.lang === 'en'">EN</button>
+              <button type="button" (click)="setLang('fr')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'fr'" [class.text-primary-foreground]="i18n.lang === 'fr'">🇫🇷 FR</button>
+              <button type="button" (click)="setLang('en')" class="px-3 py-1 text-xs font-medium transition-colors" [class.bg-primary]="i18n.lang === 'en'" [class.text-primary-foreground]="i18n.lang === 'en'">🇬🇧 EN</button>
             </div>
           </div>
           <a routerLink="/services" (click)="menuOpen = false" class="rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-muted">{{ 'marketplace.services' | t }}</a>

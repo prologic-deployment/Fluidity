@@ -87,7 +87,7 @@ export const EN: Record<string, unknown> = {
     openMenu: 'Open navigation menu',
     accountMenu: 'Account menu',
     language: 'Language',
-    french: 'Français',
+    french: 'French',
     english: 'English',
     home: 'Home',
     myProducts: 'My products',
@@ -1216,7 +1216,7 @@ export const EN: Record<string, unknown> = {
   },
 
   langs: {
-    fr: 'Français',
+    fr: 'French',
     en: 'English',
   },
 
