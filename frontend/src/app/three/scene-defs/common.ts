@@ -236,6 +236,93 @@ export function road(ctx: SceneContext, curve: any, halfWidth: number, color: st
   return m;
 }
 
+/** Courbe décalée latéralement par rapport à une courbe de référence. */
+export function offsetCurve(ctx: SceneContext, curve: any, lateral: number, samples = 64): any {
+  const { THREE } = ctx;
+  const pts: any[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const t = i / samples;
+    const p = curve.getPointAt(t);
+    const tan = curve.getTangentAt(t);
+    const normal = new THREE.Vector3(-tan.z, 0, tan.x).normalize();
+    pts.push(p.clone().addScaledVector(normal, lateral));
+  }
+  const c = new THREE.CatmullRomCurve3(pts);
+  ctx.disposables.push(c);
+  return c;
+}
+
+/** Ligne de rive (bord de route) — tube fin le long d'une courbe décalée. */
+export function roadEdgeLine(ctx: SceneContext, curve: any, lateral: number, color: string): any {
+  const { THREE } = ctx;
+  const off = offsetCurve(ctx, curve, lateral);
+  const geo = new THREE.TubeGeometry(off, 120, 0.05, 4, false);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+  ctx.disposables.push(geo, mat);
+  const m = new THREE.Mesh(geo, mat);
+  m.scale.y = 0.16;
+  m.position.y = 0.055;
+  ctx.group.add(m);
+  return m;
+}
+
+/**
+ * Marquage axial (pointillés blancs) le long de la courbe.
+ * `period` = espacement entre pointillés, `dashLen` = longueur d'un trait.
+ */
+export function roadCenterDashes(ctx: SceneContext, curve: any, period = 1.5, dashLen = 0.85): void {
+  const { THREE } = ctx;
+  const total = curve.getLength();
+  const n = Math.floor(total / period);
+  const geo = new THREE.BoxGeometry(0.14, 0.02, dashLen);
+  const mat = new THREE.MeshStandardMaterial({ color: '#e8e8e6', roughness: 0.6 });
+  ctx.disposables.push(geo, mat);
+  for (let i = 0; i < n; i++) {
+    const t = (i + 0.5) * period / total;
+    const p = curve.getPointAt(t);
+    const d = new THREE.Mesh(geo, mat);
+    d.position.set(p.x, 0.06, p.z);
+    ctx.group.add(d);
+  }
+}
+
+/** Marquage de stationnement peint (rectangle au sol). */
+export function paintedMark(
+  ctx: SceneContext,
+  x: number,
+  z: number,
+  w: number,
+  d: number,
+  color = '#e8e6df',
+  rotY = 0
+): void {
+  const geo = new ctx.THREE.PlaneGeometry(w, d);
+  const mat = new ctx.THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9 });
+  ctx.disposables.push(geo, mat);
+  const m = new ctx.THREE.Mesh(geo, mat);
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(x, 0.03, z);
+  m.rotation.y = rotY;
+  ctx.group.add(m);
+}
+
+/** Ligne d'itinéraire (overlay) le long d'une courbe — opacité pilotée par la scène. */
+export function routeLine(ctx: SceneContext, curve: any, color: string, radius = 0.06): any {
+  const { THREE } = ctx;
+  const geo = new THREE.TubeGeometry(curve, 200, radius, 6, false);
+  const mat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  ctx.disposables.push(geo, mat);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.y = 0.12;
+  ctx.group.add(m);
+  return m;
+}
+
 /** Sol du monde (grand plan discret). */
 export function buildGround(ctx: SceneContext, opts: { color?: string; size?: number; emissive?: number } = {}): any {
   const size = opts.size ?? 260;
@@ -296,66 +383,138 @@ export function applyThemeToWorld(ctx: SceneContext, dark: boolean): void {
 // ---------------------------------------------------------------------------
 
 /** Véhicule low-poly : caisse + habitacle + roues + phares/feux arrière. */
+/**
+ * Véhicule utilitaire (van) low-poly réaliste :
+ * - proportions proches d'un fourgon (capot court, cabine avancée) ;
+ * - carrosserie + vitres (verre sombre) + rétroviseurs + roues + phares/feux ;
+ * - AVANT = -Z (phares côté -Z).
+ *
+ * ROTATION DES ROUES (CORRECTE) :
+ * - La géométrie du cylindre est TOURNÉE (geo.rotateZ) pour que l'axe de la
+ *   roue soit l'axe X local du véhicule ;
+ * - le spin s'applique sur `rotation.x` (rotation autour de l'axe) ;
+ * - le SIGNE est dérivé du déplacement réel : en avançant (avant = -Z),
+ *   `rotation.x` diminue (négatif) — voir `car.userData.wheels` consommé par
+ *   les scènes qui calculent l'arc parcouru : `rotation.x = -arc / r`.
+ */
 export function lowPolyCar(
   ctx: SceneContext,
-  opts: { body?: string; accent?: string; wheels?: number } = {}
+  opts: { body?: string; accent?: string; window?: string } = {}
 ): any {
-  const car = new ctx.THREE.Group();
+  const { THREE } = ctx;
+  const car = new THREE.Group();
   ctx.group.add(car);
-  const body = box(ctx, 1.6, 0.4, 3.1, opts.body ?? '#f3f4f6', { roughness: 0.3, metalness: 0.25 });
-  body.position.y = 0.55;
+
+  const bodyColor = opts.body ?? '#f2f3f5';
+  const accentColor = opts.accent ?? '#8a97a6';
+  const glassColor = opts.window ?? '#1c2530';
+
+  // Bas de caisse / longerons
+  const under = box(ctx, 1.5, 0.22, 3.0, '#2a2e33', { roughness: 0.8 });
+  under.position.y = 0.28;
+  car.add(under);
+
+  // Carrosserie principale (fourgon) : légèrement effilée à l'avant
+  const body = box(ctx, 1.78, 0.62, 2.9, bodyColor, { roughness: 0.35, metalness: 0.2 });
+  body.position.set(0, 0.68, 0.1);
   car.add(body);
-  const cabin = box(ctx, 1.15, 0.5, 1.45, opts.accent ?? ctx.colorHex, { roughness: 0.25, metalness: 0.35 });
-  cabin.position.set(0, 0.98, -0.3);
-  car.add(cabin);
-  const wheelGeo = new ctx.THREE.CylinderGeometry(0.34, 0.34, 0.24, 14);
-  const wheelMat = new ctx.THREE.MeshStandardMaterial({ color: '#17181c', roughness: 0.9 });
-  ctx.disposables.push(wheelGeo, wheelMat);
+
+  // Toit (caisse cargo)
+  const roof = box(ctx, 1.66, 0.5, 1.9, bodyColor, { roughness: 0.35, metalness: 0.2 });
+  roof.position.set(0, 1.24, 0.62);
+  car.add(roof);
+
+  // Cabine : pare-brise + vitres latérales (verre sombre)
+  const glass = box(ctx, 1.62, 0.5, 0.96, glassColor, { roughness: 0.12, metalness: 0.5 });
+  glass.position.set(0, 1.12, -0.55);
+  car.add(glass);
+  const glassFront = box(ctx, 1.6, 0.34, 0.06, glassColor, { roughness: 0.12, metalness: 0.5 });
+  glassFront.position.set(0, 1.18, -1.04);
+  glassFront.rotation.x = -0.35;
+  car.add(glassFront);
+
+  // Bandeau accent latéral (identité d'entreprise)
+  const stripe = box(ctx, 0.06, 0.18, 2.2, accentColor, { roughness: 0.4 });
+  stripe.position.set(0.92, 0.78, 0.1);
+  car.add(stripe);
+  const stripe2 = box(ctx, 0.06, 0.18, 2.2, accentColor, { roughness: 0.4 });
+  stripe2.position.set(-0.92, 0.78, 0.1);
+  car.add(stripe2);
+
+  // Pare-chocs avant / arrière
+  const bumperF = box(ctx, 1.7, 0.28, 0.16, '#3a3f45', { roughness: 0.7 });
+  bumperF.position.set(0, 0.42, -1.5);
+  car.add(bumperF);
+  const bumperR = box(ctx, 1.7, 0.28, 0.16, '#3a3f45', { roughness: 0.7 });
+  bumperR.position.set(0, 0.42, 1.5);
+  car.add(bumperR);
+
+  // Rétroviseurs
+  for (const x of [-1.0, 1.0]) {
+    const arm = box(ctx, 0.08, 0.05, 0.22, bodyColor);
+    arm.position.set(x * 0.62, 1.1, -1.1);
+    arm.rotation.y = x * 0.5;
+    car.add(arm);
+    const mir = box(ctx, 0.16, 0.1, 0.04, '#23262b', { roughness: 0.3 });
+    mir.position.set(x * 0.78, 1.12, -1.08);
+    car.add(mir);
+  }
+
+  // Roues : géométrie tournée pour que l'AXE soit X ; spin via rotation.x.
+  const wheelGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 18);
+  wheelGeo.rotateZ(Math.PI / 2); // axe du cylindre -> X
+  const tireMat = new THREE.MeshStandardMaterial({ color: '#15171a', roughness: 0.92 });
+  const hubMat = new THREE.MeshStandardMaterial({ color: '#9aa2ab', roughness: 0.35, metalness: 0.6 });
+  ctx.disposables.push(wheelGeo, tireMat, hubMat);
+  const hubGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.28, 10);
+  hubGeo.rotateZ(Math.PI / 2);
+  ctx.disposables.push(hubGeo);
   const wheels: any[] = [];
   for (const [x, z] of [
-    [-0.85, 1.05],
-    [0.85, 1.05],
-    [-0.85, -1.05],
-    [0.85, -1.05],
+    [-0.82, 1.12],
+    [0.82, 1.12],
+    [-0.82, -1.12],
+    [0.82, -1.12],
   ]) {
-    // Groupe roue : axe (cylindre) orienté selon X via rotation Z, rotation
-    // autour de l'axe sur le cylindre interne (compatible tous navigateurs).
-    const hub = new ctx.THREE.Group();
-    const w = new ctx.THREE.Mesh(wheelGeo, wheelMat);
-    w.rotation.z = Math.PI / 2; // axe du cylindre le long de X
-    hub.add(w);
-    hub.position.set(x, 0.34, z);
-    car.add(hub);
+    const w = new THREE.Mesh(wheelGeo, tireMat);
+    const hubCap = new THREE.Mesh(hubGeo, hubMat);
+    w.add(hubCap);
+    w.position.set(x, 0.34, z);
+    car.add(w);
     wheels.push(w);
   }
-  // Phares (2 petits plans émissifs à l'avant, -Z)
-  const headGeo = new ctx.THREE.BoxGeometry(0.42, 0.14, 0.06);
-  const headMat = new ctx.THREE.MeshStandardMaterial({
-    color: '#fff7d6',
+
+  // Phares (avant, -Z) — matériau émissif contrôlé par la scène
+  const headGeo = new THREE.BoxGeometry(0.46, 0.16, 0.08);
+  const headMat = new THREE.MeshStandardMaterial({
+    color: '#fff6d8',
     emissive: '#ffedb0',
-    emissiveIntensity: 0.6,
+    emissiveIntensity: 0.35,
+    roughness: 0.2,
   });
   ctx.disposables.push(headGeo, headMat);
   const heads: any[] = [];
   for (const x of [-0.55, 0.55]) {
-    const h = new ctx.THREE.Mesh(headGeo, headMat);
-    h.position.set(x, 0.62, -1.55);
+    const h = new THREE.Mesh(headGeo, headMat);
+    h.position.set(x, 0.66, -1.52);
     car.add(h);
     heads.push(h);
   }
+
   // Feux arrière
-  const tailGeo = new ctx.THREE.BoxGeometry(0.42, 0.12, 0.05);
-  const tailMat = new ctx.THREE.MeshStandardMaterial({ color: '#ff4d4d', emissive: '#ff2d2d', emissiveIntensity: 0.7 });
+  const tailGeo = new THREE.BoxGeometry(0.46, 0.14, 0.06);
+  const tailMat = new THREE.MeshStandardMaterial({ color: '#d43b2f', emissive: '#c62828', emissiveIntensity: 0.5 });
   ctx.disposables.push(tailGeo, tailMat);
   for (const x of [-0.55, 0.55]) {
-    const t = new ctx.THREE.Mesh(tailGeo, tailMat);
-    t.position.set(x, 0.62, 1.56);
+    const t = new THREE.Mesh(tailGeo, tailMat);
+    t.position.set(x, 0.68, 1.5);
     car.add(t);
   }
-  // Position par défaut : au sol
+
   car.position.y = 0;
   car.userData.wheels = wheels;
   car.userData.heads = heads;
+  car.userData.wheelRadius = 0.34;
   return car;
 }
 

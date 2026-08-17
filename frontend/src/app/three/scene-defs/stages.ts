@@ -23,13 +23,28 @@ export const STAGES_BY_PRODUCT: Record<string, StoryStage[]> = {
     { from: 0.76, to: 1.0, kickerKey: 'scene.project_management.s5.kicker', titleKey: 'scene.project_management.s5.title', textKey: 'scene.project_management.s5.text', align: 'center', cta: true },
   ],
   fleet_management: [
-    { from: 0.0, to: 0.14, kickerKey: 'scene.fleet_management.s1.kicker', titleKey: 'scene.fleet_management.s1.title', textKey: 'scene.fleet_management.s1.text', align: 'center' },
-    { from: 0.1, to: 0.4, kickerKey: 'scene.fleet_management.s2.kicker', titleKey: 'products.fleet_management.name', textKey: 'scene.fleet_management.s2.text', align: 'left' },
-    { from: 0.36, to: 0.56, kickerKey: 'scene.fleet_management.s3.kicker', titleKey: 'scene.fleet_management.s3.title', textKey: 'scene.fleet_management.s3.text', align: 'right' },
-    { from: 0.52, to: 0.66, kickerKey: 'scene.fleet_management.s4.kicker', titleKey: 'scene.fleet_management.s4.title', textKey: 'scene.fleet_management.s4.text', align: 'left' },
-    { from: 0.62, to: 0.78, kickerKey: 'scene.fleet_management.s5.kicker', titleKey: 'scene.fleet_management.s5.title', textKey: 'scene.fleet_management.s5.text', align: 'right' },
-    { from: 0.74, to: 0.88, kickerKey: 'scene.fleet_management.s6.kicker', titleKey: 'scene.fleet_management.s6.title', textKey: 'scene.fleet_management.s6.text', align: 'left' },
-    { from: 0.84, to: 1.0, kickerKey: 'scene.fleet_management.s7.kicker', titleKey: 'scene.fleet_management.s7.title', textKey: 'scene.fleet_management.s7.text', align: 'center', cta: true },
+    // Étape 1 — Ouverture : le dépôt
+    { from: 0.0, to: 0.12, kickerKey: 'scene.fleet_management.s1.kicker', titleKey: 'products.fleet_management.name', textKey: 'scene.fleet_management.s1.text', align: 'center' },
+    // Étape 2 — Le dépôt s'éveille (porte + vision flotte)
+    { from: 0.11, to: 0.2, kickerKey: 'scene.fleet_management.s2.kicker', titleKey: 'scene.fleet_management.s2.title', textKey: 'scene.fleet_management.s2.text', align: 'left' },
+    // Étape 3 — Phares + moteur
+    { from: 0.19, to: 0.27, kickerKey: 'scene.fleet_management.s3.kicker', titleKey: 'scene.fleet_management.s3.title', textKey: 'scene.fleet_management.s3.text', align: 'right' },
+    // Étape 4 — Sortie du parking
+    { from: 0.26, to: 0.35, kickerKey: 'scene.fleet_management.s4.kicker', titleKey: 'scene.fleet_management.s4.title', textKey: 'scene.fleet_management.s4.text', align: 'left' },
+    // Étape 5 — La caméra suit le véhicule
+    { from: 0.34, to: 0.46, kickerKey: 'scene.fleet_management.s5.kicker', titleKey: 'scene.fleet_management.s5.title', textKey: 'scene.fleet_management.s5.text', align: 'right' },
+    // Étape 6 — Itinéraires / tracé de route
+    { from: 0.45, to: 0.57, kickerKey: 'scene.fleet_management.s6.kicker', titleKey: 'scene.fleet_management.s6.title', textKey: 'scene.fleet_management.s6.text', align: 'left' },
+    // Étape 7 — Maintenance
+    { from: 0.56, to: 0.67, kickerKey: 'scene.fleet_management.s7.kicker', titleKey: 'scene.fleet_management.s7.title', textKey: 'scene.fleet_management.s7.text', align: 'right' },
+    // Étape 8 — Carburant / coûts
+    { from: 0.66, to: 0.77, kickerKey: 'scene.fleet_management.s8.kicker', titleKey: 'scene.fleet_management.s8.title', textKey: 'scene.fleet_management.s8.text', align: 'left' },
+    // Étape 9 — Documents / conformité
+    { from: 0.76, to: 0.86, kickerKey: 'scene.fleet_management.s9.kicker', titleKey: 'scene.fleet_management.s9.title', textKey: 'scene.fleet_management.s9.text', align: 'right' },
+    // Étape 10 — Vue d'ensemble
+    { from: 0.85, to: 0.95, kickerKey: 'scene.fleet_management.s10.kicker', titleKey: 'scene.fleet_management.s10.title', textKey: 'scene.fleet_management.s10.text', align: 'left' },
+    // Étape 11 — CTA final
+    { from: 0.94, to: 1.0, kickerKey: 'scene.fleet_management.s11.kicker', titleKey: 'scene.fleet_management.s11.title', textKey: 'scene.fleet_management.s11.text', align: 'center', cta: true },
   ],
   hr_center: [
     { from: 0.0, to: 0.15, kickerKey: 'scene.hr_center.s1.kicker', titleKey: 'scene.hr_center.s1.title', textKey: 'scene.hr_center.s1.text', align: 'center' },
