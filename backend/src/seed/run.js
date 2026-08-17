@@ -13,10 +13,13 @@ const { seedSaas } = require('./saas.seed');
 /**
  * Seed additif et idempotent. Usage : npm run seed
  * Reset dev (jamais en production) : SEED_RESET=1 npm run seed:reset && npm run seed
+ *
+ * `runSeed()` est exportée pour permettre l'exécution programmatique
+ * (tests, scripts QA) — le module se comporte aussi en script CLI.
  */
-(async () => {
+async function runSeed() {
+  await connectDB();
   try {
-    await connectDB();
     const tenants = await seedTenants();
     await seedUsers(tenants);
     await seedClients(tenants);
@@ -26,10 +29,17 @@ const { seedSaas } = require('./saas.seed');
     await seedTickets(tenants);
     await seedLoginActivity(tenants);
     await seedSaas();
-  } catch (err) {
-    console.error('[Seed] Échec du seed :', err);
-    process.exitCode = 1;
   } finally {
     await mongoose.disconnect();
   }
-})();
+}
+
+module.exports = { runSeed };
+
+// Point d'entrée CLI : exécute le seed et positionne le code de sortie.
+if (require.main === module) {
+  runSeed().catch((err) => {
+    console.error('[Seed] Échec du seed :', err);
+    process.exitCode = 1;
+  });
+}

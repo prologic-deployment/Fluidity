@@ -47,6 +47,8 @@ const demoTenants = [
     primaryColor: '#f59e0b',
     secondaryColor: '#ef4444',
     timezone: 'Africa/Tunis',
+    language: 'fr',
+  },
   {
     // Particulier SaaS : un seul produit, une seule licence (scénario individuel).
     name: 'Karim Solo',

@@ -55,3 +55,33 @@ Mot de passe commun (développement uniquement) : `Password123!`
 npm run seed
 SEED_RESET=1 npm run seed:reset   # interdit si NODE_ENV=production
 ```
+
+## Karim Solo (Tenant Individu)
+| Email | Rôle | Produit |
+|---|---|---|
+| karim.solo@example.dev | TENANT_ADMIN | ServiceDesk (1 licence) |
+
+## Double authentification (démonstration)
+| Email | État 2FA | Secret TOTP | Codes de secours |
+|---|---|---|---|
+| 2fa.enabled@fluidity.dev | **Activée + vérifiée** | `JBSWY3DPEHPK3PXP` | `AAAA-AAAA` … `EEEE-EEEE` |
+| 2fa.pending@fluidity.dev | Setup commencé (non activé) | `JBSWY3DPEHPK3PXP` | — |
+
+Générer le code OTP courant :
+```
+node -e "console.log(require('speakeasy').totp({ secret: 'JBSWY3DPEHPK3PXP', encoding: 'base32' }))"
+```
+Le secret de démo peut aussi être ajouté à Google Authenticator / Authy.
+
+## Mot de passe de démonstration (tous les comptes)
+`Password123!`
+
+## Vérification automatisée du seed
+Le script `check-seed.js` exécute le seed contre une base MongoDB en
+mémoire (mongodb-memory-server) et vérifie : tenants (dont un individu),
+comptes et rôles, 2FA (activée + setup en cours), clients, produits
+(17), souscriptions, licences, rôles produits, tous les statuts des
+workflows tickets/demandes/changements, et l'isolation inter-tenant.
+```
+node src/seed/check-seed.js
+```

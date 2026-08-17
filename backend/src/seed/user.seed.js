@@ -1,8 +1,18 @@
 const { Utilisateur } = require('../models/user.model');
 const { encryptSecret } = require('../utils/crypto.util');
+const { generateBackupCodes, hashBackupCode } = require('../utils/two-factor.util');
 
 /** Mot de passe de développement (hashé par le hook pre-save). */
 const DEMO_PASSWORD = 'Password123!';
+
+/**
+ * Secret TOTP de démonstration (base32, connu) — permet de tester la 2FA :
+ *   node -e "console.log(require('speakeasy').totp({ secret: 'JBSWY3DPEHPK3PXP' }))"
+ * ou en l'ajoutant à Google Authenticator / Authy.
+ */
+const DEMO_2FA_SECRET = 'JBSWY3DPEHPK3PXP';
+/** Codes de secours de démonstration (stockés hashés en base). */
+const DEMO_2FA_BACKUP = ['AAAA-AAAA', 'BBBB-BBBB', 'CCCC-CCCC', 'DDDD-DDDD', 'EEEE-EEEE'];
 
 /**
  * Comptes internes. Les accès portail vivent sur les fiches Client.
@@ -50,7 +60,7 @@ const seedUsers = async (tenants = {}) => {
     { tenantId: fluidity._id, email: 'viewer@fluidity.dev', password: DEMO_PASSWORD, role: 'VIEWER', department: 'Finance', firstName: 'Omar', lastName: 'Viewer' },
     { tenantId: fluidity._id, email: 'amine.user@fluidity.dev', password: DEMO_PASSWORD, role: 'VIEWER', department: 'Métier', firstName: 'Amine', lastName: 'Trabelsi' },
     { tenantId: fluidity._id, email: 'selma.ops@fluidity.dev', password: DEMO_PASSWORD, role: 'AGENT', department: 'Système', firstName: 'Selma', lastName: 'Ops' },
-    // 2FA : configuration commencée mais non activée (login mot de passe toujours possible)
+    // 2FA : configuration commencée mais non activée (secret présent, non vérifié)
     {
       tenantId: fluidity._id,
       email: '2fa.pending@fluidity.dev',
@@ -59,7 +69,24 @@ const seedUsers = async (tenants = {}) => {
       department: 'Sécurité',
       firstName: 'Ines',
       lastName: 'Totp',
-      twoFactorSetupPending: true,
+      twoFactorEnabled: false,
+      twoFactorVerified: false,
+      twoFactorSecret: encryptSecret(DEMO_2FA_SECRET),
+    },
+    // 2FA : comptes RÉELLEMENT activés et vérifiés (secret TOTP + codes de secours)
+    {
+      tenantId: fluidity._id,
+      email: '2fa.enabled@fluidity.dev',
+      password: DEMO_PASSWORD,
+      role: 'VIEWER',
+      department: 'Sécurité',
+      firstName: 'Yassine',
+      lastName: 'Totp',
+      twoFactorEnabled: true,
+      twoFactorVerified: true,
+      twoFactorCreatedAt: new Date(),
+      twoFactorSecret: encryptSecret(DEMO_2FA_SECRET),
+      twoFactorBackupCodes: DEMO_2FA_BACKUP.map(hashBackupCode),
     },
 
     // --- Nova Systems (Tenant B) ---
@@ -93,8 +120,8 @@ const seedUsers = async (tenants = {}) => {
       ...u,
       tenantId: u.tenantId || undefined,
       status: 'active',
-      twoFactorEnabled: false,
-      twoFactorVerified: false,
+      twoFactorEnabled: u.twoFactorEnabled ?? false,
+      twoFactorVerified: u.twoFactorVerified ?? false,
     }).save();
     created += 1;
   }
@@ -102,4 +129,4 @@ const seedUsers = async (tenants = {}) => {
   console.log(`[Seed] Utilisateurs : ${created} créé(s), ${existing} déjà présent(s).`);
 };
 
-module.exports = { seedUsers, DEMO_PASSWORD };
+module.exports = { seedUsers, DEMO_PASSWORD, DEMO_2FA_SECRET, DEMO_2FA_BACKUP };
