@@ -76,12 +76,6 @@
         <span class="text-lg font-semibold tracking-tight">ServiceDesk</span>
       </div>
 
-      <div class="flex justify-end mb-4">
-        <select class="select !w-auto !h-8 !text-xs" (change)="onLang($event)">
-          <option value="fr" [selected]="i18n.lang === 'fr'">🇫🇷 Français</option>
-          <option value="en" [selected]="i18n.lang === 'en'">🇬🇧 English</option>
-        </select>
-      </div>
       <h1 class="text-2xl font-semibold tracking-tight">{{ 'auth.welcomeBack' | t }}</h1>
       <p class="mt-1.5 text-sm text-muted-foreground">{{ 'auth.signInHint' | t }}</p>
 

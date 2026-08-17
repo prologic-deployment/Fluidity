@@ -30,10 +30,6 @@ export class LoginComponent {
     });
   }
 
-  onLang(event: Event): void {
-    this.i18n.setLang((event.target as HTMLSelectElement).value as 'fr' | 'en');
-  }
-
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
