@@ -1893,4 +1893,8 @@ export const EN: Record<string, unknown> = {
   'about.workflow.title': 'A ticket’s lifecycle',
   'about.cta': 'Start with ServiceDesk',
   'about.ctaHint': 'Start with ServiceDesk, then add SaaS modules as your business grows.',
+  'theme.toDark': 'Switch to dark mode',
+  'theme.toLight': 'Switch to light mode',
+  'theme.dark': 'Dark mode',
+  'theme.light': 'Light mode',
 };

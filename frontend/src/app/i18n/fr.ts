@@ -1893,4 +1893,8 @@ export const FR: Record<string, unknown> = {
   'about.workflow.title': 'Le cycle de vie d’un ticket',
   'about.cta': 'Démarrer avec ServiceDesk',
   'about.ctaHint': 'Commencez avec ServiceDesk, puis ajoutez des modules SaaS à mesure que l’activité grandit.',
+  'theme.toDark': 'Passer en mode sombre',
+  'theme.toLight': 'Passer en mode clair',
+  'theme.dark': 'Mode sombre',
+  'theme.light': 'Mode clair',
 };
