@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { UploadUrlPipe } from '../../pipes/upload-url.pipe';
+import { ROLE_LABELS } from '../../models/user.model';
 
 interface SidebarChild {
   label: string;
@@ -19,7 +21,7 @@ interface SidebarGroup {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, UploadUrlPipe],
   templateUrl: './sidebar.component.html',
 })
 export class SidebarComponent {
@@ -32,9 +34,9 @@ export class SidebarComponent {
     icon: 'grid',
     open: true,
     children: [
+      { label: 'Tickets / Incidents', path: '/tickets' },
       { label: 'Demandes', path: '/demandes' },
       { label: 'Changements', path: '/changements' },
-      { label: 'Tickets / Incidents', path: '/tickets' },
     ],
   };
 
@@ -66,10 +68,19 @@ export class SidebarComponent {
     this.router.navigate(['/login']);
   }
 
+  get avatarUrl(): string | null {
+    return this.user?.avatarUrl || null;
+  }
+
   displayName(): string {
     const u = this.user;
     if (u?.firstName || u?.lastName) return `${u.firstName || ''} ${u.lastName || ''}`.trim();
     return u?.email || 'Utilisateur';
+  }
+
+  roleLabel(): string {
+    const role = this.user?.role;
+    return (role && ROLE_LABELS[role]) || role || 'Utilisateur';
   }
 
   initials(): string {

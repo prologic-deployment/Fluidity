@@ -21,6 +21,11 @@ export interface AppUser {
   bio?: string;
   address?: string;
   avatarUrl?: string | null;
+  // --- Fiche société cliente (peuplée pour les comptes CLIENT uniquement) ---
+  nom?: string;
+  telephone?: string;
+  adresse?: string;
+  statut?: string;
   createdAt?: string;
   updatedAt?: string;
 }

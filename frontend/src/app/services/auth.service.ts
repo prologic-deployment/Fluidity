@@ -151,4 +151,23 @@ export class AuthService {
     const r = this.getRole();
     return !!r && r !== 'CLIENT';
   }
+
+  /**
+   * Synchronise la session locale avec un profil rafraîchi (nom, prénom, photo)
+   * après une mise à jour de profil, afin que topbar/sidebar/menu reflètent
+   * immédiatement les changements sans rechargement.
+   */
+  syncSessionUser(user: AppUser): void {
+    const current = this.getUser();
+    if (!current) return;
+    localStorage.setItem(
+      'fluidity_user',
+      JSON.stringify({
+        ...current,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        avatarUrl: user.avatarUrl || null,
+      })
+    );
+  }
 }
