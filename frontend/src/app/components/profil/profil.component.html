@@ -1,62 +1,228 @@
-<div class="mx-auto max-w-3xl px-6 py-10 animate-fade-in-up">
-  <h1 class="text-2xl font-semibold tracking-tight mb-1">Mon profil</h1>
-  <p class="text-sm text-muted-foreground mb-8">Gérez vos informations personnelles.</p>
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
+    <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold tracking-tight">Mon profil</h1>
+        <p class="text-sm text-muted-foreground mt-0.5">Gérez vos informations personnelles et votre photo.</p>
+      </div>
+      <a routerLink="/securite" class="btn-outline btn-sm">
+        <svg class="h-3.5 w-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        Sécurité
+      </a>
+    </div>
+  </header>
 
-  <div *ngIf="loading"><div class="skeleton h-40 w-full"></div></div>
+  <main class="max-w-5xl mx-auto px-6 py-8 space-y-6">
 
-  <ng-container *ngIf="user">
-    <div class="card mb-6">
-      <div class="card-content flex items-center gap-4">
-        <div class="relative">
-          <img *ngIf="avatarUrl()" [src]="avatarUrl()" alt="Avatar" class="h-16 w-16 rounded-full object-cover" />
-          <div *ngIf="!avatarUrl()" class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-lg font-bold text-white">
-            {{ (user.firstName || user.email).slice(0, 1).toUpperCase() }}
+    <p *ngIf="success" class="alert-success">{{ success }}</p>
+    <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+
+    <!-- ==================== EN-TÊTE D'IDENTITÉ ==================== -->
+    <section class="card overflow-hidden animate-fade-in-up">
+      <div class="h-24 sm:h-28 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 opacity-90"></div>
+
+      <div class="px-6 pb-6">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 -mt-10 sm:-mt-12">
+
+          <!-- Avatar + actions photo -->
+          <div class="flex items-end gap-4">
+            <div class="relative group">
+              <div
+                class="flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center overflow-hidden rounded-2xl
+                  border-4 border-card bg-gradient-to-br from-indigo-400 to-violet-500 text-2xl font-bold text-white shadow-lg"
+              >
+                <img *ngIf="avatarUrl" [src]="avatarUrl" alt="Photo de profil" class="h-full w-full object-cover" />
+                <ng-container *ngIf="!avatarUrl">{{ initials }}</ng-container>
+              </div>
+              <label
+                for="avatar-input"
+                class="absolute inset-0 flex cursor-pointer items-center justify-center rounded-2xl bg-slate-950/55 text-white
+                  opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                title="Changer la photo"
+              >
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </label>
+              <input id="avatar-input" type="file" accept="image/png,image/jpeg,image/webp" class="hidden"
+                (change)="onAvatarSelected($event)" />
+            </div>
+
+            <!-- Nom + rôle -->
+            <div class="pb-1">
+              <h2 class="text-lg sm:text-xl font-semibold tracking-tight text-foreground">{{ displayName }}</h2>
+              <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                <span class="badge-default">{{ roleLabel }}</span>
+                <span class="badge-outline">Fluidity</span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-semibold text-success">
+                  <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
+                  {{ compteStatut }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <ng-container *ngIf="avatarPreview as preview">
+              <button type="button" (click)="saveAvatar()" [disabled]="avatarUploading" class="btn-primary btn-sm">
+                {{ avatarUploading ? 'Envoi…' : 'Enregistrer la photo' }}
+              </button>
+              <button type="button" (click)="cancelAvatarPreview()" [disabled]="avatarUploading" class="btn-outline btn-sm">
+                Annuler
+              </button>
+            </ng-container>
+            <ng-container *ngIf="!avatarPreview">
+              <label for="avatar-input" class="btn-outline btn-sm cursor-pointer" [class.pointer-events-none]="avatarUploading">
+                {{ profile?.avatarUrl ? 'Remplacer la photo' : 'Ajouter une photo' }}
+              </label>
+              <button *ngIf="profile?.avatarUrl" type="button" (click)="removeAvatar()" [disabled]="avatarUploading"
+                class="btn-ghost btn-sm text-destructive hover:bg-destructive/10">
+                Supprimer
+              </button>
+            </ng-container>
           </div>
         </div>
-        <div class="flex-1">
-          <p class="font-semibold">{{ user.firstName }} {{ user.lastName }}</p>
-          <p class="text-sm text-muted-foreground">{{ user.email }}</p>
-          <p class="text-xs text-muted-foreground">{{ roleLabel }}</p>
-        </div>
-        <div>
-          <label class="btn-secondary cursor-pointer">
-            {{ uploadingAvatar ? 'Envoi…' : 'Changer la photo' }}
-            <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" (change)="onAvatarSelected($event)" />
-          </label>
+
+        <p *ngIf="avatarError" class="field-error mt-3">{{ avatarError }}</p>
+
+        <!-- Métadonnées du compte -->
+        <div class="mt-6 grid grid-cols-1 gap-4 border-t border-border pt-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
+            <span class="truncate">{{ email }}</span>
+          </div>
+          <div class="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path>
+            </svg>
+            <span class="truncate">Fluidity</span>
+          </div>
+          <div class="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+            <span>Membre depuis {{ profile?.createdAt ? (profile!.createdAt | date: 'MM/yyyy') : '—' }}</span>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <p *ngIf="success" class="alert-success mb-4">{{ success }}</p>
-    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
-
-    <form [formGroup]="form" (ngSubmit)="save()" class="card mb-6">
-      <div class="card-header"><h2 class="font-medium">Informations personnelles</h2></div>
-      <div class="card-content space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label class="field-label">Prénom</label><input type="text" formControlName="firstName" class="input" /></div>
-          <div><label class="field-label">Nom</label><input type="text" formControlName="lastName" class="input" /></div>
-          <div><label class="field-label">Téléphone</label><input type="text" formControlName="phone" class="input" /></div>
-          <div><label class="field-label">Poste</label><input type="text" formControlName="jobTitle" class="input" /></div>
+    <!-- ==================== FICHE SOCIÉTÉ (CLIENT, lecture seule) ==================== -->
+    <section *ngIf="estClient" class="card animate-fade-in-up stagger-1">
+      <div class="card-header-tinted">
+        <div class="form-section-header">
+          <div class="form-section-icon">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-6h6v6"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Fiche société</h2>
+            <p class="card-description">Informations de votre entreprise (gérées par l'administrateur).</p>
+          </div>
         </div>
-        <div><label class="field-label">Bio</label><textarea formControlName="bio" class="textarea" rows="3"></textarea></div>
-        <div><label class="field-label">Adresse</label><input type="text" formControlName="address" class="input" /></div>
-        <button type="submit" [disabled]="saving" class="btn-primary">{{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button>
       </div>
-    </form>
+      <div class="card-content pt-6">
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+          <div>
+            <dt class="detail-label">Raison sociale</dt>
+            <dd class="detail-value">{{ profile?.nom || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="detail-label">Email de contact</dt>
+            <dd class="detail-value break-all">{{ profile?.email || '—' }}</dd>
+          </div>
+          <div>
+            <dt class="detail-label">Téléphone</dt>
+            <dd class="detail-value">{{ profile?.telephone || 'Non renseigné' }}</dd>
+          </div>
+          <div>
+            <dt class="detail-label">Adresse</dt>
+            <dd class="detail-value">{{ profile?.adresse || 'Non renseignée' }}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
 
-    <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="card">
-      <div class="card-header"><h2 class="font-medium">Changer le mot de passe</h2></div>
-      <div class="card-content space-y-4">
-        <div><label class="field-label">Mot de passe actuel</label><input type="password" formControlName="currentPassword" class="input" /></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div><label class="field-label">Nouveau mot de passe</label><input type="password" formControlName="newPassword" class="input" /></div>
-          <div><label class="field-label">Confirmation</label><input type="password" formControlName="confirmation" class="input" /></div>
+    <!-- ==================== INFORMATIONS PERSONNELLES ==================== -->
+    <section class="card animate-fade-in-up stagger-1">
+      <div class="card-header-tinted">
+        <div class="form-section-header">
+          <div class="form-section-icon">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div>
+            <h2 class="card-title">Informations personnelles</h2>
+            <p class="card-description">Ces informations sont visibles par les équipes Fluidity.</p>
+          </div>
         </div>
-        <p *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" class="field-error">6 caractères minimum.</p>
-        <p *ngIf="passwordForm.errors?.['mismatch']" class="field-error">La confirmation ne correspond pas.</p>
-        <button type="submit" class="btn-secondary">Modifier le mot de passe</button>
       </div>
-    </form>
-  </ng-container>
+
+      <div class="card-content pt-6">
+        <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+          <div *ngFor="let _ of [1, 2, 3, 4, 5, 6]" class="space-y-2">
+            <div class="h-3 w-24 rounded bg-muted"></div>
+            <div class="h-9 w-full rounded-md bg-muted"></div>
+          </div>
+        </div>
+
+        <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">Prénom</label>
+              <input formControlName="firstName" type="text" class="input" placeholder="Votre prénom" />
+            </div>
+            <div>
+              <label class="field-label">Nom</label>
+              <input formControlName="lastName" type="text" class="input" placeholder="Votre nom" />
+            </div>
+            <div>
+              <label class="field-label">Téléphone</label>
+              <input formControlName="phone" type="tel" class="input" placeholder="+216 …" />
+              <p *ngIf="form.get('phone')?.hasError('pattern') && form.get('phone')?.touched" class="field-error">
+                Numéro de téléphone invalide.
+              </p>
+            </div>
+            <div *ngIf="!estClient">
+              <label class="field-label">Poste</label>
+              <input formControlName="jobTitle" type="text" class="input" placeholder="Votre fonction" />
+            </div>
+            <div>
+              <label class="field-label">Email</label>
+              <input [value]="email" type="text" class="input opacity-60" disabled />
+              <p class="mt-1 text-xs text-muted-foreground">L'email de connexion ne peut pas être modifié.</p>
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">Adresse</label>
+              <input formControlName="address" type="text" class="input" placeholder="Votre adresse postale" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label">Bio</label>
+              <textarea formControlName="bio" rows="3" class="textarea" placeholder="Quelques mots à votre sujet…"></textarea>
+              <p class="mt-1 text-xs text-muted-foreground text-right">{{ form.value.bio?.length || 0 }}/1000</p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 border-t border-border pt-4">
+            <p *ngIf="form.dirty" class="mr-auto text-xs text-muted-foreground">Modifications non enregistrées</p>
+            <button type="button" (click)="cancel()" [disabled]="saving || !form.dirty" class="btn-outline">Annuler</button>
+            <button type="submit" [disabled]="saving || !form.dirty" class="btn-primary">
+              {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+  </main>
 </div>

@@ -198,7 +198,23 @@ const me = async (req, res) => {
       res.status(404).json({ message: 'Utilisateur introuvable' });
       return;
     }
-    res.status(200).json(user);
+
+    const payload = user.toObject();
+
+    // Compte CLIENT : attacher la fiche société (raison sociale, coordonnées)
+    // liée par email partagé — lecture seule, jamais d'identifiants dupliqués.
+    if (user.role === 'CLIENT') {
+      const { Client } = require('../models/client.model');
+      const client = await Client.findOne({ email: user.email }).select('nom telephone adresse statut email');
+      if (client) {
+        payload.nom = client.nom;
+        payload.telephone = client.telephone;
+        payload.adresse = client.adresse;
+        payload.statut = client.statut;
+      }
+    }
+
+    res.status(200).json(payload);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
