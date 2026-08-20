@@ -65,16 +65,25 @@
 
   <!-- User card -->
   <div class="p-4">
-    <div class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
+    <div
+      class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5 cursor-pointer
+        transition-colors hover:bg-white/10 group"
+      (click)="goToProfile()"
+      (keydown.enter)="goToProfile()"
+      role="button"
+      tabindex="0"
+      title="Mon profil"
+      aria-label="Ouvrir mon profil"
+    >
       <div class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white">
         <img *ngIf="avatarUrl" [src]="avatarUrl | uploadUrl" alt="" class="h-full w-full object-cover" />
         <ng-container *ngIf="!avatarUrl">{{ initials() }}</ng-container>
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-medium text-white">{{ displayName() }}</p>
+        <p class="truncate text-xs font-medium text-white group-hover:underline">{{ displayName() }}</p>
         <p class="truncate text-[11px] text-slate-400">{{ roleLabel() }}</p>
       </div>
-      <button (click)="logout()" title="Déconnexion"
+      <button (click)="logout(); $event.stopPropagation()" title="Déconnexion"
         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>

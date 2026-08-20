@@ -35,6 +35,24 @@
 
   <div class="flex-1"></div>
 
+  <!-- Bascule thème clair / sombre -->
+  <button
+    type="button"
+    (click)="toggleTheme($event)"
+    class="btn-icon-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+    [title]="isDark ? 'Passer en mode clair' : 'Passer en mode sombre'"
+    [attr.aria-label]="isDark ? 'Activer le mode clair' : 'Activer le mode sombre'"
+    aria-pressed="false"
+  >
+    <svg *ngIf="!isDark" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </svg>
+    <svg *ngIf="isDark" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41M17.66 4.93l1.41-1.41"></path>
+    </svg>
+  </button>
+
   <!-- Menu profil déroulant -->
   <div class="relative">
     <button

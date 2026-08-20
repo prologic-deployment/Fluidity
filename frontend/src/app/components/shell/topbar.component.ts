@@ -1,18 +1,19 @@
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Subject, takeUntil } from 'rxjs';
+import { AuthService, SessionUser } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
 import { UploadUrlPipe } from '../../pipes/upload-url.pipe';
 import { ROLE_LABELS } from '../../models/user.model';
 
 /**
  * Barre de navigation horizontale supérieure (sticky) :
- *   [Menu mobile] [Fil d'Ariane] ..... [avatar + nom ▾]
+ *   [Menu mobile] [Fil d'Ariane] ..... [thème] [avatar + nom ▾]
  *
- * La sidebar reste la navigation principale ; la topbar porte le fil d'Ariane
- * et le menu utilisateur (profil, sécurité, déconnexion). Sur mobile (< lg),
- * elle fournit le bouton d'ouverture de la sidebar.
+ * La sidebar reste la navigation principale ; la topbar porte le fil d'Ariane,
+ * le basculement de thème et le menu utilisateur (profil, sécurité, déconnexion).
  */
 @Component({
   selector: 'app-topbar',
@@ -20,13 +21,32 @@ import { ROLE_LABELS } from '../../models/user.model';
   imports: [CommonModule, RouterLink, BreadcrumbComponent, UploadUrlPipe],
   templateUrl: './topbar.component.html',
 })
-export class TopbarComponent {
+export class TopbarComponent implements OnInit, OnDestroy {
   @Input() mobileMenuOpen = false;
   @Output() menuToggle = new EventEmitter<void>();
 
   menuOpen = false;
+  user: SessionUser | null = null;
+  isDark = false;
 
-  constructor(private router: Router, private auth: AuthService) {}
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(
+    private router: Router,
+    private auth: AuthService,
+    private theme: ThemeService
+  ) {}
+
+  ngOnInit(): void {
+    // État utilisateur réactif : avatar/nom mis à jour sans rechargement.
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((u) => (this.user = u));
+    this.theme.dark.pipe(takeUntil(this.destroy$)).subscribe((d) => (this.isDark = d));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   toggleMenu(event: MouseEvent): void {
     event.stopPropagation();
@@ -47,6 +67,11 @@ export class TopbarComponent {
     this.closeMenu();
   }
 
+  toggleTheme(event: MouseEvent): void {
+    event.stopPropagation();
+    this.theme.toggle();
+  }
+
   navigate(path: string): void {
     this.closeMenu();
     this.router.navigate([path]);
@@ -58,12 +83,8 @@ export class TopbarComponent {
     this.router.navigate(['/login']);
   }
 
-  get user() {
-    return this.auth.getUser();
-  }
-
   get userEmail(): string {
-    return this.auth.getEmail() || '';
+    return this.user?.email || '';
   }
 
   get displayName(): string {
@@ -84,7 +105,7 @@ export class TopbarComponent {
   }
 
   get roleLabel(): string {
-    const role = this.auth.getRole();
+    const role = this.user?.role;
     return (role && ROLE_LABELS[role]) || role || 'Utilisateur';
   }
 }

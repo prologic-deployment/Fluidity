@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AppUser, TwoFactorStatus, LoginActivity } from '../models/user.model';
 
@@ -20,6 +20,15 @@ export interface AuthResponse {
 export interface LoginPayload {
   email: string;
   password: string;
+}
+
+export interface SessionUser {
+  userId: string;
+  role: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
 }
 
 export interface TwoFactorSetup {
@@ -44,7 +53,18 @@ export interface LoginActivityResponse {
 export class AuthService {
   private readonly baseUrl = `${environment.apiUrl}/auth`;
 
-  constructor(private http: HttpClient) {}
+  /** Source de vérité réactive de l'utilisateur connecté (topbar, sidebar, profil…). */
+  private readonly sessionUser$ = new BehaviorSubject<SessionUser | null>(null);
+
+  constructor(private http: HttpClient) {
+    // Initialise l'état à partir du localStorage existant (survie au reload).
+    this.sessionUser$.next(this.readStoredUser());
+  }
+
+  /** Observable de l'utilisateur connecté — émet à chaque changement de session. */
+  get user$(): Observable<SessionUser | null> {
+    return this.sessionUser$.asObservable();
+  }
 
   login(payload: LoginPayload): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/login`, payload);
@@ -101,33 +121,34 @@ export class AuthService {
     return this.http.post<{ message: string }>(`${this.baseUrl}/2fa/disable`, payload);
   }
 
+  // --- Session ---------------------------------------------------------------
+
   saveSession(res: AuthResponse): void {
     localStorage.setItem('fluidity_token', res.token);
-    localStorage.setItem(
-      'fluidity_user',
-      JSON.stringify({
-        userId: res.userId,
-        role: res.role,
-        email: res.email,
-        firstName: res.firstName || '',
-        lastName: res.lastName || '',
-        avatarUrl: res.avatarUrl || null,
-      })
-    );
+    const user: SessionUser = {
+      userId: res.userId,
+      role: res.role,
+      email: res.email,
+      firstName: res.firstName || '',
+      lastName: res.lastName || '',
+      avatarUrl: res.avatarUrl || null,
+    };
+    this.persistUser(user);
+    this.sessionUser$.next(user);
   }
 
   logout(): void {
     localStorage.removeItem('fluidity_token');
     localStorage.removeItem('fluidity_user');
+    this.sessionUser$.next(null);
   }
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('fluidity_token');
   }
 
-  getUser(): { userId: string; role: string; email: string; firstName: string; lastName: string; avatarUrl: string | null } | null {
-    const raw = localStorage.getItem('fluidity_user');
-    return raw ? JSON.parse(raw) : null;
+  getUser(): SessionUser | null {
+    return this.sessionUser$.value ?? this.readStoredUser();
   }
 
   getRole(): string | null {
@@ -153,21 +174,38 @@ export class AuthService {
   }
 
   /**
-   * Synchronise la session locale avec un profil rafraîchi (nom, prénom, photo)
-   * après une mise à jour de profil, afin que topbar/sidebar/menu reflètent
-   * immédiatement les changements sans rechargement.
+   * Synchronise la session avec un profil rafraîchi (nom, prénom, photo) après
+   * une mise à jour de profil : topbar/sidebar/menu sont notifiés immédiatement
+   * via l'observable — aucun rechargement nécessaire.
    */
   syncSessionUser(user: AppUser): void {
     const current = this.getUser();
     if (!current) return;
-    localStorage.setItem(
-      'fluidity_user',
-      JSON.stringify({
-        ...current,
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        avatarUrl: user.avatarUrl || null,
-      })
-    );
+    const next: SessionUser = {
+      ...current,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      avatarUrl: user.avatarUrl || null,
+    };
+    this.persistUser(next);
+    this.sessionUser$.next(next);
+  }
+
+  private persistUser(user: SessionUser): void {
+    try {
+      localStorage.setItem('fluidity_user', JSON.stringify(user));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private readStoredUser(): SessionUser | null {
+    try {
+      const raw = localStorage.getItem('fluidity_user');
+      return raw ? (JSON.parse(raw) as SessionUser) : null;
+    } catch {
+      return null;
+    }
   }
 }
+

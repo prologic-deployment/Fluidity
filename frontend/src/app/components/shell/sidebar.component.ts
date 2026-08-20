@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { Subject, takeUntil } from 'rxjs';
+import { AuthService, SessionUser } from '../../services/auth.service';
 import { UploadUrlPipe } from '../../pipes/upload-url.pipe';
 import { ROLE_LABELS } from '../../models/user.model';
 
@@ -24,43 +25,65 @@ interface SidebarGroup {
   imports: [CommonModule, RouterLink, RouterLinkActive, UploadUrlPipe],
   templateUrl: './sidebar.component.html',
 })
-export class SidebarComponent {
-  user = this.auth.getUser();
-  isAdmin = this.auth.isAdmin();
-  isClient = this.auth.isClient();
+export class SidebarComponent implements OnInit, OnDestroy {
+  user: SessionUser | null = null;
+  isAdmin = false;
+  isClient = false;
+  groups: SidebarGroup[] = [];
 
-  private espaceServicesGroup: SidebarGroup = {
-    label: 'Espace Services',
-    icon: 'grid',
-    open: true,
-    children: [
-      { label: 'Tickets / Incidents', path: '/tickets' },
-      { label: 'Demandes', path: '/demandes' },
-      { label: 'Changements', path: '/changements' },
-    ],
-  };
-
-  private adminGroup: SidebarGroup = {
-    label: 'Administration',
-    icon: 'file',
-    open: true,
-    children: [
-      { label: 'Contrats', path: '/contrats' },
-      { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
-      { label: 'Clients', path: '/clients' },
-      { label: 'Nouveau client', path: '/clients/nouveau' },
-    ].filter((c) => this.isAdmin || (c.path === '/contrats' || c.path === '/clients')),
-  };
-
-  // Compte CLIENT : uniquement l'Espace Services. Personnel : + Administration.
-  groups: SidebarGroup[] = this.isClient
-    ? [this.espaceServicesGroup]
-    : [this.espaceServicesGroup, this.adminGroup];
+  private readonly destroy$ = new Subject<void>();
 
   constructor(private auth: AuthService, private router: Router) {}
 
+  ngOnInit(): void {
+    // Abonnement à l'état réactif : photo/nom mis à jour sans rechargement.
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((u) => {
+      this.user = u;
+      this.isAdmin = u?.role === 'ADMIN';
+      this.isClient = u?.role === 'CLIENT';
+      this.groups = this.buildGroups();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private buildGroups(): SidebarGroup[] {
+    const espaceServices: SidebarGroup = {
+      label: 'Espace Services',
+      icon: 'grid',
+      open: true,
+      children: [
+        { label: 'Tickets / Incidents', path: '/tickets' },
+        { label: 'Demandes', path: '/demandes' },
+        { label: 'Changements', path: '/changements' },
+      ],
+    };
+
+    const adminGroup: SidebarGroup = {
+      label: 'Administration',
+      icon: 'file',
+      open: true,
+      children: [
+        { label: 'Contrats', path: '/contrats' },
+        { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
+        { label: 'Clients', path: '/clients' },
+        { label: 'Nouveau client', path: '/clients/nouveau' },
+      ].filter((c) => this.isAdmin || (c.path === '/contrats' || c.path === '/clients')),
+    };
+
+    // Compte CLIENT : uniquement l'Espace Services. Personnel : + Administration.
+    return this.isClient ? [espaceServices] : [espaceServices, adminGroup];
+  }
+
   toggle(group: SidebarGroup): void {
     group.open = !group.open;
+  }
+
+  goToProfile(): void {
+    this.router.navigate(['/profil']);
   }
 
   logout(): void {
