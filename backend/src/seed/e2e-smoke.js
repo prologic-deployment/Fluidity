@@ -210,6 +210,51 @@ async function main() {
   assert.ok(Array.isArray(r.json.activites), 'activités attendues');
   log(`Activité de connexion (${r.json.activites.length} événements)`);
 
+  // --- 13. Client = Utilisateur (CLIENT) : profil + fiche société ---
+  r = await request('GET', '/auth/me', { token: clientToken });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.role, 'CLIENT', 'le compte client est un Utilisateur CLIENT');
+  assert.strictEqual(r.json.nom, 'Atlas Industries', 'fiche société (nom) attachée au profil CLIENT');
+  assert.ok(r.json.telephone, 'téléphone de la fiche société présent');
+  log('Client = Utilisateur CLIENT + fiche société attachée (/auth/me)');
+
+  // --- 14. 2FA pour un compte CLIENT (même architecture) ---
+  r = await request('POST', '/auth/2fa/setup', { token: clientToken });
+  assert.strictEqual(r.status, 200);
+  const clientManualKey = r.json.manualKey;
+  const clientOtp = speakeasy.totp({ secret: clientManualKey, encoding: 'base32' });
+  r = await request('POST', '/auth/2fa/verify-setup', { token: clientToken, body: { code: clientOtp } });
+  assert.strictEqual(r.status, 200, `client 2FA verify-setup: ${JSON.stringify(r.json)}`);
+  // désactivation immédiate pour laisser le compte utilisable
+  r = await request('POST', '/auth/2fa/disable', { token: clientToken, body: { password: 'Password123!' } });
+  assert.strictEqual(r.status, 200);
+  log('2FA activée puis désactivée sur un compte CLIENT');
+
+  // --- 15. Commentaires : auteur peuplé (pas de [object Object]) ---
+  // Nouveau ticket (non clôturé) pour le test de commentaire
+  r = await request('POST', '/tickets', {
+    token: clientToken,
+    body: {
+      objet: 'Test e2e commentaire', descriptionDetaillee: 'Incident pour tester le fil de commentaires.',
+      categorie: 'VM', sousCategorie: 'Extension ressources', impact: 'Faible', urgence: 'Faible',
+      contrat: ctr._id.toString(),
+    },
+  });
+  assert.strictEqual(r.status, 201, `créer ticket commentaire: ${JSON.stringify(r.json)}`);
+  const commentTicketId = r.json._id;
+  r = await request('POST', `/tickets/${commentTicketId}/commentaires`, {
+    token: adminToken,
+    body: { corps: 'Commentaire de test bout-en-bout.', visibilite: 'public' },
+  });
+  assert.strictEqual(r.status, 201, `créer commentaire: ${JSON.stringify(r.json)}`);
+  r = await request('GET', `/tickets/${commentTicketId}/commentaires`, { token: adminToken });
+  assert.strictEqual(r.status, 200);
+  assert.ok(r.json.length >= 1, 'commentaires listés');
+  const c0 = r.json[0];
+  assert.ok(typeof c0.auteur === 'object' && c0.auteur && c0.auteur.email, `auteur peuplé attendu, reçu: ${JSON.stringify(c0.auteur)}`);
+  assert.ok(c0.auteur.firstName || c0.auteur.lastName || c0.auteur.email, 'auteur expose une identité affichable');
+  log(`Commentaire : auteur peuplé (${c0.auteur.email}) — plus de [object Object] côté UI`);
+
   console.log('\n[smoke] TOUS LES FLUX SONT PASSÉS.');
   await mongoose.disconnect();
   await mongod.stop();
