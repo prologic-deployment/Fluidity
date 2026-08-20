@@ -1,100 +1,78 @@
-# Rapport final — Alignement UI/UX de `fluidity` sur A4-work
+# Rapport final — Modernisation UI/UX (formulaires, pages de détail, thème, profil)
 
-## 1. Branch
-- Branche travaillée : **`fluidity`**.
-- Dernière version de `fluidity` **tirée avant le travail** (`git pull origin fluidity` → « Already up to date » sur `c9d94e6`).
-- **Tous les commits poussés** vers `origin/fluidity` (`c9d94e6..ec93384` confirmé sur le remote).
-- Working tree **propre**.
-- A4-work a servi de **référence uniquement** (comparaison puis adaptation) — jamais modifié.
+## 1. Git
+- Branche : **`fluidity`**.
+- Dernière version tirée avant le travail : `git pull origin fluidity` → « Already up to date » sur `386e5ac` (le remote avait été perdu entre sessions, reconfiguré sur `origin` puis resynchronisé).
+- Commits créés (7) — **tous poussés** vers `origin/fluidity` (`386e5ac..a02a7da` confirmé sur le remote).
+- Working tree **propre** (`git status` vide).
 
-## 2. A4-work Comparison (différences trouvées & corrigées)
+## 2. Forms
 
-### Navbar / Topbar
-- A4-work a une **topbar sticky** (hamburger mobile, fil d'Ariane dynamique, menu utilisateur déroulant : profil / sécurité / déconnexion) — `fluidity` n'en avait **aucune**.
-- Ajouté : `topbar.component` (menu utilisateur avec avatar, nom, email, rôle ; navigation `/profil` & `/securite` ; déconnexion), `breadcrumb.component` (fil d'Ariane depuis la route), `shell` responsive (sidebar superposée sur mobile + fond assombri + ESC).
-- **Non porté** (hors périmètre fluity) : sélecteur de langue (i18n), toggle de thème (A4-work a un ThemeService/dark mode ; `fluidity` n'a pas de système de thème — uniquement le thème clair par tokens).
+### Ticket (Incident)
+- Sections restructurées avec **icônes + titres + descriptions** alignés sur le design du formulaire Demande : Informations générales (fichier), Classification (étoile/couches), Impact et urgence (alerte), Contrat (document), Diagnostic (pouls, dynamique selon la catégorie), Pièces jointes (trombone).
+- En-tête sticky + largeur élargie (`max-w-4xl`), grilles 2 colonnes, placeholders contextuels (source/destination/protocole/port…), indication « Priorité calculée ».
+- Validation conservée (requis, minLength, `Autre` → champs de précision).
 
-### Sidebar
-- Retiré le groupe « Compte » (profil/sécurité) — déplacé dans le menu du topbar, comme A4-work.
-- Carte utilisateur : avatar réel (image), nom affiché + libellé de rôle français (au lieu du code rôle brut).
-- Conservation de l'architecture de navigation `fluidity` (Espace Services + Administration, masqués par rôle) — **pas de menu multi-tenant**.
+### Changement
+- En-tête aligné sur Demande (sticky, `max-w-5xl` pour exploiter la largeur).
+- **Icônes + descriptions sur chaque section** : Informations générales, Spécifications (Général, Serveur/VM, Réseau, Pare-feu, Sauvegarde, Stockage, IA-GPU, Sécurité) et Pièces jointes.
+- Dropzone harmonisée (accept + hint identiques à Demande).
 
-### Profile
-- Réécrit pour correspondre à A4-work : en-tête d'identité (bandeau dégradé, avatar avec recouvrement au survol + aperçu, nom/rôle/org/statut, métadonnées email + membre depuis), **fiche société en lecture seule pour les comptes CLIENT**, formulaire d'informations personnelles avec validation (téléphone pattern, longueurs, compteur de bio) + état « non enregistré ».
-- La **photo de profil** : sélection → validation (type/size) → aperçu local → envoi `uploads/profiles` → `PATCH /auth/profile` → `syncSessionUser` (topbar/sidebar/menu mis à jour immédiatement) + suppression.
+## 3. Details Pages
 
-### Security
-- Réécrit : **changement de mot de passe** (déplacé du profil vers Sécurité, comme A4-work) avec jauge de robustesse + affichage/masquage + validation de correspondance.
-- **2FA** : inchangé fonctionnellement (setup QR, verify, backup codes, disable) mais restructuré.
-- **Activité de connexion** : paginée (6/page), **mise en évidence de la session courante** (via `sessionIat`), score de posture /100 + recommandations calculées sur l'état réel.
+### Demande (`/demandes/:id`) et Changement (`/changements/:id`)
+- Nouvelles pages dédiées sur le modèle de la page Ticket : en-tête (titre, statut, priorité/type), **indicateur de workflow**, description, spécifications (changement), pièces jointes, colonne latérale d'informations (client, demandeur, type, environnement, catégorie, contrat, dates), actions « Faire avancer » (transitions autorisées) et annulation.
+- États chargement / introuvable / erreur gérés.
+- **Navigation** : les lignes des tableaux Demandes/Changements et un bouton « œil » ouvrent désormais la page de détail (la modale a été retirée) ; l'annulation reste accessible depuis la ligne et la page.
 
-### Forms
-- **Bug corrigé** : le formulaire Demande envoyait la `reference` du contrat au lieu de son **ObjectId** (`[value]="ct._id"`) — le backend rejetait la création.
-- Alignement des en-têtes (header sticky + lien retour) sur les 3 formulaires.
-- Placeholders ajoutés aux champs de diagnostic du formulaire Incident (source/destination/protocole/port/…).
-- Grilles responsives 2 colonnes déjà en place (catégorie+sous-catégorie, impact+urgence, stockage+protocole, rétention nombre+période).
+### Workflow status indicator
+- Composant réutilisable `WorkflowStepperComponent` : stepper horizontal (desktop) / vertical (mobile), nœuds « terminé / courant / à venir » pilotés par le **chemin réel du workflow** (`DEMANDE_STATUTS_ORDER`, `CHANGEMENT_STATUTS_ORDER`) ; les états de branche (En attente client / Rejetée / Annulé / Rollback) sont signalés comme états terminaux distincts.
 
-### Workflow ticket (« Faire avancer »)
-- Réécrit pour correspondre à A4-work : sélecteur d'action (au lieu de boutons), **champs conditionnels** (motif pour les attentes, résumé/action corrective/workaround pour la résolution), validation backend des transitions conservée.
+## 4. Breadcrumbs
+- **Cause** : le composant reconstruisait le fil depuis les segments d'URL et affichait tel quel le `:id` (ObjectId tronqué).
+- **Correctif** : `BreadcrumbService` (registre réactif de libellés par chemin) ; les pages de détail enregistrent un libellé lisible (ex. `INC-2026-0001 — Objet`, ou l'objet du dossier) dès le chargement du record. Le breadcrumb **masque les ObjectIds non résolus** (plus jamais `68a…`).
+- Routes concernées : `tickets/:id`, `demandes/:id`, `changements/:id` (+ libellés statiques revus pour les autres segments).
 
-### Affectation
-- Sélecteurs équipe + technicien (au lieu d'inputs libres), **filtrage backend** : seuls les rôles support/pilotage (`SUPPORT_N1, EXPLOITATION, RESPONSABLE_TECHNIQUE, COMMERCIAL, ADMIN`) sont proposés — jamais de CLIENT.
+## 5. Dark Mode
+- Nouveau `ThemeService` (BehaviorSubject + persistance `localStorage` + repli sur `prefers-color-scheme`).
+- Variables CSS `.dark` ajoutées (tokens shadcn), `tailwind.config` était déjà en `darkMode: 'class'`.
+- Script inline dans `index.html` (évite le scintillement FOUC), resynchronisation dans `AppComponent`.
+- **Toggle lune/soleil dans la navbar** (accessible : `aria-label`, `title`), bascule toute l'application avec transition.
 
-## 3. Client Refactor
-- **CLIENT est un rôle `Utilisateur`** — source unique d'identité (email, mot de passe, 2FA, avatar, profil, activité).
-- **Le modèle `Client` reste une entité métier pure** (raison sociale, téléphone, adresse, statut, notes) **sans aucun champ d'authentification** (pas de password/2FA/avatar dupliqués).
-- **Relation propre** : `Client.email` == `Utilisateur.email` (le compte CLIENT et sa fiche société partagent l'email). Le backend `/auth/me` attache désormais la fiche société (`nom`, `telephone`, `adresse`, `statut`) au profil d'un compte CLIENT (lecture seule).
-- **Aucune migration nécessaire** : `fluidity` n'a jamais eu d'authentification Client séparée (les comptes CLIENT sont déjà des Users depuis la refonte précédente). Les seeders créent les comptes CLIENT en tant qu'Users + fiches Client correspondantes.
-- **Permissions métier préservées** : CLIENT obtient toutes les fonctionnalités de compte, mais reste restreint côté métier (workflow, affectation, administration) — validé côté serveur.
+## 6. Sidebar
+- La zone utilisateur (avatar + nom + rôle) est désormais **cliquable** et navigue vers `/profil` (hover, clavier via `role=button` + `tabindex`, touche Entrée).
+- Le bouton de déconnexion reste indépendant (`stopPropagation`).
 
-## 4. Profile & Security
-- Profil : en-tête d'identité, fiche société (CLIENT), infos personnelles éditables, photo (aperçu/remplacement/suppression), synchronisation de session.
-- Photo : flux complet vérifié (validation type png/jpeg/webp ≤ 5 Mo → upload `profiles` → PATCH → URL relative résolue → rendu + persistance après reload/re-login).
-- 2FA : setup QR + clé manuelle, vérification, 10 codes de secours, challenge de connexion (jeton temporaire), désactivation (mot de passe ou code). Vérifié pour **tous les rôles** dont **CLIENT**.
-- Activité : journal paginé réel (succès/échec, MFA, IP, navigateur/OS/appareil), session courante surlignée.
-- Sessions : A4-work n'implémente pas de révocation de session (JWT stateless) ; la « gestion de sessions » = journal d'activité avec mise en évidence de la session courante — reproduit.
+## 7. Profile Picture Synchronization
+- **Cause** : `AuthService.syncSessionUser` écrivait dans `localStorage` sans notifier les composants ; topbar/sidebar lisaient l'utilisateur **une seule fois** à la construction.
+- **Solution** : `AuthService` expose un `user$` (BehaviorSubject) — source de vérité réactive. `saveSession`, `logout`, `syncSessionUser` émettent sur cet observable ; topbar et sidebar s'y abonnent et se mettent à jour **immédiatement** après l'upload de photo.
+- **Cache** : chaque upload génère un nouveau nom de fichier UUID → URL distincte, donc aucun cache-busting nécessaire (pas d'URL aléatoire générée à chaque cycle).
 
-## 5. Forms
-- **Demande** : contrat ObjectId corrigé, placeholders, grille 2 colonnes.
-- **Changement** : sections dynamiques complètes (serveur/réseau/firewall/backup/stockage/IA-GPU/sécurité) avec visibilité par sous-catégorie, rétention nombre+période, FormArray stockage/disques.
-- **Incident** : catégorie/sous-catégorie dynamiques, impact/urgence + **priorité calculée en direct** (même matrice que le backend), champs de diagnostic par catégorie, placeholders.
-- Validations frontend (required/format/longueurs) + backend (zod) — le backend reste l'autorité.
+## 8. Profile & Security Layout
+- **Profil** : passage en **2 colonnes** (infos personnelles + fiche société | résumé du compte + raccourci Sécurité), bannière d'identité compactée — l'espace vertical inutilisé est réduit.
+- **Sécurité** : **Mot de passe + 2FA côte à côte** (2 colonnes), activité de connexion (2/3) + recommandations (1/3), jauge de posture compacte.
+- Les deux restent responsives (grilles `lg:` → empilement sur mobile/tablette).
 
-## 6. Ticket Workflow
-- « Faire avancer » : liste des transitions autorisées (fournies par le backend), sélecteur + champs conditionnels, validation backend (`canTransition`), rafraîchissement + historique après succès, transitions illégales refusées (403).
-- « Affectation » : équipe + technicien filtrés par rôle, réaffectation, `Nouveau → Affecté` automatique, historique.
+## 9. Testing (résultats réels)
+- **`ng build`** : succès (seul l'avertissement de budget de bundle, non bloquant).
+- **`node --check`** sur tous les fichiers backend : OK.
+- **`npm run seed:check`** (MongoDB en mémoire) : 9 users / 2 clients / 3 contrats / 4 demandes / 5 changements / 9 tickets / 6 activités — **toutes les assertions passées**.
+- **`npm run smoke`** (E2E, 19 flux) : **tous passés** (auth, 2FA, profil, mot de passe, demandes/changements/tickets, workflow, transitions illégales refusées, Client=User+fiche société, 2FA CLIENT, commentaire auteur peuplé).
+- Backend inchangé (aucune régression de logique métier).
 
-## 7. Comments — root cause de « [object Object] »
-- **Cause** : le template affichait `{{ c.auteur }}` où `auteur` est un **ObjectId peuplé en objet** par le backend (`{ email, firstName, lastName, role, avatarUrl }`).
-- **Backend** : `populate('auteur', 'email firstName lastName role avatarUrl')` (avatar ajouté).
-- **Frontend** : interface `TicketComment.auteur` typée en `TicketCommentAuteur | string` ; rendu via helpers `auteurNom()/auteurEmail()/auteurInitiales()` (avec fallback « Utilisateur supprimé » si l'auteur est absent).
-- Vérifié par test E2E (l'auteur est un objet avec email/nom — plus de `[object Object]`).
-
-## 8. Testing (résultats réels)
-- **`node --check`** sur tous les fichiers backend : **OK**.
-- **`ng build`** (frontend) : **succès** (seul avertissement de budget de bundle, non bloquant).
-- **`npm run seed:check`** (MongoDB en mémoire) : seed **9 users / 2 clients / 3 contrats / 4 demandes / 5 changements / 9 tickets / 6 activités** — toutes les assertions passées.
-- **`npm run smoke`** (E2E HTTP, 19 flux) : **tous passés** dont :
-  - Login sans 2FA · profil · changement de mot de passe · 2FA (setup/verify/challenge/login/disable) ·
-  - création demande/changement/ticket (priorité P1) · affectation · workflow ticket complet · transitions illégales refusées ·
-  - **Client = Utilisateur CLIENT + fiche société attachée** ·
-  - **2FA activée/désactivée sur un compte CLIENT** ·
-  - **commentaire avec auteur peuplé (plus de [object Object])**.
-
-## 9. Commits
+## 10. Commits
 ```
-ec93384 test(qa): extend smoke to cover CLIENT-as-user profile, CLIENT 2FA and comment author population
-c1e3e79 feat(workflow): align ticket details (faire avancer, affectation, comments) with A4-work
-6e2d09f feat(profile): align profile and security pages with A4-work
-8771c4e refactor(ui): add topbar/navbar and align shell+sidebar with A4-work
+a02a7da chore(backend): sync package-lock with mongodb-memory-server dev dependency
+529abb8 refactor(workflow): polish stepper layout and sidebar logout event handling
+4d7db12 refactor(profile): optimize profile and security page layouts
+b0b00ec feat(forms): modernize ticket and changement forms with icons and indications
+6716ef8 feat(details): add demande/changement detail pages, workflow stepper and breadcrumb fix
+9f12dbf feat(theme): add dark mode toggle and make sidebar user area clickable
 ```
-
-Tous poussés vers `origin/fluidity`.
 
 ---
 
 ### Notes / choix conscients
-- **Thème sombre** : non porté (A4-work utilise un `ThemeService` + tokens dark ; `fluidity` n'a qu'un thème clair par tokens). Les composants ajoutés utilisent les tokens existants (`bg-card`, `text-foreground`, `bg-muted`…) et resteraient cohérents si un thème sombre était introduit.
-- **i18n** : non porté (A4-work est bilingualisé ; `fluidity` est en français, cohérent avec son état actuel).
-- **Sessions** : A4-work n'a pas de révocation de session ; la mise en évidence de la session courante dans le journal d'activité est reproduite.
-- **Multi-tenant** : strictement préservé comme retiré (aucune logique tenant réintroduite).
+- **Traductions** : l'application est actuellement monolingue (français) — aucune architecture i18n n'existe côté frontend `fluidity`. Les nouveaux textes suivent donc la convention française existante (cohérent avec l'état du projet).
+- **Multi-tenant** : aucune logique tenant réintroduite.
+- **Aucun secret** : le token n'a servi qu'au push et n'est persistant ni dans le code, ni dans `.git/config`, ni dans les commits.
