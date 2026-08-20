@@ -1,16 +1,15 @@
 const { Contrat } = require('../models/contrat.model');
 const { Client } = require('../models/client.model');
 
+const populateContrat = (query) => query.populate('clientId', 'nom email telephone statut');
+
 /**
  * Création d'un contrat (réservé aux ADMIN).
- * - tenantId injecté depuis le JWT (req.tenantId)
- * - statut par défaut "Actif"
- * - clientId doit correspondre à un Client existant du tenant (le contrat
- *   est toujours "attaché" à une fiche client, jamais à un email libre)
+ * - clientId (ObjectId) doit correspondre à un Client existant.
  */
 const createContrat = async (req, res) => {
   try {
-    const client = await Client.findOne({ tenantId: req.tenantId, email: req.body.clientId });
+    const client = await Client.findById(req.body.clientId);
     if (!client) {
       res.status(400).json({
         message: "Client introuvable. Créez d'abord ce client avant de lui ouvrir un contrat.",
@@ -20,14 +19,13 @@ const createContrat = async (req, res) => {
 
     const contrat = new Contrat({
       ...req.body,
-      tenantId: req.tenantId,
       statut: req.body.statut || 'Actif',
     });
     await contrat.save();
-    res.status(201).json(contrat);
+    res.status(201).json(await populateContrat(Contrat.findById(contrat._id)));
   } catch (err) {
     if (err.code === 11000) {
-      res.status(409).json({ message: 'Cette référence de contrat existe déjà pour ce tenant' });
+      res.status(409).json({ message: 'Cette référence de contrat existe déjà' });
       return;
     }
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -35,15 +33,13 @@ const createContrat = async (req, res) => {
 };
 
 /**
- * Liste des contrats du tenant, avec filtre optionnel par client
- * (?clientId=...) — utilisé pour peupler les listes déroulantes
- * "Contrat" des formulaires Demande / Changement.
+ * Liste des contrats, avec filtre optionnel par client (?clientId=...).
  */
 const getAllContrats = async (req, res) => {
   try {
-    const filter = { tenantId: req.tenantId };
+    const filter = {};
     if (req.query.clientId) filter.clientId = req.query.clientId;
-    const contrats = await Contrat.find(filter).sort({ createdAt: -1 });
+    const contrats = await populateContrat(Contrat.find(filter)).sort({ createdAt: -1 });
     res.status(200).json(contrats);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -52,7 +48,7 @@ const getAllContrats = async (req, res) => {
 
 const getContratById = async (req, res) => {
   try {
-    const contrat = await Contrat.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const contrat = await populateContrat(Contrat.findById(req.params.id));
     if (!contrat) {
       res.status(404).json({ message: 'Contrat introuvable' });
       return;
@@ -68,8 +64,8 @@ const getContratById = async (req, res) => {
  */
 const updateContrat = async (req, res) => {
   try {
-    const contrat = await Contrat.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
+    const contrat = await Contrat.findByIdAndUpdate(
+      req.params.id,
       { $set: req.body },
       { new: true, runValidators: true }
     );
@@ -77,7 +73,7 @@ const updateContrat = async (req, res) => {
       res.status(404).json({ message: 'Contrat introuvable' });
       return;
     }
-    res.status(200).json(contrat);
+    res.status(200).json(await populateContrat(Contrat.findById(contrat._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -88,10 +84,7 @@ const updateContrat = async (req, res) => {
  */
 const deleteContrat = async (req, res) => {
   try {
-    const contrat = await Contrat.findOneAndDelete({
-      _id: req.params.id,
-      tenantId: req.tenantId,
-    });
+    const contrat = await Contrat.findByIdAndDelete(req.params.id);
     if (!contrat) {
       res.status(404).json({ message: 'Contrat introuvable' });
       return;

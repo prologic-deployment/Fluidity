@@ -5,14 +5,13 @@ const { Schema } = mongoose;
  * StatutContrat: 'Actif' | 'Expiré' | 'Suspendu'
  *
  * Un Contrat représente un contrat client-Fluidity. Il est créé par un
- * ADMIN et sert de référence pour les Demandes et les Changements
+ * ADMIN et sert de référence pour les Demandes, Changements et Tickets
  * (listes déroulantes "Contrat" alimentées par ce modèle).
  */
 const ContratSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
-    clientId: { type: String, required: true },
-    reference: { type: String, required: true, trim: true },
+    clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
+    reference: { type: String, required: true, trim: true, unique: true },
     intitule: { type: String, required: true },
     typeContrat: { type: String, default: 'Support' },
     statut: {
@@ -27,9 +26,7 @@ const ContratSchema = new Schema(
   { timestamps: true }
 );
 
-// Une référence de contrat est unique par tenant
-ContratSchema.index({ tenantId: 1, reference: 1 }, { unique: true });
-ContratSchema.index({ tenantId: 1, clientId: 1 });
+ContratSchema.index({ clientId: 1 });
 
 const Contrat = mongoose.model('Contrat', ContratSchema);
 

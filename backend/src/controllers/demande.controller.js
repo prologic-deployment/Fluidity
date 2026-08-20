@@ -1,31 +1,52 @@
 const { Demande } = require('../models/demande.model');
+const { Client } = require('../models/client.model');
+const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
 
+const populateDemande = (query) =>
+  query
+    .populate('clientId', 'nom email telephone statut')
+    .populate('contrat', 'reference intitule typeContrat')
+    .populate('requester', 'email firstName lastName role');
+
+/**
+ * Résout la fiche Client associée au compte authentifié (par email partagé).
+ */
+async function resolveClient(req) {
+  return Client.findOne({ email: req.userEmail });
+}
+
 /**
  * Création d'une demande.
- * - Réservé au rôle CLIENT (seul un client peut soumettre sa propre demande)
- * - clientId toujours dérivé du compte authentifié (jamais fourni par le body)
- * - tenantId injecté depuis le JWT (req.tenantId)
- * - statut initialisé à "Ouverte"
- * - Email asynchrone au Support N1
+ * - Réservé au rôle CLIENT.
+ * - clientId dérivé de la fiche Client correspondant au compte authentifié.
+ * - statut initialisé à "Ouverte".
  */
 const createDemande = async (req, res) => {
   try {
-    if (!req.tenantId) {
-      res.status(401).json({ message: 'Tenant non identifié' });
-      return;
-    }
     if (req.userRole !== 'CLIENT') {
       res.status(403).json({ message: 'Seul un client peut créer une demande.' });
       return;
     }
 
+    const client = await resolveClient(req);
+    if (!client) {
+      res.status(400).json({ message: 'Aucune fiche client associée à ce compte.' });
+      return;
+    }
+
+    const contrat = await Contrat.findOne({ _id: req.body.contrat, clientId: client._id });
+    if (!contrat) {
+      res.status(400).json({ message: 'Contrat introuvable ou n’appartenant pas à ce client.' });
+      return;
+    }
+
     const demande = new Demande({
       ...req.body,
-      clientId: req.userEmail,
-      tenantId: req.tenantId,
+      clientId: client._id,
+      requester: req.userId,
       statut: 'Ouverte',
     });
     await demande.save();
@@ -42,25 +63,26 @@ const createDemande = async (req, res) => {
           { label: 'Type', value: demande.typeDemande },
           { label: 'Catégorie', value: `${demande.categorie} / ${demande.sousCategorie}` },
           { label: 'Environnement', value: demande.serviceEnvironnement },
-          { label: 'Contrat', value: demande.contrat },
+          { label: 'Contrat', value: contrat.reference },
           { label: 'Description', value: demande.descriptionDetaillee },
         ])}`,
       ctaLabel: 'Voir les demandes',
       ctaUrl: `${FRONTEND_URL()}/demandes`,
     });
-    sendSupportEmail(req.tenantId, `[Demande] ${demande.objet}`, html).catch(console.error);
-    res.status(201).json(demande);
+    sendSupportEmail(`[Demande] ${demande.objet}`, html).catch(console.error);
+
+    res.status(201).json(await populateDemande(Demande.findById(demande._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
- * Liste des demandes du tenant (tri décroissant par date).
+ * Liste des demandes (application mono-organisation, tri décroissant par date).
  */
 const getAllDemandes = async (req, res) => {
   try {
-    const demandes = await Demande.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
+    const demandes = await populateDemande(Demande.find()).sort({ createdAt: -1 });
     res.status(200).json(demandes);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -68,11 +90,11 @@ const getAllDemandes = async (req, res) => {
 };
 
 /**
- * Détail d'une demande (isolée par tenant).
+ * Détail d'une demande.
  */
 const getDemandeById = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const demande = await populateDemande(Demande.findById(req.params.id));
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
@@ -84,19 +106,19 @@ const getDemandeById = async (req, res) => {
 };
 
 /**
- * Mise à jour d'une demande (isolée par tenant).
- * - Un CLIENT ne peut modifier que ses propres demandes (Task 4).
- * - Une demande "Annulé" est figée : plus aucune modification, pour aucun rôle.
+ * Mise à jour d'une demande.
+ * - Un CLIENT ne peut modifier que ses propres demandes.
+ * - Une demande "Annulé" est figée.
  */
 const updateDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const demande = await Demande.findById(req.params.id);
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
     }
 
-    if (req.userRole === 'CLIENT' && demande.clientId !== req.userEmail) {
+    if (req.userRole === 'CLIENT' && String(demande.requester) !== String(req.userId)) {
       res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres demandes.' });
       return;
     }
@@ -108,17 +130,14 @@ const updateDemande = async (req, res) => {
 
     demande.set(req.body);
     await demande.save();
-    res.status(200).json(demande);
+    res.status(200).json(await populateDemande(Demande.findById(demande._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
- * Suppression d'une demande (isolée par tenant).
- * Réservée à un ADMIN (Task 4 : les clients ne peuvent plus supprimer
- * leurs demandes — ils les annulent via le workflow, voir
- * changerStatutDemande / statut "Annulé").
+ * Suppression d'une demande — réservée à un ADMIN.
  */
 const deleteDemande = async (req, res) => {
   try {
@@ -127,7 +146,7 @@ const deleteDemande = async (req, res) => {
       return;
     }
 
-    const demande = await Demande.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+    const demande = await Demande.findByIdAndDelete(req.params.id);
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
@@ -140,13 +159,12 @@ const deleteDemande = async (req, res) => {
 };
 
 /**
- * Transition de statut contrôlée par le workflow (§2.2.2 / §2.2.3).
- * Seuls les rôles habilités pour la transition demandée (depuis le statut
- * courant) peuvent l'exécuter ; ADMIN peut toujours forcer.
+ * Transition de statut contrôlée par le workflow.
+ * Gère aussi l'annulation par le client propriétaire.
  */
 const changerStatutDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const demande = await Demande.findById(req.params.id);
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
@@ -154,6 +172,20 @@ const changerStatutDemande = async (req, res) => {
 
     const { statut: nouveauStatut } = req.body;
     const statutActuel = demande.statut;
+
+    // Annulation par le client propriétaire (statuts annulables)
+    const { DEMANDE_STATUTS_ANNULABLES } = require('../utils/workflow');
+    if (
+      nouveauStatut === 'Annulé' &&
+      req.userRole === 'CLIENT' &&
+      String(demande.requester) === String(req.userId) &&
+      DEMANDE_STATUTS_ANNULABLES.includes(statutActuel)
+    ) {
+      demande.statut = 'Annulé';
+      await demande.save();
+      res.status(200).json(await populateDemande(Demande.findById(demande._id)));
+      return;
+    }
 
     if (!canTransition(DEMANDE_TRANSITIONS, statutActuel, nouveauStatut, req.userRole)) {
       const permises = availableTransitions(DEMANDE_TRANSITIONS, statutActuel, req.userRole);
@@ -167,7 +199,6 @@ const changerStatutDemande = async (req, res) => {
     demande.statut = nouveauStatut;
     await demande.save();
 
-    // Notification asynchrone (non bloquante) du changement de statut
     const html = renderEmailLayout({
       preheader: `${demande.objet} : ${statutActuel} → ${nouveauStatut}`,
       icon: ICONS.exchange,
@@ -183,9 +214,9 @@ const changerStatutDemande = async (req, res) => {
       ctaLabel: 'Voir les demandes',
       ctaUrl: `${FRONTEND_URL()}/demandes`,
     });
-    sendSupportEmail(req.tenantId, `[Demande] Statut mis à jour — ${demande.objet}`, html).catch(console.error);
+    sendSupportEmail(`[Demande] Statut mis à jour — ${demande.objet}`, html).catch(console.error);
 
-    res.status(200).json(demande);
+    res.status(200).json(await populateDemande(Demande.findById(demande._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }

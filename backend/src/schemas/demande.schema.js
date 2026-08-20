@@ -1,11 +1,12 @@
 const { z } = require('zod');
+const { objectId } = require('./common');
 
 const prioriteEnum = z.enum(['Standard', 'Élevée', 'Urgente']);
 
 /**
  * Schéma de validation (Zod) pour la création d'une demande.
- * Note : tenantId et clientId sont injectés côté contrôleur à partir du
- * compte authentifié, jamais fournis par le client.
+ * Note : clientId / requester / statut sont injectés côté contrôleur à partir
+ * du compte authentifié, jamais fournis par le client.
  */
 const createDemandeSchema = z.object({
   objet: z.string().min(1, 'Objet requis'),
@@ -17,14 +18,13 @@ const createDemandeSchema = z.object({
   prioriteSouhaitee: prioriteEnum,
   dateSouhaiteeRealisation: z.coerce.date().optional(),
   informationsComplementaires: z.string().optional(),
-  contrat: z.string().min(1, 'Contrat requis'),
+  contrat: objectId('Contrat (ObjectId) requis'),
   piecesJointes: z.array(z.string()).optional(),
 });
 
 /**
  * Schéma de mise à jour (partiel). Le statut ne se modifie PAS via cette
- * route générique : il suit le workflow (voir changerStatutSchema /
- * PATCH /api/demandes/:id/statut) pour garantir le respect du cycle de vie.
+ * route générique : il suit le workflow (voir changerStatutSchema).
  */
 const updateDemandeSchema = z
   .object({

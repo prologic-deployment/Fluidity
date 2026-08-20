@@ -61,16 +61,15 @@ const sendResetPasswordEmail = async (email, token) => {
 };
 
 /**
- * Notification asynchrone à l'équipe Support N1 (helpdesk).
+ * Notification asynchrone à l'équipe Support (helpdesk).
  */
-const sendSupportEmail = async (tenantId, subject, html) => {
+const sendSupportEmail = async (subject, html) => {
   try {
-    // Email du helpdesk + utilisateurs SUPPORT_N1
+    // Utilisateurs du support (SUPPORT_N1 + responsables)
     const recipients = [];
 
     const supportUsers = await Utilisateur.find({
-      tenantId,
-      role: 'SUPPORT_N1',
+      role: { $in: ['SUPPORT_N1', 'RESPONSABLE_TECHNIQUE'] },
     }).select('email');
 
     recipients.push(...supportUsers.map(user => user.email));

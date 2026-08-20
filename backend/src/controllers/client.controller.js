@@ -7,14 +7,13 @@ const createClient = async (req, res) => {
   try {
     const client = new Client({
       ...req.body,
-      tenantId: req.tenantId,
       statut: req.body.statut || 'Actif',
     });
     await client.save();
     res.status(201).json(client);
   } catch (err) {
     if (err.code === 11000) {
-      res.status(409).json({ message: 'Un client avec cet email existe déjà pour ce tenant' });
+      res.status(409).json({ message: 'Un client avec cet email existe déjà' });
       return;
     }
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -22,11 +21,11 @@ const createClient = async (req, res) => {
 };
 
 /**
- * Liste des clients du tenant.
+ * Liste des clients.
  */
 const getAllClients = async (req, res) => {
   try {
-    const clients = await Client.find({ tenantId: req.tenantId }).sort({ nom: 1 });
+    const clients = await Client.find().sort({ nom: 1 });
     res.status(200).json(clients);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -35,7 +34,7 @@ const getAllClients = async (req, res) => {
 
 const getClientById = async (req, res) => {
   try {
-    const client = await Client.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const client = await Client.findById(req.params.id);
     if (!client) {
       res.status(404).json({ message: 'Client introuvable' });
       return;
@@ -51,8 +50,8 @@ const getClientById = async (req, res) => {
  */
 const updateClient = async (req, res) => {
   try {
-    const client = await Client.findOneAndUpdate(
-      { _id: req.params.id, tenantId: req.tenantId },
+    const client = await Client.findByIdAndUpdate(
+      req.params.id,
       { $set: req.body },
       { new: true, runValidators: true }
     );
@@ -71,10 +70,7 @@ const updateClient = async (req, res) => {
  */
 const deleteClient = async (req, res) => {
   try {
-    const client = await Client.findOneAndDelete({
-      _id: req.params.id,
-      tenantId: req.tenantId,
-    });
+    const client = await Client.findByIdAndDelete(req.params.id);
     if (!client) {
       res.status(404).json({ message: 'Client introuvable' });
       return;

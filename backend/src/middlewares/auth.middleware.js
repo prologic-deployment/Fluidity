@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 /**
  * Middleware d'authentification.
  * Vérifie le JWT présent dans l'en-tête "Authorization: Bearer <token>",
- * puis injecte req.tenantId, req.userId, req.userRole et req.userEmail.
+ * puis injecte req.userId, req.userRole, req.userEmail et req.tokenIat.
  */
 const authMiddleware = (req, res, next) => {
   try {
@@ -21,10 +21,10 @@ const authMiddleware = (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, secret);
-    req.tenantId = decoded.tenantId;
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     req.userEmail = decoded.email;
+    req.tokenIat = decoded.iat;
 
     next();
   } catch (err) {

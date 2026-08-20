@@ -1,8 +1,9 @@
+const { CATEGORIES_UPLOAD, CATEGORIE_PAR_DEFAUT } = require('../utils/upload-file.util');
+
 /**
- * Réception de fichiers (pièces jointes des Demandes/Changements).
- * Retourne, pour chaque fichier, une URL absolue servie statiquement
- * (voir app.js : app.use('/uploads', express.static(...))), utilisable
- * directement comme entrée du tableau `piecesJointes`.
+ * Réception de fichiers (pièces jointes / avatar).
+ * Retourne, pour chaque fichier, une URL RELATIVE canonique
+ * « /uploads/<categorie>/<uuid>.<ext> » servie statiquement (app.js).
  */
 const uploadFiles = (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -10,9 +11,12 @@ const uploadFiles = (req, res) => {
     return;
   }
 
-  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  const categorie = CATEGORIES_UPLOAD.includes(req.params?.categorie)
+    ? req.params.categorie
+    : CATEGORIE_PAR_DEFAUT;
+
   const files = req.files.map((f) => ({
-    url: `${baseUrl}/uploads/${req.tenantId}/${f.filename}`,
+    url: `/uploads/${categorie}/${f.filename}`,
     nom: f.originalname,
     taille: f.size,
     type: f.mimetype,

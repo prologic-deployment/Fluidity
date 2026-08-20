@@ -1,68 +1,79 @@
 const { Changement } = require('../models/changement.model');
+const { Client } = require('../models/client.model');
+const { Contrat } = require('../models/contrat.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
-const { CHANGEMENT_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
+const { CHANGEMENT_TRANSITIONS, CHANGEMENT_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
+
+const populateChangement = (query) =>
+  query
+    .populate('clientId', 'nom email telephone statut')
+    .populate('contrat', 'reference intitule typeContrat')
+    .populate('requester', 'email firstName lastName role');
 
 /**
  * Création d'un changement.
- * - Réservé au rôle CLIENT (seul un client peut soumettre son propre changement)
- * - clientId toujours dérivé du compte authentifié (jamais fourni par le body)
- * - tenantId injecté depuis le JWT (req.tenantId)
- * - statut initialisé à "Soumis"
- * - Email asynchrone au Responsable Technique
+ * - Réservé au rôle CLIENT.
+ * - clientId dérivé de la fiche Client correspondant au compte authentifié.
+ * - statut initialisé à "Soumis".
  */
 const createChangement = async (req, res) => {
   try {
-    if (!req.tenantId) {
-      res.status(401).json({ message: 'Tenant non identifié' });
-      return;
-    }
     if (req.userRole !== 'CLIENT') {
       res.status(403).json({ message: 'Seul un client peut créer un changement.' });
       return;
     }
 
+    const client = await Client.findOne({ email: req.userEmail });
+    if (!client) {
+      res.status(400).json({ message: 'Aucune fiche client associée à ce compte.' });
+      return;
+    }
+
+    const contrat = await Contrat.findOne({ _id: req.body.contrat, clientId: client._id });
+    if (!contrat) {
+      res.status(400).json({ message: 'Contrat introuvable ou n’appartenant pas à ce client.' });
+      return;
+    }
+
     const changement = new Changement({
       ...req.body,
-      clientId: req.userEmail,
-      tenantId: req.tenantId,
+      clientId: client._id,
+      requester: req.userId,
       statut: 'Soumis',
     });
     await changement.save();
 
     const html = renderEmailLayout({
       preheader: `Nouveau changement : ${changement.objetChangement}`,
-      icon: ICONS.refresh,
-      heading: 'Nouveau changement soumis',
+      icon: ICONS.fileCheck,
+      heading: 'Nouveau changement reçu',
       bodyHtml: `
-        <p style="margin: 0 0 6px;">Un nouveau changement d'infrastructure vient d'être soumis${' '}
-        ${renderBadge(changement.typeChangement, changement.typeChangement === 'Urgent' ? COLORS.destructive : changement.typeChangement === 'Majeur' ? COLORS.warning : COLORS.primary)}.</p>
+        <p style="margin: 0 0 6px;">Un nouveau changement a été soumis ${renderBadge(changement.typeChangement, changement.typeChangement === 'Urgent' ? COLORS.destructive : changement.typeChangement === 'Majeur' ? COLORS.warning : COLORS.primary)}.</p>
         ${renderDetailsTable([
           { label: 'Objet', value: changement.objetChangement },
           { label: 'Catégorie', value: `${changement.categorie} / ${changement.sousCategorie}` },
           { label: 'Environnement', value: changement.serviceEnvironnement },
-          // { label: "Fenêtre d'intervention", value: new Date(changement.fenetreIntervention).toLocaleString('fr-FR') },
-          { label: 'Contrat', value: changement.contrat },
-          { label: 'Plan de retour arrière', value: changement.planRetourArriere },
+          { label: 'Contrat', value: contrat.reference },
           { label: 'Description', value: changement.descriptionDetaillee },
         ])}`,
       ctaLabel: 'Voir les changements',
       ctaUrl: `${FRONTEND_URL()}/changements`,
     });
-    sendSupportEmail(req.tenantId, `[Changement] ${changement.objetChangement}`, html).catch(console.error);
+    sendSupportEmail(`[Changement] ${changement.objetChangement}`, html).catch(console.error);
 
-    res.status(201).json(changement);
+    res.status(201).json(await populateChangement(Changement.findById(changement._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
- * Liste des changements du tenant.
+ * Liste des changements (tri décroissant par date).
  */
 const getAllChangements = async (req, res) => {
   try {
-    const changements = await Changement.find({ tenantId: req.tenantId }).sort({ createdAt: -1 });
+    const changements = await populateChangement(Changement.find()).sort({ createdAt: -1 });
     res.status(200).json(changements);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -70,11 +81,11 @@ const getAllChangements = async (req, res) => {
 };
 
 /**
- * Détail d'un changement (isolé par tenant).
+ * Détail d'un changement.
  */
 const getChangementById = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const changement = await populateChangement(Changement.findById(req.params.id));
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
@@ -86,19 +97,19 @@ const getChangementById = async (req, res) => {
 };
 
 /**
- * Mise à jour d'un changement (isolé par tenant).
- * - Un CLIENT ne peut modifier que ses propres changements (Task 4).
- * - Un changement "Annulé" est figé : plus aucune modification, pour aucun rôle.
+ * Mise à jour d'un changement.
+ * - Un CLIENT ne peut modifier que ses propres changements.
+ * - Un changement "Annulé" est figé.
  */
 const updateChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const changement = await Changement.findById(req.params.id);
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
     }
 
-    if (req.userRole === 'CLIENT' && changement.clientId !== req.userEmail) {
+    if (req.userRole === 'CLIENT' && String(changement.requester) !== String(req.userId)) {
       res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres changements.' });
       return;
     }
@@ -110,17 +121,14 @@ const updateChangement = async (req, res) => {
 
     changement.set(req.body);
     await changement.save();
-    res.status(200).json(changement);
+    res.status(200).json(await populateChangement(Changement.findById(changement._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
 };
 
 /**
- * Suppression d'un changement (isolé par tenant).
- * Réservée à un ADMIN (Task 4 : les clients ne peuvent plus supprimer
- * leurs changements — ils les annulent via le workflow, voir
- * changerStatutChangement / statut "Annulé").
+ * Suppression d'un changement — réservée à un ADMIN.
  */
 const deleteChangement = async (req, res) => {
   try {
@@ -129,7 +137,7 @@ const deleteChangement = async (req, res) => {
       return;
     }
 
-    const changement = await Changement.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+    const changement = await Changement.findByIdAndDelete(req.params.id);
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
@@ -142,13 +150,12 @@ const deleteChangement = async (req, res) => {
 };
 
 /**
- * Transition de statut contrôlée par le workflow (§2.3.4 / §2.3.5).
- * Seuls les rôles habilités pour la transition demandée (depuis le statut
- * courant) peuvent l'exécuter ; ADMIN peut toujours forcer.
+ * Transition de statut contrôlée par le workflow.
+ * Gère aussi l'annulation par le client propriétaire.
  */
 const changerStatutChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    const changement = await Changement.findById(req.params.id);
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
@@ -156,6 +163,19 @@ const changerStatutChangement = async (req, res) => {
 
     const { statut: nouveauStatut } = req.body;
     const statutActuel = changement.statut;
+
+    // Annulation par le client propriétaire (statuts annulables)
+    if (
+      nouveauStatut === 'Annulé' &&
+      req.userRole === 'CLIENT' &&
+      String(changement.requester) === String(req.userId) &&
+      CHANGEMENT_STATUTS_ANNULABLES.includes(statutActuel)
+    ) {
+      changement.statut = 'Annulé';
+      await changement.save();
+      res.status(200).json(await populateChangement(Changement.findById(changement._id)));
+      return;
+    }
 
     if (!canTransition(CHANGEMENT_TRANSITIONS, statutActuel, nouveauStatut, req.userRole)) {
       const permises = availableTransitions(CHANGEMENT_TRANSITIONS, statutActuel, req.userRole);
@@ -184,9 +204,9 @@ const changerStatutChangement = async (req, res) => {
       ctaLabel: 'Voir les changements',
       ctaUrl: `${FRONTEND_URL()}/changements`,
     });
-    sendSupportEmail(req.tenantId, `[Changement] Statut mis à jour — ${changement.objetChangement}`, html).catch(console.error);
+    sendSupportEmail(`[Changement] Statut mis à jour — ${changement.objetChangement}`, html).catch(console.error);
 
-    res.status(200).json(changement);
+    res.status(200).json(await populateChangement(Changement.findById(changement._id)));
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }

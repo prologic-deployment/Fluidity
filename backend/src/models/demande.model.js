@@ -13,8 +13,10 @@ const { DEMANDE_STATUTS } = require('../utils/workflow');
 
 const DemandeSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
-    clientId: { type: String, required: true },
+    // Client (entité commerciale) qui porte la demande — ObjectId.
+    clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
+    // Compte utilisateur (CLIENT) qui a soumis la demande.
+    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     objet: { type: String, required: true },
     typeDemande: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },
@@ -28,15 +30,16 @@ const DemandeSchema = new Schema(
     },
     dateSouhaiteeRealisation: { type: Date },
     informationsComplementaires: { type: String },
-    contrat: { type: String, required: true },
+    contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },
     piecesJointes: [{ type: String }],
     statut: { type: String, enum: DEMANDE_STATUTS, default: 'Ouverte' },
   },
   { timestamps: true }
 );
 
-// Index pour isoler les requêtes par tenant
-DemandeSchema.index({ tenantId: 1, createdAt: -1 });
+DemandeSchema.index({ createdAt: -1 });
+DemandeSchema.index({ clientId: 1 });
+DemandeSchema.index({ requester: 1 });
 
 const Demande = mongoose.model('Demande', DemandeSchema);
 

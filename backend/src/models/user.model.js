@@ -3,15 +3,18 @@ const bcrypt = require('bcryptjs');
 const { Schema } = mongoose;
 
 /**
- * Rôles possibles au sein d'un tenant :
+ * Rôles de l'application (mono-organisation) :
  * 'CLIENT' | 'ADMIN' | 'SUPPORT_N1' | 'RESPONSABLE_TECHNIQUE'
  * | 'COMMERCIAL' | 'EXPLOITATION'
+ *
+ * Correspondance avec les groupes de rôles du workflow (voir utils/workflow.js) :
+ *   AGENT   = SUPPORT_N1, EXPLOITATION
+ *   MANAGER = RESPONSABLE_TECHNIQUE, COMMERCIAL
  */
 const ROLES = ['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION'];
 
 const UtilisateurSchema = new Schema(
   {
-    tenantId: { type: String, required: true },
     email: {
       type: String,
       required: true,
@@ -23,6 +26,25 @@ const UtilisateurSchema = new Schema(
     role: { type: String, enum: ROLES, default: 'CLIENT' },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
+
+    // --- Informations de profil (éditables par l'utilisateur lui-même) ---
+    firstName: { type: String, default: '', trim: true },
+    lastName: { type: String, default: '', trim: true },
+    phone: { type: String, default: '', trim: true },
+    jobTitle: { type: String, default: '', trim: true },
+    bio: { type: String, default: '' },
+    address: { type: String, default: '' },
+    avatarUrl: { type: String, default: null },
+
+    // --- Double authentification TOTP (RFC 6238) — optionnelle, désactivée par défaut ---
+    // Le secret est CHIFFRÉ (AES-256-GCM, crypto.util) — jamais stocké en clair.
+    // select: false => jamais renvoyé par les requêtes par défaut (aucune fuite API).
+    twoFactorEnabled: { type: Boolean, default: false },
+    twoFactorSecret: { type: String, default: null, select: false },
+    twoFactorVerified: { type: Boolean, default: false },
+    twoFactorCreatedAt: { type: Date, default: null },
+    // Codes de secours (SHA-256, usage unique, consommés à la validation)
+    twoFactorBackupCodes: { type: [String], default: [], select: false },
   },
   { timestamps: true }
 );
