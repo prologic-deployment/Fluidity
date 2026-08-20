@@ -33,12 +33,18 @@ const createContrat = async (req, res) => {
 };
 
 /**
- * Liste des contrats, avec filtre optionnel par client (?clientId=...).
+ * Liste des contrats, avec filtre optionnel par client
+ * (?clientId=<ObjectId> ou ?clientEmail=<email>).
  */
 const getAllContrats = async (req, res) => {
   try {
     const filter = {};
-    if (req.query.clientId) filter.clientId = req.query.clientId;
+    if (req.query.clientId) {
+      filter.clientId = req.query.clientId;
+    } else if (req.query.clientEmail) {
+      const client = await Client.findOne({ email: req.query.clientEmail });
+      filter.clientId = client ? client._id : null;
+    }
     const contrats = await populateContrat(Contrat.find(filter)).sort({ createdAt: -1 });
     res.status(200).json(contrats);
   } catch (err) {

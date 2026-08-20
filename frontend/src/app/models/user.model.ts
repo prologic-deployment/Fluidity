@@ -1,0 +1,55 @@
+/**
+ * Profil utilisateur (application mono-organisation).
+ * Rôles : CLIENT | ADMIN | SUPPORT_N1 | RESPONSABLE_TECHNIQUE | COMMERCIAL | EXPLOITATION
+ */
+export type AppRole =
+  | 'CLIENT'
+  | 'ADMIN'
+  | 'SUPPORT_N1'
+  | 'RESPONSABLE_TECHNIQUE'
+  | 'COMMERCIAL'
+  | 'EXPLOITATION';
+
+export interface AppUser {
+  _id?: string;
+  email: string;
+  role: AppRole;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  jobTitle?: string;
+  bio?: string;
+  address?: string;
+  avatarUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  verified: boolean;
+  createdAt: string | null;
+  backupCodesRemaining: number;
+}
+
+export interface LoginActivity {
+  _id: string;
+  date: string;
+  succes: boolean;
+  mfaUtilise: boolean;
+  raisonEchec?: string;
+  ip: string | null;
+  navigateur: string;
+  systeme: string;
+  appareil: string;
+  sessionIat: number | null;
+}
+
+export const ROLE_LABELS: Record<string, string> = {
+  CLIENT: 'Client',
+  ADMIN: 'Administrateur',
+  SUPPORT_N1: 'Support N1',
+  RESPONSABLE_TECHNIQUE: 'Responsable technique',
+  COMMERCIAL: 'Commercial',
+  EXPLOITATION: 'Exploitation',
+};

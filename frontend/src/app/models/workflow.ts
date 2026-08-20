@@ -2,6 +2,10 @@
  * Miroir client du moteur de workflow backend (voir backend/src/utils/workflow.js).
  * Sert uniquement à afficher les actions disponibles dans l'UI ; la
  * validation faisant foi reste toujours côté serveur.
+ *
+ * Groupes de rôles (application mono-organisation) :
+ *   AGENT   = SUPPORT_N1, EXPLOITATION
+ *   MANAGER = RESPONSABLE_TECHNIQUE, COMMERCIAL
  */
 
 export interface Transition {
@@ -9,72 +13,80 @@ export interface Transition {
   roles: string[];
 }
 
+const AGENT = ['SUPPORT_N1', 'EXPLOITATION'];
+const MANAGER = ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'];
+
 export const DEMANDE_TRANSITIONS: Record<string, Transition[]> = {
-  Ouverte: [
-    { to: "En cours d'analyse", roles: ['SUPPORT_N1'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
-  ],
+  Ouverte: [{ to: "En cours d'analyse", roles: AGENT }],
   "En cours d'analyse": [
-    { to: 'En attente de validation', roles: ['SUPPORT_N1'] },
-    { to: 'En cours de réalisation', roles: ['SUPPORT_N1'] },
-    { to: 'En attente client', roles: ['SUPPORT_N1'] },
-    { to: 'Rejetée', roles: ['SUPPORT_N1'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
+    { to: 'En attente de validation', roles: AGENT },
+    { to: 'En cours de réalisation', roles: AGENT },
+    { to: 'En attente client', roles: AGENT },
+    { to: 'Rejetée', roles: AGENT },
   ],
   'En attente de validation': [
-    { to: 'En cours de réalisation', roles: ['RESPONSABLE_TECHNIQUE'] },
-    { to: 'Rejetée', roles: ['RESPONSABLE_TECHNIQUE'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
+    { to: 'En cours de réalisation', roles: MANAGER },
+    { to: 'Rejetée', roles: MANAGER },
   ],
   'En cours de réalisation': [
-    { to: 'Réalisée', roles: ['SUPPORT_N1'] },
-    { to: 'En attente client', roles: ['SUPPORT_N1'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
+    { to: 'Réalisée', roles: AGENT },
+    { to: 'En attente client', roles: AGENT },
   ],
   'En attente client': [
-    { to: "En cours d'analyse", roles: ['CLIENT', 'SUPPORT_N1'] },
-    { to: 'Clôturée', roles: ['SUPPORT_N1'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
+    { to: "En cours d'analyse", roles: ['CLIENT', ...AGENT] },
+    { to: 'Clôturée', roles: AGENT },
   ],
   Rejetée: [],
-  Réalisée: [{ to: 'Clôturée', roles: ['CLIENT', 'SUPPORT_N1'] }],
+  Réalisée: [{ to: 'Clôturée', roles: ['CLIENT', ...AGENT] }],
   Clôturée: [],
   Annulé: [],
 };
 
 export const CHANGEMENT_TRANSITIONS: Record<string, Transition[]> = {
-  Soumis: [
-    { to: 'En attente de validation', roles: ['RESPONSABLE_TECHNIQUE'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
-  ],
+  Soumis: [{ to: 'En attente de validation', roles: MANAGER }],
   'En attente de validation': [
-    { to: 'Approuvé', roles: ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'] },
-    { to: 'Rejeté', roles: ['RESPONSABLE_TECHNIQUE', 'COMMERCIAL'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
+    { to: 'Approuvé', roles: MANAGER },
+    { to: 'Rejeté', roles: MANAGER },
   ],
-  Approuvé: [
-    { to: 'Planifié', roles: ['EXPLOITATION'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
-  ],
-  Planifié: [
-    { to: "En cours d'implémentation", roles: ['EXPLOITATION'] },
-    { to: 'Annulé', roles: ['CLIENT'] },
-  ],
+  Approuvé: [{ to: 'Planifié', roles: AGENT }],
+  Planifié: [{ to: "En cours d'implémentation", roles: AGENT }],
   "En cours d'implémentation": [
-    { to: 'Implémenté', roles: ['EXPLOITATION'] },
-    { to: 'Rollback', roles: ['EXPLOITATION'] },
+    { to: 'Implémenté', roles: AGENT },
+    { to: 'Rollback', roles: AGENT },
   ],
-  Rollback: [{ to: 'Clôturé', roles: ['EXPLOITATION'] }],
-  Implémenté: [{ to: 'En revue post-implémentation', roles: ['RESPONSABLE_TECHNIQUE'] }],
-  'En revue post-implémentation': [{ to: 'Clôturé', roles: ['RESPONSABLE_TECHNIQUE'] }],
+  Rollback: [{ to: 'Clôturé', roles: AGENT }],
+  Implémenté: [{ to: 'En revue post-implémentation', roles: MANAGER }],
+  'En revue post-implémentation': [{ to: 'Clôturé', roles: MANAGER }],
   Rejeté: [],
   Clôturé: [],
   Annulé: [],
 };
 
+export const TICKET_TRANSITIONS: Record<string, Transition[]> = {
+  Nouveau: [
+    { to: 'Affecté', roles: [...AGENT, ...MANAGER] },
+    { to: "En cours d'analyse", roles: [...AGENT, ...MANAGER] },
+  ],
+  Affecté: [{ to: "En cours d'analyse", roles: [...AGENT, ...MANAGER] }],
+  "En cours d'analyse": [
+    { to: 'En cours de résolution', roles: [...AGENT, ...MANAGER] },
+    { to: 'En attente client', roles: [...AGENT, ...MANAGER] },
+    { to: 'En attente tiers', roles: [...AGENT, ...MANAGER] },
+  ],
+  'En attente client': [{ to: "En cours d'analyse", roles: ['CLIENT', ...AGENT, ...MANAGER] }],
+  'En attente tiers': [{ to: 'En cours de résolution', roles: [...AGENT, ...MANAGER] }],
+  'En cours de résolution': [{ to: 'Résolu', roles: [...AGENT, ...MANAGER] }],
+  Résolu: [
+    { to: 'Clôturé', roles: ['CLIENT', ...AGENT, ...MANAGER] },
+    { to: 'Réouvert', roles: ['CLIENT', ...AGENT, ...MANAGER] },
+  ],
+  Clôturé: [],
+  Réouvert: [{ to: "En cours d'analyse", roles: [...AGENT, ...MANAGER] }],
+};
+
 /**
- * Statuts cibles atteignables depuis `from` pour `role` (ADMIN : tout autorisé,
- * sauf depuis "Annulé" qui est figé pour tout le monde — voir workflow.js).
+ * Statuts cibles atteignables depuis `from` pour `role`.
+ * ADMIN : toute transition définie (sauf depuis un état figé).
  */
 export function availableTransitions(
   transitions: Record<string, Transition[]>,

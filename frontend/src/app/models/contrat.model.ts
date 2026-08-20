@@ -1,9 +1,17 @@
 export type StatutContrat = 'Actif' | 'Expiré' | 'Suspendu';
 
+export interface ContratClientRef {
+  _id: string;
+  nom: string;
+  email?: string;
+  telephone?: string;
+  statut?: string;
+}
+
 export interface Contrat {
   _id?: string;
-  tenantId?: string;
-  clientId: string;
+  /** Client — ObjectId en écriture, peuplé en lecture. */
+  clientId: string | ContratClientRef;
   reference: string;
   intitule: string;
   typeContrat?: string;
