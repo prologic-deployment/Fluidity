@@ -1,19 +1,19 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
-    <div class="max-w-4xl mx-auto px-6 py-5">
+    <div class="max-w-6xl mx-auto px-6 py-5">
       <h1 class="text-xl font-semibold tracking-tight">Sécurité</h1>
       <p class="text-sm text-muted-foreground mt-0.5">Mot de passe, double authentification et activité de connexion.</p>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-6 py-8 space-y-6">
+  <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
     <p *ngIf="success" class="alert-success">{{ success }}</p>
     <p *ngIf="error" class="alert-destructive">{{ error }}</p>
 
     <!-- ==================== SCORE DE POSTURE ==================== -->
     <section class="card animate-fade-in-up">
-      <div class="card-content py-5">
+      <div class="card-content py-4">
         <div class="flex items-center justify-between gap-4">
           <div>
             <h2 class="font-semibold">Posture de sécurité</h2>
@@ -24,52 +24,41 @@
         <div class="mt-3 h-2 w-full rounded-full bg-muted">
           <div class="h-2 rounded-full transition-all" [ngClass]="securityScoreClass" [style.width.%]="securityScore"></div>
         </div>
-        <ul class="mt-4 space-y-2">
-          <li *ngFor="let r of recommendations" class="flex items-start gap-2 text-sm">
-            <svg *ngIf="r.ok" class="h-4 w-4 mt-0.5 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 6 9 17l-5-5"></path>
-            </svg>
-            <svg *ngIf="!r.ok" class="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 8v4M12 16h.01"></path>
-            </svg>
-            <span [ngClass]="r.ok ? 'text-foreground' : 'text-muted-foreground'">{{ r.text }}</span>
-          </li>
-        </ul>
       </div>
     </section>
 
-    <!-- ==================== MOT DE PASSE ==================== -->
-    <section class="card animate-fade-in-up stagger-1">
-      <div class="card-header-tinted">
-        <div class="form-section-header">
-          <div class="form-section-icon">
-            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-          </div>
-          <div>
-            <h2 class="card-title">Mot de passe</h2>
-            <p class="card-description">Choisissez un mot de passe robuste et unique.</p>
-          </div>
-        </div>
-      </div>
-      <div class="card-content pt-6">
-        <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="space-y-4">
-          <div>
-            <label class="field-label">Mot de passe actuel</label>
-            <div class="relative">
-              <input [type]="showCurrent ? 'text' : 'password'" formControlName="currentPassword" class="input pr-10" placeholder="••••••••" />
-              <button type="button" (click)="showCurrent = !showCurrent" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" title="Afficher / masquer">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
+    <!-- ==================== MOT DE PASSE + 2FA côte à côte ==================== -->
+    <div class="grid gap-6 lg:grid-cols-2">
+
+      <section class="card animate-fade-in-up stagger-1">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Mot de passe</h2>
+              <p class="card-description">Choisissez un mot de passe robuste et unique.</p>
             </div>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+        <div class="card-content pt-6">
+          <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="space-y-4">
+            <div>
+              <label class="field-label">Mot de passe actuel</label>
+              <div class="relative">
+                <input [type]="showCurrent ? 'text' : 'password'" formControlName="currentPassword" class="input pr-10" placeholder="••••••••" />
+                <button type="button" (click)="showCurrent = !showCurrent" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" title="Afficher / masquer">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div>
               <label class="field-label">Nouveau mot de passe</label>
               <div class="relative">
@@ -100,131 +89,164 @@
                 </button>
               </div>
             </div>
-          </div>
-          <p *ngIf="passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched" class="field-error">
-            La confirmation ne correspond pas au nouveau mot de passe.
-          </p>
-          <div class="flex justify-end">
-            <button type="submit" [disabled]="savingPassword" class="btn-primary">
-              {{ savingPassword ? 'Modification…' : 'Modifier le mot de passe' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
+            <p *ngIf="passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched" class="field-error">
+              La confirmation ne correspond pas au nouveau mot de passe.
+            </p>
+            <div class="flex justify-end">
+              <button type="submit" [disabled]="savingPassword" class="btn-primary">
+                {{ savingPassword ? 'Modification…' : 'Modifier le mot de passe' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
 
-    <!-- ==================== DOUBLE AUTHENTIFICATION ==================== -->
-    <section class="card animate-fade-in-up stagger-2">
-      <div class="card-header-tinted">
-        <div class="form-section-header">
-          <div class="form-section-icon">
-            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-          </div>
-          <div>
-            <h2 class="card-title">Double authentification (2FA)</h2>
-            <p class="card-description">Protégez votre compte avec une application d'authentification.</p>
+      <section class="card animate-fade-in-up stagger-1">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Double authentification (2FA)</h2>
+              <p class="card-description">Protégez votre compte avec une application d'authentification.</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="card-content pt-6 space-y-4">
-        <div *ngIf="loading"><div class="skeleton h-16 w-full"></div></div>
+        <div class="card-content pt-6 space-y-4">
+          <div *ngIf="loading"><div class="skeleton h-16 w-full"></div></div>
 
-        <ng-container *ngIf="!loading && status">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="font-medium">État :
-                <span [ngClass]="status.enabled ? 'text-success' : 'text-muted-foreground'">{{ status.enabled ? 'Activée' : 'Désactivée' }}</span>
-              </p>
-              <p class="text-xs text-muted-foreground" *ngIf="status.enabled">Codes de secours restants : {{ status.backupCodesRemaining }}</p>
+          <ng-container *ngIf="!loading && status">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-medium">État :
+                  <span [ngClass]="status.enabled ? 'text-success' : 'text-muted-foreground'">{{ status.enabled ? 'Activée' : 'Désactivée' }}</span>
+                </p>
+                <p class="text-xs text-muted-foreground" *ngIf="status.enabled">Codes de secours restants : {{ status.backupCodesRemaining }}</p>
+              </div>
+              <button *ngIf="!status.enabled && !qrCode" (click)="startSetup()" class="btn-primary">Activer la 2FA</button>
             </div>
-            <button *ngIf="!status.enabled && !qrCode" (click)="startSetup()" class="btn-primary">Activer la 2FA</button>
+
+            <!-- Setup -->
+            <ng-container *ngIf="qrCode && manualKey">
+              <p class="text-sm">1. Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou toute application TOTP.</p>
+              <img [src]="qrCode" alt="QR code 2FA" class="rounded-lg border max-w-[220px]" />
+              <p class="text-sm">Clé manuelle : <code class="break-all">{{ manualKey }}</code></p>
+              <div class="flex gap-3">
+                <input [(ngModel)]="setupCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" placeholder="Code à 6 chiffres" />
+                <button (click)="verifySetup()" class="btn-primary">Vérifier</button>
+              </div>
+            </ng-container>
+
+            <!-- Codes de secours -->
+            <ng-container *ngIf="backupCodes.length">
+              <p class="text-sm font-medium">Codes de secours — conservez-les précieusement (affichés une seule fois) :</p>
+              <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <code *ngFor="let c of backupCodes" class="rounded bg-muted px-2 py-1 text-center">{{ c }}</code>
+              </div>
+              <button (click)="backupCodes = []" class="btn-ghost">J'ai noté mes codes</button>
+            </ng-container>
+
+            <!-- Disable -->
+            <ng-container *ngIf="status.enabled && !qrCode">
+              <div class="border-t pt-4">
+                <p class="text-sm font-medium mb-2">Désactiver la 2FA (mot de passe ou code requis)</p>
+                <div class="flex flex-col gap-3">
+                  <input type="password" [(ngModel)]="disablePassword" [ngModelOptions]="{standalone: true}" class="input" placeholder="Mot de passe" />
+                  <input type="text" [(ngModel)]="disableCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" placeholder="Ou code 2FA" />
+                  <button (click)="disable()" class="btn-destructive">Désactiver</button>
+                </div>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== ACTIVITÉ + RECOMMANDATIONS ==================== -->
+    <div class="grid gap-6 lg:grid-cols-3">
+
+      <section class="card animate-fade-in-up stagger-2 lg:col-span-2">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Activité de connexion récente</h2>
+              <p class="card-description">Vos dernières connexions à ce compte.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-content pt-6">
+          <p *ngIf="activityError" class="alert-destructive">{{ activityError }}</p>
+          <div *ngIf="activityLoading" class="space-y-2">
+            <div *ngFor="let _ of [1, 2, 3]" class="skeleton h-12 w-full"></div>
           </div>
 
-          <!-- Setup -->
-          <ng-container *ngIf="qrCode && manualKey">
-            <p class="text-sm">1. Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou toute application TOTP.</p>
-            <img [src]="qrCode" alt="QR code 2FA" class="rounded-lg border" />
-            <p class="text-sm">Clé manuelle : <code class="break-all">{{ manualKey }}</code></p>
-            <div class="flex gap-3">
-              <input [(ngModel)]="setupCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" placeholder="Code à 6 chiffres" />
-              <button (click)="verifySetup()" class="btn-primary">Vérifier</button>
-            </div>
-          </ng-container>
-
-          <!-- Codes de secours -->
-          <ng-container *ngIf="backupCodes.length">
-            <p class="text-sm font-medium">Codes de secours — conservez-les précieusement (affichés une seule fois) :</p>
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-              <code *ngFor="let c of backupCodes" class="rounded bg-muted px-2 py-1 text-center">{{ c }}</code>
-            </div>
-            <button (click)="backupCodes = []" class="btn-ghost">J'ai noté mes codes</button>
-          </ng-container>
-
-          <!-- Disable -->
-          <ng-container *ngIf="status.enabled && !qrCode">
-            <div class="border-t pt-4">
-              <p class="text-sm font-medium mb-2">Désactiver la 2FA (mot de passe ou code requis)</p>
-              <div class="flex flex-col md:flex-row gap-3">
-                <input type="password" [(ngModel)]="disablePassword" [ngModelOptions]="{standalone: true}" class="input" placeholder="Mot de passe" />
-                <input type="text" [(ngModel)]="disableCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" placeholder="Ou code 2FA" />
-                <button (click)="disable()" class="btn-destructive">Désactiver</button>
+          <div *ngIf="!activityLoading" class="space-y-2">
+            <div *ngFor="let a of activities"
+                 class="flex items-center justify-between rounded-lg px-3 py-2.5"
+                 [ngClass]="isCurrentSession(a) ? 'bg-primary/10 border border-primary/30' : 'bg-muted/40'">
+              <div>
+                <p class="text-sm font-medium">
+                  {{ formatActivityDate(a.date) }}
+                  <span [ngClass]="a.succes ? 'text-success' : 'text-destructive'">{{ a.succes ? '✓' : '✗' }}</span>
+                  <span *ngIf="a.mfaUtilise" class="badge-outline ml-1">2FA</span>
+                  <span *ngIf="isCurrentSession(a)" class="badge-default ml-1">Session actuelle</span>
+                </p>
+                <p class="text-xs text-muted-foreground">{{ a.navigateur }} · {{ a.systeme }} · {{ a.appareil }} · IP {{ a.ip || '—' }}</p>
               </div>
             </div>
-          </ng-container>
-        </ng-container>
-      </div>
-    </section>
+            <div *ngIf="!activities.length" class="text-sm text-muted-foreground">Aucune activité enregistrée.</div>
 
-    <!-- ==================== ACTIVITÉ DE CONNEXION ==================== -->
-    <section class="card animate-fade-in-up stagger-3">
-      <div class="card-header-tinted">
-        <div class="form-section-header">
-          <div class="form-section-icon">
-            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </div>
-          <div>
-            <h2 class="card-title">Activité de connexion récente</h2>
-            <p class="card-description">Vos dernières connexions à ce compte.</p>
-          </div>
-        </div>
-      </div>
-      <div class="card-content pt-6">
-        <p *ngIf="activityError" class="alert-destructive">{{ activityError }}</p>
-        <div *ngIf="activityLoading" class="space-y-2">
-          <div *ngFor="let _ of [1, 2, 3]" class="skeleton h-12 w-full"></div>
-        </div>
-
-        <div *ngIf="!activityLoading" class="space-y-2">
-          <div *ngFor="let a of activities"
-               class="flex items-center justify-between rounded-lg px-3 py-2.5"
-               [ngClass]="isCurrentSession(a) ? 'bg-primary/10 border border-primary/30' : 'bg-muted/40'">
-            <div>
-              <p class="text-sm font-medium">
-                {{ formatActivityDate(a.date) }}
-                <span [ngClass]="a.succes ? 'text-success' : 'text-destructive'">{{ a.succes ? '✓' : '✗' }}</span>
-                <span *ngIf="a.mfaUtilise" class="badge-outline ml-1">2FA</span>
-                <span *ngIf="isCurrentSession(a)" class="badge-default ml-1">Session actuelle</span>
-              </p>
-              <p class="text-xs text-muted-foreground">{{ a.navigateur }} · {{ a.systeme }} · {{ a.appareil }} · IP {{ a.ip || '—' }}</p>
+            <!-- Pagination -->
+            <div *ngIf="activityPages > 1" class="flex items-center justify-between pt-3">
+              <button (click)="loadActivity(activityPage - 1)" [disabled]="activityPage <= 1" class="btn-outline btn-sm">Précédent</button>
+              <span class="text-xs text-muted-foreground">Page {{ activityPage }} / {{ activityPages }}</span>
+              <button (click)="loadActivity(activityPage + 1)" [disabled]="activityPage >= activityPages" class="btn-outline btn-sm">Suivant</button>
             </div>
           </div>
-          <div *ngIf="!activities.length" class="text-sm text-muted-foreground">Aucune activité enregistrée.</div>
+        </div>
+      </section>
 
-          <!-- Pagination -->
-          <div *ngIf="activityPages > 1" class="flex items-center justify-between pt-3">
-            <button (click)="loadActivity(activityPage - 1)" [disabled]="activityPage <= 1" class="btn-outline btn-sm">Précédent</button>
-            <span class="text-xs text-muted-foreground">Page {{ activityPage }} / {{ activityPages }}</span>
-            <button (click)="loadActivity(activityPage + 1)" [disabled]="activityPage >= activityPages" class="btn-outline btn-sm">Suivant</button>
+      <section class="card animate-fade-in-up stagger-2">
+        <div class="card-header-tinted">
+          <div class="form-section-header">
+            <div class="form-section-icon">
+              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+            <div>
+              <h2 class="card-title">Recommandations</h2>
+              <p class="card-description">Bonnes pratiques pour sécuriser votre compte.</p>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+        <div class="card-content pt-6">
+          <ul class="space-y-3">
+            <li *ngFor="let r of recommendations" class="flex items-start gap-2 text-sm">
+              <svg *ngIf="r.ok" class="h-4 w-4 mt-0.5 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"></path>
+              </svg>
+              <svg *ngIf="!r.ok" class="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 8v4M12 16h.01"></path>
+              </svg>
+              <span [ngClass]="r.ok ? 'text-foreground' : 'text-muted-foreground'">{{ r.text }}</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
 
   </main>
 </div>
