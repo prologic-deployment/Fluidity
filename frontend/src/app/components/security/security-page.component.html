@@ -1,0 +1,75 @@
+<div class="mx-auto max-w-3xl px-6 py-10 animate-fade-in-up">
+  <h1 class="text-2xl font-semibold tracking-tight mb-1">Sécurité</h1>
+  <p class="text-sm text-muted-foreground mb-8">Double authentification et activité de connexion.</p>
+
+  <p *ngIf="success" class="alert-success mb-4">{{ success }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+  <div *ngIf="loading"><div class="skeleton h-40 w-full"></div></div>
+
+  <ng-container *ngIf="status">
+    <!-- 2FA -->
+    <div class="card mb-6">
+      <div class="card-header"><h2 class="font-medium">Double authentification (2FA)</h2></div>
+      <div class="card-content space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-medium">État : <span [ngClass]="status.enabled ? 'text-success' : 'text-muted-foreground'">{{ status.enabled ? 'Activée' : 'Désactivée' }}</span></p>
+            <p class="text-xs text-muted-foreground" *ngIf="status.enabled">Codes de secours restants : {{ status.backupCodesRemaining }}</p>
+          </div>
+          <button *ngIf="!status.enabled && !qrCode" (click)="startSetup()" class="btn-primary">Activer la 2FA</button>
+        </div>
+
+        <!-- Setup -->
+        <ng-container *ngIf="qrCode && manualKey">
+          <p class="text-sm">1. Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou toute app TOTP.</p>
+          <img [src]="qrCode" alt="QR code 2FA" class="rounded-lg border" />
+          <p class="text-sm">Clé manuelle : <code class="break-all">{{ manualKey }}</code></p>
+          <div class="flex gap-3">
+            <input type="text" [(ngModel)]="setupCode" class="input" maxlength="12" placeholder="Code à 6 chiffres" />
+            <button (click)="verifySetup()" class="btn-primary">Vérifier</button>
+          </div>
+        </ng-container>
+
+        <!-- Codes de secours -->
+        <ng-container *ngIf="backupCodes.length">
+          <p class="text-sm font-medium">Codes de secours — conservez-les précieusement (affichés une seule fois) :</p>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <code *ngFor="let c of backupCodes" class="rounded bg-muted px-2 py-1 text-center">{{ c }}</code>
+          </div>
+          <button (click)="backupCodes = []" class="btn-ghost">J'ai noté mes codes</button>
+        </ng-container>
+
+        <!-- Disable -->
+        <ng-container *ngIf="status.enabled && !qrCode">
+          <div class="border-t pt-4">
+            <p class="text-sm font-medium mb-2">Désactiver la 2FA (mot de passe ou code requis)</p>
+            <div class="flex flex-col md:flex-row gap-3">
+              <input type="password" [(ngModel)]="disablePassword" class="input" placeholder="Mot de passe" />
+              <input type="text" [(ngModel)]="disableCode" class="input" maxlength="12" placeholder="Ou code 2FA" />
+              <button (click)="disable()" class="btn-destructive">Désactiver</button>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <!-- Activité de connexion -->
+    <div class="card">
+      <div class="card-header"><h2 class="font-medium">Activité de connexion récente</h2></div>
+      <div class="card-content space-y-2">
+        <div *ngFor="let a of activities" class="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+          <div>
+            <p class="text-sm font-medium">
+              {{ a.date | date: 'dd/MM/yyyy HH:mm' }}
+              <span [ngClass]="a.succes ? 'text-success' : 'text-destructive'">{{ a.succes ? '✓' : '✗' }}</span>
+              <span *ngIf="a.mfaUtilise" class="badge-outline ml-1">2FA</span>
+            </p>
+            <p class="text-xs text-muted-foreground">{{ a.navigateur }} · {{ a.systeme }} · {{ a.appareil }} · IP {{ a.ip || '—' }}</p>
+          </div>
+        </div>
+        <div *ngIf="!activities.length" class="text-sm text-muted-foreground">Aucune activité enregistrée.</div>
+      </div>
+    </div>
+  </ng-container>
+</div>

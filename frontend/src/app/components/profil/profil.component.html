@@ -1,0 +1,62 @@
+<div class="mx-auto max-w-3xl px-6 py-10 animate-fade-in-up">
+  <h1 class="text-2xl font-semibold tracking-tight mb-1">Mon profil</h1>
+  <p class="text-sm text-muted-foreground mb-8">Gérez vos informations personnelles.</p>
+
+  <div *ngIf="loading"><div class="skeleton h-40 w-full"></div></div>
+
+  <ng-container *ngIf="user">
+    <div class="card mb-6">
+      <div class="card-content flex items-center gap-4">
+        <div class="relative">
+          <img *ngIf="avatarUrl()" [src]="avatarUrl()" alt="Avatar" class="h-16 w-16 rounded-full object-cover" />
+          <div *ngIf="!avatarUrl()" class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-lg font-bold text-white">
+            {{ (user.firstName || user.email).slice(0, 1).toUpperCase() }}
+          </div>
+        </div>
+        <div class="flex-1">
+          <p class="font-semibold">{{ user.firstName }} {{ user.lastName }}</p>
+          <p class="text-sm text-muted-foreground">{{ user.email }}</p>
+          <p class="text-xs text-muted-foreground">{{ roleLabel }}</p>
+        </div>
+        <div>
+          <label class="btn-secondary cursor-pointer">
+            {{ uploadingAvatar ? 'Envoi…' : 'Changer la photo' }}
+            <input type="file" accept="image/png,image/jpeg,image/webp" class="hidden" (change)="onAvatarSelected($event)" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <p *ngIf="success" class="alert-success mb-4">{{ success }}</p>
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="card mb-6">
+      <div class="card-header"><h2 class="font-medium">Informations personnelles</h2></div>
+      <div class="card-content space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="field-label">Prénom</label><input type="text" formControlName="firstName" class="input" /></div>
+          <div><label class="field-label">Nom</label><input type="text" formControlName="lastName" class="input" /></div>
+          <div><label class="field-label">Téléphone</label><input type="text" formControlName="phone" class="input" /></div>
+          <div><label class="field-label">Poste</label><input type="text" formControlName="jobTitle" class="input" /></div>
+        </div>
+        <div><label class="field-label">Bio</label><textarea formControlName="bio" class="textarea" rows="3"></textarea></div>
+        <div><label class="field-label">Adresse</label><input type="text" formControlName="address" class="input" /></div>
+        <button type="submit" [disabled]="saving" class="btn-primary">{{ saving ? 'Enregistrement…' : 'Enregistrer' }}</button>
+      </div>
+    </form>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="card">
+      <div class="card-header"><h2 class="font-medium">Changer le mot de passe</h2></div>
+      <div class="card-content space-y-4">
+        <div><label class="field-label">Mot de passe actuel</label><input type="password" formControlName="currentPassword" class="input" /></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div><label class="field-label">Nouveau mot de passe</label><input type="password" formControlName="newPassword" class="input" /></div>
+          <div><label class="field-label">Confirmation</label><input type="password" formControlName="confirmation" class="input" /></div>
+        </div>
+        <p *ngIf="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched" class="field-error">6 caractères minimum.</p>
+        <p *ngIf="passwordForm.errors?.['mismatch']" class="field-error">La confirmation ne correspond pas.</p>
+        <button type="submit" class="btn-secondary">Modifier le mot de passe</button>
+      </div>
+    </form>
+  </ng-container>
+</div>

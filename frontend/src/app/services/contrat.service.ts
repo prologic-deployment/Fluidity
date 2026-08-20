@@ -10,9 +10,9 @@ export class ContratService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(clientId?: string): Observable<Contrat[]> {
+  getAll(clientEmail?: string): Observable<Contrat[]> {
     let params = new HttpParams();
-    if (clientId) params = params.set('clientId', clientId);
+    if (clientEmail) params = params.set('clientEmail', clientEmail);
     return this.http.get<Contrat[]>(this.baseUrl, { params });
   }
 
