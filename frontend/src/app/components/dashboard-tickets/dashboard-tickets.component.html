@@ -1,0 +1,68 @@
+<div class="px-6 py-10 animate-fade-in-up">
+  <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Tickets / Incidents</h1>
+      <p class="mt-1 text-sm text-muted-foreground">Suivi des incidents avec priorité et SLA.</p>
+    </div>
+    <a routerLink="/tickets/nouveau" class="btn-primary">Ouvrir un incident</a>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+    <div class="card"><div class="card-content py-3"><p class="text-xs text-muted-foreground">Ouverts</p><p class="text-2xl font-semibold">{{ stats.ouverts }}</p></div></div>
+    <div class="card"><div class="card-content py-3"><p class="text-xs text-muted-foreground">P1/P2</p><p class="text-2xl font-semibold text-destructive">{{ stats.p1p2 }}</p></div></div>
+    <div class="card"><div class="card-content py-3"><p class="text-xs text-muted-foreground">Attente client</p><p class="text-2xl font-semibold">{{ stats.attenteClient }}</p></div></div>
+    <div class="card"><div class="card-content py-3"><p class="text-xs text-muted-foreground">Attente tiers</p><p class="text-2xl font-semibold">{{ stats.attenteTiers }}</p></div></div>
+    <div class="card" *ngIf="!isClient"><div class="card-content py-3"><p class="text-xs text-muted-foreground">Mes assignés</p><p class="text-2xl font-semibold">{{ stats.mesAssignes }}</p></div></div>
+    <div class="card"><div class="card-content py-3"><p class="text-xs text-muted-foreground">Résolus (7j)</p><p class="text-2xl font-semibold">{{ stats.resolus }}</p></div></div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="toolbar mb-4">
+    <select [(ngModel)]="filterStatut" (change)="applyFilters()" class="filter-select" [ngModelOptions]="{ standalone: true }">
+      <option value="">Tous les statuts</option>
+      <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
+    </select>
+    <select [(ngModel)]="filterPriorite" (change)="applyFilters()" class="filter-select" [ngModelOptions]="{ standalone: true }">
+      <option value="">Toutes les priorités</option>
+      <option *ngFor="let p of ['P1','P2','P3','P4']" [value]="p">{{ p }}</option>
+    </select>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Référence</th>
+          <th>Objet</th>
+          <th>Client</th>
+          <th>Catégorie</th>
+          <th>Priorité</th>
+          <th>Statut</th>
+          <th>Ouvert le</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngIf="!loading">
+          <tr *ngFor="let t of items" class="table-row-clickable" [routerLink]="['/tickets', t._id]">
+            <td class="font-mono text-xs">{{ t.reference }}</td>
+            <td class="font-medium">{{ t.objet }}</td>
+            <td>{{ clientNom(t) }}</td>
+            <td>{{ t.categorie }} / {{ t.sousCategorie }}</td>
+            <td><span class="badge-dot" [ngClass]="prioriteBadge(t.priorite)">{{ t.priorite }}</span></td>
+            <td>{{ t.statut }}</td>
+            <td class="text-xs text-muted-foreground">{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          </tr>
+        </ng-container>
+        <tr *ngIf="loading">
+          <td colspan="7"><div class="skeleton h-6 w-full"></div></td>
+        </tr>
+        <tr *ngIf="!loading && items.length === 0">
+          <td colspan="7" class="text-center text-muted-foreground py-8">Aucun ticket.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

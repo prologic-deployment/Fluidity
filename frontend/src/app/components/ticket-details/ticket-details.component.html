@@ -1,0 +1,105 @@
+<div class="mx-auto max-w-4xl px-6 py-10 animate-fade-in-up">
+  <a routerLink="/tickets" class="btn-ghost mb-6">← Retour aux tickets</a>
+
+  <div *ngIf="loading"><div class="skeleton h-40 w-full"></div></div>
+  <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+
+  <ng-container *ngIf="ticket">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="font-mono text-sm text-muted-foreground">{{ ticket.reference }}</p>
+        <h1 class="text-2xl font-semibold tracking-tight">{{ ticket.objet }}</h1>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span class="badge-dot" [ngClass]="prioriteClass(ticket.priorite)">{{ ticket.priorite }}</span>
+          <span class="badge-secondary">{{ ticket.statut }}</span>
+          <span class="badge-outline">{{ ticket.type }}</span>
+          <span *ngIf="ticket.slaEtat" class="badge-outline">{{ ticket.slaEtat.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+        <div class="card">
+          <div class="card-header"><h2 class="font-medium">Détail</h2></div>
+          <div class="card-content detail-grid">
+            <div><p class="detail-label">Client</p><p class="detail-value">{{ clientNom() }}</p></div>
+            <div><p class="detail-label">Contrat</p><p class="detail-value">{{ contratRef() }}</p></div>
+            <div><p class="detail-label">Catégorie</p><p class="detail-value">{{ ticket.categorie }} / {{ ticket.sousCategorie }}</p></div>
+            <div><p class="detail-label">Impact</p><p class="detail-value">{{ ticket.impact }}</p></div>
+            <div><p class="detail-label">Urgence</p><p class="detail-value">{{ ticket.urgence }}</p></div>
+            <div><p class="detail-label">Équipe</p><p class="detail-value">{{ ticket.assignedTeam || '—' }}</p></div>
+            <div><p class="detail-label">Assigné à</p><p class="detail-value">{{ assignedToLabel() }}</p></div>
+            <div><p class="detail-label">Ouvert le</p><p class="detail-value">{{ ticket.openedAt | date: 'dd/MM/yyyy HH:mm' }}</p></div>
+          </div>
+          <div class="card-content border-t">
+            <p class="detail-label">Description</p>
+            <p class="detail-value whitespace-pre-line">{{ ticket.descriptionDetaillee }}</p>
+          </div>
+          <div class="card-content border-t" *ngIf="ticket.resolution?.resume">
+            <p class="detail-label">Résolution</p>
+            <p class="detail-value whitespace-pre-line">{{ ticket.resolution?.resume }}</p>
+            <p class="detail-value whitespace-pre-line" *ngIf="ticket.resolution?.actionCorrective">{{ ticket.resolution?.actionCorrective }}</p>
+          </div>
+          <div class="card-content border-t" *ngIf="ticket.piecesJointes?.length">
+            <p class="detail-label">Pièces jointes</p>
+            <a *ngFor="let p of ticket.piecesJointes" [href]="resolveUrl(p)" target="_blank" class="btn-link block">{{ p }}</a>
+          </div>
+        </div>
+
+        <!-- Commentaires -->
+        <div class="card">
+          <div class="card-header"><h2 class="font-medium">Commentaires</h2></div>
+          <div class="card-content space-y-3">
+            <div *ngFor="let c of comments" class="rounded-lg bg-muted/40 p-3">
+              <p class="text-xs text-muted-foreground">{{ c.auteur }} · {{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+              <p class="mt-1 text-sm whitespace-pre-line">{{ c.corps }}</p>
+            </div>
+            <div *ngIf="!comments.length" class="text-sm text-muted-foreground">Aucun commentaire.</div>
+          </div>
+          <div class="card-content border-t space-y-3">
+            <textarea [(ngModel)]="newComment" class="textarea" rows="2" placeholder="Ajouter un commentaire…"></textarea>
+            <button (click)="commenter()" class="btn-secondary">Commenter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <!-- Workflow -->
+        <div class="card" *ngIf="transitions.length">
+          <div class="card-header"><h2 class="font-medium">Faire avancer</h2></div>
+          <div class="card-content space-y-3">
+            <div *ngIf="transitions.includes('En attente client') || transitions.includes('En attente tiers')">
+              <label class="field-label">Motif d'attente</label>
+              <input type="text" [(ngModel)]="motif" class="input" />
+            </div>
+            <div *ngIf="transitions.includes('Résolu')">
+              <label class="field-label">Résumé de résolution</label>
+              <textarea [(ngModel)]="resume" class="textarea" rows="2"></textarea>
+            </div>
+            <button *ngFor="let s of transitions" (click)="transition(s)" class="btn-primary w-full">{{ s }}</button>
+          </div>
+        </div>
+
+        <!-- Affectation -->
+        <div class="card" *ngIf="!isClient">
+          <div class="card-header"><h2 class="font-medium">Affectation</h2></div>
+          <div class="card-content space-y-3">
+            <div>
+              <label class="field-label">Équipe</label>
+              <input type="text" [(ngModel)]="selectedTeam" class="input" placeholder="Ex. Réseau" />
+            </div>
+            <div>
+              <label class="field-label">Technicien</label>
+              <select [(ngModel)]="selectedAssignee" class="select">
+                <option value="">Non assigné</option>
+                <option *ngFor="let a of assignees" [value]="a._id">{{ a.firstName }} {{ a.lastName }} ({{ a.email }})</option>
+              </select>
+            </div>
+            <button (click)="assigner()" class="btn-secondary w-full">Affecter</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

@@ -1,0 +1,130 @@
+<div class="mx-auto max-w-3xl px-6 py-10 animate-fade-in-up">
+  <div class="mb-8">
+    <a routerLink="/tickets" class="btn-ghost mb-4">← Retour aux tickets</a>
+    <h1 class="text-2xl font-semibold tracking-tight">Ouvrir un incident</h1>
+    <p class="mt-1 text-sm text-muted-foreground">Décrivez l'incident rencontré. La priorité est calculée automatiquement.</p>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+    <div class="card">
+      <div class="card-header-tinted">
+        <h2 class="font-medium">Informations générales</h2>
+      </div>
+      <div class="card-content space-y-4">
+        <div>
+          <label class="field-label">Objet</label>
+          <input type="text" formControlName="objet" class="input" placeholder="Résumé de l'incident" />
+          <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">Objet requis (3 caractères min).</p>
+        </div>
+        <div>
+          <label class="field-label">Description détaillée</label>
+          <textarea formControlName="descriptionDetaillee" class="textarea" rows="4" placeholder="Décrivez précisément l'incident…"></textarea>
+          <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">Description requise (10 caractères min).</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Catégorie</label>
+            <select formControlName="categorie" class="select">
+              <option value="" disabled>Sélectionner…</option>
+              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Sous-catégorie</label>
+            <select *ngIf="form.get('categorie')?.value !== 'Autre'" formControlName="sousCategorie" class="select">
+              <option value="" disabled>Sélectionner…</option>
+              <option *ngFor="let s of sousCategories" [value]="s">{{ s }}</option>
+            </select>
+            <input *ngIf="form.get('categorie')?.value === 'Autre'" type="text" formControlName="sousCategorieAutre" class="input" placeholder="Précisez la sous-catégorie" />
+          </div>
+        </div>
+        <div *ngIf="form.get('categorie')?.value === 'Autre'">
+          <label class="field-label">Précision de la catégorie</label>
+          <input type="text" formControlName="categorieAutre" class="input" placeholder="Précisez la catégorie" />
+        </div>
+        <div>
+          <label class="field-label">Contrat</label>
+          <select formControlName="contrat" class="select">
+            <option value="" disabled>Sélectionner…</option>
+            <option *ngFor="let c of contrats" [value]="c._id">{{ c.reference }} — {{ c.intitule }}</option>
+          </select>
+          <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Contrat requis.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header-tinted">
+        <h2 class="font-medium">Impact &amp; urgence</h2>
+      </div>
+      <div class="card-content space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label">Impact</label>
+            <select formControlName="impact" class="select">
+              <option value="" disabled>Sélectionner…</option>
+              <option *ngFor="let i of impacts" [value]="i">{{ i }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Urgence</label>
+            <select formControlName="urgence" class="select">
+              <option value="" disabled>Sélectionner…</option>
+              <option *ngFor="let u of urgences" [value]="u">{{ u }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="alert-success" *ngIf="priorityPreview()">
+          Priorité calculée : <strong>{{ priorityPreview() }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="diagnosticChamps.length">
+      <div class="card-header-tinted">
+        <h2 class="font-medium">Diagnostic</h2>
+      </div>
+      <div class="card-content space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div *ngIf="isDiagnosticFieldVisible('source')"><label class="field-label">Source</label><input type="text" formControlName="diagnostic.source" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('destination')"><label class="field-label">Destination</label><input type="text" formControlName="diagnostic.destination" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('protocole')"><label class="field-label">Protocole</label><input type="text" formControlName="diagnostic.protocole" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('port')"><label class="field-label">Port</label><input type="text" formControlName="diagnostic.port" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('direction')"><label class="field-label">Direction</label><input type="text" formControlName="diagnostic.direction" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('nomVm')"><label class="field-label">Nom de la VM</label><input type="text" formControlName="diagnostic.nomVm" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('environnement')"><label class="field-label">Environnement</label><input type="text" formControlName="diagnostic.environnement" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('hote')"><label class="field-label">Hôte</label><input type="text" formControlName="diagnostic.hote" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('ip')"><label class="field-label">Adresse IP</label><input type="text" formControlName="diagnostic.ip" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('systemeStockage')"><label class="field-label">Système de stockage</label><input type="text" formControlName="diagnostic.systemeStockage" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('volume')"><label class="field-label">Volume</label><input type="text" formControlName="diagnostic.volume" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('capacite')"><label class="field-label">Capacité</label><input type="text" formControlName="diagnostic.capacite" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('systemeAffecte')"><label class="field-label">Système affecté</label><input type="text" formControlName="diagnostic.systemeAffecte" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('evenementSecurite')"><label class="field-label">Événement de sécurité</label><input type="text" formControlName="diagnostic.evenementSecurite" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('heureDetection')"><label class="field-label">Heure de détection</label><input type="text" formControlName="diagnostic.heureDetection" class="input" /></div>
+        </div>
+        <div *ngIf="isDiagnosticFieldVisible('comportement')">
+          <label class="field-label">Comportement observé</label>
+          <textarea formControlName="diagnostic.comportement" class="textarea" rows="2"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header-tinted">
+        <h2 class="font-medium">Pièces jointes</h2>
+      </div>
+      <div class="card-content">
+        <app-dropzone (filesChange)="onPiecesJointesChange($event)"></app-dropzone>
+      </div>
+    </div>
+
+    <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+
+    <div class="flex items-center gap-3">
+      <button type="submit" [disabled]="loading" class="btn-primary">
+        {{ loading ? 'Envoi…' : 'Soumettre l\'incident' }}
+      </button>
+      <a routerLink="/tickets" class="btn-ghost">Annuler</a>
+    </div>
+  </form>
+</div>
