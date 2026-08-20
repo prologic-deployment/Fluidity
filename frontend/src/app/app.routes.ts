@@ -6,8 +6,10 @@ import { ResetPasswordComponent } from './components/reset-password/reset-passwo
 import { ShellComponent } from './components/shell/shell.component';
 import { DashboardDemandesComponent } from './components/dashboard-demandes/dashboard-demandes.component';
 import { CreateDemandeComponent } from './components/create-demande/create-demande.component';
+import { DemandeDetailsComponent } from './components/demande-details/demande-details.component';
 import { DashboardChangementsComponent } from './components/dashboard-changements/dashboard-changements.component';
 import { CreateChangementComponent } from './components/create-changement/create-changement.component';
+import { ChangementDetailsComponent } from './components/changement-details/changement-details.component';
 import { DashboardContratsComponent } from './components/dashboard-contrats/dashboard-contrats.component';
 import { CreateContratComponent } from './components/create-contrat/create-contrat.component';
 import { DashboardClientsComponent } from './components/dashboard-clients/dashboard-clients.component';
@@ -29,8 +31,10 @@ export const routes: Routes = [
     children: [
       { path: 'demandes', component: DashboardDemandesComponent },
       { path: 'demandes/nouvelle', component: CreateDemandeComponent },
+      { path: 'demandes/:id', component: DemandeDetailsComponent },
       { path: 'changements', component: DashboardChangementsComponent },
       { path: 'changements/nouveau', component: CreateChangementComponent },
+      { path: 'changements/:id', component: ChangementDetailsComponent },
       { path: 'tickets', component: DashboardTicketsComponent },
       { path: 'tickets/nouveau', component: CreateTicketComponent },
       { path: 'tickets/:id', component: TicketDetailsComponent },

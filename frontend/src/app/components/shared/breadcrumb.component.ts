@@ -1,16 +1,21 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, Subject, takeUntil } from 'rxjs';
+import { BreadcrumbService } from '../../services/breadcrumb.service';
 
 interface Crumb {
   label: string;
   path?: string;
 }
 
+/** Détecte un identifiant MongoDB (24 hexadécimaux). */
+const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
+
 /**
  * Fil d'Ariane dynamique généré depuis le segment de route actif.
- * Chaque segment est libellé en français, le dernier est non cliquable.
+ * Les segments de détail (`:id`) sont résolus via le BreadcrumbService
+ * (libellé enregistré par la page de détail) — jamais l'ObjectId brut.
  */
 @Component({
   selector: 'app-breadcrumb',
@@ -30,11 +35,16 @@ interface Crumb {
 })
 export class BreadcrumbComponent implements OnInit, OnDestroy {
   crumbs: Crumb[] = [];
+  private labels: Record<string, string> = {};
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private breadcrumbService: BreadcrumbService) {}
 
   ngOnInit(): void {
+    this.breadcrumbService.labels.pipe(takeUntil(this.destroy$)).subscribe((labels) => {
+      this.labels = labels;
+      this.build(this.router.url);
+    });
     this.build(this.router.url);
     this.router.events
       .pipe(
@@ -55,12 +65,23 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
     let path = '';
     for (const seg of segments) {
       path += `/${seg}`;
-      crumbs.push({ label: this.label(seg), path });
+      const label = this.resolve(seg, path);
+      // Ignore les segments sans libellé significatif (ex. ObjectId non résolu)
+      if (label === null) continue;
+      crumbs.push({ label, path });
+    }
+    // Au moins un crumb d'accueil
+    if (crumbs.length === 0) {
+      crumbs.push({ label: 'Accueil', path: '/' });
     }
     this.crumbs = crumbs;
   }
 
-  private label(segment: string): string {
+  /** Résout le libellé d'un segment ; `null` si le segment doit être masqué. */
+  private resolve(segment: string, path: string): string | null {
+    // Libellé dynamique enregistré par une page de détail
+    if (this.labels[path]) return this.labels[path];
+
     const labels: Record<string, string> = {
       demandes: 'Demandes',
       nouvelle: 'Nouvelle demande',
@@ -75,7 +96,10 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
       security: 'Sécurité',
     };
     if (labels[segment]) return labels[segment];
-    // Identifiant (ex. id de ticket) : affiché tel quel, tronqué
-    return segment.length > 24 ? `${segment.slice(0, 24)}…` : segment;
+
+    // Identifiant non résolu (ObjectId) : masqué tant qu'aucun libellé n'existe
+    if (OBJECT_ID_RE.test(segment)) return null;
+
+    return segment;
   }
 }

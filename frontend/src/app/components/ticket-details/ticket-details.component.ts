@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TicketService } from '../../services/ticket.service';
 import { AuthService } from '../../services/auth.service';
+import { BreadcrumbService } from '../../services/breadcrumb.service';
 import { Ticket, TicketComment, TicketActivity, EQUIPES_SUPPORT } from '../../models/ticket.model';
 import { resolveUploadUrl } from '../../utils/upload-url.util';
 
@@ -48,7 +49,9 @@ export class TicketDetailsComponent implements OnInit {
   constructor(
     private ticketService: TicketService,
     private auth: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router,
+    private breadcrumb: BreadcrumbService
   ) {}
 
   ngOnInit(): void {
@@ -68,6 +71,8 @@ export class TicketDetailsComponent implements OnInit {
         this.assignTeam = t.assignedTeam || '';
         this.assignTo = typeof t.assignedTo === 'object' && t.assignedTo ? t.assignedTo._id : '';
         this.loading = false;
+        // Libellé du fil d'Ariane : référence + objet (jamais l'ObjectId)
+        this.breadcrumb.setLabel(this.router.url, `${t.reference} — ${t.objet}`);
         this.loadComments(id);
         this.loadActivities(id);
         if (!this.isClient) this.loadAssignees();

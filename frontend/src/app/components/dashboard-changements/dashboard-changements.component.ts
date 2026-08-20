@@ -3,26 +3,21 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
-import { Changement, displayStockageType, displayStockageProtocole, normalizeStockage } from '../../models/changement.model';
+import { Changement } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
-import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
   changements: Changement[] = [];
   loading = false;
   error: string | null = null;
-  active = 'changements';
-  selected: Changement | null = null;
-  transitionLoading = false;
-  transitionError: string | null = null;
 
   searchTerm = '';
   statutFiltre = '';
@@ -93,19 +88,9 @@ export class DashboardChangementsComponent implements OnInit {
     this.typeFiltre = '';
   }
 
-  viewDetails(changement: Changement): void {
-    this.selected = changement;
-    this.transitionError = null;
-  }
-
-  closeDetails(): void {
-    this.selected = null;
-    this.transitionError = null;
-  }
-
-  logout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
+  /** Navigation vers la page de détail dédiée. */
+  openDetails(changement: Changement): void {
+    if (changement._id) this.router.navigate(['/changements', changement._id]);
   }
 
   /** Libellé du client (peuplé côté serveur). */
@@ -114,117 +99,63 @@ export class DashboardChangementsComponent implements OnInit {
     return cl?.nom || (typeof cl === 'string' ? cl : '—');
   }
 
-  /** Référence du contrat (peuplé côté serveur). */
-  contratRef(c: Changement): string {
-    const ct = c.contrat as any;
-    return ct?.reference || (typeof ct === 'string' ? ct : '—');
-  }
-
   /** Email du demandeur (peuplé côté serveur). */
   requesterEmail(c: Changement): string {
     const r = c.requester as any;
     return r?.email || (typeof r === 'string' ? r : '');
   }
 
-  normalizeStockage = normalizeStockage;
-  displayStockageType = displayStockageType;
-  displayStockageProtocole = displayStockageProtocole;
-
-  /** Le client propriétaire peut agir sur son propre changement (Task 4 : plus de suppression). */
+  /** Le client propriétaire peut agir sur son propre changement. */
   isOwner(changement: Changement): boolean {
     return this.auth.isClient() && this.requesterEmail(changement) === this.auth.getEmail();
   }
 
   /** Le changement peut-il encore être annulé par son client propriétaire ? */
   canCancel(changement: Changement): boolean {
-    return this.isOwner(changement) && availableTransitions(CHANGEMENT_TRANSITIONS, changement.statut, this.auth.getRole()).includes('Annulé');
+    return (
+      this.isOwner(changement) &&
+      availableTransitions(CHANGEMENT_TRANSITIONS, changement.statut, this.auth.getRole()).includes('Annulé')
+    );
   }
 
-  /**
-   * Annulation d'un changement par son client propriétaire (remplace la suppression,
-   * Task 4). Le changement reste en base et visible dans l'historique, avec le statut
-   * "Annulé" — il sort définitivement du workflow (aucune transition ultérieure
-   * possible, pour aucun rôle).
-   */
   async cancelChangement(changement: Changement): Promise<void> {
     if (!changement._id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler ce changement ?',
-      message: "Le changement sera marqué comme annulé et sortira définitivement du workflow. Il reste consultable dans l'historique.",
+      message:
+        "Le changement sera marqué comme annulé et sortira définitivement du workflow. Il reste consultable dans l'historique.",
       confirmLabel: 'Annuler le changement',
       variant: 'destructive',
     });
     if (!ok) return;
     this.changementService.changerStatut(changement._id, 'Annulé').subscribe({
-      next: () => {
-        this.load();
-        this.closeDetails();
-      },
+      next: () => this.load(),
       error: (err) => (this.error = err.error?.message || "Échec de l'annulation."),
-    });
-  }
-
-  /** Statuts vers lesquels le rôle courant peut faire transiter le changement sélectionné
-   * (l'annulation "Annulé" est gérée séparément via le bouton dédié — voir canCancel/cancelChangement). */
-  prochainesEtapes(): string[] {
-    if (!this.selected) return [];
-    return availableTransitions(CHANGEMENT_TRANSITIONS, this.selected.statut, this.auth.getRole()).filter((s) => s !== 'Annulé');
-  }
-
-  changerStatut(nouveauStatut: string): void {
-    if (!this.selected?._id) return;
-    this.transitionLoading = true;
-    this.transitionError = null;
-    this.changementService.changerStatut(this.selected._id, nouveauStatut).subscribe({
-      next: (updated) => {
-        this.selected = updated;
-        this.transitionLoading = false;
-        this.load();
-      },
-      error: (err) => {
-        this.transitionError = err.error?.message || 'Transition refusée.';
-        this.transitionLoading = false;
-      },
     });
   }
 
   statutClass(statut?: string): string {
     switch (statut) {
-      case 'Soumis':
-        return 'badge-outline';
-      case 'En attente de validation':
-        return 'badge-secondary';
-      case 'Approuvé':
-        return 'badge-secondary';
-      case 'Planifié':
-        return 'badge-secondary';
-      case "En cours d'implémentation":
-        return 'badge-warning';
-      case 'Rollback':
-        return 'badge-destructive';
-      case 'Implémenté':
-        return 'badge-success';
-      case 'En revue post-implémentation':
-        return 'badge-warning';
-      case 'Clôturé':
-        return 'badge-secondary';
-      case 'Rejeté':
-        return 'badge-destructive';
-      case 'Annulé':
-        return 'badge-secondary';
-      default:
-        return 'badge-outline';
+      case 'Soumis': return 'badge-outline';
+      case 'En attente de validation': return 'badge-secondary';
+      case 'Approuvé': return 'badge-secondary';
+      case 'Planifié': return 'badge-secondary';
+      case "En cours d'implémentation": return 'badge-warning';
+      case 'Rollback': return 'badge-destructive';
+      case 'Implémenté': return 'badge-success';
+      case 'En revue post-implémentation': return 'badge-warning';
+      case 'Clôturé': return 'badge-secondary';
+      case 'Rejeté': return 'badge-destructive';
+      case 'Annulé': return 'badge-secondary';
+      default: return 'badge-outline';
     }
   }
 
   typeClass(type?: string): string {
     switch (type) {
-      case 'Urgent':
-        return 'badge-destructive';
-      case 'Majeur':
-        return 'badge-warning';
-      default:
-        return 'badge-outline';
+      case 'Urgent': return 'badge-destructive';
+      case 'Majeur': return 'badge-warning';
+      default: return 'badge-outline';
     }
   }
 }

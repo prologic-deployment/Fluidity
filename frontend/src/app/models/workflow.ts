@@ -98,3 +98,36 @@ export function availableTransitions(
   if (role === 'ADMIN') return options.map((o) => o.to);
   return options.filter((o) => o.roles.includes(role)).map((o) => o.to);
 }
+
+// ---------------------------------------------------------------------
+// Ordre des statuts pour l'indicateur de workflow (stepper).
+// Chemin principal linéaire + branches (états terminaux / d'attente).
+// ---------------------------------------------------------------------
+
+/** Chemin principal du cycle de vie d'une Demande. */
+export const DEMANDE_STATUTS_ORDER: string[] = [
+  'Ouverte',
+  "En cours d'analyse",
+  'En attente de validation',
+  'En cours de réalisation',
+  'Réalisée',
+  'Clôturée',
+];
+
+/** Branches d'une Demande (attente client, rejet, annulation). */
+export const DEMANDE_STATUTS_BRANCHES: string[] = ['En attente client', 'Rejetée', 'Annulé'];
+
+/** Chemin principal du cycle de vie d'un Changement. */
+export const CHANGEMENT_STATUTS_ORDER: string[] = [
+  'Soumis',
+  'En attente de validation',
+  'Approuvé',
+  'Planifié',
+  "En cours d'implémentation",
+  'Implémenté',
+  'En revue post-implémentation',
+  'Clôturé',
+];
+
+/** Branches d'un Changement (rollback, rejet, annulation). */
+export const CHANGEMENT_STATUTS_BRANCHES: string[] = ['Rollback', 'Rejeté', 'Annulé'];

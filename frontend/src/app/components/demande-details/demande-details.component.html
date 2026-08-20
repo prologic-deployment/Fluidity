@@ -1,0 +1,90 @@
+<div class="min-h-screen" *ngIf="!loading && demande as d">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center gap-3 justify-between">
+      <div class="min-w-0">
+        <a routerLink="/demandes" class="btn-link text-xs">&larr; Demandes</a>
+        <div class="mt-1 flex flex-wrap items-center gap-2">
+          <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
+          <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee }}</span>
+        </div>
+        <h1 class="text-xl font-semibold tracking-tight mt-1">{{ d.objet }}</h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <!-- Workflow -->
+    <section class="card mb-6">
+      <div class="card-content py-5">
+        <p class="detail-section-title">Workflow</p>
+        <app-workflow-stepper [statuses]="statutsOrder" [branches]="statutsBranches" [current]="d.statut"></app-workflow-stepper>
+      </div>
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="space-y-6 min-w-0">
+
+        <!-- Description -->
+        <section class="card">
+          <div class="card-content py-5 space-y-4">
+            <p class="detail-section-title">Description</p>
+            <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ d.descriptionDetaillee }}</p>
+            <div *ngIf="d.informationsComplementaires">
+              <p class="detail-label mb-2">Informations complémentaires</p>
+              <p class="detail-value whitespace-pre-line">{{ d.informationsComplementaires }}</p>
+            </div>
+            <div *ngIf="d.piecesJointes?.length">
+              <p class="detail-label mb-2">Pièces jointes</p>
+              <a *ngFor="let pj of d.piecesJointes" [href]="resolveUrl(pj)" target="_blank" class="btn-outline btn-sm mr-2 mb-2">{{ nomFichier(pj) }}</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Colonne latérale -->
+      <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <section class="card">
+          <div class="card-content py-4 space-y-2 text-sm">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Informations</p>
+            <p><span class="text-muted-foreground">Client</span><br />{{ clientNom() }}</p>
+            <p><span class="text-muted-foreground">Demandeur</span><br />{{ requesterLabel() }}</p>
+            <p><span class="text-muted-foreground">Type de demande</span><br />{{ d.typeDemande }}</p>
+            <p><span class="text-muted-foreground">Service / Environnement</span><br />{{ d.serviceEnvironnement }}</p>
+            <p><span class="text-muted-foreground">Catégorie</span><br />{{ d.categorie }} / {{ d.sousCategorie }}</p>
+            <p><span class="text-muted-foreground">Contrat</span><br />{{ contratRef() }}</p>
+            <p><span class="text-muted-foreground">Créée le</span><br />{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+            <p *ngIf="d.updatedAt"><span class="text-muted-foreground">Mise à jour</span><br />{{ d.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+          </div>
+        </section>
+
+        <!-- Actions workflow -->
+        <section *ngIf="prochainesEtapes().length" class="card">
+          <div class="card-content py-4 space-y-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faire avancer</p>
+            <p *ngIf="transitionError" class="alert-destructive mb-2">{{ transitionError }}</p>
+            <button *ngFor="let etape of prochainesEtapes()" [disabled]="transitionLoading"
+              (click)="changerStatut(etape)"
+              class="btn-primary btn-sm w-full">
+              {{ transitionLoading ? '…' : '→ ' + etape }}
+            </button>
+          </div>
+        </section>
+
+        <section *ngIf="canCancel()" class="card">
+          <div class="card-content py-4">
+            <button (click)="cancelDemande()" class="btn-outline btn-sm w-full text-destructive hover:text-destructive">
+              Annuler la demande
+            </button>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div *ngIf="loading" class="p-10"><div class="skeleton h-40 w-full"></div></div>
+<div *ngIf="!loading && !demande" class="p-10 text-sm text-muted-foreground">
+  {{ error || 'Demande introuvable.' }} · <a routerLink="/demandes" class="btn-link">Retour</a>
+</div>
