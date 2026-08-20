@@ -10,11 +10,10 @@ interface SidebarChild {
 
 interface SidebarGroup {
   label: string;
-  icon: string; // simple inline-svg key, resolved in template
-  path?: string; // if the group itself is a direct link (no children)
+  icon: string;
+  path?: string;
   children?: SidebarChild[];
   open: boolean;
-  adminOnly?: boolean;
 }
 
 @Component({
@@ -35,33 +34,26 @@ export class SidebarComponent {
     children: [
       { label: 'Demandes', path: '/demandes' },
       { label: 'Changements', path: '/changements' },
+      { label: 'Tickets / Incidents', path: '/tickets' },
     ],
   };
 
-  // Un compte CLIENT ne voit que "Espace Services" (Task 4 — permissions client)
+  private adminGroup: SidebarGroup = {
+    label: 'Administration',
+    icon: 'file',
+    open: true,
+    children: [
+      { label: 'Contrats', path: '/contrats' },
+      { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
+      { label: 'Clients', path: '/clients' },
+      { label: 'Nouveau client', path: '/clients/nouveau' },
+    ].filter((c) => this.isAdmin || (c.path === '/contrats' || c.path === '/clients')),
+  };
+
+  // Compte CLIENT : uniquement l'Espace Services. Personnel : + Administration.
   groups: SidebarGroup[] = this.isClient
     ? [this.espaceServicesGroup]
-    : [
-        this.espaceServicesGroup,
-        {
-          label: 'Contrats',
-          icon: 'file',
-          open: true,
-          children: [
-            { label: 'Tous les contrats', path: '/contrats' },
-            { label: 'Ouvrir un contrat', path: '/contrats/nouveau' },
-          ].filter((c) => this.isAdmin || c.path === '/contrats'),
-        },
-        {
-          label: 'Clients',
-          icon: 'users',
-          open: true,
-          children: [
-            { label: 'Tous les clients', path: '/clients' },
-            { label: 'Nouveau client', path: '/clients/nouveau' },
-          ].filter((c) => this.isAdmin || c.path === '/clients'),
-        },
-      ];
+    : [this.espaceServicesGroup, this.adminGroup];
 
   constructor(private auth: AuthService, private router: Router) {}
 
@@ -74,8 +66,16 @@ export class SidebarComponent {
     this.router.navigate(['/login']);
   }
 
+  displayName(): string {
+    const u = this.user;
+    if (u?.firstName || u?.lastName) return `${u.firstName || ''} ${u.lastName || ''}`.trim();
+    return u?.email || 'Utilisateur';
+  }
+
   initials(): string {
-    const email = this.user?.role || 'U';
-    return email.slice(0, 2).toUpperCase();
+    const u = this.user;
+    const first = (u?.firstName || u?.email || 'U').slice(0, 1);
+    const second = u?.lastName ? u.lastName.slice(0, 1) : (u?.email || 'U').slice(1, 2);
+    return `${first}${second}`.toUpperCase();
   }
 }

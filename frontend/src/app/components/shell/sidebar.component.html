@@ -63,6 +63,19 @@
 
   <div class="mx-4 h-px bg-white/10"></div>
 
+  <!-- Compte -->
+  <div class="px-3 py-2">
+    <p class="side-group-label">Compte</p>
+    <a [routerLink]="'/profil'" routerLinkActive="side-sublink-active" [routerLinkActiveOptions]="{ exact: true }" class="side-sublink">
+      <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>
+      Mon profil
+    </a>
+    <a [routerLink]="'/securite'" routerLinkActive="side-sublink-active" [routerLinkActiveOptions]="{ exact: true }" class="side-sublink">
+      <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>
+      Sécurité & 2FA
+    </a>
+  </div>
+
   <!-- User card -->
   <div class="p-4">
     <div class="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
@@ -70,8 +83,8 @@
         {{ initials() }}
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-xs font-medium text-white">{{ user?.role || 'Utilisateur' }}</p>
-        <p class="truncate text-[11px] text-slate-400">{{ user?.tenantId }}</p>
+        <p class="truncate text-xs font-medium text-white">{{ displayName() }}</p>
+        <p class="truncate text-[11px] text-slate-400">{{ user?.role || 'Utilisateur' }}</p>
       </div>
       <button (click)="logout()" title="Déconnexion"
         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white">

@@ -12,6 +12,11 @@ import { DashboardContratsComponent } from './components/dashboard-contrats/dash
 import { CreateContratComponent } from './components/create-contrat/create-contrat.component';
 import { DashboardClientsComponent } from './components/dashboard-clients/dashboard-clients.component';
 import { CreateClientComponent } from './components/create-client/create-client.component';
+import { DashboardTicketsComponent } from './components/dashboard-tickets/dashboard-tickets.component';
+import { CreateTicketComponent } from './components/create-ticket/create-ticket.component';
+import { TicketDetailsComponent } from './components/ticket-details/ticket-details.component';
+import { ProfilComponent } from './components/profil/profil.component';
+import { SecurityPageComponent } from './components/security/security-page.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
@@ -26,10 +31,15 @@ export const routes: Routes = [
       { path: 'demandes/nouvelle', component: CreateDemandeComponent },
       { path: 'changements', component: DashboardChangementsComponent },
       { path: 'changements/nouveau', component: CreateChangementComponent },
+      { path: 'tickets', component: DashboardTicketsComponent },
+      { path: 'tickets/nouveau', component: CreateTicketComponent },
+      { path: 'tickets/:id', component: TicketDetailsComponent },
       { path: 'contrats', component: DashboardContratsComponent },
       { path: 'contrats/nouveau', component: CreateContratComponent, canActivate: [adminGuard] },
       { path: 'clients', component: DashboardClientsComponent },
       { path: 'clients/nouveau', component: CreateClientComponent, canActivate: [adminGuard] },
+      { path: 'profil', component: ProfilComponent },
+      { path: 'securite', component: SecurityPageComponent },
     ],
   },
   { path: '**', redirectTo: 'login' },

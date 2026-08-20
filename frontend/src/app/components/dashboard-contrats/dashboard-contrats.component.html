@@ -11,7 +11,7 @@
         </div>
         <div>
           <h1 class="text-xl font-semibold tracking-tight">Contrats</h1>
-          <p class="text-sm text-muted-foreground">Contrats clients associés à ce tenant.</p>
+          <p class="text-sm text-muted-foreground">Contrats clients de l'organisation.</p>
         </div>
       </div>
       <a *ngIf="auth.isAdmin()" routerLink="/contrats/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
@@ -122,7 +122,7 @@
           <div class="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-muted/40 p-3 text-xs">
             <div>
               <p class="text-muted-foreground">Client</p>
-              <p class="mt-0.5 font-medium text-foreground truncate">{{ c.clientId }}</p>
+              <p class="mt-0.5 font-medium text-foreground truncate">{{ clientNom(c) }}</p>
             </div>
             <div>
               <p class="text-muted-foreground">Type</p>
@@ -167,7 +167,7 @@
     <div class="detail-grid">
       <div>
         <p class="detail-label">Client</p>
-        <p class="detail-value">{{ c.clientId }}</p>
+        <p class="detail-value">{{ clientNom(c) }}</p>
       </div>
       <div>
         <p class="detail-label">Référence</p>

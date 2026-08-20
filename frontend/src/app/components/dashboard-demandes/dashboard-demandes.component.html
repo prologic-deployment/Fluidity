@@ -11,7 +11,7 @@
         </div>
         <div>
           <h1 class="text-xl font-semibold tracking-tight">Demandes de service</h1>
-          <p class="text-sm text-muted-foreground">Suivi des demandes soumises par les clients du tenant.</p>
+          <p class="text-sm text-muted-foreground">Suivi des demandes soumises par les clients.</p>
         </div>
       </div>
       <a *ngIf="auth.isClient()" routerLink="/demandes/nouvelle" class="btn-primary transition-transform hover:scale-[1.03]">
@@ -153,7 +153,7 @@
     <div class="detail-grid">
       <div>
         <p class="detail-label">Client</p>
-        <p class="detail-value">{{ d.clientId }}</p>
+        <p class="detail-value">{{ clientNom(d) }}</p>
       </div>
       <div>
         <p class="detail-label">Type de demande</p>
@@ -165,7 +165,7 @@
       </div>
       <div>
         <p class="detail-label">Contrat</p>
-        <p class="detail-value">{{ d.contrat }}</p>
+        <p class="detail-value">{{ contratRef(d) }}</p>
       </div>
       
       <div>

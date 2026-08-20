@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
-import { Changement } from '../../models/changement.model';
+import { Changement, displayStockageType, displayStockageProtocole, normalizeStockage } from '../../models/changement.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -75,7 +75,7 @@ export class DashboardChangementsComponent implements OnInit {
       const matchTerm =
         !term ||
         c.objetChangement.toLowerCase().includes(term) ||
-        c.clientId?.toLowerCase().includes(term) ||
+        this.clientNom(c).toLowerCase().includes(term) ||
         c.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
@@ -108,9 +108,31 @@ export class DashboardChangementsComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  /** Libellé du client (peuplé côté serveur). */
+  clientNom(c: Changement): string {
+    const cl = c.clientId as any;
+    return cl?.nom || (typeof cl === 'string' ? cl : '—');
+  }
+
+  /** Référence du contrat (peuplé côté serveur). */
+  contratRef(c: Changement): string {
+    const ct = c.contrat as any;
+    return ct?.reference || (typeof ct === 'string' ? ct : '—');
+  }
+
+  /** Email du demandeur (peuplé côté serveur). */
+  requesterEmail(c: Changement): string {
+    const r = c.requester as any;
+    return r?.email || (typeof r === 'string' ? r : '');
+  }
+
+  normalizeStockage = normalizeStockage;
+  displayStockageType = displayStockageType;
+  displayStockageProtocole = displayStockageProtocole;
+
   /** Le client propriétaire peut agir sur son propre changement (Task 4 : plus de suppression). */
   isOwner(changement: Changement): boolean {
-    return this.auth.isClient() && changement.clientId === this.auth.getEmail();
+    return this.auth.isClient() && this.requesterEmail(changement) === this.auth.getEmail();
   }
 
   /** Le changement peut-il encore être annulé par son client propriétaire ? */

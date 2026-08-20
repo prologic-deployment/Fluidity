@@ -157,7 +157,7 @@
     <div class="detail-grid">
       <div>
         <p class="detail-label">Client</p>
-        <p class="detail-value">{{ c.clientId }}</p>
+        <p class="detail-value">{{ clientNom(c) }}</p>
       </div>
       <div>
         <p class="detail-label">Service / Environnement</p>
@@ -165,7 +165,7 @@
       </div>
       <div>
         <p class="detail-label">Contrat</p>
-        <p class="detail-value">{{ c.contrat }}</p>
+        <p class="detail-value">{{ contratRef(c) }}</p>
       </div>
       <!-- <div>
         <p class="detail-label">Fenêtre d'intervention</p>
@@ -189,16 +189,16 @@
       <div class="detail-grid">
         <ng-container *ngIf="c.specifications.general as g">
           <div *ngIf="g.ressourcesConcernees"><p class="detail-label">Ressources concernées</p><p class="detail-value">{{ g.ressourcesConcernees }}</p></div>
-          <!-- <div *ngIf="g.environnement"><p class="detail-label">Environnement</p><p class="detail-value">{{ g.environnement }}</p></div> -->
         </ng-container>
         <ng-container *ngIf="c.specifications.serveur as s">
           <div *ngIf="s.os"><p class="detail-label">OS</p><p class="detail-value">{{ s.os }}</p></div>
+          <div *ngIf="s.hostname"><p class="detail-label">Hostname</p><p class="detail-value">{{ s.hostname }}</p></div>
           <div *ngIf="s.cpuCores"><p class="detail-label">CPU (cœurs)</p><p class="detail-value">{{ s.cpuCores }}</p></div>
           <div *ngIf="s.ramGo"><p class="detail-label">RAM (Go)</p><p class="detail-value">{{ s.ramGo }}</p></div>
           <div *ngIf="s.disques?.length" class="sm:col-span-2">
             <p class="detail-label">Disques</p>
             <p class="detail-value">
-              <span *ngFor="let d of s.disques; let last = last">{{ d.tailleGo }} Go ({{ d.type }})<span *ngIf="!last">, </span></span>
+              <span *ngFor="let d of s.disques; let last = last">{{ d.capaciteGo }} Go ({{ d.type }})<span *ngIf="!last">, </span></span>
             </p>
           </div>
         </ng-container>
@@ -208,42 +208,32 @@
           <div *ngIf="r.masqueSousReseau"><p class="detail-label">Masque</p><p class="detail-value">{{ r.masqueSousReseau }}</p></div>
           <div *ngIf="r.passerelle"><p class="detail-label">Passerelle</p><p class="detail-value">{{ r.passerelle }}</p></div>
         </ng-container>
+        <ng-container *ngIf="c.specifications.firewall as fw">
+          <div *ngIf="fw.reglesPareFeu"><p class="detail-label">Règles pare-feu</p><p class="detail-value">{{ fw.reglesPareFeu }}</p></div>
+        </ng-container>
         <ng-container *ngIf="c.specifications.backup as b">
           <div *ngIf="b.espaceBackupSupplementaireGo"><p class="detail-label">Backup sup. (Go)</p><p class="detail-value">{{ b.espaceBackupSupplementaireGo }}</p></div>
           <div *ngIf="b.retentionSouhaitee"><p class="detail-label">Rétention</p><p class="detail-value">{{ b.retentionSouhaitee }}</p></div>
+          <div *ngIf="b.frequenceSauvegarde"><p class="detail-label">Fréquence</p><p class="detail-value">{{ b.frequenceSauvegarde }}</p></div>
         </ng-container>
-        <ng-container *ngIf="c.specifications.database as db">
-          <div *ngIf="db.moteur"><p class="detail-label">Moteur</p><p class="detail-value">{{ db.moteur }}</p></div>
-          <div *ngIf="db.version"><p class="detail-label">Version</p><p class="detail-value">{{ db.version }}</p></div>
-          <div *ngIf="db.instance"><p class="detail-label">Instance</p><p class="detail-value">{{ db.instance }}</p></div>
-          <div *ngIf="db.nomBaseDeDonnees"><p class="detail-label">Base de données</p><p class="detail-value">{{ db.nomBaseDeDonnees }}</p></div>
-        </ng-container>
-        <ng-container *ngIf="c.specifications.conteneurs as ct">
-          <div *ngIf="ct.nomConteneur"><p class="detail-label">Conteneur</p><p class="detail-value">{{ ct.nomConteneur }}</p></div>
-          <div *ngIf="ct.image"><p class="detail-label">Image</p><p class="detail-value">{{ ct.image }}</p></div>
-          <div *ngIf="ct.registry"><p class="detail-label">Registry</p><p class="detail-value">{{ ct.registry }}</p></div>
-          <div *ngIf="ct.namespace"><p class="detail-label">Namespace</p><p class="detail-value">{{ ct.namespace }}</p></div>
-        </ng-container>
-        <ng-container *ngIf="c.specifications.stockage as st">
-          <div *ngIf="st.capaciteGo"><p class="detail-label">Capacité (Go)</p><p class="detail-value">{{ st.capaciteGo }}</p></div>
-          <div *ngIf="st.pointMontage"><p class="detail-label">Point de montage</p><p class="detail-value">{{ st.pointMontage }}</p></div>
-          <div *ngIf="st.systemeFichiers"><p class="detail-label">Système de fichiers</p><p class="detail-value">{{ st.systemeFichiers }}</p></div>
-        </ng-container>
-        <ng-container *ngIf="c.specifications.securite as sec">
-          <div *ngIf="sec.regleFirewall"><p class="detail-label">Règle firewall</p><p class="detail-value">{{ sec.regleFirewall }}</p></div>
-          <div *ngIf="sec.niveauSecurite"><p class="detail-label">Niveau de sécurité</p><p class="detail-value">{{ sec.niveauSecurite }}</p></div>
-          <div *ngIf="sec.certificat"><p class="detail-label">Certificat</p><p class="detail-value">{{ sec.certificat }}</p></div>
+        <ng-container *ngIf="c.specifications.stockage">
+          <div *ngFor="let e of normalizeStockage(c.specifications.stockage)" class="sm:col-span-2">
+            <p class="detail-value">{{ displayStockageType(e) }} — {{ displayStockageProtocole(e) }}<span *ngIf="e.capaciteGo"> ({{ e.capaciteGo }} Go)</span></p>
+          </div>
         </ng-container>
         <ng-container *ngIf="c.specifications.iaGpu as ia">
-          <div *ngIf="ia.modeleGpu"><p class="detail-label">Modèle GPU</p><p class="detail-value">{{ ia.modeleGpu }}</p></div>
-          <!-- <div *ngIf="ia.versionCuda"><p class="detail-label">Version CUDA</p><p class="detail-value">{{ ia.versionCuda }}</p></div> -->
+          <div *ngIf="ia.typeGpu"><p class="detail-label">Type GPU</p><p class="detail-value">{{ ia.typeGpu }}</p></div>
+          <div *ngIf="ia.nombreGpu"><p class="detail-label">Nombre de GPU</p><p class="detail-value">{{ ia.nombreGpu }}</p></div>
           <div *ngIf="ia.vramGo"><p class="detail-label">VRAM (Go)</p><p class="detail-value">{{ ia.vramGo }}</p></div>
-          <div *ngIf="ia.nombreGpu"><p class="detail-label">Capacité de GPU</p><p class="detail-value">{{ ia.nombreGpu }}</p></div>
+        </ng-container>
+        <ng-container *ngIf="c.specifications.securite as sec">
+          <div *ngIf="sec.perimetre"><p class="detail-label">Périmètre</p><p class="detail-value">{{ sec.perimetre }}</p></div>
+          <div *ngIf="sec.niveauCriticite"><p class="detail-label">Niveau de criticité</p><p class="detail-value">{{ sec.niveauCriticite }}</p></div>
         </ng-container>
       </div>
     </ng-container>
 
-    <ng-container *ngIf="c.piecesJointes?.length">
+<ng-container *ngIf="c.piecesJointes?.length">
       <p class="detail-section-title">Pièces jointes</p>
       <ul class="space-y-1">
         <li *ngFor="let p of c.piecesJointes">

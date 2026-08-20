@@ -35,7 +35,7 @@
             <label class="field-label">Client</label>
             <select formControlName="clientId" class="select">
               <option value="" disabled>Sélectionner un client...</option>
-              <option *ngFor="let cl of clients" [value]="cl.email">{{ cl.nom }} — {{ cl.email }}</option>
+              <option *ngFor="let cl of clients" [value]="cl._id">{{ cl.nom }} — {{ cl.email }}</option>
             </select>
             <p *ngIf="form.get('clientId')?.invalid && form.get('clientId')?.touched" class="field-error">Champ requis.</p>
             <p *ngIf="clients.length === 0" class="mt-1 text-xs text-muted-foreground">

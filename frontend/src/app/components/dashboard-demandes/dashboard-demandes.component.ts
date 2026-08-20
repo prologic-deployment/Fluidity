@@ -66,6 +66,24 @@ export class DashboardDemandesComponent implements OnInit {
     });
   }
 
+  /** Libellé du client (peuplé côté serveur). */
+  clientNom(d: Demande): string {
+    const c = d.clientId as any;
+    return c?.nom || (typeof c === 'string' ? c : '—');
+  }
+
+  /** Référence du contrat (peuplé côté serveur). */
+  contratRef(d: Demande): string {
+    const c = d.contrat as any;
+    return c?.reference || (typeof c === 'string' ? c : '—');
+  }
+
+  /** Email du demandeur (peuplé côté serveur). */
+  requesterEmail(d: Demande): string {
+    const r = d.requester as any;
+    return r?.email || (typeof r === 'string' ? r : '');
+  }
+
   /** Liste filtrée (recherche texte + statut + priorité), la plus récente en premier. */
   filteredDemandes(): Demande[] {
     const term = this.searchTerm.trim().toLowerCase();
@@ -73,7 +91,7 @@ export class DashboardDemandesComponent implements OnInit {
       const matchTerm =
         !term ||
         d.objet.toLowerCase().includes(term) ||
-        d.clientId?.toLowerCase().includes(term) ||
+        this.clientNom(d).toLowerCase().includes(term) ||
         d.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
       const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
@@ -103,7 +121,7 @@ export class DashboardDemandesComponent implements OnInit {
 
   /** Le client propriétaire peut agir sur sa propre demande (Task 4 : plus de suppression). */
   isOwner(demande: Demande): boolean {
-    return this.auth.isClient() && demande.clientId === this.auth.getEmail();
+    return this.auth.isClient() && this.requesterEmail(demande) === this.auth.getEmail();
   }
 
   /** La demande peut-elle encore être annulée par son client propriétaire ? */

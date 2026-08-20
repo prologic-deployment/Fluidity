@@ -49,6 +49,17 @@ export class DashboardContratsComponent implements OnInit {
     });
   }
 
+  /** Libellé du client (peuplé côté serveur). */
+  clientNom(c: Contrat): string {
+    const cl = c.clientId as any;
+    return cl?.nom || (typeof cl === 'string' ? cl : '—');
+  }
+
+  clientEmail(c: Contrat): string {
+    const cl = c.clientId as any;
+    return cl?.email || (typeof cl === 'string' ? cl : '');
+  }
+
   filteredContrats(): Contrat[] {
     const term = this.searchTerm.trim().toLowerCase();
     return this.contrats.filter((c) => {
@@ -56,7 +67,7 @@ export class DashboardContratsComponent implements OnInit {
         !term ||
         c.intitule.toLowerCase().includes(term) ||
         c.reference.toLowerCase().includes(term) ||
-        c.clientId.toLowerCase().includes(term);
+        this.clientNom(c).toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       return matchTerm && matchStatut;
     });
