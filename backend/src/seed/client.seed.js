@@ -3,11 +3,10 @@ const { Client } = require('../models/client.model');
 /**
  * Clients de démonstration, alignés sur les comptes CLIENT du seeder
  * utilisateurs (voir user.seed.js) — même email, pour que les Contrats,
- * Demandes et Changements de démo se rattachent correctement.
+ * Demandes, Changements et Tickets de démo se rattachent correctement.
  */
 const demoClients = [
   {
-    tenantId: 'tenant-001',
     email: 'client@fluidity.dev',
     nom: 'Atlas Industries',
     telephone: '+216 71 000 111',
@@ -15,7 +14,6 @@ const demoClients = [
     statut: 'Actif',
   },
   {
-    tenantId: 'tenant-002',
     email: 'client2@fluidity.dev',
     nom: 'Nova Systems',
     telephone: '+216 71 222 333',
@@ -25,18 +23,26 @@ const demoClients = [
 ];
 
 /**
- * Insère les clients de démonstration UNIQUEMENT si la collection est
- * vide (idempotent).
+ * Insère les clients de démonstration (idempotent).
+ * @returns {Promise<Record<string, object>>} map email → client
  */
 const seedClients = async () => {
-  const count = await Client.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} client(s) existant(s) — seed ignoré.`);
-    return;
+  const map = {};
+  let created = 0;
+  for (const c of demoClients) {
+    let client = await Client.findOne({ email: c.email });
+    if (!client) {
+      client = await Client.create(c);
+      created += 1;
+    }
+    map[c.email] = client;
   }
-
-  await Client.insertMany(demoClients);
-  console.log(`[Seed] ${demoClients.length} clients de démonstration créés dans db.clients.`);
+  console.log(
+    created > 0
+      ? `[Seed] Clients : ${created} créé(s).`
+      : '[Seed] Clients de démonstration déjà présents.'
+  );
+  return map;
 };
 
 module.exports = { demoClients, seedClients };

@@ -1,23 +1,21 @@
 const { Contrat } = require('../models/contrat.model');
 
 /**
- * Contrats de démonstration, liés aux clients de démo (voir user.seed.js).
+ * Contrats de démonstration, liés aux clients de démo par ObjectId.
  */
 const demoContrats = [
   {
-    tenantId: 'tenant-001',
-    clientId: 'client@fluidity.dev',
+    clientEmail: 'client@fluidity.dev',
     reference: 'CTR-2026-001',
     intitule: 'Infogérance & Support Standard',
     typeContrat: 'Support',
     statut: 'Actif',
     dateDebut: new Date('2026-01-01'),
     dateFin: new Date('2026-12-31'),
-    description: 'Contrat annuel de support et d\'infogérance de l\'infrastructure cloud.',
+    description: "Contrat annuel de support et d'infogérance de l'infrastructure cloud.",
   },
   {
-    tenantId: 'tenant-001',
-    clientId: 'client@fluidity.dev',
+    clientEmail: 'client@fluidity.dev',
     reference: 'CTR-2026-002',
     intitule: 'Hébergement Cloud Premium',
     typeContrat: 'Hébergement',
@@ -26,30 +24,39 @@ const demoContrats = [
     description: 'Hébergement dédié avec SLA renforcé.',
   },
   {
-    tenantId: 'tenant-002',
-    clientId: 'client2@fluidity.dev',
+    clientEmail: 'client2@fluidity.dev',
     reference: 'CTR-2026-101',
     intitule: 'Support Sécurité & Conformité',
     typeContrat: 'Sécurité',
     statut: 'Actif',
     dateDebut: new Date('2026-03-01'),
-    description: 'Audit et supervision sécurité continue (tenant isolé).',
+    description: 'Audit et supervision sécurité continue.',
   },
 ];
 
 /**
- * Insère les contrats de démonstration UNIQUEMENT si la collection est
- * vide (idempotent).
+ * Insère les contrats de démonstration (idempotent).
+ * @param {Record<string, object>} clients map email → client
+ * @returns {Promise<Record<string, object>>} map reference → contrat
  */
-const seedContrats = async () => {
-  const count = await Contrat.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} contrat(s) existant(s) — seed ignoré.`);
-    return;
+const seedContrats = async (clients = {}) => {
+  const map = {};
+  let created = 0;
+  for (const c of demoContrats) {
+    let contrat = await Contrat.findOne({ reference: c.reference });
+    if (!contrat) {
+      const { clientEmail, ...data } = c;
+      contrat = await Contrat.create({ ...data, clientId: clients[clientEmail]._id });
+      created += 1;
+    }
+    map[c.reference] = contrat;
   }
-
-  await Contrat.insertMany(demoContrats);
-  console.log(`[Seed] ${demoContrats.length} contrats de démonstration créés dans db.contrats.`);
+  console.log(
+    created > 0
+      ? `[Seed] Contrats : ${created} créé(s).`
+      : '[Seed] Contrats de démonstration déjà présents.'
+  );
+  return map;
 };
 
 module.exports = { demoContrats, seedContrats };

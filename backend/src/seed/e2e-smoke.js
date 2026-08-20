@@ -1,0 +1,223 @@
+/**
+ * Test de bout-en-bout (smoke) : authentification, 2FA, profil, mot de passe,
+ * demandes, changements et tickets — contre une base MongoDB en mémoire.
+ * Usage : node src/seed/e2e-smoke.js
+ */
+const assert = require('assert');
+const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+const speakeasy = require('speakeasy');
+
+const BASE = 'http://127.0.0.1:3210/api';
+
+async function request(method, path, { token, body } = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let json = null;
+  try { json = await res.json(); } catch {}
+  return { status: res.status, json };
+}
+
+async function main() {
+  const mongod = await MongoMemoryServer.create({ binary: { version: '7.0.14' } });
+  process.env.MONGO_URI = mongod.getUri();
+  process.env.JWT_SECRET = 'e2e_jwt_secret_123';
+  process.env.TWO_FACTOR_ENCRYPTION_KEY = 'e2e_2fa_key_123456789012345678901234567890';
+
+  const { runSeed } = require('./run.js');
+  await runSeed();
+  await mongoose.connect(process.env.MONGO_URI);
+
+  const app = require('../app.js');
+  const server = app.listen(3210);
+  await new Promise((r) => server.on('listening', r));
+
+  const log = (msg) => console.log('  ✓', msg);
+
+  // --- 1. Connexion sans 2FA ---
+  let r = await request('POST', '/auth/login', { body: { email: 'admin@fluidity.dev', password: 'Password123!' } });
+  assert.strictEqual(r.status, 200, 'login admin');
+  assert.ok(r.json.token && !r.json.requiresTwoFactor, 'admin : session directe attendue');
+  const adminToken = r.json.token;
+  log('Login sans 2FA (admin)');
+
+  // --- 2. Profil ---
+  r = await request('GET', '/auth/me', { token: adminToken });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.email, 'admin@fluidity.dev');
+  log('GET /auth/me');
+
+  r = await request('PATCH', '/auth/profile', { token: adminToken, body: { firstName: 'Leila', jobTitle: 'Directrice' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.user.firstName, 'Leila');
+  log('PATCH /auth/profile');
+
+  // --- 3. Changement de mot de passe ---
+  r = await request('POST', '/auth/change-password', {
+    token: adminToken,
+    body: { currentPassword: 'Password123!', newPassword: 'Nouveau123!', confirmation: 'Nouveau123!' },
+  });
+  assert.strictEqual(r.status, 200, `change password: ${JSON.stringify(r.json)}`);
+  // puis reconnexion avec le nouveau mot de passe
+  r = await request('POST', '/auth/login', { body: { email: 'admin@fluidity.dev', password: 'Nouveau123!' } });
+  assert.strictEqual(r.status, 200);
+  // remettre le mot de passe d'origine pour la suite
+  await request('POST', '/auth/change-password', {
+    token: r.json.token,
+    body: { currentPassword: 'Nouveau123!', newPassword: 'Password123!', confirmation: 'Password123!' },
+  });
+  log('Changement de mot de passe + reconnexion');
+
+  // --- 4. 2FA : activation (support) ---
+  r = await request('POST', '/auth/login', { body: { email: 'support@fluidity.dev', password: 'Password123!' } });
+  assert.strictEqual(r.status, 200);
+  const supportToken = r.json.token;
+
+  r = await request('GET', '/auth/2fa/status', { token: supportToken });
+  assert.strictEqual(r.json.enabled, false);
+  log('2FA status (désactivé)');
+
+  r = await request('POST', '/auth/2fa/setup', { token: supportToken });
+  assert.strictEqual(r.status, 200);
+  assert.ok(r.json.qrCode && r.json.qrCode.startsWith('data:image/png'), 'QR code manquant');
+  assert.ok(r.json.manualKey, 'clé manuelle manquante');
+  const manualKey = r.json.manualKey;
+  log('2FA setup (QR + clé manuelle)');
+
+  // code TOTP valide
+  const otp = speakeasy.totp({ secret: manualKey, encoding: 'base32' });
+  r = await request('POST', '/auth/2fa/verify-setup', { token: supportToken, body: { code: otp } });
+  assert.strictEqual(r.status, 200, `verify-setup: ${JSON.stringify(r.json)}`);
+  assert.ok(r.json.backupCodes && r.json.backupCodes.length === 10, 'codes de secours manquants');
+  log('2FA verify-setup (activation + 10 codes de secours)');
+
+  // --- 5. 2FA : connexion avec challenge ---
+  r = await request('POST', '/auth/login', { body: { email: 'support@fluidity.dev', password: 'Password123!' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.requiresTwoFactor, true, 'challenge 2FA attendu');
+  assert.ok(r.json.twoFactorToken, 'jeton temporaire manquant');
+  assert.strictEqual(r.json.token, undefined, 'aucune session ne doit être émise');
+  const twoFactorToken = r.json.twoFactorToken;
+  log('Login 2FA → challenge (pas de session)');
+
+  // mauvais code → refus
+  r = await request('POST', '/auth/2fa/verify-login', { body: { twoFactorToken, code: '000000' } });
+  assert.strictEqual(r.status, 401, 'code invalide doit être refusé');
+  // bon code
+  const otp2 = speakeasy.totp({ secret: manualKey, encoding: 'base32' });
+  r = await request('POST', '/auth/2fa/verify-login', { body: { twoFactorToken, code: otp2 } });
+  assert.strictEqual(r.status, 200);
+  assert.ok(r.json.token, 'session attendue après 2FA');
+  log('2FA verify-login (session émise)');
+
+  // --- 6. 2FA : désactivation ---
+  r = await request('POST', '/auth/2fa/disable', { token: supportToken, body: { password: 'Password123!' } });
+  assert.strictEqual(r.status, 200, `disable: ${JSON.stringify(r.json)}`);
+  log('2FA disable (mot de passe)');
+
+  // --- 7. Demande (client) ---
+  r = await request('POST', '/auth/login', { body: { email: 'client@fluidity.dev', password: 'Password123!' } });
+  const clientToken = r.json.token;
+  const { Contrat } = require('../models/contrat.model');
+  const ctr = await Contrat.findOne({ reference: 'CTR-2026-001' });
+  r = await request('POST', '/demandes', {
+    token: clientToken,
+    body: {
+      objet: 'Test e2e demande', typeDemande: 'Support technique', serviceEnvironnement: 'Test',
+      categorie: 'Réseau', sousCategorie: 'VLAN', descriptionDetaillee: 'Demande de test bout-en-bout.',
+      prioriteSouhaitee: 'Standard', contrat: ctr._id.toString(),
+    },
+  });
+  assert.strictEqual(r.status, 201, `create demande: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.statut, 'Ouverte');
+  log('Création de demande (CLIENT)');
+
+  // --- 8. Changement (client) ---
+  r = await request('POST', '/changements', {
+    token: clientToken,
+    body: {
+      objetChangement: 'Test e2e changement', descriptionDetaillee: 'Changement de test bout-en-bout.',
+      serviceEnvironnement: 'Test', categorie: 'Stockage', sousCategorie: 'Extension capacité',
+      planRetourArriere: 'Réversible.', typeChangement: 'Standard', contrat: ctr._id.toString(),
+      specifications: { stockage: [{ typeStockage: 'NAS', protocole: 'NFS', capaciteGo: 100 }] },
+    },
+  });
+  assert.strictEqual(r.status, 201, `create changement: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.statut, 'Soumis');
+  log('Création de changement (CLIENT) + spécifications stockage');
+
+  // --- 9. Ticket / incident (client) ---
+  r = await request('POST', '/tickets', {
+    token: clientToken,
+    body: {
+      objet: 'Test e2e incident', descriptionDetaillee: 'Incident de test bout-en-bout avec assez de texte.',
+      categorie: 'Réseau', sousCategorie: 'VPN', impact: 'Critique', urgence: 'Critique',
+      contrat: ctr._id.toString(),
+    },
+  });
+  assert.strictEqual(r.status, 201, `create ticket: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.type, 'Incident');
+  assert.strictEqual(r.json.priorite, 'P1', 'Critique × Critique doit donner P1');
+  assert.strictEqual(r.json.statut, 'Nouveau');
+  const ticketId = r.json._id;
+  log('Création de ticket (Incident) + priorité P1 calculée');
+
+  // --- 10. Workflow ticket : affectation + transition ---
+  r = await request('GET', '/tickets/assignees', { token: adminToken });
+  assert.strictEqual(r.status, 200);
+  const support = r.json.find((u) => u.role === 'SUPPORT_N1');
+
+  r = await request('PATCH', `/tickets/${ticketId}/assigner`, {
+    token: adminToken,
+    body: { assignedTeam: 'Réseau', assignedTo: support ? support._id : null },
+  });
+  assert.strictEqual(r.status, 200, `assigner: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.statut, 'Affecté', 'affectation doit faire passer Nouveau → Affecté');
+  log('Affectation ticket (Nouveau → Affecté)');
+
+  r = await request('PATCH', `/tickets/${ticketId}/statut`, { token: adminToken, body: { statut: "En cours d'analyse" } });
+  assert.strictEqual(r.status, 200);
+  r = await request('PATCH', `/tickets/${ticketId}/statut`, { token: adminToken, body: { statut: 'En cours de résolution' } });
+  assert.strictEqual(r.status, 200);
+  r = await request('PATCH', `/tickets/${ticketId}/statut`, { token: adminToken, body: { statut: 'Résolu', resume: 'Résolution de test' } });
+  assert.strictEqual(r.status, 200, `resoudre: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.statut, 'Résolu');
+  // transition illégale → refus
+  r = await request('PATCH', `/tickets/${ticketId}/statut`, { token: clientToken, body: { statut: 'Nouveau' } });
+  assert.strictEqual(r.status, 403, 'transition illégale (client) doit être refusée');
+  // clôture par le client
+  r = await request('PATCH', `/tickets/${ticketId}/statut`, { token: clientToken, body: { statut: 'Clôturé' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.statut, 'Clôturé');
+  log('Workflow ticket complet (Résolu → Clôturé) + transition illégale refusée');
+
+  // --- 11. Transition demande illégale refusée ---
+  const { Demande } = require('../models/demande.model');
+  const d = await Demande.findOne({ objet: 'Test e2e demande' });
+  r = await request('PATCH', `/demandes/${d._id}/statut`, { token: clientToken, body: { statut: 'Réalisée' } });
+  assert.strictEqual(r.status, 403, 'un CLIENT ne peut pas passer une demande en Réalisée');
+  log('Workflow demande : transition illégale refusée (CLIENT)');
+
+  // --- 12. Activité de connexion ---
+  r = await request('GET', '/auth/login-activity', { token: adminToken });
+  assert.strictEqual(r.status, 200);
+  assert.ok(Array.isArray(r.json.activites), 'activités attendues');
+  log(`Activité de connexion (${r.json.activites.length} événements)`);
+
+  console.log('\n[smoke] TOUS LES FLUX SONT PASSÉS.');
+  await mongoose.disconnect();
+  await mongod.stop();
+  server.close();
+  process.exit(0);
+}
+
+main().catch((err) => {
+  console.error('[smoke] ÉCHEC :', err);
+  process.exit(1);
+});

@@ -1,41 +1,78 @@
 const { Utilisateur } = require('../models/user.model');
+const { encryptSecret } = require('../utils/crypto.util');
+const { generateBackupCodes, hashBackupCode } = require('../utils/two-factor.util');
+
+/** Mot de passe de développement (hashé par le hook pre-save). */
+const DEMO_PASSWORD = 'Password123!';
 
 /**
- * Utilisateurs de démonstration (multi-tenant).
- * Mots de passe par défaut (à changer en production) : Password123!
+ * Secret TOTP de démonstration (base32, connu) — permet de tester la 2FA :
+ *   node -e "console.log(require('speakeasy').totp({ secret: 'JBSWY3DPEHPK3PXP', encoding: 'base32' }))"
+ */
+const DEMO_2FA_SECRET = 'JBSWY3DPEHPK3PXP';
+/** Codes de secours de démonstration (stockés hashés en base). */
+const DEMO_2FA_BACKUP = ['AAAA-AAAA', 'BBBB-BBBB', 'CCCC-CCCC', 'DDDD-DDDD', 'EEEE-EEEE'];
+
+/**
+ * Comptes internes de démonstration (application mono-organisation).
+ * Rôles : CLIENT | ADMIN | SUPPORT_N1 | RESPONSABLE_TECHNIQUE | COMMERCIAL | EXPLOITATION
  */
 const demoUsers = [
-  { tenantId: 'tenant-001', email: 'admin@fluidity.dev', password: 'Password123!', role: 'ADMIN' },
-  { tenantId: 'tenant-001', email: 'client@fluidity.dev', password: 'Password123!', role: 'CLIENT' },
-  { tenantId: 'tenant-001', email: 'support@fluidity.dev', password: 'Password123!', role: 'SUPPORT_N1' },
+  { email: 'admin@fluidity.dev', password: DEMO_PASSWORD, role: 'ADMIN', firstName: 'Leila', lastName: 'Ben Ali', jobTitle: 'Directrice des opérations' },
+  { email: 'client@fluidity.dev', password: DEMO_PASSWORD, role: 'CLIENT', firstName: 'Atlas', lastName: 'Industries' },
+  { email: 'client2@fluidity.dev', password: DEMO_PASSWORD, role: 'CLIENT', firstName: 'Nova', lastName: 'Systems' },
+  { email: 'support@fluidity.dev', password: DEMO_PASSWORD, role: 'SUPPORT_N1', firstName: 'Sarah', lastName: 'Mansour', jobTitle: 'Support N1' },
+  { email: 'responsable@fluidity.dev', password: DEMO_PASSWORD, role: 'RESPONSABLE_TECHNIQUE', firstName: 'Nour', lastName: 'Manager', jobTitle: 'Responsable technique' },
+  { email: 'commercial@fluidity.dev', password: DEMO_PASSWORD, role: 'COMMERCIAL', firstName: 'Yasmine', lastName: 'Commercial', jobTitle: 'Commerciale' },
+  { email: 'exploitation@fluidity.dev', password: DEMO_PASSWORD, role: 'EXPLOITATION', firstName: 'Selma', lastName: 'Ops', jobTitle: 'Exploitation' },
+  // 2FA : configuration commencée mais non activée (secret présent, non vérifié)
   {
-    tenantId: 'tenant-001',
-    email: 'responsable@fluidity.dev',
-    password: 'Password123!',
-    role: 'RESPONSABLE_TECHNIQUE',
+    email: '2fa.pending@fluidity.dev',
+    password: DEMO_PASSWORD,
+    role: 'SUPPORT_N1',
+    firstName: 'Ines',
+    lastName: 'Totp',
+    twoFactorEnabled: false,
+    twoFactorVerified: false,
+    twoFactorSecret: encryptSecret(DEMO_2FA_SECRET),
   },
-  { tenantId: 'tenant-001', email: 'commercial@fluidity.dev', password: 'Password123!', role: 'COMMERCIAL' },
-  { tenantId: 'tenant-001', email: 'exploitation@fluidity.dev', password: 'Password123!', role: 'EXPLOITATION' },
-  // Second tenant pour tester l'isolation des données
-  { tenantId: 'tenant-002', email: 'client2@fluidity.dev', password: 'Password123!', role: 'CLIENT' },
+  // 2FA : compte RÉELLEMENT activé et vérifié (secret TOTP + codes de secours)
+  {
+    email: '2fa.enabled@fluidity.dev',
+    password: DEMO_PASSWORD,
+    role: 'SUPPORT_N1',
+    firstName: 'Yassine',
+    lastName: 'Totp',
+    twoFactorEnabled: true,
+    twoFactorVerified: true,
+    twoFactorCreatedAt: new Date(),
+    twoFactorSecret: encryptSecret(DEMO_2FA_SECRET),
+    twoFactorBackupCodes: DEMO_2FA_BACKUP.map(hashBackupCode),
+  },
 ];
 
 /**
- * Insère les utilisateurs de démonstration UNIQUEMENT si la collection
- * est vide (idempotent). Les mots de passe sont hashés via le hook pre-save.
+ * Insère les utilisateurs de démonstration (idempotent : n'ajoute que les
+ * comptes absents). Les mots de passe sont hashés via le hook pre-save.
+ * @returns {Promise<Record<string, object>>} map email → utilisateur
  */
 const seedUsers = async () => {
-  const count = await Utilisateur.countDocuments();
-  if (count > 0) {
-    console.log(`[Seed] ${count} utilisateur(s) existant(s) — seed ignoré.`);
-    return;
-  }
-
+  const map = {};
+  let created = 0;
   for (const u of demoUsers) {
-    await new Utilisateur(u).save();
+    let user = await Utilisateur.findOne({ email: u.email });
+    if (!user) {
+      user = await new Utilisateur(u).save();
+      created += 1;
+    }
+    map[u.email] = user;
   }
-
-  console.log(`[Seed] ${demoUsers.length} utilisateurs de démonstration créés dans db.utilisateurs.`);
+  console.log(
+    created > 0
+      ? `[Seed] Utilisateurs : ${created} créé(s) (${demoUsers.length} au total).`
+      : `[Seed] Utilisateurs de démonstration déjà présents (${demoUsers.length}).`
+  );
+  return map;
 };
 
-module.exports = { demoUsers, seedUsers };
+module.exports = { demoUsers, seedUsers, DEMO_PASSWORD, DEMO_2FA_SECRET };
