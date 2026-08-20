@@ -481,7 +481,7 @@ const listerCommentaires = async (req, res) => {
     const filtre = { ticketId: ticket._id };
     if (estClient(req)) filtre.visibilite = 'public';
     const comments = await TicketComment.find(filtre)
-      .populate('auteur', 'email firstName lastName role')
+      .populate('auteur', 'email firstName lastName role avatarUrl')
       .sort({ createdAt: 1 });
     res.status(200).json(comments);
   } catch (err) {

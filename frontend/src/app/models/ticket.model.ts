@@ -110,12 +110,22 @@ export interface TicketStats {
   resolus: number;
 }
 
+/** Auteur peuplé côté serveur (compte Utilisateur). */
+export interface TicketCommentAuteur {
+  _id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  avatarUrl?: string | null;
+}
+
 export interface TicketComment {
   _id: string;
   visibilite: 'public' | 'interne';
   corps: string;
-  auteur: string;
-  auteurModel: 'Utilisateur' | 'Client';
+  /** ObjectId en base, peuplé en objet { email, firstName, lastName, role } à la lecture. */
+  auteur: TicketCommentAuteur | string;
   piecesJointes?: string[];
   createdAt: string;
 }

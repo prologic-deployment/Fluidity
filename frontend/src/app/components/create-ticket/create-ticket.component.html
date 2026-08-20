@@ -1,10 +1,13 @@
-<div class="mx-auto max-w-3xl px-6 py-10 animate-fade-in-up">
-  <div class="mb-8">
-    <a routerLink="/tickets" class="btn-ghost mb-4">← Retour aux tickets</a>
-    <h1 class="text-2xl font-semibold tracking-tight">Ouvrir un incident</h1>
-    <p class="mt-1 text-sm text-muted-foreground">Décrivez l'incident rencontré. La priorité est calculée automatiquement.</p>
-  </div>
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
+    <div class="max-w-3xl mx-auto px-6 py-5">
+      <a routerLink="/tickets" class="btn-link">&larr; Retour</a>
+      <h1 class="text-xl font-semibold tracking-tight mt-1">Nouvel incident</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">Décrivez l'incident rencontré — la priorité est calculée automatiquement.</p>
+    </div>
+  </header>
 
+  <main class="max-w-3xl mx-auto px-6 py-8">
   <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
     <div class="card">
       <div class="card-header-tinted">
@@ -86,21 +89,21 @@
       </div>
       <div class="card-content space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div *ngIf="isDiagnosticFieldVisible('source')"><label class="field-label">Source</label><input type="text" formControlName="diagnostic.source" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('destination')"><label class="field-label">Destination</label><input type="text" formControlName="diagnostic.destination" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('protocole')"><label class="field-label">Protocole</label><input type="text" formControlName="diagnostic.protocole" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('port')"><label class="field-label">Port</label><input type="text" formControlName="diagnostic.port" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('direction')"><label class="field-label">Direction</label><input type="text" formControlName="diagnostic.direction" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('nomVm')"><label class="field-label">Nom de la VM</label><input type="text" formControlName="diagnostic.nomVm" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('environnement')"><label class="field-label">Environnement</label><input type="text" formControlName="diagnostic.environnement" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('hote')"><label class="field-label">Hôte</label><input type="text" formControlName="diagnostic.hote" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('ip')"><label class="field-label">Adresse IP</label><input type="text" formControlName="diagnostic.ip" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('systemeStockage')"><label class="field-label">Système de stockage</label><input type="text" formControlName="diagnostic.systemeStockage" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('volume')"><label class="field-label">Volume</label><input type="text" formControlName="diagnostic.volume" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('capacite')"><label class="field-label">Capacité</label><input type="text" formControlName="diagnostic.capacite" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('systemeAffecte')"><label class="field-label">Système affecté</label><input type="text" formControlName="diagnostic.systemeAffecte" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('evenementSecurite')"><label class="field-label">Événement de sécurité</label><input type="text" formControlName="diagnostic.evenementSecurite" class="input" /></div>
-          <div *ngIf="isDiagnosticFieldVisible('heureDetection')"><label class="field-label">Heure de détection</label><input type="text" formControlName="diagnostic.heureDetection" class="input" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('source')"><label class="field-label">Source</label><input type="text" formControlName="diagnostic.source" class="input" placeholder="ex: 192.168.1.10" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('destination')"><label class="field-label">Destination</label><input type="text" formControlName="diagnostic.destination" class="input" placeholder="ex: 10.0.0.5" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('protocole')"><label class="field-label">Protocole</label><input type="text" formControlName="diagnostic.protocole" class="input" placeholder="ex: TCP / UDP" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('port')"><label class="field-label">Port</label><input type="text" formControlName="diagnostic.port" class="input" placeholder="ex: 443" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('direction')"><label class="field-label">Direction</label><input type="text" formControlName="diagnostic.direction" class="input" placeholder="ex: Entrant / Sortant" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('nomVm')"><label class="field-label">Nom de la VM</label><input type="text" formControlName="diagnostic.nomVm" class="input" placeholder="ex: app-01" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('environnement')"><label class="field-label">Environnement</label><input type="text" formControlName="diagnostic.environnement" class="input" placeholder="ex: Production" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('hote')"><label class="field-label">Hôte</label><input type="text" formControlName="diagnostic.hote" class="input" placeholder="ex: esx-02" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('ip')"><label class="field-label">Adresse IP</label><input type="text" formControlName="diagnostic.ip" class="input" placeholder="ex: 192.168.1.20" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('systemeStockage')"><label class="field-label">Système de stockage</label><input type="text" formControlName="diagnostic.systemeStockage" class="input" placeholder="ex: Baie SAN" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('volume')"><label class="field-label">Volume</label><input type="text" formControlName="diagnostic.volume" class="input" placeholder="ex: vol-data-01" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('capacite')"><label class="field-label">Capacité</label><input type="text" formControlName="diagnostic.capacite" class="input" placeholder="ex: 2 To" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('systemeAffecte')"><label class="field-label">Système affecté</label><input type="text" formControlName="diagnostic.systemeAffecte" class="input" placeholder="ex: Passerelle DMZ" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('evenementSecurite')"><label class="field-label">Événement de sécurité</label><input type="text" formControlName="diagnostic.evenementSecurite" class="input" placeholder="ex: Tentative d'intrusion" /></div>
+          <div *ngIf="isDiagnosticFieldVisible('heureDetection')"><label class="field-label">Heure de détection</label><input type="text" formControlName="diagnostic.heureDetection" class="input" placeholder="ex: 2026-08-20 09:30" /></div>
         </div>
         <div *ngIf="isDiagnosticFieldVisible('comportement')">
           <label class="field-label">Comportement observé</label>
@@ -127,4 +130,5 @@
       <a routerLink="/tickets" class="btn-ghost">Annuler</a>
     </div>
   </form>
+  </main>
 </div>

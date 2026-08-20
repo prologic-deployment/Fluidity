@@ -132,7 +132,7 @@
               <label class="field-label">Contrat</label>
               <select formControlName="contrat" class="select">
                 <option value="" disabled>Sélectionner un contrat...</option>
-                <option *ngFor="let ct of contrats" [value]="ct.reference">
+                <option *ngFor="let ct of contrats" [value]="ct._id">
                   {{ ct.reference }} — {{ ct.intitule }}
                 </option>
               </select>

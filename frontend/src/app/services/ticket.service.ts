@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { Ticket, TicketListResponse, TicketStats, TicketComment } from '../models/ticket.model';
+import { Ticket, TicketListResponse, TicketStats, TicketComment, TicketActivity } from '../models/ticket.model';
 
 @Injectable({ providedIn: 'root' })
 export class TicketService {
@@ -53,5 +53,9 @@ export class TicketService {
 
   listerCommentaires(id: string): Observable<TicketComment[]> {
     return this.http.get<TicketComment[]>(`${this.baseUrl}/${id}/commentaires`);
+  }
+
+  listerActivites(id: string): Observable<TicketActivity[]> {
+    return this.http.get<TicketActivity[]>(`${this.baseUrl}/${id}/activites`);
   }
 }
