@@ -86,6 +86,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.router.navigate(['/profil']);
   }
 
+  onLogout(event: Event): void {
+    event.stopPropagation();
+    this.logout();
+  }
+
   logout(): void {
     this.auth.logout();
     this.router.navigate(['/login']);
