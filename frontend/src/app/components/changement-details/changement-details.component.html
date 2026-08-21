@@ -19,7 +19,7 @@
     <!-- Workflow -->
     <section class="card mb-6">
       <div class="card-content py-5">
-        <p class="detail-section-title">Workflow</p>
+        <p class="detail-section-title">{{ 'detail.workflow' | t }}</p>
         <app-workflow-stepper [statuses]="statutsOrder" [branches]="statutsBranches" [current]="c.statut"></app-workflow-stepper>
       </div>
     </section>
@@ -30,18 +30,18 @@
         <!-- Description -->
         <section class="card">
           <div class="card-content py-5 space-y-4">
-            <p class="detail-section-title">Description</p>
+            <p class="detail-section-title">{{ 'detail.description' | t }}</p>
             <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ c.descriptionDetaillee }}</p>
             <div *ngIf="c.prerequisNecessaires">
-              <p class="detail-label mb-2">Prérequis nécessaires</p>
+              <p class="detail-label mb-2">{{ 'changement.prerequis' | t }}</p>
               <p class="detail-value whitespace-pre-line">{{ c.prerequisNecessaires }}</p>
             </div>
             <div *ngIf="c.planRetourArriere">
-              <p class="detail-label mb-2">Plan de retour arrière</p>
+              <p class="detail-label mb-2">{{ 'changement.rollback' | t }}</p>
               <p class="detail-value whitespace-pre-line">{{ c.planRetourArriere }}</p>
             </div>
             <div *ngIf="c.piecesJointes?.length">
-              <p class="detail-label mb-2">Pièces jointes</p>
+              <p class="detail-label mb-2">{{ 'detail.attachments' | t }}</p>
               <a *ngFor="let pj of c.piecesJointes" [href]="resolveUrl(pj)" target="_blank" class="btn-outline btn-sm mr-2 mb-2">{{ nomFichier(pj) }}</a>
             </div>
           </div>
@@ -50,7 +50,7 @@
         <!-- Spécifications -->
         <section class="card" *ngIf="c.specifications && hasSpecs(c.specifications)">
           <div class="card-content py-5">
-            <p class="detail-section-title">Spécifications techniques</p>
+            <p class="detail-section-title">{{ 'form.details' | t }}</p>
             <div class="detail-grid">
               <ng-container *ngIf="c.specifications.general as g">
                 <div *ngIf="g.ressourcesConcernees"><p class="detail-label">Ressources concernées</p><p class="detail-value">{{ g.ressourcesConcernees }}</p></div>
@@ -106,21 +106,21 @@
       <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
         <section class="card">
           <div class="card-content py-4 space-y-2 text-sm">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Informations</p>
-            <p><span class="text-muted-foreground">Client</span><br />{{ clientNom() }}</p>
-            <p><span class="text-muted-foreground">Demandeur</span><br />{{ requesterLabel() }}</p>
-            <p><span class="text-muted-foreground">Service / Environnement</span><br />{{ c.serviceEnvironnement }}</p>
-            <p><span class="text-muted-foreground">Catégorie</span><br />{{ c.categorie }} / {{ c.sousCategorie }}</p>
-            <p><span class="text-muted-foreground">Contrat</span><br />{{ contratRef() }}</p>
-            <p><span class="text-muted-foreground">Créé le</span><br />{{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-            <p *ngIf="c.updatedAt"><span class="text-muted-foreground">Mise à jour</span><br />{{ c.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.workflow' | t }}</p>
+            <p><span class="text-muted-foreground">{{ 'detail.client' | t }}</span><br />{{ clientNom() }}</p>
+            <p><span class="text-muted-foreground">{{ 'detail.requester' | t }}</span><br />{{ requesterLabel() }}</p>
+            <p><span class="text-muted-foreground">{{ 'demande.environment' | t }}</span><br />{{ c.serviceEnvironnement }}</p>
+            <p><span class="text-muted-foreground">{{ 'form.category' | t }}</span><br />{{ c.categorie }} / {{ c.sousCategorie }}</p>
+            <p><span class="text-muted-foreground">{{ 'form.contract' | t }}</span><br />{{ contratRef() }}</p>
+            <p><span class="text-muted-foreground">{{ 'table.created' | t }}</span><br />{{ c.createdAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+            <p *ngIf="c.updatedAt"><span class="text-muted-foreground">{{ 'table.updated' | t }}</span><br />{{ c.updatedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
           </div>
         </section>
 
         <!-- Actions workflow -->
         <section *ngIf="prochainesEtapes().length" class="card">
           <div class="card-content py-4 space-y-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faire avancer</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.advance' | t }}</p>
             <p *ngIf="transitionError" class="alert-destructive mb-2">{{ transitionError }}</p>
             <button *ngFor="let etape of prochainesEtapes()" [disabled]="transitionLoading"
               (click)="changerStatut(etape)"
@@ -144,5 +144,5 @@
 
 <div *ngIf="loading" class="p-10"><div class="skeleton h-40 w-full"></div></div>
 <div *ngIf="!loading && !changement" class="p-10 text-sm text-muted-foreground">
-  {{ error || 'Changement introuvable.' }} · <a routerLink="/changements" class="btn-link">Retour</a>
+  {{ error || ('detail.notFound' | t) }} · <a routerLink="/changements" class="btn-link">{{ 'common.back' | t }}</a>
 </div>

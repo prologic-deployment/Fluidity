@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { TwoFactorModalComponent } from '../shared/two-factor-modal.component';
+import { TranslatePipe } from '../../i18n/translate.pipe';
+import { I18nService } from '../../i18n/i18n.service';
 import { TwoFactorStatus, LoginActivity } from '../../models/user.model';
 
 /**
@@ -15,7 +17,7 @@ import { TwoFactorStatus, LoginActivity } from '../../models/user.model';
 @Component({
   selector: 'app-security',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, TwoFactorModalComponent],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, TwoFactorModalComponent, TranslatePipe],
   templateUrl: './security-page.component.html',
 })
 export class SecurityPageComponent implements OnInit {
@@ -47,7 +49,7 @@ export class SecurityPageComponent implements OnInit {
   sessionIatActuel: number | null = null;
   readonly activityPerPage = 6;
 
-  constructor(private fb: FormBuilder, private auth: AuthService) {}
+  constructor(private fb: FormBuilder, private auth: AuthService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.passwordForm = this.fb.group(
@@ -114,7 +116,7 @@ export class SecurityPageComponent implements OnInit {
   }
 
   get strengthLabel(): string {
-    return ['Très faible', 'Faible', 'Moyen', 'Bon', 'Excellent'][this.strengthScore] || '';
+    return this.i18n.t(`security.strength${this.strengthScore}`);
   }
 
   get strengthClass(): string {
@@ -193,9 +195,9 @@ export class SecurityPageComponent implements OnInit {
   }
 
   get securityScoreLabel(): string {
-    if (this.securityScore >= 90) return 'Excellente posture de sécurité.';
-    if (this.securityScore >= 60) return 'Bonne posture — la double authentification est recommandée.';
-    return 'À renforcer : activez la double authentification.';
+    if (this.securityScore >= 90) return this.i18n.t('security.scoreExcellent');
+    if (this.securityScore >= 60) return this.i18n.t('security.scoreGood');
+    return this.i18n.t('security.scoreWeak');
   }
 
   get securityScoreClass(): string {
@@ -209,23 +211,19 @@ export class SecurityPageComponent implements OnInit {
     return [
       {
         ok: twoFaOn,
-        text: twoFaOn
-          ? 'Double authentification activée sur ce compte.'
-          : 'Activez la double authentification pour protéger votre compte.',
+        text: this.i18n.t(twoFaOn ? 'security.rec2faOn' : 'security.rec2faOff'),
       },
       {
         ok: (this.status?.backupCodesRemaining ?? 0) > 0 || !twoFaOn,
-        text: twoFaOn
-          ? 'Conservez vos codes de secours dans un endroit sûr.'
-          : 'Après activation, conservez vos codes de secours.',
+        text: this.i18n.t(twoFaOn ? 'security.recBackupOn' : 'security.recBackupOff'),
       },
       {
         ok: true,
-        text: 'Utilisez un mot de passe unique d’au moins 12 caractères.',
+        text: this.i18n.t('security.recUnique'),
       },
       {
         ok: false,
-        text: 'Ne partagez jamais votre mot de passe — le support ne vous le demandera jamais.',
+        text: this.i18n.t('security.recShare'),
       },
     ];
   }

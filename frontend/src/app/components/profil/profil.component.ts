@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 import { AuthService } from '../../services/auth.service';
 import { UploadService } from '../../services/upload.service';
 import { AppUser, ROLE_LABELS } from '../../models/user.model';
@@ -17,7 +18,7 @@ import { resolveUploadUrl } from '../../utils/upload-url.util';
 @Component({
   selector: 'app-profil',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, TranslatePipe],
   templateUrl: './profil.component.html',
 })
 export class ProfilComponent implements OnInit {

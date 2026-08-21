@@ -1,12 +1,12 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
-    <div class="max-w-6xl mx-auto px-6 py-5">
-      <h1 class="text-xl font-semibold tracking-tight">Sécurité</h1>
-      <p class="text-sm text-muted-foreground mt-0.5">Mot de passe, double authentification et activité de connexion.</p>
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-5">
+      <h1 class="text-xl font-semibold tracking-tight">{{ 'security.title' | t }}</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">{{ 'security.subtitle' | t }}</p>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
     <p *ngIf="success" class="alert-success">{{ success }}</p>
     <p *ngIf="error" class="alert-destructive">{{ error }}</p>
@@ -16,7 +16,7 @@
       <div class="card-content py-4">
         <div class="flex items-center justify-between gap-4">
           <div>
-            <h2 class="font-semibold">Posture de sécurité</h2>
+            <h2 class="font-semibold">{{ 'security.posture' | t }}</h2>
             <p class="text-sm text-muted-foreground mt-0.5">{{ securityScoreLabel }}</p>
           </div>
           <div class="text-2xl font-bold">{{ securityScore }}<span class="text-sm text-muted-foreground">/100</span></div>
@@ -30,6 +30,7 @@
     <!-- ==================== MOT DE PASSE + 2FA côte à côte ==================== -->
     <div class="grid gap-6 lg:grid-cols-2">
 
+      <!-- Mot de passe -->
       <section class="card animate-fade-in-up stagger-1">
         <div class="card-header-tinted">
           <div class="form-section-header">
@@ -40,15 +41,15 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Mot de passe</h2>
-              <p class="card-description">Choisissez un mot de passe robuste et unique.</p>
+              <h2 class="card-title">{{ 'security.password' | t }}</h2>
+              <p class="card-description">{{ 'security.passwordHint' | t }}</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6">
           <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="space-y-4">
             <div>
-              <label class="field-label">Mot de passe actuel</label>
+              <label class="field-label">{{ 'security.currentPassword' | t }}</label>
               <div class="relative">
                 <input [type]="showCurrent ? 'text' : 'password'" formControlName="currentPassword" class="input pr-10" placeholder="••••••••" />
                 <button type="button" (click)="showCurrent = !showCurrent" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" title="Afficher / masquer">
@@ -60,9 +61,9 @@
               </div>
             </div>
             <div>
-              <label class="field-label">Nouveau mot de passe</label>
+              <label class="field-label">{{ 'security.newPassword' | t }}</label>
               <div class="relative">
-                <input [type]="showNew ? 'text' : 'password'" formControlName="newPassword" class="input pr-10" placeholder="6 caractères minimum" />
+                <input [type]="showNew ? 'text' : 'password'" formControlName="newPassword" class="input pr-10" placeholder="••••••••" />
                 <button type="button" (click)="showNew = !showNew" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" title="Afficher / masquer">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
@@ -78,9 +79,9 @@
               </div>
             </div>
             <div>
-              <label class="field-label">Confirmation</label>
+              <label class="field-label">{{ 'security.confirmation' | t }}</label>
               <div class="relative">
-                <input [type]="showConfirm ? 'text' : 'password'" formControlName="confirmPassword" class="input pr-10" placeholder="Confirmez le mot de passe" />
+                <input [type]="showConfirm ? 'text' : 'password'" formControlName="confirmPassword" class="input pr-10" placeholder="••••••••" />
                 <button type="button" (click)="showConfirm = !showConfirm" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" title="Afficher / masquer">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"></path>
@@ -90,17 +91,18 @@
               </div>
             </div>
             <p *ngIf="passwordForm.hasError('passwordMismatch') && passwordForm.get('confirmPassword')?.touched" class="field-error">
-              La confirmation ne correspond pas au nouveau mot de passe.
+              {{ 'security.mismatch' | t }}
             </p>
             <div class="flex justify-end">
               <button type="submit" [disabled]="savingPassword" class="btn-primary">
-                {{ savingPassword ? 'Modification…' : 'Modifier le mot de passe' }}
+                {{ savingPassword ? ('security.changingPassword' | t) : ('security.changePassword' | t) }}
               </button>
             </div>
           </form>
         </div>
       </section>
 
+      <!-- Double authentification (carte compacte) -->
       <section class="card animate-fade-in-up stagger-1">
         <div class="card-header-tinted">
           <div class="form-section-header">
@@ -111,36 +113,39 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Double authentification (2FA)</h2>
-              <p class="card-description">Protégez votre compte avec une application d'authentification.</p>
+              <h2 class="card-title">{{ 'security.twoFactor' | t }}</h2>
+              <p class="card-description">{{ 'security.twoFactorHint' | t }}</p>
             </div>
           </div>
         </div>
-        <div class="card-content pt-6 space-y-4">
-          <div *ngIf="loading"><div class="skeleton h-16 w-full"></div></div>
+        <div class="card-content pt-5">
+          <div *ngIf="loading" class="skeleton h-14 w-full"></div>
 
           <ng-container *ngIf="!loading && status">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-medium">État :
-                  <span [ngClass]="status.enabled ? 'text-success' : 'text-muted-foreground'">{{ status.enabled ? 'Activée' : 'Désactivée' }}</span>
-                </p>
-                <p class="text-xs text-muted-foreground" *ngIf="status.enabled">Codes de secours restants : {{ status.backupCodesRemaining }}</p>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5">
+                <span class="inline-flex h-2.5 w-2.5 rounded-full" [ngClass]="status.enabled ? 'bg-success' : 'bg-muted'"></span>
+                <span class="text-sm font-medium">
+                  {{ 'security.state' | t }} :
+                  <span [ngClass]="status.enabled ? 'text-success' : 'text-muted-foreground'">{{ status.enabled ? ('security.twoFactorEnabled' | t) : ('security.twoFactorDisabled' | t) }}</span>
+                </span>
               </div>
-              <button *ngIf="!status.enabled" (click)="openTwoFactorModal()" class="btn-primary">Activer la 2FA</button>
+              <button *ngIf="!status.enabled" (click)="openTwoFactorModal()" class="btn-primary btn-sm">{{ 'security.enableTwoFactor' | t }}</button>
             </div>
 
-            <!-- Disable -->
-            <ng-container *ngIf="status.enabled">
-              <div class="border-t pt-4">
-                <p class="text-sm font-medium mb-2">Désactiver la 2FA (mot de passe ou code requis)</p>
-                <div class="flex flex-col gap-3">
-                  <input type="password" [(ngModel)]="disablePassword" [ngModelOptions]="{standalone: true}" class="input" placeholder="Mot de passe" />
-                  <input type="text" [(ngModel)]="disableCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" placeholder="Ou code 2FA" />
-                  <button (click)="disable()" class="btn-destructive">Désactiver</button>
-                </div>
+            <p *ngIf="status.enabled" class="mt-2 text-xs text-muted-foreground">
+              {{ 'security.backupRemaining' | t }} : {{ status.backupCodesRemaining }}
+            </p>
+
+            <!-- Désactivation -->
+            <div *ngIf="status.enabled" class="mt-4 border-t border-border pt-4">
+              <p class="text-sm font-medium mb-2">{{ 'security.disableHint' | t }}</p>
+              <div class="flex flex-col gap-2">
+                <input type="password" [(ngModel)]="disablePassword" [ngModelOptions]="{standalone: true}" class="input" [placeholder]="'auth.password' | t" />
+                <input type="text" [(ngModel)]="disableCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" [placeholder]="'security.orCode' | t" />
+                <button (click)="disable()" class="btn-destructive w-full sm:w-auto">{{ 'security.disableTwoFactor' | t }}</button>
               </div>
-            </ng-container>
+            </div>
           </ng-container>
         </div>
       </section>
@@ -159,8 +164,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Activité de connexion récente</h2>
-              <p class="card-description">Vos dernières connexions à ce compte.</p>
+              <h2 class="card-title">{{ 'security.activity' | t }}</h2>
+              <p class="card-description">{{ 'security.activityHint' | t }}</p>
             </div>
           </div>
         </div>
@@ -178,19 +183,18 @@
                 <p class="text-sm font-medium">
                   {{ formatActivityDate(a.date) }}
                   <span [ngClass]="a.succes ? 'text-success' : 'text-destructive'">{{ a.succes ? '✓' : '✗' }}</span>
-                  <span *ngIf="a.mfaUtilise" class="badge-outline ml-1">2FA</span>
-                  <span *ngIf="isCurrentSession(a)" class="badge-default ml-1">Session actuelle</span>
+                  <span *ngIf="a.mfaUtilise" class="badge-outline ml-1">{{ 'security.mfa' | t }}</span>
+                  <span *ngIf="isCurrentSession(a)" class="badge-default ml-1">{{ 'security.currentSession' | t }}</span>
                 </p>
                 <p class="text-xs text-muted-foreground">{{ a.navigateur }} · {{ a.systeme }} · {{ a.appareil }} · IP {{ a.ip || '—' }}</p>
               </div>
             </div>
-            <div *ngIf="!activities.length" class="text-sm text-muted-foreground">Aucune activité enregistrée.</div>
+            <div *ngIf="!activities.length" class="text-sm text-muted-foreground">{{ 'security.noActivity' | t }}</div>
 
-            <!-- Pagination -->
             <div *ngIf="activityPages > 1" class="flex items-center justify-between pt-3">
-              <button (click)="loadActivity(activityPage - 1)" [disabled]="activityPage <= 1" class="btn-outline btn-sm">Précédent</button>
-              <span class="text-xs text-muted-foreground">Page {{ activityPage }} / {{ activityPages }}</span>
-              <button (click)="loadActivity(activityPage + 1)" [disabled]="activityPage >= activityPages" class="btn-outline btn-sm">Suivant</button>
+              <button (click)="loadActivity(activityPage - 1)" [disabled]="activityPage <= 1" class="btn-outline btn-sm">{{ 'common.back' | t }}</button>
+              <span class="text-xs text-muted-foreground">{{ 'table.shown' | t }} {{ activityPage }} / {{ activityPages }}</span>
+              <button (click)="loadActivity(activityPage + 1)" [disabled]="activityPage >= activityPages" class="btn-outline btn-sm">{{ 'common.send' | t }}</button>
             </div>
           </div>
         </div>
@@ -206,8 +210,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Recommandations</h2>
-              <p class="card-description">Bonnes pratiques pour sécuriser votre compte.</p>
+              <h2 class="card-title">{{ 'security.recommendations' | t }}</h2>
+              <p class="card-description">{{ 'security.recommendationsHint' | t }}</p>
             </div>
           </div>
         </div>

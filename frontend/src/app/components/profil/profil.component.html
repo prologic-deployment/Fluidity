@@ -2,8 +2,8 @@
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
     <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-semibold tracking-tight">Mon profil</h1>
-        <p class="text-sm text-muted-foreground mt-0.5">Gérez vos informations personnelles et votre photo.</p>
+        <h1 class="text-xl font-semibold tracking-tight">{{ 'profile.title' | t }}</h1>
+        <p class="text-sm text-muted-foreground mt-0.5">{{ 'profile.subtitle' | t }}</p>
       </div>
       <a routerLink="/securite" class="btn-outline btn-sm">
         <svg class="h-3.5 w-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -106,27 +106,27 @@
                 </svg>
               </div>
               <div>
-                <h2 class="card-title">Fiche société</h2>
-                <p class="card-description">Informations de votre entreprise (gérées par l'administrateur).</p>
+                <h2 class="card-title">{{ 'profile.company' | t }}</h2>
+                <p class="card-description">{{ 'profile.companyHint' | t }}</p>
               </div>
             </div>
           </div>
           <div class="card-content pt-6">
             <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div>
-                <dt class="detail-label">Raison sociale</dt>
+                <dt class="detail-label">{{ 'profile.company' | t }}</dt>
                 <dd class="detail-value">{{ profile?.nom || '—' }}</dd>
               </div>
               <div>
-                <dt class="detail-label">Email de contact</dt>
+                <dt class="detail-label">{{ 'profile.email' | t }}</dt>
                 <dd class="detail-value break-all">{{ profile?.email || '—' }}</dd>
               </div>
               <div>
-                <dt class="detail-label">Téléphone</dt>
+                <dt class="detail-label">{{ 'profile.phone' | t }}</dt>
                 <dd class="detail-value">{{ profile?.telephone || 'Non renseigné' }}</dd>
               </div>
               <div>
-                <dt class="detail-label">Adresse</dt>
+                <dt class="detail-label">{{ 'profile.address' | t }}</dt>
                 <dd class="detail-value">{{ profile?.adresse || 'Non renseignée' }}</dd>
               </div>
             </dl>
@@ -144,8 +144,8 @@
                 </svg>
               </div>
               <div>
-                <h2 class="card-title">Informations personnelles</h2>
-                <p class="card-description">Ces informations sont visibles par les équipes Fluidity.</p>
+                <h2 class="card-title">{{ 'profile.personal' | t }}</h2>
+                <p class="card-description">{{ 'profile.personalHint' | t }}</p>
               </div>
             </div>
           </div>
@@ -161,38 +161,38 @@
             <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label class="field-label">Prénom</label>
+                  <label class="field-label">{{ 'profile.firstName' | t }}</label>
                   <input formControlName="firstName" type="text" class="input" placeholder="Votre prénom" />
                 </div>
                 <div>
-                  <label class="field-label">Nom</label>
+                  <label class="field-label">{{ 'profile.lastName' | t }}</label>
                   <input formControlName="lastName" type="text" class="input" placeholder="Votre nom" />
                 </div>
                 <div>
-                  <label class="field-label">Téléphone</label>
+                  <label class="field-label">{{ 'profile.phone' | t }}</label>
                   <input formControlName="phone" type="tel" class="input" placeholder="+216 …" />
                   <p *ngIf="form.get('phone')?.hasError('pattern') && form.get('phone')?.touched" class="field-error">
                     Numéro de téléphone invalide.
                   </p>
                 </div>
                 <div *ngIf="!estClient">
-                  <label class="field-label">Poste</label>
+                  <label class="field-label">{{ 'profile.jobTitle' | t }}</label>
                   <input formControlName="jobTitle" type="text" class="input" placeholder="Votre fonction" />
                 </div>
                 <div class="md:col-span-2">
-                  <label class="field-label">Adresse</label>
+                  <label class="field-label">{{ 'profile.address' | t }}</label>
                   <input formControlName="address" type="text" class="input" placeholder="Votre adresse postale" />
                 </div>
                 <div class="md:col-span-2">
-                  <label class="field-label">Bio</label>
+                  <label class="field-label">{{ 'profile.bio' | t }}</label>
                   <textarea formControlName="bio" rows="3" class="textarea" placeholder="Quelques mots à votre sujet…"></textarea>
                   <p class="mt-1 text-xs text-muted-foreground text-right">{{ form.value.bio?.length || 0 }}/1000</p>
                 </div>
               </div>
 
               <div class="flex items-center justify-end gap-3 border-t border-border pt-4">
-                <p *ngIf="form.dirty" class="mr-auto text-xs text-muted-foreground">Modifications non enregistrées</p>
-                <button type="button" (click)="cancel()" [disabled]="saving || !form.dirty" class="btn-outline">Annuler</button>
+                <p *ngIf="form.dirty" class="mr-auto text-xs text-muted-foreground">{{ 'profile.unsaved' | t }}</p>
+                <button type="button" (click)="cancel()" [disabled]="saving || !form.dirty" class="btn-outline">{{ 'common.cancel' | t }}</button>
                 <button type="submit" [disabled]="saving || !form.dirty" class="btn-primary">
                   {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
                 </button>
@@ -206,27 +206,27 @@
       <aside class="space-y-6">
         <section class="card animate-fade-in-up stagger-1">
           <div class="card-content py-4 space-y-2 text-sm">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Compte</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'profile.account' | t }}</p>
             <p><span class="text-muted-foreground">Email</span><br /><span class="break-all">{{ email }}</span></p>
-            <p><span class="text-muted-foreground">Rôle</span><br />{{ roleLabel }}</p>
-            <p *ngIf="!estClient"><span class="text-muted-foreground">Poste</span><br />{{ profile?.jobTitle || '—' }}</p>
-            <p><span class="text-muted-foreground">Membre depuis</span><br />{{ profile?.createdAt ? (profile!.createdAt | date: 'dd/MM/yyyy') : '—' }}</p>
-            <p *ngIf="profile?.updatedAt"><span class="text-muted-foreground">Dernière mise à jour</span><br />{{ profile!.updatedAt | date: 'dd/MM/yyyy' }}</p>
+            <p><span class="text-muted-foreground">{{ 'profile.role' | t }}</span><br />{{ roleLabel }}</p>
+            <p *ngIf="!estClient"><span class="text-muted-foreground">{{ 'profile.jobTitle' | t }}</span><br />{{ profile?.jobTitle || '—' }}</p>
+            <p><span class="text-muted-foreground">{{ 'profile.memberSince' | t }}</span><br />{{ profile?.createdAt ? (profile!.createdAt | date: 'dd/MM/yyyy') : '—' }}</p>
+            <p *ngIf="profile?.updatedAt"><span class="text-muted-foreground">{{ 'profile.updated' | t }}</span><br />{{ profile!.updatedAt | date: 'dd/MM/yyyy' }}</p>
           </div>
         </section>
 
         <!-- Bio (valeur affichée) -->
         <section class="card animate-fade-in-up stagger-1" *ngIf="profile?.bio">
           <div class="card-content py-4">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bio</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'profile.bio' | t }}</p>
             <p class="mt-2 whitespace-pre-line text-sm text-foreground">{{ profile?.bio }}</p>
           </div>
         </section>
 
         <section class="card animate-fade-in-up stagger-2">
           <div class="card-content py-4 space-y-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Sécurité du compte</p>
-            <p class="text-sm text-muted-foreground">Gérez votre mot de passe, la double authentification et consultez votre activité.</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'profile.securityShortcut' | t }}</p>
+            <p class="text-sm text-muted-foreground">{{ 'profile.securityShortcutHint' | t }}</p>
             <a routerLink="/securite" class="btn-outline btn-sm w-full justify-center">
               <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>

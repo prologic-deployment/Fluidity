@@ -5,20 +5,21 @@ import { Subject, takeUntil } from 'rxjs';
 import { AuthService, SessionUser } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
+import { LanguageSwitcherComponent } from '../shared/language-switcher.component';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 import { UploadUrlPipe } from '../../pipes/upload-url.pipe';
-import { ROLE_LABELS } from '../../models/user.model';
 
 /**
  * Barre de navigation horizontale supérieure (sticky) :
- *   [Menu mobile] [Fil d'Ariane] ..... [thème] [avatar + nom ▾]
+ *   [Menu mobile] [Fil d'Ariane] ..... [langue] [thème] [avatar + nom ▾]
  *
  * La sidebar reste la navigation principale ; la topbar porte le fil d'Ariane,
- * le basculement de thème et le menu utilisateur (profil, sécurité, déconnexion).
+ * le sélecteur de langue, le basculement de thème et le menu utilisateur.
  */
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent, UploadUrlPipe],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, LanguageSwitcherComponent, TranslatePipe, UploadUrlPipe],
   templateUrl: './topbar.component.html',
 })
 export class TopbarComponent implements OnInit, OnDestroy {
@@ -104,8 +105,8 @@ export class TopbarComponent implements OnInit, OnDestroy {
     return `${first}${second}`.toUpperCase();
   }
 
-  get roleLabel(): string {
-    const role = this.user?.role;
-    return (role && ROLE_LABELS[role]) || role || 'Utilisateur';
+  /** Libellé du rôle, traduit via le pipe `t` dans le template. */
+  get role(): string {
+    return this.user?.role || '';
   }
 }

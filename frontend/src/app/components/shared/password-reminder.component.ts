@@ -2,6 +2,7 @@ import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 /**
  * Rappel de sécurité : affiché tant que le client utilise encore son mot de
@@ -11,7 +12,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
   selector: 'app-password-reminder',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, TranslatePipe],
   templateUrl: './password-reminder.component.html',
 })
 export class PasswordReminderComponent implements OnInit {

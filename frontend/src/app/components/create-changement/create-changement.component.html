@@ -2,8 +2,8 @@
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
     <div class="w-full px-4 sm:px-6 lg:px-8 py-5">
       <a routerLink="/changements" class="btn-link">&larr; Retour</a>
-      <h1 class="text-xl font-semibold tracking-tight mt-1">Nouveau changement</h1>
-      <p class="text-sm text-muted-foreground mt-0.5">Soumettez un changement d'infrastructure avec ses spécifications techniques.</p>
+      <h1 class="text-xl font-semibold tracking-tight mt-1">{{ 'changement.newTitle' | t }}</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">{{ 'changement.newSubtitle' | t }}</p>
     </div>
   </header>
 
@@ -19,54 +19,54 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Informations générales</h2>
-              <p class="card-description">Objet, contexte et classification du changement.</p>
+              <h2 class="card-title">{{ 'form.generalInfo' | t }}</h2>
+              <p class="card-description">{{ 'form.generalInfoHint' | t }}</p>
             </div>
           </div>
         </div>
       <div class="card-content space-y-4">
-        <div><label class="field-label">Objet du changement</label>
-          <input type="text" formControlName="objetChangement" class="input" placeholder="Ex. Extension de la RAM du serveur applicatif" /></div>
-        <div><label class="field-label">Description détaillée</label>
+        <div><label class="field-label">{{ 'form.objet' | t }}</label>
+          <input type="text" formControlName="objetChangement" class="input" [placeholder]="'changement.objetPlaceholder' | t" /></div>
+        <div><label class="field-label">{{ 'form.description' | t }}</label>
           <textarea formControlName="descriptionDetaillee" class="textarea" rows="3"></textarea></div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div><label class="field-label">Service / Environnement</label>
+          <div><label class="field-label">{{ 'demande.environment' | t }}</label>
             <select formControlName="serviceEnvironnement" class="select">
-              <option value="" disabled>Sélectionner…</option>
-              <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s }}</option>
+              <option value="" disabled>{{ 'form.select' | t }}</option>
+              <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s | t:'environment' }}</option>
             </select></div>
-          <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'"><label class="field-label">Précision environnement</label>
+          <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'"><label class="field-label">{{ 'demande.specifyEnvironment' | t }}</label>
             <input type="text" formControlName="serviceEnvironnementAutre" class="input" /></div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div><label class="field-label">Catégorie</label>
+          <div><label class="field-label">{{ 'form.category' | t }}</label>
             <select formControlName="categorie" class="select">
-              <option value="" disabled>Sélectionner…</option>
-              <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+              <option value="" disabled>{{ 'form.select' | t }}</option>
+              <option *ngFor="let c of categories" [value]="c">{{ c | t:'category' }}</option>
             </select></div>
-          <div><label class="field-label">Sous-catégorie</label>
+          <div><label class="field-label">{{ 'form.subcategory' | t }}</label>
             <select *ngIf="form.get('categorie')?.value !== 'Autre'" formControlName="sousCategorie" class="select">
-              <option value="" disabled>Sélectionner…</option>
-              <option *ngFor="let s of sousCategories" [value]="s">{{ s }}</option>
+              <option value="" disabled>{{ 'form.select' | t }}</option>
+              <option *ngFor="let s of sousCategories" [value]="s">{{ s | t:'environment' }}</option>
             </select>
-            <input *ngIf="form.get('categorie')?.value === 'Autre'" type="text" formControlName="sousCategorieAutre" class="input" placeholder="Précisez la sous-catégorie" /></div>
+            <input *ngIf="form.get('categorie')?.value === 'Autre'" type="text" formControlName="sousCategorieAutre" class="input" [placeholder]="'form.specify' | t" /></div>
         </div>
-        <div *ngIf="form.get('categorie')?.value === 'Autre'"><label class="field-label">Précision de la catégorie</label>
+        <div *ngIf="form.get('categorie')?.value === 'Autre'"><label class="field-label">{{ 'form.specify' | t }}</label>
           <input type="text" formControlName="categorieAutre" class="input" /></div>
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          <div><label class="field-label">Type de changement</label>
+          <div><label class="field-label">{{ 'changement.type' | t }}</label>
             <select formControlName="typeChangement" class="select">
-              <option *ngFor="let t of typesChangement" [value]="t">{{ t }}</option>
+              <option *ngFor="let t of typesChangement" [value]="t">{{ t | t:'type' }}</option>
             </select></div>
-          <div><label class="field-label">Contrat</label>
+          <div><label class="field-label">{{ 'form.contract' | t }}</label>
             <select formControlName="contrat" class="select">
-              <option value="" disabled>Sélectionner…</option>
+              <option value="" disabled>{{ 'form.select' | t }}</option>
               <option *ngFor="let c of contrats" [value]="c._id">{{ c.reference }} — {{ c.intitule }}</option>
             </select></div>
         </div>
-        <div><label class="field-label">Plan de retour arrière</label>
+        <div><label class="field-label">{{ 'changement.rollback' | t }}</label>
           <textarea formControlName="planRetourArriere" class="textarea" rows="2"></textarea></div>
-        <div><label class="field-label">Prérequis nécessaires (optionnel)</label>
+        <div><label class="field-label">{{ 'changement.prerequis' | t }}</label>
           <input type="text" formControlName="prerequisNecessaires" class="input" /></div>
       </div>
     </div>
@@ -81,7 +81,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Général</h2>
+              <h2 class="card-title">{{ 'changement.specsGeneral' | t }}</h2>
               <p class="card-description">Ressources concernées et commentaires.</p>
             </div>
           </div>
@@ -104,7 +104,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Serveur / VM</h2>
+              <h2 class="card-title">{{ 'changement.specsServer' | t }}</h2>
               <p class="card-description">Configuration serveur ou machine virtuelle.</p>
             </div>
           </div>
@@ -143,7 +143,7 @@
           <div *ngFor="let d of disques.controls; let i = index" class="flex items-center gap-3">
             <input type="number" [formControl]="$any(d).get('capaciteGo')" class="input" placeholder="Capacité (Go)" />
             <select [formControl]="$any(d).get('type')" class="select">
-              <option *ngFor="let t of typesDisque" [value]="t">{{ t }}</option>
+              <option *ngFor="let t of typesDisque" [value]="t">{{ t | t:'type' }}</option>
             </select>
             <input *ngIf="$any(d).get('type')?.value === 'Autre'" type="text" [formControl]="$any(d).get('typePrecision')" class="input" placeholder="Précision" />
             <button type="button" (click)="removeDisque(i)" class="btn-ghost btn-icon">×</button>
@@ -163,7 +163,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Réseau</h2>
+              <h2 class="card-title">{{ 'changement.specsNetwork' | t }}</h2>
               <p class="card-description">Paramètres réseau : VLAN, IP, DNS, routage…</p>
             </div>
           </div>
@@ -230,7 +230,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Pare-feu</h2>
+              <h2 class="card-title">{{ 'changement.specsFirewall' | t }}</h2>
               <p class="card-description">Règles de pare-feu et accès VPN.</p>
             </div>
           </div>
@@ -258,7 +258,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Sauvegarde</h2>
+              <h2 class="card-title">{{ 'changement.specsBackup' | t }}</h2>
               <p class="card-description">Rétention, fréquence et destination des sauvegardes.</p>
             </div>
           </div>
@@ -298,7 +298,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Stockage</h2>
+              <h2 class="card-title">{{ 'changement.specsStorage' | t }}</h2>
               <p class="card-description">Configurations de stockage : type, capacité, protocole.</p>
             </div>
           </div>
@@ -306,7 +306,7 @@
       <div class="card-content space-y-4">
         <div *ngFor="let s of stockages.controls; let i = index" class="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-lg border p-3">
           <div><label class="field-label">Type de stockage</label>
-            <select [formControl]="$any(s).get('typeStockage')" class="select"><option value="">—</option><option *ngFor="let t of typesStockage" [value]="t">{{ t }}</option></select></div>
+            <select [formControl]="$any(s).get('typeStockage')" class="select"><option value="">—</option><option *ngFor="let t of typesStockage" [value]="t">{{ t | t:'type' }}</option></select></div>
           <div *ngIf="$any(s).get('typeStockage')?.value === 'Autre'"><label class="field-label">Précision</label><input type="text" [formControl]="$any(s).get('customStorageType')" class="input" /></div>
           <div><label class="field-label">Capacité (Go)</label><input type="number" [formControl]="$any(s).get('capaciteGo')" class="input" /></div>
           <div><label class="field-label">Protocole</label>
@@ -328,7 +328,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — IA-GPU</h2>
+              <h2 class="card-title">{{ 'changement.specsGpu' | t }}</h2>
               <p class="card-description">Ressources GPU pour les charges IA.</p>
             </div>
           </div>
@@ -357,7 +357,7 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Spécifications — Sécurité</h2>
+              <h2 class="card-title">{{ 'changement.specsSecurity' | t }}</h2>
               <p class="card-description">Périmètre, criticité et certificats.</p>
             </div>
           </div>
@@ -389,8 +389,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Pièces jointes</h2>
-              <p class="card-description">Documents techniques utiles au traitement.</p>
+              <h2 class="card-title">{{ 'form.attachments' | t }}</h2>
+              <p class="card-description">{{ 'form.attachmentsHint' | t }}</p>
             </div>
           </div>
         </div>
@@ -407,8 +407,8 @@
     <p *ngIf="error" class="alert-destructive">{{ error }}</p>
 
     <div class="flex items-center gap-3">
-      <button type="submit" [disabled]="loading" class="btn-primary">{{ loading ? 'Envoi…' : 'Soumettre le changement' }}</button>
-      <a routerLink="/changements" class="btn-ghost">Annuler</a>
+      <button type="submit" [disabled]="loading" class="btn-primary">{{ loading ? ('common.sending' | t) : ('changement.submit' | t) }}</button>
+      <a routerLink="/changements" class="btn-ghost">{{ 'common.cancel' | t }}</a>
     </div>
   </form>
   </main>

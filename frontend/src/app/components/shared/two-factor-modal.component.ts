@@ -2,6 +2,7 @@ import { Component, EventEmitter, HostListener, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 /**
  * Modale de configuration de la double authentification (TOTP).
@@ -12,7 +13,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
   selector: 'app-two-factor-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   templateUrl: './two-factor-modal.component.html',
 })
 export class TwoFactorModalComponent {

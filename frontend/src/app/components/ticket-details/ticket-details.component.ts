@@ -7,11 +7,12 @@ import { AuthService } from '../../services/auth.service';
 import { BreadcrumbService } from '../../services/breadcrumb.service';
 import { Ticket, TicketComment, TicketActivity, EQUIPES_SUPPORT } from '../../models/ticket.model';
 import { resolveUploadUrl } from '../../utils/upload-url.util';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 
 @Component({
   selector: 'app-ticket-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, TranslatePipe],
   templateUrl: './ticket-details.component.html',
 })
 export class TicketDetailsComponent implements OnInit {

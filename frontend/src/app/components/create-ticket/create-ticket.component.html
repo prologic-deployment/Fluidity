@@ -2,8 +2,8 @@
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
     <div class="w-full px-4 sm:px-6 lg:px-8 py-5">
       <a routerLink="/tickets" class="btn-link">&larr; Retour</a>
-      <h1 class="text-xl font-semibold tracking-tight mt-1">Nouvel incident</h1>
-      <p class="text-sm text-muted-foreground mt-0.5">Décrivez l'incident rencontré — la priorité est calculée automatiquement.</p>
+      <h1 class="text-xl font-semibold tracking-tight mt-1">{{ 'ticket.newTitle' | t }}</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">{{ 'ticket.newSubtitle' | t }}</p>
     </div>
   </header>
 
@@ -23,21 +23,21 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Informations générales</h2>
-              <p class="card-description">Décrivez l'incident et son contexte.</p>
+              <h2 class="card-title">{{ 'form.generalInfo' | t }}</h2>
+              <p class="card-description">{{ 'form.generalInfoHint' | t }}</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6 space-y-4">
           <div>
-            <label class="field-label">Objet</label>
-            <input type="text" formControlName="objet" class="input" placeholder="Résumé de l'incident (ex: Portail intranet inaccessible)" />
-            <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">Objet requis (3 caractères min).</p>
+            <label class="field-label">{{ 'form.objet' | t }}</label>
+            <input type="text" formControlName="objet" class="input" [placeholder]="'ticket.objetPlaceholder' | t" />
+            <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">{{ 'ticket.objetError' | t }}</p>
           </div>
           <div>
-            <label class="field-label">Description détaillée</label>
-            <textarea formControlName="descriptionDetaillee" class="textarea" rows="4" placeholder="Décrivez précisément l'incident, son apparition et son impact…"></textarea>
-            <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">Description requise (10 caractères min).</p>
+            <label class="field-label">{{ 'form.description' | t }}</label>
+            <textarea formControlName="descriptionDetaillee" class="textarea" rows="4" [placeholder]="'ticket.descriptionPlaceholder' | t"></textarea>
+            <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">{{ 'form.descriptionHint' | t }}</p>
           </div>
         </div>
       </section>
@@ -52,34 +52,34 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Classification</h2>
-              <p class="card-description">Catégorisez l'incident pour faciliter son traitement.</p>
+              <h2 class="card-title">{{ 'form.classification' | t }}</h2>
+              <p class="card-description">{{ 'form.classificationHint' | t }}</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6">
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div>
-              <label class="field-label">Catégorie</label>
+              <label class="field-label">{{ 'form.category' | t }}</label>
               <select formControlName="categorie" class="select">
                 <option value="" disabled>Sélectionner…</option>
-                <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
+                <option *ngFor="let c of categories" [value]="c">{{ c | t:'category' }}</option>
               </select>
-              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">{{ 'common.required' | t }}</p>
             </div>
             <div>
-              <label class="field-label">Sous-catégorie</label>
+              <label class="field-label">{{ 'form.subcategory' | t }}</label>
               <select *ngIf="form.get('categorie')?.value !== 'Autre'" formControlName="sousCategorie" class="select">
                 <option value="" disabled>Sélectionner…</option>
-                <option *ngFor="let s of sousCategories" [value]="s">{{ s }}</option>
+                <option *ngFor="let s of sousCategories" [value]="s">{{ s | t:'subcategory' }}</option>
               </select>
-              <input *ngIf="form.get('categorie')?.value === 'Autre'" type="text" formControlName="sousCategorieAutre" class="input" placeholder="Précisez la sous-catégorie" />
-              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
+              <input *ngIf="form.get('categorie')?.value === 'Autre'" type="text" formControlName="sousCategorieAutre" class="input" [placeholder]="'form.specify' | t" />
+              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">{{ 'common.required' | t }}</p>
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'" class="md:col-span-2 xl:col-span-3">
-              <label class="field-label">Précision de la catégorie</label>
-              <input type="text" formControlName="categorieAutre" class="input" placeholder="Précisez la catégorie" />
-              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
+              <label class="field-label">{{ 'form.specify' | t }}</label>
+              <input type="text" formControlName="categorieAutre" class="input" [placeholder]="'form.specify' | t" />
+              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
             </div>
           </div>
         </div>
@@ -97,32 +97,32 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Impact et urgence</h2>
-              <p class="card-description">Ces informations déterminent automatiquement la priorité du ticket.</p>
+              <h2 class="card-title">{{ 'form.impactUrgency' | t }}</h2>
+              <p class="card-description">{{ 'form.impactUrgencyHint' | t }}</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6">
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div>
-              <label class="field-label">Impact</label>
+              <label class="field-label">{{ 'ticket.impact' | t }}</label>
               <select formControlName="impact" class="select">
                 <option value="" disabled>Sélectionner…</option>
-                <option *ngFor="let i of impacts" [value]="i">{{ i }}</option>
+                <option *ngFor="let i of impacts" [value]="i">{{ i | t:'impact' }}</option>
               </select>
-              <p *ngIf="form.get('impact')?.invalid && form.get('impact')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('impact')?.invalid && form.get('impact')?.touched" class="field-error">{{ 'common.required' | t }}</p>
             </div>
             <div>
-              <label class="field-label">Urgence</label>
+              <label class="field-label">{{ 'ticket.urgency' | t }}</label>
               <select formControlName="urgence" class="select">
                 <option value="" disabled>Sélectionner…</option>
-                <option *ngFor="let u of urgences" [value]="u">{{ u }}</option>
+                <option *ngFor="let u of urgences" [value]="u">{{ u | t:'urgence' }}</option>
               </select>
-              <p *ngIf="form.get('urgence')?.invalid && form.get('urgence')?.touched" class="field-error">Champ requis.</p>
+              <p *ngIf="form.get('urgence')?.invalid && form.get('urgence')?.touched" class="field-error">{{ 'common.required' | t }}</p>
             </div>
           </div>
           <div class="alert-success mt-4" *ngIf="priorityPreview()">
-            Priorité calculée : <strong>{{ priorityPreview() }}</strong>
+            {{ 'ticket.priorityPreview' | t }} : <strong>{{ priorityPreview() }}</strong>
           </div>
         </div>
       </section>
@@ -141,21 +141,21 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Contrat</h2>
-              <p class="card-description">Sélectionnez le contrat concerné par cet incident.</p>
+              <h2 class="card-title">{{ 'form.contract' | t }}</h2>
+              <p class="card-description">{{ 'form.contractHint' | t }}</p>
             </div>
           </div>
         </div>
         <div class="card-content pt-6">
           <div>
-            <label class="field-label">Contrat</label>
+            <label class="field-label">{{ 'form.contract' | t }}</label>
             <select formControlName="contrat" class="select">
-              <option value="" disabled>Sélectionner un contrat…</option>
+              <option value="" disabled>{{ 'demande.selectContract' | t }}</option>
               <option *ngFor="let c of contrats" [value]="c._id">{{ c.reference }} — {{ c.intitule }}</option>
             </select>
-            <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">Contrat requis.</p>
+            <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">{{ 'common.required' | t }}</p>
             <p *ngIf="contrats.length === 0" class="mt-1 text-xs text-muted-foreground">
-              Aucun contrat disponible. Un administrateur doit d'abord ouvrir un contrat pour votre compte.
+              {{ 'demande.noContract' | t }}
             </p>
           </div>
         </div>
@@ -171,8 +171,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Diagnostic</h2>
-              <p class="card-description">Précisions techniques selon la catégorie sélectionnée.</p>
+              <h2 class="card-title">{{ 'ticket.diagnostic' | t }}</h2>
+              <p class="card-description">{{ 'ticket.diagnosticHint' | t }}</p>
             </div>
           </div>
         </div>
@@ -211,8 +211,8 @@
               </svg>
             </div>
             <div>
-              <h2 class="card-title">Pièces jointes</h2>
-              <p class="card-description">Ajoutez des captures ou documents utiles au diagnostic.</p>
+              <h2 class="card-title">{{ 'form.attachments' | t }}</h2>
+              <p class="card-description">{{ 'form.attachmentsHint' | t }}</p>
             </div>
           </div>
         </div>
@@ -227,9 +227,9 @@
       </section>
 
       <div class="flex items-center justify-end gap-3">
-        <a routerLink="/tickets" class="btn-outline">Annuler</a>
+        <a routerLink="/tickets" class="btn-outline">{{ 'common.cancel' | t }}</a>
         <button type="submit" [disabled]="loading" class="btn-primary">
-          {{ loading ? 'Envoi…' : 'Soumettre l\'incident' }}
+          {{ loading ? ('common.sending' | t) : ('ticket.submit' | t) }}
         </button>
       </div>
     </form>

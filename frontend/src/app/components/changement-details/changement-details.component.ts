@@ -18,12 +18,13 @@ import {
   availableTransitions,
 } from '../../models/workflow';
 import { WorkflowStepperComponent } from '../shared/workflow-stepper.component';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 import { resolveUploadUrl } from '../../utils/upload-url.util';
 
 @Component({
   selector: 'app-changement-details',
   standalone: true,
-  imports: [CommonModule, RouterLink, WorkflowStepperComponent],
+  imports: [CommonModule, RouterLink, WorkflowStepperComponent, TranslatePipe],
   templateUrl: './changement-details.component.html',
 })
 export class ChangementDetailsComponent implements OnInit {

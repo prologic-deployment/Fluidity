@@ -7,7 +7,7 @@
           <button type="button" class="font-mono text-sm font-semibold hover:underline" (click)="copyRef()" title="Copier">
             {{ t.reference }}
           </button>
-          <span *ngIf="copied" class="text-xs text-success">Copié</span>
+          <span *ngIf="copied" class="text-xs text-success">{{ 'common.confirm' | t }}</span>
           <span [class]="prioriteClass(t.priorite)"><span class="badge-dot"></span>{{ t.priorite }}</span>
           <span class="badge-outline">{{ t.statut }}</span>
           <span class="badge-secondary">{{ t.type }}</span>
@@ -26,10 +26,10 @@
         <!-- Description -->
         <section class="card">
           <div class="card-content py-5 space-y-4">
-            <p class="detail-section-title">Description</p>
+            <p class="detail-section-title">{{ 'detail.description' | t }}</p>
             <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ t.descriptionDetaillee }}</p>
             <div *ngIf="t.piecesJointes?.length">
-              <p class="detail-label mb-2">Pièces jointes</p>
+              <p class="detail-label mb-2">{{ 'detail.attachments' | t }}</p>
               <a *ngFor="let pj of t.piecesJointes" [href]="resolveUrl(pj)" target="_blank" class="btn-outline btn-sm mr-2 mb-2">{{ nomFichier(pj) }}</a>
             </div>
           </div>
@@ -38,7 +38,7 @@
         <!-- Conversation / commentaires -->
         <section class="card">
           <div class="card-content py-5 space-y-4">
-            <p class="detail-section-title">Conversation</p>
+            <p class="detail-section-title">{{ 'detail.comments' | t }}</p>
             <div *ngFor="let c of comments" class="rounded-lg border px-3.5 py-3"
               [ngClass]="c.visibilite === 'interne' ? 'border-amber-400/40 bg-amber-500/5' : 'border-border'">
               <div class="flex items-center gap-2.5 mb-2">
@@ -72,7 +72,7 @@
         <!-- Historique -->
         <section class="card" *ngIf="activities.length">
           <div class="card-content py-5 space-y-3">
-            <p class="detail-section-title">Historique</p>
+            <p class="detail-section-title">{{ 'detail.history' | t }}</p>
             <ul class="space-y-3">
               <li *ngFor="let a of activities" class="flex gap-3 text-sm">
                 <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"></span>
@@ -93,19 +93,19 @@
       <aside class="space-y-4 lg:sticky lg:top-20 lg:self-start">
         <section class="card">
           <div class="card-content py-4 space-y-2 text-sm">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Informations</p>
-            <p><span class="text-muted-foreground">Client</span><br />{{ clientNom() }}</p>
-            <p><span class="text-muted-foreground">Contrat</span><br />{{ contratLabel() }}</p>
-            <p><span class="text-muted-foreground">Catégorie</span><br />{{ t.categorie }} / {{ t.sousCategorie }}</p>
-            <p><span class="text-muted-foreground">Impact / Urgence</span><br />{{ t.impact }} · {{ t.urgence }}</p>
-            <p><span class="text-muted-foreground">Assigné à</span><br />{{ assignedToLabel() }}</p>
-            <p><span class="text-muted-foreground">Ouvert le</span><br />{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.workflow' | t }}</p>
+            <p><span class="text-muted-foreground">{{ 'detail.client' | t }}</span><br />{{ clientNom() }}</p>
+            <p><span class="text-muted-foreground">{{ 'form.contract' | t }}</span><br />{{ contratLabel() }}</p>
+            <p><span class="text-muted-foreground">{{ 'form.category' | t }}</span><br />{{ t.categorie }} / {{ t.sousCategorie }}</p>
+            <p><span class="text-muted-foreground">{{ 'detail.impactUrgency' | t }}</span><br />{{ t.impact }} · {{ t.urgence }}</p>
+            <p><span class="text-muted-foreground">{{ 'detail.technician' | t }}</span><br />{{ assignedToLabel() }}</p>
+            <p><span class="text-muted-foreground">{{ 'detail.openedAt' | t }}</span><br />{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
           </div>
         </section>
 
         <section class="card">
           <div class="card-content py-4 space-y-2 text-sm">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">SLA</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.sla' | t }}</p>
             <p [class]="slaClass()" class="font-semibold">{{ t.slaEtat?.label || '—' }}</p>
             <p *ngIf="t.sla?.resolutionDueAt" class="text-xs text-muted-foreground">Échéance : {{ t.sla?.resolutionDueAt | date: 'dd/MM/yyyy HH:mm' }}</p>
             <p *ngIf="t.attenteMotif" class="text-warning text-xs">En attente : {{ t.attenteMotif }}</p>
@@ -115,13 +115,13 @@
         <!-- Affectation -->
         <section *ngIf="!isClient" class="card">
           <div class="card-content py-4 space-y-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Affectation</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.assignment' | t }}</p>
             <select [(ngModel)]="assignTeam" class="select">
-              <option value="">Équipe</option>
+              <option value="">{{ 'detail.team' | t }}</option>
               <option *ngFor="let e of equipes" [value]="e">{{ e }}</option>
             </select>
             <select [(ngModel)]="assignTo" class="select">
-              <option value="">Technicien</option>
+              <option value="">{{ 'detail.technician' | t }}</option>
               <option *ngFor="let u of assignees" [value]="u._id">{{ u.firstName }} {{ u.lastName }} · {{ u.email }}</option>
             </select>
             <button type="button" class="btn-outline btn-sm w-full" [disabled]="assignLoading" (click)="assigner()">
@@ -133,7 +133,7 @@
         <!-- Faire avancer -->
         <section *ngIf="transitions.length" class="card">
           <div class="card-content py-4 space-y-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Faire avancer</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.advance' | t }}</p>
             <select [(ngModel)]="transitionCible" class="select">
               <option value="">Choisir une action…</option>
               <option *ngFor="let s of transitions" [value]="s">{{ s }}</option>
@@ -153,7 +153,7 @@
         <!-- Résolution -->
         <section *ngIf="t.resolution?.resume" class="card">
           <div class="card-content py-4 text-sm space-y-2">
-            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Résolution</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{{ 'detail.resolution' | t }}</p>
             <p class="whitespace-pre-line">{{ t.resolution?.resume }}</p>
             <p *ngIf="t.resolution?.resolvedAt" class="text-xs text-muted-foreground">{{ t.resolution?.resolvedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
           </div>
@@ -165,5 +165,5 @@
 
 <div *ngIf="loading" class="p-10"><div class="skeleton h-40 w-full"></div></div>
 <div *ngIf="!loading && !ticket" class="p-10 text-sm text-muted-foreground">
-  {{ error || 'Ticket introuvable.' }} · <a routerLink="/tickets" class="btn-link">Retour</a>
+  {{ error || ('detail.notFound' | t) }} · <a routerLink="/tickets" class="btn-link">{{ 'common.back' | t }}</a>
 </div>
