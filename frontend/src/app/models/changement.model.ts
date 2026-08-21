@@ -192,7 +192,8 @@ export interface Specifications {
 
 export interface Changement {
   _id?: string;
-  /** Compte demandeur — dérivé côté serveur à la création, peuplé en lecture. */
+  /** Référence incrémentale (CHG-YYYY-NNNNN). */
+  reference?: string;
   /** Fiche société cliente (peuplée côté serveur). */
   clientId?: RequesterClientRef | string;
   requester?: RequesterRef | string;

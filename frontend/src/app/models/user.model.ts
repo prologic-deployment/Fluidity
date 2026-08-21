@@ -1,9 +1,13 @@
 /**
- * Profil utilisateur (application mono-organisation).
- * Rôles : CLIENT | ADMIN | SUPPORT_N1 | RESPONSABLE_TECHNIQUE | COMMERCIAL | EXPLOITATION
+ * Principals de l'application (qui s'authentifie) :
+ *   - UTILISATEUR : compte interne (rôles ADMIN / SUPPORT_N1 / RESPONSABLE_TECHNIQUE / COMMERCIAL / EXPLOITATION)
+ *   - CLIENT      : accès portail de l'entité commerciale Client (modèle Client)
+ *
+ * NB : « CLIENT » N'EST PAS un rôle Utilisateur.
  */
+export type PrincipalType = 'UTILISATEUR' | 'CLIENT';
+
 export type AppRole =
-  | 'CLIENT'
   | 'ADMIN'
   | 'SUPPORT_N1'
   | 'RESPONSABLE_TECHNIQUE'
@@ -13,7 +17,9 @@ export type AppRole =
 export interface AppUser {
   _id?: string;
   email: string;
-  role: AppRole;
+  role: string;
+  principalType?: PrincipalType;
+  mustChangePassword?: boolean;
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -21,11 +27,12 @@ export interface AppUser {
   bio?: string;
   address?: string;
   avatarUrl?: string | null;
-  // --- Fiche société cliente (peuplée pour les comptes CLIENT uniquement) ---
+  // --- Fiche société cliente (peuplée pour les comptes CLIENT) ---
   nom?: string;
   telephone?: string;
   adresse?: string;
   statut?: string;
+  notes?: string;
   createdAt?: string;
   updatedAt?: string;
 }

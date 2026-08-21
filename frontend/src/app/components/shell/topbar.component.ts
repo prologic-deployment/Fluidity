@@ -90,7 +90,7 @@ export class TopbarComponent implements OnInit, OnDestroy {
   get displayName(): string {
     const u = this.user;
     const full = `${u?.firstName || ''} ${u?.lastName || ''}`.trim();
-    return full || this.userEmail || 'Utilisateur';
+    return u?.displayName || full || this.userEmail || 'Utilisateur';
   }
 
   get avatarUrl(): string | null {

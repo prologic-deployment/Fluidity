@@ -9,6 +9,9 @@ export interface AuthResponse {
   userId: string;
   role: string;
   email: string;
+  principalType?: 'UTILISATEUR' | 'CLIENT';
+  mustChangePassword?: boolean;
+  displayName?: string;
   firstName?: string;
   lastName?: string;
   avatarUrl?: string | null;
@@ -26,6 +29,9 @@ export interface SessionUser {
   userId: string;
   role: string;
   email: string;
+  principalType: 'UTILISATEUR' | 'CLIENT';
+  mustChangePassword: boolean;
+  displayName: string;
   firstName: string;
   lastName: string;
   avatarUrl: string | null;
@@ -86,8 +92,8 @@ export class AuthService {
     return this.http.patch<{ message: string; user: AppUser }>(`${this.baseUrl}/profile`, profile);
   }
 
-  changePassword(currentPassword: string, newPassword: string, confirmation: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.baseUrl}/change-password`, {
+  changePassword(currentPassword: string, newPassword: string, confirmation: string): Observable<{ message: string; mustChangePassword?: boolean }> {
+    return this.http.post<{ message: string; mustChangePassword?: boolean }>(`${this.baseUrl}/change-password`, {
       currentPassword,
       newPassword,
       confirmation,
@@ -129,6 +135,9 @@ export class AuthService {
       userId: res.userId,
       role: res.role,
       email: res.email,
+      principalType: res.principalType || 'UTILISATEUR',
+      mustChangePassword: !!res.mustChangePassword,
+      displayName: res.displayName || '',
       firstName: res.firstName || '',
       lastName: res.lastName || '',
       avatarUrl: res.avatarUrl || null,
@@ -173,6 +182,11 @@ export class AuthService {
     return !!r && r !== 'CLIENT';
   }
 
+  /** Le client utilise-t-il encore son mot de passe provisoire ? */
+  mustChangePassword(): boolean {
+    return !!this.getUser()?.mustChangePassword;
+  }
+
   /**
    * Synchronise la session avec un profil rafraîchi (nom, prénom, photo) après
    * une mise à jour de profil : topbar/sidebar/menu sont notifiés immédiatement
@@ -187,6 +201,15 @@ export class AuthService {
       lastName: user.lastName || '',
       avatarUrl: user.avatarUrl || null,
     };
+    this.persistUser(next);
+    this.sessionUser$.next(next);
+  }
+
+  /** Lève l'obligation de changement de mot de passe dans la session locale. */
+  syncSessionFlag(mustChangePassword: boolean): void {
+    const current = this.getUser();
+    if (!current) return;
+    const next: SessionUser = { ...current, mustChangePassword };
     this.persistUser(next);
     this.sessionUser$.next(next);
   }

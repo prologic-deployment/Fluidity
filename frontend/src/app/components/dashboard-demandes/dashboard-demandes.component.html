@@ -24,14 +24,26 @@
   <main class="max-w-7xl mx-auto px-6 py-8">
     <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
 
+    <!-- Cartes statistiques -->
+    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
+      <app-stat-card label="Total" [value]="stats().total" icon="total" tone="default"></app-stat-card>
+      <app-stat-card label="Ouvertes" [value]="stats().ouvertes" icon="new" tone="primary"></app-stat-card>
+      <app-stat-card label="En cours" [value]="stats().enCours" icon="progress" tone="primary"></app-stat-card>
+      <app-stat-card label="En attente" [value]="stats().enAttente" icon="wait" tone="warning"></app-stat-card>
+      <app-stat-card label="Réalisées" [value]="stats().realisees" icon="resolved" tone="success"></app-stat-card>
+      <app-stat-card label="Clôturées" [value]="stats().cloturees" icon="closed" tone="success"></app-stat-card>
+      <app-stat-card label="Rejetées" [value]="stats().rejetees" icon="rejected" tone="destructive"></app-stat-card>
+      <app-stat-card label="Annulées" [value]="stats().annulees" icon="closed" tone="default"></app-stat-card>
+    </div>
+
     <!-- Barre de filtres -->
-    <div class="toolbar">
+    <div class="toolbar mb-4">
       <div class="search-field">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher un objet, client, catégorie..." class="search-input" />
+        <input type="text" [(ngModel)]="searchTerm" placeholder="Rechercher (objet, référence, client, catégorie)..." class="search-input" />
         <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" title="Effacer">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
@@ -45,6 +57,11 @@
       <select [(ngModel)]="prioriteFiltre" class="filter-select">
         <option value="">Toutes les priorités</option>
         <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p }}</option>
+      </select>
+
+      <select [(ngModel)]="categorieFiltre" class="filter-select">
+        <option value="">Toutes les catégories</option>
+        <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
       </select>
 
       <button *ngIf="hasActiveFilters()" (click)="resetFilters()" class="btn-ghost btn-sm">
@@ -96,27 +113,40 @@
       <table class="table">
         <thead>
           <tr>
+            <th>Référence</th>
             <th>Objet</th>
+            <th>Client</th>
             <th>Catégorie</th>
-            <th>Environnement</th>
             <th>Priorité</th>
             <th>Statut</th>
-            <th>Date de création</th>
+            <th>Créée le</th>
             <th class="text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let d of filteredDemandes()" class="table-row-clickable group" (click)="openDetails(d)">
+            <td class="font-mono text-xs">{{ d.reference }}</td>
             <td class="font-medium">{{ d.objet }}</td>
+            <td>
+              <div class="flex items-center gap-2">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-[10px] font-bold text-white">
+                  <img *ngIf="clientAvatar(d)" [src]="clientAvatar(d)" alt="" class="h-full w-full object-cover" />
+                  <ng-container *ngIf="!clientAvatar(d)">{{ clientInitiales(d) }}</ng-container>
+                </span>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-medium">{{ clientNom(d) }}</p>
+                  <p class="truncate text-[11px] text-muted-foreground">{{ clientEmail(d) }}</p>
+                </div>
+              </div>
+            </td>
             <td class="text-muted-foreground">{{ d.categorie }} / {{ d.sousCategorie }}</td>
-            <td class="text-muted-foreground">{{ d.serviceEnvironnement }}</td>
             <td>
               <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee }}</span>
             </td>
             <td>
               <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
             </td>
-            <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy hh:mm' }}</td>
+            <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
                 <button (click)="$event.stopPropagation(); openDetails(d)" title="Voir le détail"

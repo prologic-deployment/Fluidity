@@ -40,6 +40,8 @@ export interface ContratRef {
 
 export interface Demande {
   _id?: string;
+  /** Référence incrémentale (DEM-YYYY-NNNNN). */
+  reference?: string;
   clientId?: RequesterClientRef | string;
   requester?: RequesterRef | string;
   objet: string;

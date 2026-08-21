@@ -21,7 +21,7 @@
           </div>
           <div>
             <h2 class="card-title">Informations du client</h2>
-            <p class="card-description">L'email doit correspondre au compte utilisateur (rôle CLIENT) de ce client.</p>
+            <p class="card-description">Un mot de passe provisoire sera généré et envoyé au client par email.</p>
           </div>
         </div>
       </div>
@@ -29,7 +29,23 @@
       <div class="card-content pt-6 space-y-5">
         <p *ngIf="error" class="alert-destructive">{{ error }}</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Succès : fiche créée (+ mot de passe provisoire en dev) -->
+        <div *ngIf="createdEmail" class="alert-success space-y-2">
+          <p class="font-medium">Client créé avec succès ({{ createdEmail }}).</p>
+          <p *ngIf="temporaryPassword" class="text-sm">
+            Mot de passe temporaire : <code class="font-mono font-semibold">{{ temporaryPassword }}</code>
+            <span class="block text-xs opacity-80">Transmettez-le au client — il devra le changer à la première connexion.</span>
+          </p>
+          <p *ngIf="!temporaryPassword" class="text-sm">
+            Les identifiants ont été envoyés par email au client.
+          </p>
+          <div class="flex gap-3 pt-1">
+            <a routerLink="/clients" class="btn-outline btn-sm">Voir les clients</a>
+            <button (click)="createdEmail = null; temporaryPassword = null; form.reset({ statut: 'Actif' })" class="btn-ghost btn-sm">Créer un autre client</button>
+          </div>
+        </div>
+
+        <div *ngIf="!createdEmail" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="field-label">Nom / Raison sociale</label>
             <input formControlName="nom" type="text" class="input" placeholder="ex: Atlas Industries" />
@@ -56,17 +72,19 @@
           </div>
         </div>
 
-        <div>
-          <label class="field-label">Notes</label>
-          <textarea formControlName="notes" rows="3" class="textarea"></textarea>
-        </div>
+        <ng-container *ngIf="!createdEmail">
+          <div>
+            <label class="field-label">Notes</label>
+            <textarea formControlName="notes" rows="3" class="textarea"></textarea>
+          </div>
 
-        <div class="flex justify-end space-x-3 pt-4 border-t border-border">
-          <a routerLink="/clients" class="btn-outline">Annuler</a>
-          <button type="submit" [disabled]="loading" class="btn-primary">
-            {{ loading ? 'Création...' : 'Créer le client' }}
-          </button>
-        </div>
+          <div class="flex justify-end space-x-3 pt-4 border-t border-border">
+            <a routerLink="/clients" class="btn-outline">Annuler</a>
+            <button type="submit" [disabled]="loading" class="btn-primary">
+              {{ loading ? 'Création...' : 'Créer le client' }}
+            </button>
+          </div>
+        </ng-container>
       </div>
     </form>
   </main>

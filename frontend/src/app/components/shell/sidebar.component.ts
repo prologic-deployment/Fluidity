@@ -102,6 +102,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   displayName(): string {
     const u = this.user;
+    if (u?.displayName) return u.displayName;
     if (u?.firstName || u?.lastName) return `${u.firstName || ''} ${u.lastName || ''}`.trim();
     return u?.email || 'Utilisateur';
   }

@@ -4,6 +4,8 @@ import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, Subject, takeUntil } from 'rxjs';
 import { SidebarComponent } from './sidebar.component';
 import { TopbarComponent } from './topbar.component';
+import { PasswordReminderComponent } from '../shared/password-reminder.component';
+import { AuthService } from '../../services/auth.service';
 
 /**
  * Structure principale de l'application authentifiée :
@@ -15,14 +17,16 @@ import { TopbarComponent } from './topbar.component';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SidebarComponent, TopbarComponent],
+  imports: [CommonModule, RouterOutlet, SidebarComponent, TopbarComponent, PasswordReminderComponent],
   templateUrl: './shell.component.html',
 })
 export class ShellComponent implements OnInit, OnDestroy {
   mobileMenuOpen = false;
+  /** Rappel de changement de mot de passe (client en mot de passe provisoire). */
+  showPasswordReminder = false;
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private auth: AuthService) {}
 
   ngOnInit(): void {
     // Chaque navigation referme la sidebar sur mobile
@@ -32,6 +36,12 @@ export class ShellComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(() => (this.mobileMenuOpen = false));
+
+    // Rappel de sécurité : réapparaît tant que mustChangePassword est actif.
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((u) => {
+      this.showPasswordReminder = !!u?.mustChangePassword;
+    });
+    this.showPasswordReminder = this.auth.mustChangePassword();
   }
 
   ngOnDestroy(): void {

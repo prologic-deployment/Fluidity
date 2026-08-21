@@ -102,12 +102,20 @@ export interface TicketListResponse {
 }
 
 export interface TicketStats {
+  total: number;
+  nouveaux: number;
+  affectes: number;
+  enAnalyse: number;
+  enResolution: number;
+  enAttente: number;
+  resolus: number;
+  clotures: number;
   ouverts: number;
   p1p2: number;
   attenteClient: number;
   attenteTiers: number;
   mesAssignes: number;
-  resolus: number;
+  resolus7j: number;
 }
 
 /** Auteur peuplé côté serveur (compte Utilisateur). */

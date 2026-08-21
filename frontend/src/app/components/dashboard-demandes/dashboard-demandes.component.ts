@@ -3,15 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
-import { Demande } from '../../models/demande.model';
+import { Demande, CATEGORIES } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { StatCardComponent } from '../shared/stat-card.component';
 import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
+import { resolveUploadUrl } from '../../utils/upload-url.util';
 
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, StatCardComponent],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
@@ -22,6 +24,7 @@ export class DashboardDemandesComponent implements OnInit {
   searchTerm = '';
   statutFiltre = '';
   prioriteFiltre = '';
+  categorieFiltre = '';
 
   readonly statutsFiltrables = [
     'Ouverte',
@@ -35,6 +38,7 @@ export class DashboardDemandesComponent implements OnInit {
     'Annulé',
   ];
   readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
+  readonly categories = CATEGORIES;
 
   constructor(
     private demandeService: DemandeService,
@@ -68,35 +72,70 @@ export class DashboardDemandesComponent implements OnInit {
     return c?.nom || (typeof c === 'string' ? c : '—');
   }
 
+  clientEmail(d: Demande): string {
+    const c = d.clientId as any;
+    return c?.email || '';
+  }
+
+  clientAvatar(d: Demande): string {
+    const c = d.clientId as any;
+    return c?.avatarUrl ? resolveUploadUrl(c.avatarUrl) : '';
+  }
+
+  clientInitiales(d: Demande): string {
+    return (this.clientNom(d) || '?').trim().slice(0, 2).toUpperCase();
+  }
+
   /** Email du demandeur (peuplé côté serveur). */
   requesterEmail(d: Demande): string {
     const r = d.requester as any;
     return r?.email || (typeof r === 'string' ? r : '');
   }
 
-  /** Liste filtrée (recherche texte + statut + priorité), la plus récente en premier. */
+  /** Statistiques calculées sur les données réelles chargées. */
+  stats(): {
+    total: number; ouvertes: number; enCours: number; enAttente: number;
+    realisees: number; cloturees: number; rejetees: number; annulees: number;
+  } {
+    const count = (s: string) => this.demandes.filter((d) => d.statut === s).length;
+    return {
+      total: this.demandes.length,
+      ouvertes: count('Ouverte'),
+      enCours: count("En cours d'analyse") + count('En cours de réalisation'),
+      enAttente: count('En attente de validation') + count('En attente client'),
+      realisees: count('Réalisée'),
+      cloturees: count('Clôturée'),
+      rejetees: count('Rejetée'),
+      annulees: count('Annulé'),
+    };
+  }
+
+  /** Liste filtrée (recherche texte + statut + priorité + catégorie). */
   filteredDemandes(): Demande[] {
     const term = this.searchTerm.trim().toLowerCase();
     return this.demandes.filter((d) => {
       const matchTerm =
         !term ||
         d.objet.toLowerCase().includes(term) ||
+        (d.reference?.toLowerCase().includes(term) || false) ||
         this.clientNom(d).toLowerCase().includes(term) ||
         d.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
       const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
-      return matchTerm && matchStatut && matchPriorite;
+      const matchCategorie = !this.categorieFiltre || d.categorie === this.categorieFiltre;
+      return matchTerm && matchStatut && matchPriorite && matchCategorie;
     });
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre);
+    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre || this.categorieFiltre);
   }
 
   resetFilters(): void {
     this.searchTerm = '';
     this.statutFiltre = '';
     this.prioriteFiltre = '';
+    this.categorieFiltre = '';
   }
 
   /** Navigation vers la page de détail dédiée. */

@@ -4,14 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
+import { CATEGORIES } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { StatCardComponent } from '../shared/stat-card.component';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
+import { resolveUploadUrl } from '../../utils/upload-url.util';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, StatCardComponent],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
@@ -22,6 +25,8 @@ export class DashboardChangementsComponent implements OnInit {
   searchTerm = '';
   statutFiltre = '';
   typeFiltre = '';
+  categorieFiltre = '';
+  readonly categories = CATEGORIES;
 
   readonly statutsFiltrables = [
     'Soumis',
@@ -70,22 +75,58 @@ export class DashboardChangementsComponent implements OnInit {
       const matchTerm =
         !term ||
         c.objetChangement.toLowerCase().includes(term) ||
+        (c.reference?.toLowerCase().includes(term) || false) ||
         this.clientNom(c).toLowerCase().includes(term) ||
         c.categorie.toLowerCase().includes(term);
       const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
       const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
-      return matchTerm && matchStatut && matchType;
+      const matchCategorie = !this.categorieFiltre || c.categorie === this.categorieFiltre;
+      return matchTerm && matchStatut && matchType && matchCategorie;
     });
   }
 
+  /** Statistiques calculées sur les données réelles chargées. */
+  stats(): {
+    total: number; soumis: number; enValidation: number; approuves: number; enCours: number;
+    implementes: number; clotures: number; rejetes: number; annules: number;
+  } {
+    const count = (s: string) => this.changements.filter((c) => c.statut === s).length;
+    return {
+      total: this.changements.length,
+      soumis: count('Soumis'),
+      enValidation: count('En attente de validation'),
+      approuves: count('Approuvé') + count('Planifié'),
+      enCours: count("En cours d'implémentation"),
+      implementes: count('Implémenté'),
+      clotures: count('Clôturé'),
+      rejetes: count('Rejeté') + count('Rollback'),
+      annules: count('Annulé'),
+    };
+  }
+
+  clientEmail(c: Changement): string {
+    const cl = c.clientId as any;
+    return cl?.email || '';
+  }
+
+  clientAvatar(c: Changement): string {
+    const cl = c.clientId as any;
+    return cl?.avatarUrl ? resolveUploadUrl(cl.avatarUrl) : '';
+  }
+
+  clientInitiales(c: Changement): string {
+    return (this.clientNom(c) || '?').trim().slice(0, 2).toUpperCase();
+  }
+
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre);
+    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre || this.categorieFiltre);
   }
 
   resetFilters(): void {
     this.searchTerm = '';
     this.statutFiltre = '';
     this.typeFiltre = '';
+    this.categorieFiltre = '';
   }
 
   /** Navigation vers la page de détail dédiée. */

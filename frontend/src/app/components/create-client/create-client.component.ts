@@ -16,6 +16,8 @@ export class CreateClientComponent implements OnInit {
   statuts = STATUTS_CLIENT;
   loading = false;
   error: string | null = null;
+  temporaryPassword: string | null = null;
+  createdEmail: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -52,7 +54,13 @@ export class CreateClientComponent implements OnInit {
     this.loading = true;
     this.error = null;
     this.clientService.create(payload).subscribe({
-      next: () => this.router.navigate(['/clients']),
+      next: (res) => {
+        this.loading = false;
+        this.createdEmail = res.client.email;
+        // Mot de passe temporaire : exposé uniquement si le SMTP n'est pas
+        // configuré (dev). Sinon, il a été envoyé par email.
+        this.temporaryPassword = res.temporaryPassword ?? null;
+      },
       error: (err) => {
         this.error = err.error?.message || 'Erreur lors de la création du client.';
         this.loading = false;

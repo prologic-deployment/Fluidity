@@ -191,21 +191,39 @@ const getAllTickets = async (req, res) => {
 const getTicketStats = async (req, res) => {
   try {
     const base = { ...filtreProprietaire(req) };
-    const [ouverts, p1p2, attenteClient, attenteTiers, mesAssignes, resolus] = await Promise.all([
-      Ticket.countDocuments({ ...base, statut: { $nin: ['Clôturé'] } }),
-      Ticket.countDocuments({ ...base, priorite: { $in: ['P1', 'P2'] }, statut: { $nin: ['Clôturé'] } }),
-      Ticket.countDocuments({ ...base, statut: 'En attente client' }),
-      Ticket.countDocuments({ ...base, statut: 'En attente tiers' }),
-      estClient(req)
-        ? Promise.resolve(0)
-        : Ticket.countDocuments({ ...base, assignedTo: req.userId, statut: { $nin: ['Clôturé'] } }),
-      Ticket.countDocuments({
+    const [total, nouveaux, affectes, enAnalyse, enResolution, enAttente, resolus, clotures] = await Promise.all([
+      Ticket.countDocuments(base),
+      Ticket.countDocuments({ ...base, statut: 'Nouveau' }),
+      Ticket.countDocuments({ ...base, statut: 'Affecté' }),
+      Ticket.countDocuments({ ...base, statut: "En cours d'analyse" }),
+      Ticket.countDocuments({ ...base, statut: 'En cours de résolution' }),
+      Ticket.countDocuments({ ...base, statut: { $in: ['En attente client', 'En attente tiers'] } }),
+      Ticket.countDocuments({ ...base, statut: 'Résolu' }),
+      Ticket.countDocuments({ ...base, statut: 'Clôturé' }),
+    ]);
+    res.status(200).json({
+      total,
+      nouveaux,
+      affectes,
+      enAnalyse,
+      enResolution,
+      enAttente,
+      resolus,
+      clotures,
+      // Rétrocompatibilité des anciens libellés
+      ouverts: total - clotures,
+      p1p2: await Ticket.countDocuments({ ...base, priorite: { $in: ['P1', 'P2'] }, statut: { $nin: ['Clôturé'] } }),
+      attenteClient: await Ticket.countDocuments({ ...base, statut: 'En attente client' }),
+      attenteTiers: await Ticket.countDocuments({ ...base, statut: 'En attente tiers' }),
+      mesAssignes: estClient(req)
+        ? 0
+        : await Ticket.countDocuments({ ...base, assignedTo: req.userId, statut: { $nin: ['Clôturé'] } }),
+      resolus7j: await Ticket.countDocuments({
         ...base,
         statut: { $in: ['Résolu', 'Clôturé'] },
         updatedAt: { $gte: new Date(Date.now() - 7 * 24 * 3600 * 1000) },
       }),
-    ]);
-    res.status(200).json({ ouverts, p1p2, attenteClient, attenteTiers, mesAssignes, resolus });
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }

@@ -18,8 +18,8 @@ export class ClientService {
     return this.http.get<Client>(`${this.baseUrl}/${id}`);
   }
 
-  create(client: Client): Observable<Client> {
-    return this.http.post<Client>(this.baseUrl, client);
+  create(client: Client): Observable<{ message: string; client: Client; temporaryPassword?: string }> {
+    return this.http.post<{ message: string; client: Client; temporaryPassword?: string }>(this.baseUrl, client);
   }
 
   update(id: string, client: Partial<Client>): Observable<Client> {

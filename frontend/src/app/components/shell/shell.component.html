@@ -25,4 +25,7 @@
     </main>
   </div>
 
+  <!-- Rappel de changement de mot de passe provisoire (client) -->
+  <app-password-reminder *ngIf="showPasswordReminder" (closed)="showPasswordReminder = false"></app-password-reminder>
+
 </div>
