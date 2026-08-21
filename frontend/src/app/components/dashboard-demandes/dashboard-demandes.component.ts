@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
-import { Demande, CATEGORIES } from '../../models/demande.model';
+import { Demande, CATEGORIES, SOUS_CATEGORIES } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { StatCardComponent } from '../shared/stat-card.component';
@@ -21,10 +21,14 @@ export class DashboardDemandesComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  searchTerm = '';
-  statutFiltre = '';
-  prioriteFiltre = '';
+  filterReference = '';
+  filterObjet = '';
+  filterClient = '';
   categorieFiltre = '';
+  sousCategorieFiltre = '';
+  prioriteFiltre = '';
+  statutFiltre = '';
+  filterDateFrom = '';
 
   readonly statutsFiltrables = [
     'Ouverte',
@@ -110,32 +114,48 @@ export class DashboardDemandesComponent implements OnInit {
     };
   }
 
-  /** Liste filtrée (recherche texte + statut + priorité + catégorie). */
+  /** Sous-catégories proposées selon la catégorie filtrée (ou toutes). */
+  sousCategoriesOptions(): string[] {
+    if (this.categorieFiltre) return SOUS_CATEGORIES[this.categorieFiltre] || [];
+    return Object.values(SOUS_CATEGORIES).flat();
+  }
+
+  /** Liste filtrée (filtres d'en-tête combinables, côté client). */
   filteredDemandes(): Demande[] {
-    const term = this.searchTerm.trim().toLowerCase();
+    const ref = this.filterReference.trim().toLowerCase();
+    const objet = this.filterObjet.trim().toLowerCase();
+    const client = this.filterClient.trim().toLowerCase();
+    const from = this.filterDateFrom ? new Date(this.filterDateFrom) : null;
     return this.demandes.filter((d) => {
-      const matchTerm =
-        !term ||
-        d.objet.toLowerCase().includes(term) ||
-        (d.reference?.toLowerCase().includes(term) || false) ||
-        this.clientNom(d).toLowerCase().includes(term) ||
-        d.categorie.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
-      const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
-      const matchCategorie = !this.categorieFiltre || d.categorie === this.categorieFiltre;
-      return matchTerm && matchStatut && matchPriorite && matchCategorie;
+      if (ref && !(d.reference?.toLowerCase().includes(ref) || false)) return false;
+      if (objet && !d.objet.toLowerCase().includes(objet)) return false;
+      if (client && !this.clientNom(d).toLowerCase().includes(client)) return false;
+      if (this.categorieFiltre && d.categorie !== this.categorieFiltre) return false;
+      if (this.sousCategorieFiltre && d.sousCategorie !== this.sousCategorieFiltre) return false;
+      if (this.prioriteFiltre && d.prioriteSouhaitee !== this.prioriteFiltre) return false;
+      if (this.statutFiltre && d.statut !== this.statutFiltre) return false;
+      if (from && d.createdAt && new Date(d.createdAt) < from) return false;
+      return true;
     });
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre || this.categorieFiltre);
+    return !!(
+      this.filterReference || this.filterObjet || this.filterClient ||
+      this.categorieFiltre || this.sousCategorieFiltre ||
+      this.prioriteFiltre || this.statutFiltre || this.filterDateFrom
+    );
   }
 
   resetFilters(): void {
-    this.searchTerm = '';
-    this.statutFiltre = '';
-    this.prioriteFiltre = '';
+    this.filterReference = '';
+    this.filterObjet = '';
+    this.filterClient = '';
     this.categorieFiltre = '';
+    this.sousCategorieFiltre = '';
+    this.prioriteFiltre = '';
+    this.statutFiltre = '';
+    this.filterDateFrom = '';
   }
 
   /** Navigation vers la page de détail dédiée. */

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { Changement } from '../../models/changement.model';
-import { CATEGORIES } from '../../models/demande.model';
+import { CATEGORIES, SOUS_CATEGORIES } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { StatCardComponent } from '../shared/stat-card.component';
@@ -22,10 +22,14 @@ export class DashboardChangementsComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  searchTerm = '';
+  filterReference = '';
+  filterObjet = '';
+  filterClient = '';
   statutFiltre = '';
   typeFiltre = '';
   categorieFiltre = '';
+  sousCategorieFiltre = '';
+  filterDateFrom = '';
   readonly categories = CATEGORIES;
 
   readonly statutsFiltrables = [
@@ -69,19 +73,27 @@ export class DashboardChangementsComponent implements OnInit {
     });
   }
 
+  /** Sous-catégories proposées selon la catégorie filtrée (ou toutes). */
+  sousCategoriesOptions(): string[] {
+    if (this.categorieFiltre) return SOUS_CATEGORIES[this.categorieFiltre] || [];
+    return Object.values(SOUS_CATEGORIES).flat();
+  }
+
   filteredChangements(): Changement[] {
-    const term = this.searchTerm.trim().toLowerCase();
+    const ref = this.filterReference.trim().toLowerCase();
+    const objet = this.filterObjet.trim().toLowerCase();
+    const client = this.filterClient.trim().toLowerCase();
+    const from = this.filterDateFrom ? new Date(this.filterDateFrom) : null;
     return this.changements.filter((c) => {
-      const matchTerm =
-        !term ||
-        c.objetChangement.toLowerCase().includes(term) ||
-        (c.reference?.toLowerCase().includes(term) || false) ||
-        this.clientNom(c).toLowerCase().includes(term) ||
-        c.categorie.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
-      const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
-      const matchCategorie = !this.categorieFiltre || c.categorie === this.categorieFiltre;
-      return matchTerm && matchStatut && matchType && matchCategorie;
+      if (ref && !(c.reference?.toLowerCase().includes(ref) || false)) return false;
+      if (objet && !c.objetChangement.toLowerCase().includes(objet)) return false;
+      if (client && !this.clientNom(c).toLowerCase().includes(client)) return false;
+      if (this.categorieFiltre && c.categorie !== this.categorieFiltre) return false;
+      if (this.sousCategorieFiltre && c.sousCategorie !== this.sousCategorieFiltre) return false;
+      if (this.typeFiltre && c.typeChangement !== this.typeFiltre) return false;
+      if (this.statutFiltre && c.statut !== this.statutFiltre) return false;
+      if (from && c.createdAt && new Date(c.createdAt) < from) return false;
+      return true;
     });
   }
 
@@ -119,14 +131,22 @@ export class DashboardChangementsComponent implements OnInit {
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.statutFiltre || this.typeFiltre || this.categorieFiltre);
+    return !!(
+      this.filterReference || this.filterObjet || this.filterClient ||
+      this.statutFiltre || this.typeFiltre || this.categorieFiltre ||
+      this.sousCategorieFiltre || this.filterDateFrom
+    );
   }
 
   resetFilters(): void {
-    this.searchTerm = '';
+    this.filterReference = '';
+    this.filterObjet = '';
+    this.filterClient = '';
     this.statutFiltre = '';
     this.typeFiltre = '';
     this.categorieFiltre = '';
+    this.sousCategorieFiltre = '';
+    this.filterDateFrom = '';
   }
 
   /** Navigation vers la page de détail dédiée. */

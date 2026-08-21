@@ -6,7 +6,7 @@ import { TicketService } from '../../services/ticket.service';
 import { AuthService } from '../../services/auth.service';
 import { StatCardComponent } from '../shared/stat-card.component';
 import { Ticket, TicketStats, STATUTS_TICKET } from '../../models/ticket.model';
-import { CATEGORIES } from '../../models/demande.model';
+import { CATEGORIES, SOUS_CATEGORIES } from '../../models/demande.model';
 import { resolveUploadUrl } from '../../utils/upload-url.util';
 
 @Component({
@@ -27,12 +27,17 @@ export class DashboardTicketsComponent implements OnInit {
 
   statuts = STATUTS_TICKET;
   categories = CATEGORIES;
+  priorites = ['P1', 'P2', 'P3', 'P4'];
 
-  // Filtres (combinables, côté client sur l'ensemble chargé)
-  searchTerm = '';
-  filterStatut = '';
-  filterPriorite = '';
+  // Filtres d'en-tête (combinables, côté client sur l'ensemble chargé)
+  filterReference = '';
+  filterObjet = '';
+  filterClient = '';
   filterCategorie = '';
+  filterSousCategorie = '';
+  filterPriorite = '';
+  filterStatut = '';
+  filterDateFrom = '';
 
   constructor(private ticketService: TicketService, public auth: AuthService) {}
 
@@ -63,30 +68,49 @@ export class DashboardTicketsComponent implements OnInit {
     });
   }
 
+  /** Sous-catégories proposées selon la catégorie filtrée (ou toutes). */
+  sousCategoriesOptions(): string[] {
+    if (this.filterCategorie) {
+      return SOUS_CATEGORIES[this.filterCategorie] || [];
+    }
+    return Object.values(SOUS_CATEGORIES).flat();
+  }
+
   filteredItems(): Ticket[] {
-    const term = this.searchTerm.trim().toLowerCase();
+    const ref = this.filterReference.trim().toLowerCase();
+    const objet = this.filterObjet.trim().toLowerCase();
+    const client = this.filterClient.trim().toLowerCase();
+    const from = this.filterDateFrom ? new Date(this.filterDateFrom) : null;
     return this.items.filter((t) => {
-      const matchTerm =
-        !term ||
-        (t.objet?.toLowerCase().includes(term) || false) ||
-        (t.reference?.toLowerCase().includes(term) || false) ||
-        this.clientNom(t).toLowerCase().includes(term);
-      const matchStatut = !this.filterStatut || t.statut === this.filterStatut;
-      const matchPriorite = !this.filterPriorite || t.priorite === this.filterPriorite;
-      const matchCategorie = !this.filterCategorie || t.categorie === this.filterCategorie;
-      return matchTerm && matchStatut && matchPriorite && matchCategorie;
+      if (ref && !(t.reference?.toLowerCase().includes(ref) || false)) return false;
+      if (objet && !(t.objet?.toLowerCase().includes(objet) || false)) return false;
+      if (client && !this.clientNom(t).toLowerCase().includes(client)) return false;
+      if (this.filterCategorie && t.categorie !== this.filterCategorie) return false;
+      if (this.filterSousCategorie && t.sousCategorie !== this.filterSousCategorie) return false;
+      if (this.filterPriorite && t.priorite !== this.filterPriorite) return false;
+      if (this.filterStatut && t.statut !== this.filterStatut) return false;
+      if (from && t.openedAt && new Date(t.openedAt) < from) return false;
+      return true;
     });
   }
 
   hasActiveFilters(): boolean {
-    return !!(this.searchTerm || this.filterStatut || this.filterPriorite || this.filterCategorie);
+    return !!(
+      this.filterReference || this.filterObjet || this.filterClient ||
+      this.filterCategorie || this.filterSousCategorie ||
+      this.filterPriorite || this.filterStatut || this.filterDateFrom
+    );
   }
 
   resetFilters(): void {
-    this.searchTerm = '';
-    this.filterStatut = '';
-    this.filterPriorite = '';
+    this.filterReference = '';
+    this.filterObjet = '';
+    this.filterClient = '';
     this.filterCategorie = '';
+    this.filterSousCategorie = '';
+    this.filterPriorite = '';
+    this.filterStatut = '';
+    this.filterDateFrom = '';
   }
 
   /** Libellé du client (peuplé côté serveur). */
