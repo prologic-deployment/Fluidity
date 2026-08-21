@@ -8,13 +8,17 @@ import { CATEGORIES, SOUS_CATEGORIES } from '../../models/demande.model';
 import { AuthService } from '../../services/auth.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { StatCardComponent } from '../shared/stat-card.component';
+import { SortHeaderComponent } from '../shared/sort-header.component';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 import { CHANGEMENT_TRANSITIONS, availableTransitions } from '../../models/workflow';
 import { resolveUploadUrl } from '../../utils/upload-url.util';
+
+type SortKey = 'reference' | 'objet' | 'client' | 'categorie' | 'type' | 'statut' | 'createdAt';
 
 @Component({
   selector: 'app-dashboard-changements',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StatCardComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StatCardComponent, SortHeaderComponent, TranslatePipe],
   templateUrl: './dashboard-changements.component.html',
 })
 export class DashboardChangementsComponent implements OnInit {
@@ -31,6 +35,9 @@ export class DashboardChangementsComponent implements OnInit {
   sousCategorieFiltre = '';
   filterDateFrom = '';
   readonly categories = CATEGORIES;
+
+  sortKey: SortKey | '' = '';
+  sortDir: 'asc' | 'desc' = 'asc';
 
   readonly statutsFiltrables = [
     'Soumis',
@@ -147,6 +154,41 @@ export class DashboardChangementsComponent implements OnInit {
     this.categorieFiltre = '';
     this.sousCategorieFiltre = '';
     this.filterDateFrom = '';
+  }
+
+  sort(key: SortKey): void {
+    if (this.sortKey === key) this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    else { this.sortKey = key; this.sortDir = 'asc'; }
+  }
+
+  sortDirFor(key: SortKey): 'asc' | 'desc' | null {
+    return this.sortKey === key ? this.sortDir : null;
+  }
+
+  private valueOf(c: Changement, key: SortKey): string | number {
+    switch (key) {
+      case 'reference': return c.reference || '';
+      case 'objet': return c.objetChangement.toLowerCase();
+      case 'client': return this.clientNom(c).toLowerCase();
+      case 'categorie': return (c.categorie + ' ' + c.sousCategorie).toLowerCase();
+      case 'type': return { Standard: 0, Majeur: 1, Urgent: 2 }[c.typeChangement] ?? 99;
+      case 'statut': return c.statut || '';
+      case 'createdAt': return c.createdAt ? new Date(c.createdAt).getTime() : 0;
+    }
+  }
+
+  displayedChangements(): Changement[] {
+    const filtered = this.filteredChangements();
+    if (!this.sortKey) return filtered;
+    const key = this.sortKey;
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const va = this.valueOf(a, key);
+      const vb = this.valueOf(b, key);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
   }
 
   /** Navigation vers la page de détail dédiée. */

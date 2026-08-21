@@ -10,13 +10,13 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Demandes de service</h1>
-          <p class="text-sm text-muted-foreground">Suivi des demandes soumises par les clients.</p>
+          <h1 class="text-xl font-semibold tracking-tight">{{ 'demandes.title' | t }}</h1>
+          <p class="text-sm text-muted-foreground">{{ 'demandes.subtitle' | t }}</p>
         </div>
       </div>
       <a *ngIf="auth.isClient()" routerLink="/demandes/nouvelle" class="btn-primary transition-transform hover:scale-[1.03]">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-        Nouvelle demande
+        {{ 'demandes.new' | t }}
       </a>
     </div>
   </header>
@@ -26,111 +26,114 @@
 
     <!-- Cartes statistiques -->
     <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
-      <app-stat-card label="Total" [value]="stats().total" icon="total" tone="default"></app-stat-card>
-      <app-stat-card label="Ouvertes" [value]="stats().ouvertes" icon="new" tone="primary"></app-stat-card>
-      <app-stat-card label="En cours" [value]="stats().enCours" icon="progress" tone="primary"></app-stat-card>
-      <app-stat-card label="En attente" [value]="stats().enAttente" icon="wait" tone="warning"></app-stat-card>
-      <app-stat-card label="Réalisées" [value]="stats().realisees" icon="resolved" tone="success"></app-stat-card>
-      <app-stat-card label="Clôturées" [value]="stats().cloturees" icon="closed" tone="success"></app-stat-card>
-      <app-stat-card label="Rejetées" [value]="stats().rejetees" icon="rejected" tone="destructive"></app-stat-card>
-      <app-stat-card label="Annulées" [value]="stats().annulees" icon="closed" tone="default"></app-stat-card>
+      <app-stat-card [label]="'stats.total' | t" [value]="stats().total" icon="total" tone="default"></app-stat-card>
+      <app-stat-card [label]="'stats.open' | t" [value]="stats().ouvertes" icon="new" tone="primary"></app-stat-card>
+      <app-stat-card [label]="'stats.inProgress' | t" [value]="stats().enCours" icon="progress" tone="primary"></app-stat-card>
+      <app-stat-card [label]="'stats.waiting' | t" [value]="stats().enAttente" icon="wait" tone="warning"></app-stat-card>
+      <app-stat-card [label]="'stats.done' | t" [value]="stats().realisees" icon="resolved" tone="success"></app-stat-card>
+      <app-stat-card [label]="'stats.closed' | t" [value]="stats().cloturees" icon="closed" tone="success"></app-stat-card>
+      <app-stat-card [label]="'stats.rejected' | t" [value]="stats().rejetees" icon="rejected" tone="destructive"></app-stat-card>
+      <app-stat-card [label]="'stats.cancelled' | t" [value]="stats().annulees" icon="closed" tone="default"></app-stat-card>
     </div>
 
-    <!-- Indicateur de filtres actifs -->
-    <div *ngIf="hasActiveFilters()" class="flex flex-wrap items-center gap-2 mb-3">
-      <span class="filter-count-badge">{{ filteredDemandes().length }} résultat(s)</span>
-      <button (click)="resetFilters()" class="btn-ghost btn-sm">
-        <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
-        Réinitialiser les filtres
-      </button>
+    <!-- Zone de filtres -->
+    <div class="mb-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div>
+          <label class="field-label">{{ 'table.reference' | t }}</label>
+          <input type="text" [(ngModel)]="filterReference" [placeholder]="'filter.reference' | t" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.objet' | t }}</label>
+          <input type="text" [(ngModel)]="filterObjet" [placeholder]="'filter.objet' | t" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.client' | t }}</label>
+          <input type="text" [(ngModel)]="filterClient" [placeholder]="'filter.client' | t" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.priority' | t }}</label>
+          <select [(ngModel)]="prioriteFiltre" class="select">
+            <option value="">{{ 'filter.allPriority' | t }}</option>
+            <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p | t:'priority' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.category' | t }}</label>
+          <select [(ngModel)]="categorieFiltre" class="select">
+            <option value="">{{ 'filter.allCategory' | t }}</option>
+            <option *ngFor="let c of categories" [value]="c">{{ c | t:'category' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.subcategory' | t }}</label>
+          <select [(ngModel)]="sousCategorieFiltre" class="select">
+            <option value="">{{ 'filter.allCategory' | t }}</option>
+            <option *ngFor="let s of sousCategoriesOptions()" [value]="s">{{ s | t:'subcategory' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.status' | t }}</label>
+          <select [(ngModel)]="statutFiltre" class="select">
+            <option value="">{{ 'filter.allStatus' | t }}</option>
+            <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s | t:'status' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.created' | t }}</label>
+          <input type="date" [(ngModel)]="filterDateFrom" class="input" [title]="'filter.fromDate' | t" />
+        </div>
+      </div>
+
+      <div *ngIf="hasActiveFilters()" class="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <span class="filter-count-badge">{{ displayedDemandes().length }} {{ 'common.results' | t }}</span>
+        <button (click)="resetFilters()" class="btn-ghost btn-sm">
+          <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+          {{ 'common.resetFilters' | t }}
+        </button>
+      </div>
     </div>
 
-    <!-- Squelette de chargement -->
+    <!-- Squelette -->
     <div *ngIf="loading" class="table-wrap">
       <div class="p-2">
         <div *ngFor="let i of [1,2,3,4,5]" class="flex items-center gap-4 px-4 py-4 border-b border-border last:border-0">
+          <div class="skeleton h-4 w-24"></div>
           <div class="skeleton h-4 w-40"></div>
           <div class="skeleton h-4 w-28"></div>
-          <div class="skeleton h-4 w-24"></div>
           <div class="skeleton h-5 w-20 rounded-full"></div>
           <div class="skeleton h-5 w-24 rounded-full"></div>
-          <div class="skeleton h-4 w-20 ml-auto"></div>
         </div>
       </div>
     </div>
 
     <div *ngIf="!loading && demandes.length === 0" class="card animate-fade-in-up">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'table.empty' | t }}</div>
+    </div>
+
+    <div *ngIf="!loading && demandes.length > 0 && displayedDemandes().length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
-        <div class="table-empty-icon">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11l3 3L22 4"></path>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-          </svg>
-        </div>
-        Aucune demande pour le moment.
+        {{ 'table.noResults' | t }}
+        <br /><button (click)="resetFilters()" class="btn-link">{{ 'common.resetFilters' | t }}</button>
       </div>
     </div>
 
-    <div *ngIf="!loading && demandes.length > 0 && filteredDemandes().length === 0" class="card animate-fade-in-up">
-      <div class="card-content py-16 text-center text-sm text-muted-foreground">
-        <div class="table-empty-icon">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <path d="m21 21-4.35-4.35"></path>
-          </svg>
-        </div>
-        Aucun résultat pour ces filtres.
-        <br /><button (click)="resetFilters()" class="btn-link">Réinitialiser les filtres</button>
-      </div>
-    </div>
-
-    <div *ngIf="!loading && filteredDemandes().length > 0" class="table-wrap animate-fade-in-up scroll-smooth">
+    <div *ngIf="!loading && displayedDemandes().length > 0" class="table-wrap animate-fade-in-up">
       <table class="table">
         <thead>
           <tr>
-            <th>Référence</th>
-            <th>Objet</th>
-            <th>Client</th>
-            <th>Catégorie</th>
-            <th>Priorité</th>
-            <th>Statut</th>
-            <th>Créée le</th>
-            <th class="text-right">Actions</th>
-          </tr>
-          <tr class="table-filter-row">
-            <th><input type="text" [(ngModel)]="filterReference" placeholder="Réf…" class="th-input" /></th>
-            <th><input type="text" [(ngModel)]="filterObjet" placeholder="Objet…" class="th-input" /></th>
-            <th><input type="text" [(ngModel)]="filterClient" placeholder="Client…" class="th-input" /></th>
-            <th>
-              <div class="flex flex-col gap-1">
-                <select [(ngModel)]="categorieFiltre" class="th-select">
-                  <option value="">Catégorie</option>
-                  <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
-                </select>
-                <select [(ngModel)]="sousCategorieFiltre" class="th-select">
-                  <option value="">Sous-catégorie</option>
-                  <option *ngFor="let s of sousCategoriesOptions()" [value]="s">{{ s }}</option>
-                </select>
-              </div>
-            </th>
-            <th>
-              <select [(ngModel)]="prioriteFiltre" class="th-select">
-                <option value="">Priorité</option>
-                <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p }}</option>
-              </select>
-            </th>
-            <th>
-              <select [(ngModel)]="statutFiltre" class="th-select">
-                <option value="">Statut</option>
-                <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s }}</option>
-              </select>
-            </th>
-            <th><input type="date" [(ngModel)]="filterDateFrom" class="th-input" title="À partir du" /></th>
-            <th></th>
+            <th><app-sort-header [labelKey]="'table.reference'" [dir]="sortDirFor('reference')" (toggle)="sort('reference')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.objet'" [dir]="sortDirFor('objet')" (toggle)="sort('objet')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.client'" [dir]="sortDirFor('client')" (toggle)="sort('client')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.category'" [dir]="sortDirFor('categorie')" (toggle)="sort('categorie')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.priority'" [dir]="sortDirFor('priorite')" (toggle)="sort('priorite')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.status'" [dir]="sortDirFor('statut')" (toggle)="sort('statut')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.created'" [dir]="sortDirFor('createdAt')" (toggle)="sort('createdAt')"></app-sort-header></th>
+            <th class="text-right">{{ 'common.actions' | t }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let d of filteredDemandes()" class="table-row-clickable group" (click)="openDetails(d)">
+          <tr *ngFor="let d of displayedDemandes()" class="table-row-clickable group" (click)="openDetails(d)">
             <td class="font-mono text-xs">{{ d.reference }}</td>
             <td class="font-medium">{{ d.objet }}</td>
             <td>
@@ -145,12 +148,12 @@
                 </div>
               </div>
             </td>
-            <td class="text-muted-foreground">{{ d.categorie }} / {{ d.sousCategorie }}</td>
+            <td class="text-muted-foreground">{{ d.categorie | t:'category' }} / {{ d.sousCategorie | t:'subcategory' }}</td>
             <td>
-              <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee }}</span>
+              <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee | t:'priority' }}</span>
             </td>
             <td>
-              <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
+              <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut | t:'status' }}</span>
             </td>
             <td class="text-muted-foreground">{{ d.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
             <td class="text-right">
@@ -169,9 +172,6 @@
                     <path d="m15 9-6 6M9 9l6 6"></path>
                   </svg>
                 </button>
-                <svg class="table-row-chevron h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
               </div>
             </td>
           </tr>
@@ -180,7 +180,7 @@
     </div>
 
     <p *ngIf="!loading && demandes.length > 0" class="mt-3 text-xs text-muted-foreground">
-      {{ filteredDemandes().length }} sur {{ demandes.length }} demande(s) affichée(s)
+      {{ displayedDemandes().length }} / {{ demandes.length }} {{ 'table.shown' | t }}
     </p>
   </main>
 </div>

@@ -10,13 +10,13 @@
           </svg>
         </div>
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">Tickets / Incidents</h1>
-          <p class="text-sm text-muted-foreground">Suivi des incidents avec priorité et SLA.</p>
+          <h1 class="text-xl font-semibold tracking-tight">{{ 'tickets.title' | t }}</h1>
+          <p class="text-sm text-muted-foreground">{{ 'tickets.subtitle' | t }}</p>
         </div>
       </div>
       <a *ngIf="auth.isClient()" routerLink="/tickets/nouveau" class="btn-primary transition-transform hover:scale-[1.03]">
         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-        Ouvrir un incident
+        {{ 'tickets.new' | t }}
       </a>
     </div>
   </header>
@@ -26,23 +26,72 @@
 
     <!-- Cartes statistiques -->
     <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
-      <app-stat-card label="Total" [value]="stats.total" icon="total" tone="default"></app-stat-card>
-      <app-stat-card label="Nouveaux" [value]="stats.nouveaux" icon="new" tone="primary"></app-stat-card>
-      <app-stat-card label="Affectés" [value]="stats.affectes" icon="assigned" tone="primary"></app-stat-card>
-      <app-stat-card label="En analyse" [value]="stats.enAnalyse" icon="analysis" tone="primary"></app-stat-card>
-      <app-stat-card label="En résolution" [value]="stats.enResolution" icon="progress" tone="warning"></app-stat-card>
-      <app-stat-card label="En attente" [value]="stats.enAttente" icon="wait" tone="warning"></app-stat-card>
-      <app-stat-card label="Résolus" [value]="stats.resolus" icon="resolved" tone="success"></app-stat-card>
-      <app-stat-card label="Clôturés" [value]="stats.clotures" icon="closed" tone="success"></app-stat-card>
+      <app-stat-card [label]="'stats.total' | t" [value]="stats.total" icon="total" tone="default"></app-stat-card>
+      <app-stat-card [label]="'stats.new' | t" [value]="stats.nouveaux" icon="new" tone="primary"></app-stat-card>
+      <app-stat-card [label]="'stats.assigned' | t" [value]="stats.affectes" icon="assigned" tone="primary"></app-stat-card>
+      <app-stat-card [label]="'stats.analysis' | t" [value]="stats.enAnalyse" icon="analysis" tone="primary"></app-stat-card>
+      <app-stat-card [label]="'stats.resolution' | t" [value]="stats.enResolution" icon="progress" tone="warning"></app-stat-card>
+      <app-stat-card [label]="'stats.waiting' | t" [value]="stats.enAttente" icon="wait" tone="warning"></app-stat-card>
+      <app-stat-card [label]="'stats.resolved' | t" [value]="stats.resolus" icon="resolved" tone="success"></app-stat-card>
+      <app-stat-card [label]="'stats.closed' | t" [value]="stats.clotures" icon="closed" tone="success"></app-stat-card>
     </div>
 
-    <!-- Indicateur de filtres actifs -->
-    <div *ngIf="hasActiveFilters()" class="flex flex-wrap items-center gap-2 mb-3">
-      <span class="filter-count-badge">{{ filteredItems().length }} résultat(s)</span>
-      <button (click)="resetFilters()" class="btn-ghost btn-sm">
-        <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
-        Réinitialiser les filtres
-      </button>
+    <!-- Zone de filtres (au-dessus du tableau) -->
+    <div class="mb-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div>
+          <label class="field-label">{{ 'table.reference' | t }}</label>
+          <input type="text" [(ngModel)]="filterReference" [placeholder]="'filter.reference' | t" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.objet' | t }}</label>
+          <input type="text" [(ngModel)]="filterObjet" [placeholder]="'filter.objet' | t" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.client' | t }}</label>
+          <input type="text" [(ngModel)]="filterClient" [placeholder]="'filter.client' | t" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.priority' | t }}</label>
+          <select [(ngModel)]="filterPriorite" class="select">
+            <option value="">{{ 'filter.allPriority' | t }}</option>
+            <option *ngFor="let p of priorites" [value]="p">{{ p | t:'priority' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.category' | t }}</label>
+          <select [(ngModel)]="filterCategorie" class="select">
+            <option value="">{{ 'filter.allCategory' | t }}</option>
+            <option *ngFor="let c of categories" [value]="c">{{ c | t:'category' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.subcategory' | t }}</label>
+          <select [(ngModel)]="filterSousCategorie" class="select">
+            <option value="">{{ 'filter.allCategory' | t }}</option>
+            <option *ngFor="let s of sousCategoriesOptions()" [value]="s">{{ s | t:'subcategory' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.status' | t }}</label>
+          <select [(ngModel)]="filterStatut" class="select">
+            <option value="">{{ 'filter.allStatus' | t }}</option>
+            <option *ngFor="let s of statuts" [value]="s">{{ s | t:'status' }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'table.opened' | t }}</label>
+          <input type="date" [(ngModel)]="filterDateFrom" class="input" [title]="'filter.fromDate' | t" />
+        </div>
+      </div>
+
+      <div *ngIf="hasActiveFilters()" class="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <span class="filter-count-badge">{{ displayedItems().length }} {{ 'common.results' | t }}</span>
+        <button (click)="resetFilters()" class="btn-ghost btn-sm">
+          <svg class="h-3.5 w-3.5 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path></svg>
+          {{ 'common.resetFilters' | t }}
+        </button>
+      </div>
     </div>
 
     <!-- Squelette -->
@@ -59,61 +108,31 @@
     </div>
 
     <div *ngIf="!loading && items.length === 0" class="card animate-fade-in-up">
-      <div class="card-content py-16 text-center text-sm text-muted-foreground">Aucun ticket.</div>
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'table.empty' | t }}</div>
     </div>
 
-    <div *ngIf="!loading && items.length > 0 && filteredItems().length === 0" class="card animate-fade-in-up">
+    <div *ngIf="!loading && items.length > 0 && displayedItems().length === 0" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
-        Aucun résultat pour ces filtres.
-        <br /><button (click)="resetFilters()" class="btn-link">Réinitialiser les filtres</button>
+        {{ 'table.noResults' | t }}
+        <br /><button (click)="resetFilters()" class="btn-link">{{ 'common.resetFilters' | t }}</button>
       </div>
     </div>
 
-    <div *ngIf="!loading && filteredItems().length > 0" class="table-wrap animate-fade-in-up">
+    <div *ngIf="!loading && displayedItems().length > 0" class="table-wrap animate-fade-in-up">
       <table class="table">
         <thead>
           <tr>
-            <th>Référence</th>
-            <th>Objet</th>
-            <th>Client</th>
-            <th>Catégorie</th>
-            <th>Priorité</th>
-            <th>Statut</th>
-            <th>Ouvert le</th>
-          </tr>
-          <tr class="table-filter-row">
-            <th><input type="text" [(ngModel)]="filterReference" placeholder="Réf…" class="th-input" /></th>
-            <th><input type="text" [(ngModel)]="filterObjet" placeholder="Objet…" class="th-input" /></th>
-            <th><input type="text" [(ngModel)]="filterClient" placeholder="Client…" class="th-input" /></th>
-            <th>
-              <div class="flex flex-col gap-1">
-                <select [(ngModel)]="filterCategorie" class="th-select">
-                  <option value="">Catégorie</option>
-                  <option *ngFor="let c of categories" [value]="c">{{ c }}</option>
-                </select>
-                <select [(ngModel)]="filterSousCategorie" class="th-select">
-                  <option value="">Sous-catégorie</option>
-                  <option *ngFor="let s of sousCategoriesOptions()" [value]="s">{{ s }}</option>
-                </select>
-              </div>
-            </th>
-            <th>
-              <select [(ngModel)]="filterPriorite" class="th-select">
-                <option value="">Priorité</option>
-                <option *ngFor="let p of priorites" [value]="p">{{ p }}</option>
-              </select>
-            </th>
-            <th>
-              <select [(ngModel)]="filterStatut" class="th-select">
-                <option value="">Statut</option>
-                <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
-              </select>
-            </th>
-            <th><input type="date" [(ngModel)]="filterDateFrom" class="th-input" title="À partir du" /></th>
+            <th><app-sort-header [labelKey]="'table.reference'" [dir]="sortDirFor('reference')" (toggle)="sort('reference')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.objet'" [dir]="sortDirFor('objet')" (toggle)="sort('objet')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.client'" [dir]="sortDirFor('client')" (toggle)="sort('client')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.category'" [dir]="sortDirFor('categorie')" (toggle)="sort('categorie')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.priority'" [dir]="sortDirFor('priorite')" (toggle)="sort('priorite')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.status'" [dir]="sortDirFor('statut')" (toggle)="sort('statut')"></app-sort-header></th>
+            <th><app-sort-header [labelKey]="'table.opened'" [dir]="sortDirFor('openedAt')" (toggle)="sort('openedAt')"></app-sort-header></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let t of filteredItems()" class="table-row-clickable group" [routerLink]="['/tickets', t._id]">
+          <tr *ngFor="let t of displayedItems()" class="table-row-clickable group" [routerLink]="['/tickets', t._id]">
             <td class="font-mono text-xs">{{ t.reference }}</td>
             <td class="font-medium">{{ t.objet }}</td>
             <td>
@@ -128,14 +147,14 @@
                 </div>
               </div>
             </td>
-            <td class="text-muted-foreground">{{ t.categorie }} / {{ t.sousCategorie }}</td>
+            <td class="text-muted-foreground">{{ t.categorie | t:'category' }} / {{ t.sousCategorie | t:'subcategory' }}</td>
             <td>
               <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold"
                 [ngClass]="prioritePillClass(t.priorite)">
                 <span class="h-1.5 w-1.5 rounded-full bg-current"></span>{{ t.priorite }}
               </span>
             </td>
-            <td>{{ t.statut }}</td>
+            <td>{{ t.statut | t:'status' }}</td>
             <td class="text-xs text-muted-foreground">{{ t.openedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
           </tr>
         </tbody>
@@ -143,7 +162,7 @@
     </div>
 
     <p *ngIf="!loading && items.length > 0" class="mt-3 text-xs text-muted-foreground">
-      {{ filteredItems().length }} sur {{ items.length }} ticket(s) affiché(s)
+      {{ displayedItems().length }} / {{ items.length }} {{ 'table.shown' | t }}
     </p>
   </main>
 </div>

@@ -7,13 +7,17 @@ import { Demande, CATEGORIES, SOUS_CATEGORIES } from '../../models/demande.model
 import { AuthService } from '../../services/auth.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { StatCardComponent } from '../shared/stat-card.component';
+import { SortHeaderComponent } from '../shared/sort-header.component';
+import { TranslatePipe } from '../../i18n/translate.pipe';
 import { DEMANDE_TRANSITIONS, availableTransitions } from '../../models/workflow';
 import { resolveUploadUrl } from '../../utils/upload-url.util';
+
+type SortKey = 'reference' | 'objet' | 'client' | 'categorie' | 'priorite' | 'statut' | 'createdAt';
 
 @Component({
   selector: 'app-dashboard-demandes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, StatCardComponent],
+  imports: [CommonModule, FormsModule, RouterLink, StatCardComponent, SortHeaderComponent, TranslatePipe],
   templateUrl: './dashboard-demandes.component.html',
 })
 export class DashboardDemandesComponent implements OnInit {
@@ -30,16 +34,12 @@ export class DashboardDemandesComponent implements OnInit {
   statutFiltre = '';
   filterDateFrom = '';
 
+  sortKey: SortKey | '' = '';
+  sortDir: 'asc' | 'desc' = 'asc';
+
   readonly statutsFiltrables = [
-    'Ouverte',
-    "En cours d'analyse",
-    'En attente de validation',
-    'En cours de réalisation',
-    'En attente client',
-    'Réalisée',
-    'Clôturée',
-    'Rejetée',
-    'Annulé',
+    'Ouverte', "En cours d'analyse", 'En attente de validation', 'En cours de réalisation',
+    'En attente client', 'Réalisée', 'Clôturée', 'Rejetée', 'Annulé',
   ];
   readonly prioritesFiltrables = ['Standard', 'Élevée', 'Urgente'];
   readonly categories = CATEGORIES;
@@ -70,7 +70,6 @@ export class DashboardDemandesComponent implements OnInit {
     });
   }
 
-  /** Libellé du client (peuplé côté serveur). */
   clientNom(d: Demande): string {
     const c = d.clientId as any;
     return c?.nom || (typeof c === 'string' ? c : '—');
@@ -90,17 +89,12 @@ export class DashboardDemandesComponent implements OnInit {
     return (this.clientNom(d) || '?').trim().slice(0, 2).toUpperCase();
   }
 
-  /** Email du demandeur (peuplé côté serveur). */
   requesterEmail(d: Demande): string {
     const r = d.requester as any;
     return r?.email || (typeof r === 'string' ? r : '');
   }
 
-  /** Statistiques calculées sur les données réelles chargées. */
-  stats(): {
-    total: number; ouvertes: number; enCours: number; enAttente: number;
-    realisees: number; cloturees: number; rejetees: number; annulees: number;
-  } {
+  stats(): { total: number; ouvertes: number; enCours: number; enAttente: number; realisees: number; cloturees: number; rejetees: number; annulees: number; } {
     const count = (s: string) => this.demandes.filter((d) => d.statut === s).length;
     return {
       total: this.demandes.length,
@@ -114,13 +108,11 @@ export class DashboardDemandesComponent implements OnInit {
     };
   }
 
-  /** Sous-catégories proposées selon la catégorie filtrée (ou toutes). */
   sousCategoriesOptions(): string[] {
     if (this.categorieFiltre) return SOUS_CATEGORIES[this.categorieFiltre] || [];
     return Object.values(SOUS_CATEGORIES).flat();
   }
 
-  /** Liste filtrée (filtres d'en-tête combinables, côté client). */
   filteredDemandes(): Demande[] {
     const ref = this.filterReference.trim().toLowerCase();
     const objet = this.filterObjet.trim().toLowerCase();
@@ -136,6 +128,41 @@ export class DashboardDemandesComponent implements OnInit {
       if (this.statutFiltre && d.statut !== this.statutFiltre) return false;
       if (from && d.createdAt && new Date(d.createdAt) < from) return false;
       return true;
+    });
+  }
+
+  sort(key: SortKey): void {
+    if (this.sortKey === key) this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    else { this.sortKey = key; this.sortDir = 'asc'; }
+  }
+
+  sortDirFor(key: SortKey): 'asc' | 'desc' | null {
+    return this.sortKey === key ? this.sortDir : null;
+  }
+
+  private valueOf(d: Demande, key: SortKey): string | number {
+    switch (key) {
+      case 'reference': return d.reference || '';
+      case 'objet': return d.objet.toLowerCase();
+      case 'client': return this.clientNom(d).toLowerCase();
+      case 'categorie': return (d.categorie + ' ' + d.sousCategorie).toLowerCase();
+      case 'priorite': return { Standard: 0, 'Élevée': 1, Urgente: 2 }[d.prioriteSouhaitee] ?? 99;
+      case 'statut': return d.statut || '';
+      case 'createdAt': return d.createdAt ? new Date(d.createdAt).getTime() : 0;
+    }
+  }
+
+  displayedDemandes(): Demande[] {
+    const filtered = this.filteredDemandes();
+    if (!this.sortKey) return filtered;
+    const key = this.sortKey;
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const va = this.valueOf(a, key);
+      const vb = this.valueOf(b, key);
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
     });
   }
 
@@ -158,30 +185,24 @@ export class DashboardDemandesComponent implements OnInit {
     this.filterDateFrom = '';
   }
 
-  /** Navigation vers la page de détail dédiée. */
   openDetails(demande: Demande): void {
     if (demande._id) this.router.navigate(['/demandes', demande._id]);
   }
 
-  /** Le client propriétaire peut agir sur sa propre demande. */
   isOwner(demande: Demande): boolean {
     return this.auth.isClient() && this.requesterEmail(demande) === this.auth.getEmail();
   }
 
-  /** La demande peut-elle encore être annulée par son client propriétaire ? */
   canCancel(demande: Demande): boolean {
-    return (
-      this.isOwner(demande) &&
-      availableTransitions(DEMANDE_TRANSITIONS, demande.statut, this.auth.getRole()).includes('Annulé')
-    );
+    return this.isOwner(demande) &&
+      availableTransitions(DEMANDE_TRANSITIONS, demande.statut, this.auth.getRole()).includes('Annulé');
   }
 
   async cancelDemande(demande: Demande): Promise<void> {
     if (!demande._id) return;
     const ok = await this.confirmDialog.confirm({
       title: 'Annuler cette demande ?',
-      message:
-        "La demande sera marquée comme annulée et sortira définitivement du workflow. Elle reste consultable dans l'historique.",
+      message: "La demande sera marquée comme annulée et sortira définitivement du workflow.",
       confirmLabel: 'Annuler la demande',
       variant: 'destructive',
     });

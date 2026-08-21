@@ -338,19 +338,7 @@
     @apply inline-flex items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold h-5 min-w-[20px] px-1.5;
   }
 
-  /* ---------- Filtres d'en-tête de colonne ---------- */
-  .table-filter-row th {
-    @apply h-auto px-2 py-2 align-middle bg-muted/30 border-t border-border;
-  }
-  .th-input {
-    @apply w-full rounded-md border border-border bg-card px-2 py-1.5 text-xs text-foreground
-      placeholder:text-muted-foreground/50 transition-colors
-      focus:outline-none focus:ring-2 focus:ring-ring/40 focus:border-ring;
-  }
-  .th-select {
-    @apply w-full rounded-md border border-border bg-card px-1.5 py-1.5 text-xs text-foreground
-      transition-colors focus:outline-none focus:ring-2 focus:ring-ring/40;
-  }
+
 
   /* ---------- Skeleton (chargement) ---------- */
   .skeleton {
