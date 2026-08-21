@@ -1,7 +1,8 @@
 const { Contrat } = require('../models/contrat.model');
 const { Client } = require('../models/client.model');
+const { PRINCIPAL_CLIENT } = require('../utils/principals');
 
-const populateContrat = (query) => query.populate('clientId', 'nom email telephone statut');
+const populateContrat = (query) => query.populate('clientId', 'nom email telephone statut avatarUrl');
 
 /**
  * Création d'un contrat (réservé aux ADMIN).
@@ -39,7 +40,10 @@ const createContrat = async (req, res) => {
 const getAllContrats = async (req, res) => {
   try {
     const filter = {};
-    if (req.query.clientId) {
+    if (req.principalType === PRINCIPAL_CLIENT) {
+      // Un client ne voit que SES contrats.
+      filter.clientId = req.userId;
+    } else if (req.query.clientId) {
       filter.clientId = req.query.clientId;
     } else if (req.query.clientEmail) {
       const client = await Client.findOne({ email: req.query.clientEmail });

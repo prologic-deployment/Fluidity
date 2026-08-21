@@ -82,10 +82,12 @@ const createDemande = async (req, res) => {
 
 /**
  * Liste des demandes (application mono-organisation, tri décroissant par date).
+ * Un client ne voit que ses propres demandes.
  */
 const getAllDemandes = async (req, res) => {
   try {
-    const demandes = await populateDemande(Demande.find()).sort({ createdAt: -1 });
+    const filter = estClient(req) ? { requester: req.userId } : {};
+    const demandes = await populateDemande(Demande.find(filter)).sort({ createdAt: -1 });
     res.status(200).json(demandes);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

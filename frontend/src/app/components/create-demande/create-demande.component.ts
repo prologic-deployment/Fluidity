@@ -84,7 +84,7 @@ export class CreateDemandeComponent implements OnInit {
     });
 
     // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
-    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
+    this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });

@@ -79,10 +79,12 @@ const createChangement = async (req, res) => {
 
 /**
  * Liste des changements (tri décroissant par date).
+ * Un client ne voit que ses propres changements.
  */
 const getAllChangements = async (req, res) => {
   try {
-    const changements = await populateChangement(Changement.find()).sort({ createdAt: -1 });
+    const filter = estClient(req) ? { requester: req.userId } : {};
+    const changements = await populateChangement(Changement.find(filter)).sort({ createdAt: -1 });
     res.status(200).json(changements);
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });

@@ -80,7 +80,7 @@ export class CreateTicketComponent implements OnInit {
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
-    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
+    this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });

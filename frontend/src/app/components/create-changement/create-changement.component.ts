@@ -114,7 +114,7 @@ export class CreateChangementComponent implements OnInit {
       }
     });
 
-    this.contratService.getAll(this.auth.getEmail() || undefined).subscribe({
+    this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
