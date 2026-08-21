@@ -6,7 +6,7 @@
     </div>
     <div>
       <p class="text-sm font-semibold tracking-tight text-white">Fluidity</p>
-      <p class="text-[11px] text-slate-400">Cloud Services Portal</p>
+      <p class="text-[11px] text-slate-400">Fluidity</p>
     </div>
   </div>
 
@@ -15,7 +15,7 @@
   <!-- Navigation -->
   <nav class="flex-1 overflow-y-auto px-3 py-2">
     <div *ngFor="let group of groups">
-      <p class="side-group-label">{{ group.label }}</p>
+      <p class="side-group-label">{{ group.labelKey | t }}</p>
 
       <!-- Group with sub-items (multi-level) -->
       <ng-container *ngIf="group.children as children">
@@ -38,7 +38,7 @@
               <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
-            {{ group.label }}
+            {{ group.labelKey | t }}
           </span>
           <svg class="side-toggle-icon" [class.side-toggle-icon-open]="group.open"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -53,7 +53,7 @@
               routerLinkActive="side-sublink-active" [routerLinkActiveOptions]="{ exact: true }"
               class="side-sublink">
               <span class="h-1 w-1 rounded-full bg-current opacity-60"></span>
-              {{ child.label }}
+              {{ child.labelKey | t }}
             </a>
           </div>
         </div>
@@ -73,7 +73,7 @@
       role="button"
       tabindex="0"
       title="Mon profil"
-      aria-label="Ouvrir mon profil"
+      [attr.aria-label]="'nav.profile' | t"
     >
       <div class="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-bold text-white">
         <img *ngIf="avatarUrl" [src]="avatarUrl | uploadUrl" alt="" class="h-full w-full object-cover" />
@@ -83,7 +83,7 @@
         <p class="truncate text-xs font-medium text-white group-hover:underline">{{ displayName() }}</p>
         <p class="truncate text-[11px] text-slate-400">{{ roleLabel() }}</p>
       </div>
-      <button (click)="onLogout($event)" title="Déconnexion"
+      <button (click)="onLogout($event)" [attr.title]="'nav.logout' | t"
         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-white/10 hover:text-white">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
