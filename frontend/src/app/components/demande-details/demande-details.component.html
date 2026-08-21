@@ -1,6 +1,6 @@
 <div class="min-h-screen" *ngIf="!loading && demande as d">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
-    <div class="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-center gap-3 justify-between">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-5 flex flex-wrap items-center gap-3 justify-between">
       <div class="min-w-0">
         <a routerLink="/demandes" class="btn-link text-xs">&larr; Demandes</a>
         <div class="mt-1 flex flex-wrap items-center gap-2">
@@ -13,7 +13,7 @@
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-6 py-8">
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-8">
     <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
 
     <!-- Workflow -->

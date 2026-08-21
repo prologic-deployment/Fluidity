@@ -1,13 +1,13 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
-    <div class="max-w-5xl mx-auto px-6 py-5">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-5">
       <a routerLink="/changements" class="btn-link">&larr; Retour</a>
       <h1 class="text-xl font-semibold tracking-tight mt-1">Nouveau changement</h1>
       <p class="text-sm text-muted-foreground mt-0.5">Soumettez un changement d'infrastructure avec ses spécifications techniques.</p>
     </div>
   </header>
 
-  <main class="max-w-5xl mx-auto px-6 py-8">
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-8">
   <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
     <!-- Informations générales -->
     <div class="card">
@@ -29,7 +29,7 @@
           <input type="text" formControlName="objetChangement" class="input" placeholder="Ex. Extension de la RAM du serveur applicatif" /></div>
         <div><label class="field-label">Description détaillée</label>
           <textarea formControlName="descriptionDetaillee" class="textarea" rows="3"></textarea></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div><label class="field-label">Service / Environnement</label>
             <select formControlName="serviceEnvironnement" class="select">
               <option value="" disabled>Sélectionner…</option>
@@ -38,7 +38,7 @@
           <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'"><label class="field-label">Précision environnement</label>
             <input type="text" formControlName="serviceEnvironnementAutre" class="input" /></div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div><label class="field-label">Catégorie</label>
             <select formControlName="categorie" class="select">
               <option value="" disabled>Sélectionner…</option>
@@ -53,7 +53,7 @@
         </div>
         <div *ngIf="form.get('categorie')?.value === 'Autre'"><label class="field-label">Précision de la catégorie</label>
           <input type="text" formControlName="categorieAutre" class="input" /></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div><label class="field-label">Type de changement</label>
             <select formControlName="typeChangement" class="select">
               <option *ngFor="let t of typesChangement" [value]="t">{{ t }}</option>
@@ -110,7 +110,7 @@
           </div>
         </div>
       <div class="card-content space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           <div *ngIf="isFieldVisible('serveur','hostname')"><label class="field-label">Hostname</label><input type="text" formControlName="serveur.hostname" class="input" /></div>
           <div *ngIf="isFieldVisible('serveur','os')"><label class="field-label">Système d'exploitation</label><input type="text" formControlName="serveur.os" class="input" /></div>
           <div *ngIf="isFieldVisible('serveur','cpuCores')"><label class="field-label">CPU (cœurs)</label><input type="number" formControlName="serveur.cpuCores" class="input" /></div>
@@ -168,7 +168,7 @@
             </div>
           </div>
         </div>
-      <div class="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card-content grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div *ngIf="isFieldVisible('reseau','vlan')"><label class="field-label">VLAN</label><input type="text" formControlName="reseau.vlan" class="input" /></div>
         <div *ngIf="isFieldVisible('reseau','vlanName')"><label class="field-label">Nom du VLAN</label><input type="text" formControlName="reseau.vlanName" class="input" /></div>
         <div *ngIf="isFieldVisible('reseau','descriptionVlan')"><label class="field-label">Description</label><input type="text" formControlName="reseau.descriptionVlan" class="input" /></div>
@@ -235,7 +235,7 @@
             </div>
           </div>
         </div>
-      <div class="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card-content grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div *ngIf="isFieldVisible('firewall','source')"><label class="field-label">Source</label><input type="text" formControlName="firewall.source" class="input" /></div>
         <div *ngIf="isFieldVisible('firewall','destination')"><label class="field-label">Destination</label><input type="text" formControlName="firewall.destination" class="input" /></div>
         <div *ngIf="isFieldVisible('firewall','protocole')"><label class="field-label">Protocole</label><input type="text" formControlName="firewall.protocole" class="input" /></div>
@@ -263,7 +263,7 @@
             </div>
           </div>
         </div>
-      <div class="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card-content grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div *ngIf="isFieldVisible('backup','espaceBackupSupplementaireGo')"><label class="field-label">Espace supplémentaire (Go)</label><input type="number" formControlName="backup.espaceBackupSupplementaireGo" class="input" /></div>
         <div *ngIf="isFieldVisible('backup','retentionNombre')"><label class="field-label">Rétention (nombre)</label><input type="number" formControlName="backup.retentionNombre" class="input" /></div>
         <div *ngIf="isFieldVisible('backup','retentionPeriode')"><label class="field-label">Rétention (période)</label>
@@ -333,7 +333,7 @@
             </div>
           </div>
         </div>
-      <div class="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card-content grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div *ngIf="isFieldVisible('iaGpu','typeGpu')"><label class="field-label">Type de GPU</label><input type="text" formControlName="iaGpu.typeGpu" class="input" /></div>
         <div *ngIf="isFieldVisible('iaGpu','nombreGpu')"><label class="field-label">Nombre de GPU</label><input type="number" formControlName="iaGpu.nombreGpu" class="input" /></div>
         <div *ngIf="isFieldVisible('iaGpu','vramGo')"><label class="field-label">VRAM (Go)</label><input type="number" formControlName="iaGpu.vramGo" class="input" /></div>
@@ -362,7 +362,7 @@
             </div>
           </div>
         </div>
-      <div class="card-content grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card-content grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div *ngIf="isFieldVisible('securite','perimetre')"><label class="field-label">Périmètre</label><input type="text" formControlName="securite.perimetre" class="input" /></div>
         <div *ngIf="isFieldVisible('securite','niveauCriticite')"><label class="field-label">Niveau de criticité</label><input type="text" formControlName="securite.niveauCriticite" class="input" /></div>
         <div *ngIf="isFieldVisible('securite','systemeCible')"><label class="field-label">Système cible</label><input type="text" formControlName="securite.systemeCible" class="input" /></div>

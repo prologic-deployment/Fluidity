@@ -1,13 +1,13 @@
 <div class="min-h-screen">
   <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
-    <div class="max-w-4xl mx-auto px-6 py-5">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-5">
       <a routerLink="/tickets" class="btn-link">&larr; Retour</a>
       <h1 class="text-xl font-semibold tracking-tight mt-1">Nouvel incident</h1>
       <p class="text-sm text-muted-foreground mt-0.5">Décrivez l'incident rencontré — la priorité est calculée automatiquement.</p>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-6 py-8">
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-8">
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
 
       <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
@@ -58,7 +58,7 @@
           </div>
         </div>
         <div class="card-content pt-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div>
               <label class="field-label">Catégorie</label>
               <select formControlName="categorie" class="select">
@@ -76,7 +76,7 @@
               <input *ngIf="form.get('categorie')?.value === 'Autre'" type="text" formControlName="sousCategorieAutre" class="input" placeholder="Précisez la sous-catégorie" />
               <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">Champ requis.</p>
             </div>
-            <div *ngIf="form.get('categorie')?.value === 'Autre'" class="md:col-span-2">
+            <div *ngIf="form.get('categorie')?.value === 'Autre'" class="md:col-span-2 xl:col-span-3">
               <label class="field-label">Précision de la catégorie</label>
               <input type="text" formControlName="categorieAutre" class="input" placeholder="Précisez la catégorie" />
               <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">Champ requis.</p>
@@ -103,7 +103,7 @@
           </div>
         </div>
         <div class="card-content pt-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div>
               <label class="field-label">Impact</label>
               <select formControlName="impact" class="select">
@@ -177,7 +177,7 @@
           </div>
         </div>
         <div class="card-content pt-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div *ngIf="isDiagnosticFieldVisible('source')"><label class="field-label">Source</label><input type="text" formControlName="diagnostic.source" class="input" placeholder="ex: 192.168.1.10" /></div>
             <div *ngIf="isDiagnosticFieldVisible('destination')"><label class="field-label">Destination</label><input type="text" formControlName="diagnostic.destination" class="input" placeholder="ex: 10.0.0.5" /></div>
             <div *ngIf="isDiagnosticFieldVisible('protocole')"><label class="field-label">Protocole</label><input type="text" formControlName="diagnostic.protocole" class="input" placeholder="ex: TCP / UDP" /></div>
