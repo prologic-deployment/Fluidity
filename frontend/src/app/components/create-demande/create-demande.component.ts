@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DemandeService } from '../../services/demande.service';
 import { ContratService } from '../../services/contrat.service';
@@ -17,13 +17,15 @@ import { Contrat } from '../../models/contrat.model';
 import { DropzoneComponent } from '../shared/dropzone.component';
 import { TranslatePipe } from '../../i18n/translate.pipe';
 import { UploadedFile } from '../../services/upload.service';
+import { FormStepperComponent, StepperStep } from '../shared/form-stepper.component';
+import { markTouched, scrollToFirstInvalid, stepValid } from '../../utils/form-stepper.util';
 
 const AUTRE = 'Autre';
 
 @Component({
   selector: 'app-create-demande',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, TranslatePipe],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, TranslatePipe, FormStepperComponent],
   templateUrl: './create-demande.component.html',
 })
 export class CreateDemandeComponent implements OnInit {
@@ -38,12 +40,21 @@ export class CreateDemandeComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
+  steps: StepperStep[] = [
+    { id: 'general', labelKey: 'demande.step1', hintKey: 'demande.step1Hint' },
+    { id: 'classification', labelKey: 'demande.step2', hintKey: 'demande.step2Hint' },
+    { id: 'details', labelKey: 'demande.step3', hintKey: 'demande.step3Hint' },
+  ];
+  currentStep = 0;
+  maxReached = 0;
+
   constructor(
     private fb: FormBuilder,
     private demandeService: DemandeService,
     private contratService: ContratService,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private el: ElementRef
   ) {}
 
   ngOnInit(): void {
@@ -63,12 +74,9 @@ export class CreateDemandeComponent implements OnInit {
       contrat: ['', Validators.required],
     });
 
-    // "Autre" activé sur Type / Service-Environnement : rend le champ de précision obligatoire
     this.toggleAutreValidator('typeDemande', 'typeDemandeAutre');
     this.toggleAutreValidator('serviceEnvironnement', 'serviceEnvironnementAutre');
 
-    // Catégorie "Autre" : plus de liste de sous-catégories, la sous-catégorie devient elle-même
-    // un champ libre obligatoire (categorieAutre + sousCategorieAutre)
     this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
       this.sousCategories = SOUS_CATEGORIES[cat] || [];
       this.form.get('sousCategorie')?.setValue('');
@@ -78,20 +86,17 @@ export class CreateDemandeComponent implements OnInit {
       this.setValidator(this.form.get('sousCategorieAutre'), cat === AUTRE);
     });
 
-    // "Autre" activé sur Sous-catégorie (cas d'une catégorie normale) : précision obligatoire
     this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
-      if (this.form.get('categorie')?.value === AUTRE) return; // déjà géré ci-dessus
+      if (this.form.get('categorie')?.value === AUTRE) return;
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
     });
 
-    // Contrats du client connecté uniquement (une demande est toujours créée en son nom)
     this.contratService.getAll().subscribe({
       next: (data) => (this.contrats = data),
       error: () => (this.contrats = []),
     });
   }
 
-  /** Abonne un contrôle "Autre" pour qu'il devienne obligatoire quand la valeur sélectionnée est "Autre". */
   private toggleAutreValidator(controlName: string, autreControlName: string): void {
     this.form.get(controlName)?.valueChanges.subscribe((val: string) => {
       this.setValidator(this.form.get(autreControlName), val === AUTRE);
@@ -108,6 +113,55 @@ export class CreateDemandeComponent implements OnInit {
     this.piecesJointes = files;
   }
 
+  /* ---- Navigation par étapes ---- */
+  private stepControls(step: number): AbstractControl[] {
+    const f = this.form;
+    switch (step) {
+      case 0:
+        return [f.get('objet')!, f.get('typeDemande')!, f.get('typeDemandeAutre')!, f.get('serviceEnvironnement')!, f.get('serviceEnvironnementAutre')!];
+      case 1:
+        return [f.get('categorie')!, f.get('categorieAutre')!, f.get('sousCategorie')!, f.get('sousCategorieAutre')!, f.get('prioriteSouhaitee')!, f.get('contrat')!];
+      default:
+        return [f.get('descriptionDetaillee')!, f.get('informationsComplementaires')!];
+    }
+  }
+
+  next(): void {
+    const controls = this.stepControls(this.currentStep);
+    if (!stepValid(controls)) {
+      markTouched(controls);
+      scrollToFirstInvalid(this.el.nativeElement);
+      return;
+    }
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+      this.maxReached = Math.max(this.maxReached, this.currentStep);
+      this.scrollTop();
+    }
+  }
+
+  prev(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      this.scrollTop();
+    }
+  }
+
+  goToStep(i: number): void {
+    if (i < this.maxReached) {
+      this.currentStep = i;
+      this.scrollTop();
+    }
+  }
+
+  private scrollTop(): void {
+    setTimeout(() => this.el.nativeElement?.querySelector('main, form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
+  get canSubmit(): boolean {
+    return stepValid(this.stepControls(this.currentStep));
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -117,7 +171,6 @@ export class CreateDemandeComponent implements OnInit {
     const categorie = raw.categorie === AUTRE ? raw.categorieAutre : raw.categorie;
     const sousCategorie = raw.sousCategorie === AUTRE ? raw.sousCategorieAutre : raw.sousCategorie;
 
-    // clientId est dérivé côté serveur du compte authentifié (jamais envoyé par le client)
     const payload: Demande = {
       objet: raw.objet,
       typeDemande: raw.typeDemande === AUTRE ? raw.typeDemandeAutre : raw.typeDemande,

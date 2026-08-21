@@ -37,6 +37,7 @@ export const routes: Routes = [
       { path: 'changements/:id', component: ChangementDetailsComponent },
       { path: 'tickets', component: DashboardTicketsComponent },
       { path: 'tickets/nouveau', component: CreateTicketComponent },
+      { path: 'tickets/:id/modifier', component: CreateTicketComponent },
       { path: 'tickets/:id', component: TicketDetailsComponent },
       { path: 'contrats', component: DashboardContratsComponent },
       { path: 'contrats/nouveau', component: CreateContratComponent, canActivate: [adminGuard] },

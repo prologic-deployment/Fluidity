@@ -1,200 +1,216 @@
 <div class="min-h-screen">
-  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-14 z-10 lg:top-0">
     <div class="w-full px-4 sm:px-6 lg:px-8 py-5">
-      <a routerLink="/demandes" class="btn-link">&larr; Retour</a>
+      <a routerLink="/demandes" class="btn-link">&larr; {{ 'common.back' | t }}</a>
       <h1 class="text-xl font-semibold tracking-tight mt-1">{{ 'demande.newTitle' | t }}</h1>
+      <p class="text-sm text-muted-foreground mt-0.5">{{ 'demandes.subtitle' | t }}</p>
     </div>
   </header>
 
   <main class="w-full px-4 sm:px-6 lg:px-8 py-8">
-    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
+    <div class="mx-auto max-w-4xl">
+      <app-form-stepper [steps]="steps" [current]="currentStep" [maxReached]="maxReached" (navigate)="goToStep($event)"></app-form-stepper>
 
-      <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 space-y-6">
+        <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
 
-      <!-- Section 1 : Informations générales -->
-      <section class="card animate-fade-in-up">
-        <div class="card-header-tinted">
-          <div class="form-section-header">
-            <div class="form-section-icon">
-              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <path d="M3 10h18"></path>
-              </svg>
+        <!-- Étape 1 : Informations générales -->
+        <div *ngIf="currentStep === 0" class="form-step-enter space-y-6">
+          <section class="card">
+            <div class="card-header-tinted">
+              <div class="form-section-header">
+                <div class="form-section-icon">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+                </div>
+                <div>
+                  <h2 class="card-title">{{ 'demande.step1' | t }}</h2>
+                  <p class="card-description">{{ 'demande.step1Hint' | t }}</p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h2 class="card-title">{{ 'form.generalInfo' | t }}</h2>
-              <p class="card-description">{{ 'form.generalInfoHint' | t }}</p>
+            <div class="card-content pt-6 space-y-4">
+              <div>
+                <label class="field-label">{{ 'form.objet' | t }}</label>
+                <input type="text" formControlName="objet" class="input" [attr.placeholder]="'demande.objetPlaceholder' | t" />
+                <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label">{{ 'demande.type' | t }}</label>
+                  <select formControlName="typeDemande" class="select">
+                    <option value="" disabled>{{ 'form.select' | t }}</option>
+                    <option *ngFor="let t of typesDemande" [value]="t">{{ t | t:'typeDemande' }}</option>
+                  </select>
+                  <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+                <div *ngIf="form.get('typeDemande')?.value === 'Autre'">
+                  <label class="field-label">{{ 'demande.specifyType' | t }}</label>
+                  <input type="text" formControlName="typeDemandeAutre" class="input" />
+                  <p *ngIf="form.get('typeDemandeAutre')?.invalid && form.get('typeDemandeAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label">{{ 'demande.environment' | t }}</label>
+                  <select formControlName="serviceEnvironnement" class="select">
+                    <option value="" disabled>{{ 'form.select' | t }}</option>
+                    <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s | t:'environment' }}</option>
+                  </select>
+                  <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+                <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'">
+                  <label class="field-label">{{ 'demande.specifyEnvironment' | t }}</label>
+                  <input type="text" formControlName="serviceEnvironnementAutre" class="input" />
+                  <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+              </div>
             </div>
+          </section>
+        </div>
+
+        <!-- Étape 2 : Classification & priorité -->
+        <div *ngIf="currentStep === 1" class="form-step-enter space-y-6">
+          <section class="card">
+            <div class="card-header-tinted">
+              <div class="form-section-header">
+                <div class="form-section-icon">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 2.4 7.2H22l-6 4.4 2.3 7.2-6.3-4.6-6.3 4.6L8 13.6l-6-4.4h7.6z"></path></svg>
+                </div>
+                <div>
+                  <h2 class="card-title">{{ 'demande.step2' | t }}</h2>
+                  <p class="card-description">{{ 'demande.step2Hint' | t }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-content pt-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="field-label">{{ 'form.category' | t }}</label>
+                  <select formControlName="categorie" class="select">
+                    <option value="" disabled>{{ 'form.select' | t }}</option>
+                    <option *ngFor="let c of categories" [value]="c">{{ c | t:'category' }}</option>
+                  </select>
+                  <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+                <div *ngIf="form.get('categorie')?.value === 'Autre'">
+                  <label class="field-label">{{ 'form.specify' | t }}</label>
+                  <input type="text" formControlName="categorieAutre" class="input" />
+                  <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+                <div *ngIf="form.get('categorie')?.value !== 'Autre'">
+                  <label class="field-label">{{ 'form.subcategory' | t }}</label>
+                  <select formControlName="sousCategorie" class="select">
+                    <option value="" disabled>{{ 'form.select' | t }}</option>
+                    <option *ngFor="let s of sousCategories" [value]="s">{{ s | t:'subcategory' }}</option>
+                  </select>
+                  <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+                <div *ngIf="form.get('sousCategorie')?.value === 'Autre'">
+                  <label class="field-label">{{ 'form.specify' | t }}</label>
+                  <input type="text" formControlName="sousCategorieAutre" class="input" />
+                  <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                </div>
+                <div>
+                  <label class="field-label">{{ 'demande.priority' | t }}</label>
+                  <select formControlName="prioriteSouhaitee" class="select">
+                    <option *ngFor="let p of priorites" [value]="p">{{ p | t:'priority' }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="field-label">{{ 'form.contract' | t }}</label>
+                  <select formControlName="contrat" class="select">
+                    <option value="" disabled>{{ 'demande.selectContract' | t }}</option>
+                    <option *ngFor="let c of contrats" [value]="c._id">{{ c.reference }} — {{ c.intitule }}</option>
+                  </select>
+                  <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">{{ 'common.required' | t }}</p>
+                  <p *ngIf="contrats.length === 0" class="mt-1 text-xs text-muted-foreground">{{ 'demande.noContract' | t }}</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Étape 3 : Description & pièces jointes -->
+        <div *ngIf="currentStep === 2" class="form-step-enter space-y-6">
+          <section class="card">
+            <div class="card-header-tinted">
+              <div class="form-section-header">
+                <div class="form-section-icon">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                </div>
+                <div>
+                  <h2 class="card-title">{{ 'demande.step3' | t }}</h2>
+                  <p class="card-description">{{ 'demande.step3Hint' | t }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-content pt-6 space-y-4">
+              <div>
+                <label class="field-label">{{ 'form.description' | t }}</label>
+                <textarea formControlName="descriptionDetaillee" class="textarea" rows="4"></textarea>
+                <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">{{ 'form.descriptionHint' | t }}</p>
+              </div>
+              <div>
+                <label class="field-label">{{ 'demande.complementary' | t }}</label>
+                <textarea formControlName="informationsComplementaires" class="textarea" rows="2"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header-tinted">
+              <div class="form-section-header">
+                <div class="form-section-icon">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+                </div>
+                <div>
+                  <h2 class="card-title">{{ 'form.attachments' | t }}</h2>
+                  <p class="card-description">{{ 'form.attachmentsHint' | t }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-content pt-6">
+              <app-dropzone accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" [multiple]="true" (filesChange)="onPiecesJointesChange($event)"></app-dropzone>
+            </div>
+          </section>
+
+          <!-- Récapitulatif -->
+          <section class="card">
+            <div class="card-header-tinted">
+              <div class="form-section-header">
+                <div class="form-section-icon">
+                  <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                </div>
+                <div>
+                  <h2 class="card-title">{{ 'form.review' | t }}</h2>
+                  <p class="card-description">{{ 'form.reviewHint' | t }}</p>
+                </div>
+              </div>
+            </div>
+            <div class="card-content pt-6">
+              <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                <div><dt class="detail-label">{{ 'form.objet' | t }}</dt><dd class="detail-value">{{ form.get('objet')?.value }}</dd></div>
+                <div><dt class="detail-label">{{ 'demande.type' | t }}</dt><dd class="detail-value">{{ form.get('typeDemande')?.value | t:'typeDemande' }}</dd></div>
+                <div><dt class="detail-label">{{ 'form.category' | t }}</dt><dd class="detail-value">{{ form.get('categorie')?.value | t:'category' }}</dd></div>
+                <div><dt class="detail-label">{{ 'form.subcategory' | t }}</dt><dd class="detail-value">{{ form.get('sousCategorie')?.value | t:'subcategory' }}</dd></div>
+                <div><dt class="detail-label">{{ 'form.attachments' | t }}</dt><dd class="detail-value">{{ piecesJointes.length }} {{ 'common.results' | t }}</dd></div>
+              </dl>
+            </div>
+          </section>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex items-center justify-between gap-3 pt-2">
+          <a routerLink="/demandes" class="btn-ghost">{{ 'common.cancel' | t }}</a>
+          <div class="flex items-center gap-3">
+            <button type="button" *ngIf="currentStep > 0" (click)="prev()" class="btn-outline">{{ 'stepper.previous' | t }}</button>
+            <button type="button" *ngIf="currentStep < steps.length - 1" (click)="next()" class="btn-primary">{{ 'stepper.next' | t }}</button>
+            <button type="submit" *ngIf="currentStep === steps.length - 1" [disabled]="loading" class="btn-primary">
+              {{ loading ? ('common.sending' | t) : ('stepper.submit' | t) }}
+            </button>
           </div>
         </div>
-        <div class="card-content pt-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <div>
-              <label class="field-label">{{ 'form.objet' | t }}</label>
-              <input formControlName="objet" type="text" class="input" [placeholder]="'demande.objetPlaceholder' | t" />
-              <p *ngIf="form.get('objet')?.invalid && form.get('objet')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-
-            <div>
-              <label class="field-label">{{ 'demande.type' | t }}</label>
-              <select formControlName="typeDemande" class="select">
-                <option value="" disabled>{{ 'form.select' | t }}</option>
-                <option *ngFor="let t of typesDemande" [value]="t">{{ t | t:'typeDemande' }}</option>
-              </select>
-              <p *ngIf="form.get('typeDemande')?.invalid && form.get('typeDemande')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-            <div *ngIf="form.get('typeDemande')?.value === 'Autre'">
-              <label class="field-label">{{ 'demande.specifyType' | t }}</label>
-              <input formControlName="typeDemandeAutre" type="text" class="input" />
-              <p *ngIf="form.get('typeDemandeAutre')?.invalid && form.get('typeDemandeAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-
-            <div class="md:col-span-2 xl:col-span-3">
-              <label class="field-label">{{ 'demande.environment' | t }}</label>
-              <select formControlName="serviceEnvironnement" class="select">
-                <option value="" disabled>{{ 'form.select' | t }}</option>
-                <option *ngFor="let s of servicesEnvironnement" [value]="s">{{ s | t:'environment' }}</option>
-              </select>
-              <p *ngIf="form.get('serviceEnvironnement')?.invalid && form.get('serviceEnvironnement')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-            <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'" class="md:col-span-2 xl:col-span-3">
-              <label class="field-label">{{ 'demande.specifyEnvironment' | t }}</label>
-              <input formControlName="serviceEnvironnementAutre" type="text" class="input" />
-              <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-
-            <div>
-              <label class="field-label">{{ 'form.category' | t }}</label>
-              <select formControlName="categorie" class="select">
-                <option value="" disabled>{{ 'form.select' | t }}</option>
-                <option *ngFor="let c of categories" [value]="c">{{ c | t:'category' }}</option>
-              </select>
-              <p *ngIf="form.get('categorie')?.invalid && form.get('categorie')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-            <div *ngIf="form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">{{ 'form.specify' | t }}</label>
-              <input formControlName="categorieAutre" type="text" class="input" />
-              <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-
-            <div *ngIf="form.get('categorie')?.value !== 'Autre'">
-              <label class="field-label">{{ 'form.subcategory' | t }}</label>
-              <select formControlName="sousCategorie" class="select">
-                <option value="" disabled>{{ 'form.select' | t }}</option>
-                <option *ngFor="let sc of sousCategories" [value]="sc">{{ sc | t:'subcategory' }}</option>
-              </select>
-              <p *ngIf="form.get('sousCategorie')?.invalid && form.get('sousCategorie')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-            <div *ngIf="form.get('categorie')?.value !== 'Autre' && form.get('sousCategorie')?.value === 'Autre'">
-              <label class="field-label">{{ 'form.specify' | t }}</label>
-              <input formControlName="sousCategorieAutre" type="text" class="input" />
-              <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-            <div *ngIf="form.get('categorie')?.value === 'Autre'">
-              <label class="field-label">{{ 'form.specify' | t }}</label>
-              <input formControlName="sousCategorieAutre" type="text" class="input" />
-              <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 2 : Priorité, contrat & échéance -->
-      <section class="card animate-fade-in-up stagger-1">
-        <div class="card-header-tinted">
-          <div class="form-section-header">
-            <div class="form-section-icon">
-              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <path d="M14 2v6h6"></path>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-title">{{ 'demande.priorityContract' | t }}</h2>
-              <p class="card-description">{{ 'demande.priorityContractHint' | t }}</p>
-            </div>
-          </div>
-        </div>
-        <div class="card-content pt-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <div>
-              <label class="field-label">{{ 'demande.priority' | t }}</label>
-              <select formControlName="prioriteSouhaitee" class="select">
-                <option *ngFor="let p of priorites" [value]="p">{{ p | t:'priority' }}</option>
-              </select>
-            </div>
-
-          
-
-            <div>
-              <label class="field-label">{{ 'form.contract' | t }}</label>
-              <select formControlName="contrat" class="select">
-                <option value="" disabled>{{ 'demande.selectContract' | t }}</option>
-                <option *ngFor="let ct of contrats" [value]="ct._id">
-                  {{ ct.reference }} — {{ ct.intitule }}
-                </option>
-              </select>
-              <p *ngIf="form.get('contrat')?.invalid && form.get('contrat')?.touched" class="field-error">{{ 'common.required' | t }}</p>
-              <p *ngIf="contrats.length === 0" class="mt-1 text-xs text-muted-foreground">
-                {{ 'demande.noContract' | t }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 3 : Description & pièces jointes -->
-      <section class="card animate-fade-in-up stagger-2">
-        <div class="card-header-tinted">
-          <div class="form-section-header">
-            <div class="form-section-icon">
-              <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 6h16"></path>
-                <path d="M4 12h16"></path>
-                <path d="M4 18h10"></path>
-              </svg>
-            </div>
-            <div>
-              <h2 class="card-title">{{ 'form.details' | t }}</h2>
-              <p class="card-description">{{ 'form.detailsHint' | t }}</p>
-            </div>
-          </div>
-        </div>
-        <div class="card-content pt-6 space-y-4">
-          <div>
-            <label class="field-label">{{ 'form.description' | t }}</label>
-            <textarea formControlName="descriptionDetaillee" rows="4" class="textarea"
-              placeholder="{{ 'form.descriptionHint' | t }}"></textarea>
-            <p *ngIf="form.get('descriptionDetaillee')?.invalid && form.get('descriptionDetaillee')?.touched" class="field-error">
-              {{ 'form.descriptionHint' | t }}
-            </p>
-          </div>
-
-          <div>
-            <label class="field-label">{{ 'demande.complementary' | t }}</label>
-            <textarea formControlName="informationsComplementaires" rows="2" class="textarea"></textarea>
-          </div>
-
-          <div>
-            <label class="field-label">{{ 'form.attachments' | t }}</label>
-            <app-dropzone
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              [multiple]="true"
-              hint="ou cliquez pour parcourir — PDF, images, documents (15 Mo max)"
-              (filesChange)="onPiecesJointesChange($event)">
-            </app-dropzone>
-          </div>
-        </div>
-      </section>
-
-      <div class="flex justify-end space-x-3">
-        <a routerLink="/demandes" class="btn-outline">{{ 'common.cancel' | t }}</a>
-        <button type="submit" [disabled]="loading" class="btn-primary">
-          {{ loading ? 'Envoi...' : 'Soumettre la demande' }}
-        </button>
-      </div>
-    </form>
+      </form>
+    </div>
   </main>
 </div>

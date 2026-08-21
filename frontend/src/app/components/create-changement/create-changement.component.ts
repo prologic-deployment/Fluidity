@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ChangementService } from '../../services/changement.service';
 import { ContratService } from '../../services/contrat.service';
@@ -11,12 +11,6 @@ import {
   TYPES_CHANGEMENT,
   SERVICES_ENVIRONNEMENT_CHANGEMENT,
   RETENTION_MAX_PAR_PERIODE,
-  RETENTION_PERIODES,
-  TYPES_DISQUE,
-  TYPES_STOCKAGE,
-  PROTOCOLES_STOCKAGE,
-  FREQUENCES_SAUVEGARDE,
-  OUI_NON,
   Changement,
 } from '../../models/changement.model';
 import { Contrat } from '../../models/contrat.model';
@@ -29,15 +23,25 @@ import {
   resolveCategorieSous,
   serializeSpecifications,
   showSpecSection,
-  showSpecField,
 } from '../../utils/specifications-form.factory';
+import { SpecificationsFormComponent } from '../shared/specifications-form.component';
+import { FormStepperComponent, StepperStep } from '../shared/form-stepper.component';
+import { markTouched, scrollToFirstInvalid, stepValid } from '../../utils/form-stepper.util';
 
 const AUTRE = 'Autre';
 
 @Component({
   selector: 'app-create-changement',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, DropzoneComponent, TranslatePipe],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    DropzoneComponent,
+    TranslatePipe,
+    SpecificationsFormComponent,
+    FormStepperComponent,
+  ],
   templateUrl: './create-changement.component.html',
 })
 export class CreateChangementComponent implements OnInit {
@@ -51,20 +55,22 @@ export class CreateChangementComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Options des specs
-  typesDisque = TYPES_DISQUE;
-  retentionPeriodes = RETENTION_PERIODES;
-  typesStockage = TYPES_STOCKAGE;
-  protocolesStockage = PROTOCOLES_STOCKAGE;
-  frequencesSauvegarde = FREQUENCES_SAUVEGARDE;
-  ouiNon = OUI_NON;
+  steps: StepperStep[] = [
+    { id: 'general', labelKey: 'changement.step1', hintKey: 'changement.step1Hint' },
+    { id: 'planning', labelKey: 'changement.step2', hintKey: 'changement.step2Hint' },
+    { id: 'specs', labelKey: 'changement.step3', hintKey: 'changement.step3Hint' },
+    { id: 'attachments', labelKey: 'changement.step4', hintKey: 'changement.step4Hint' },
+  ];
+  currentStep = 0;
+  maxReached = 0;
 
   constructor(
     private fb: FormBuilder,
     private changementService: ChangementService,
     private contratService: ContratService,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private el: ElementRef
   ) {}
 
   ngOnInit(): void {
@@ -161,39 +167,66 @@ export class CreateChangementComponent implements OnInit {
     this.piecesJointes = files;
   }
 
-  // --- Helpers pour le template ---
   isSectionVisible(section: string): boolean {
     return showSpecSection(this.form, section);
   }
 
-  isFieldVisible(section: string, champ: string): boolean {
-    return showSpecField(this.form, section, champ);
+  /* ---- Navigation par étapes ---- */
+  private stepControls(step: number): AbstractControl[] {
+    const f = this.form;
+    switch (step) {
+      case 0:
+        return [f.get('objetChangement')!, f.get('descriptionDetaillee')!, f.get('serviceEnvironnement')!, f.get('serviceEnvironnementAutre')!, f.get('typeChangement')!, f.get('contrat')!];
+      case 1:
+        return [f.get('categorie')!, f.get('categorieAutre')!, f.get('sousCategorie')!, f.get('sousCategorieAutre')!, f.get('planRetourArriere')!, f.get('prerequisNecessaires')!];
+      case 2:
+        return this.specControls();
+      default:
+        return [];
+    }
   }
 
-  get disques(): FormArray {
-    return this.form.get('serveur.disques') as FormArray;
+  private specControls(): AbstractControl[] {
+    const controls: AbstractControl[] = [];
+    for (const s of ['general', 'serveur', 'reseau', 'firewall', 'backup', 'iaGpu', 'securite']) {
+      if (this.isSectionVisible(s)) controls.push(this.form.get(s)!);
+    }
+    if (this.isSectionVisible('stockage')) {
+      (this.form.get('stockage') as FormArray).controls.forEach((c) => controls.push(c));
+    }
+    return controls;
   }
 
-  addDisque(): void {
-    this.disques.push(this.fb.group({ capaciteGo: [null], type: ['NVMe'], typePrecision: [''] }));
+  next(): void {
+    const controls = this.stepControls(this.currentStep);
+    if (!stepValid(controls)) {
+      markTouched(controls);
+      scrollToFirstInvalid(this.el.nativeElement);
+      return;
+    }
+    if (this.currentStep < this.steps.length - 1) {
+      this.currentStep++;
+      this.maxReached = Math.max(this.maxReached, this.currentStep);
+      this.scrollTop();
+    }
   }
 
-  removeDisque(index: number): void {
-    this.disques.removeAt(index);
+  prev(): void {
+    if (this.currentStep > 0) {
+      this.currentStep--;
+      this.scrollTop();
+    }
   }
 
-  get stockages(): FormArray {
-    return this.form.get('stockage') as FormArray;
+  goToStep(i: number): void {
+    if (i < this.maxReached) {
+      this.currentStep = i;
+      this.scrollTop();
+    }
   }
 
-  addStockage(): void {
-    this.stockages.push(
-      this.fb.group({ typeStockage: [''], customStorageType: [''], capaciteGo: [null], protocole: [''], customProtocole: [''] })
-    );
-  }
-
-  removeStockage(index: number): void {
-    this.stockages.removeAt(index);
+  private scrollTop(): void {
+    setTimeout(() => this.el.nativeElement?.querySelector('main, form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   submit(): void {
