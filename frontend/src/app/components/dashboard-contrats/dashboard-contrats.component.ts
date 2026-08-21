@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ContratService } from '../../services/contrat.service';
+import { ClientService } from '../../services/client.service';
 import { Contrat, STATUTS_CONTRAT } from '../../models/contrat.model';
+import { Client } from '../../models/client.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -16,9 +18,12 @@ import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 })
 export class DashboardContratsComponent implements OnInit {
   contrats: Contrat[] = [];
+  clients: Client[] = [];
   loading = false;
   error: string | null = null;
   selected: Contrat | null = null;
+  assignClientId = '';
+  assignLoading = false;
 
   searchTerm = '';
   statutFiltre = '';
@@ -26,12 +31,21 @@ export class DashboardContratsComponent implements OnInit {
 
   constructor(
     private contratService: ContratService,
+    private clientService: ClientService,
     public auth: AuthService,
     private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
     this.load();
+    if (this.auth.isAdmin()) this.loadClients();
+  }
+
+  loadClients(): void {
+    this.clientService.getAll().subscribe({
+      next: (data) => (this.clients = data),
+      error: () => (this.clients = []),
+    });
   }
 
   load(): void {
@@ -84,10 +98,35 @@ export class DashboardContratsComponent implements OnInit {
 
   viewDetails(contrat: Contrat): void {
     this.selected = contrat;
+    const cl = contrat.clientId as any;
+    this.assignClientId = cl?._id || (typeof cl === 'string' ? cl : '');
   }
 
   closeDetails(): void {
     this.selected = null;
+    this.assignClientId = '';
+  }
+
+  /** L'admin affecte/change le client rattaché au contrat. */
+  assignClient(): void {
+    if (!this.selected?._id || !this.assignClientId) return;
+    this.assignLoading = true;
+    this.error = null;
+    this.contratService.update(this.selected._id, { clientId: this.assignClientId }).subscribe({
+      next: () => {
+        this.assignLoading = false;
+        this.load();
+        const sel = this.selected;
+        this.closeDetails();
+        // Ré-ouvre le détail mis à jour
+        const updated = this.contrats.find((c) => c._id === sel?._id);
+        if (updated) this.viewDetails(updated);
+      },
+      error: (err) => {
+        this.assignLoading = false;
+        this.error = err.error?.message || 'Échec de l’affectation du client.';
+      },
+    });
   }
 
   async deleteContrat(id: string | undefined): Promise<void> {

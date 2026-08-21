@@ -188,6 +188,21 @@
       <p class="detail-value whitespace-pre-line">{{ c.description }}</p>
     </ng-container>
 
+    <!-- Affectation du client (ADMIN) -->
+    <div *ngIf="auth.isAdmin()" class="pt-6 mt-6 border-t border-border">
+      <p class="detail-section-title">Client rattaché</p>
+      <p *ngIf="error" class="alert-destructive mt-2">{{ error }}</p>
+      <div class="mt-2 flex gap-2">
+        <select [(ngModel)]="assignClientId" class="select flex-1">
+          <option value="" disabled>Sélectionner un client…</option>
+          <option *ngFor="let cl of clients" [value]="cl._id">{{ cl.nom }} — {{ cl.email }}</option>
+        </select>
+        <button (click)="assignClient()" [disabled]="assignLoading || !assignClientId" class="btn-primary btn-sm">
+          {{ assignLoading ? '…' : 'Affecter' }}
+        </button>
+      </div>
+    </div>
+
     <div class="flex justify-end pt-6 mt-6 border-t border-border" *ngIf="auth.isAdmin()">
       <button (click)="deleteContrat(c._id)" class="btn-destructive">Supprimer le contrat</button>
     </div>

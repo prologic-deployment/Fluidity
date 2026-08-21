@@ -14,6 +14,8 @@ const createContratSchema = z.object({
 
 const updateContratSchema = z
   .object({
+    // Rattachement/affectation du client (ADMIN)
+    clientId: objectId('Client (ObjectId) invalide').optional(),
     intitule: z.string().min(1).optional(),
     typeContrat: z.string().optional(),
     statut: z.enum(['Actif', 'Expiré', 'Suspendu']).optional(),

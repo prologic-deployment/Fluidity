@@ -70,6 +70,15 @@ const getContratById = async (req, res) => {
  */
 const updateContrat = async (req, res) => {
   try {
+    // Affectation d'un client : vérifie que le client existe.
+    if (req.body.clientId) {
+      const client = await Client.findById(req.body.clientId);
+      if (!client) {
+        res.status(400).json({ message: 'Client introuvable.' });
+        return;
+      }
+    }
+
     const contrat = await Contrat.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
