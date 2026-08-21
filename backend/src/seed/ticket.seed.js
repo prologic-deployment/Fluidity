@@ -160,20 +160,22 @@ const demoTickets = [
  * initialise la séquence de références.
  */
 const seedTickets = async (ctx = {}) => {
-  const { users = {}, clients = {}, contrats = {} } = ctx;
+  const { clients = {}, contrats = {} } = ctx;
   let created = 0;
   for (const t of demoTickets) {
     const exists = await Ticket.findOne({ reference: t.reference });
     if (exists) continue;
 
     const { clientEmail, requesterEmail, contratRef, ageHours, ...data } = t;
+    const requester = clients[requesterEmail]._id;
     const priorite = calculatePriority(t.impact, t.urgence);
 
     const ticket = new Ticket({
       ...data,
       clientId: clients[clientEmail]._id,
       contrat: contrats[contratRef]._id,
-      createdBy: users[requesterEmail]._id,
+      createdBy: requester,
+      createdByModel: 'Client',
       type: 'Incident',
       priorite,
       openedAt: hoursAgo(ageHours),
@@ -191,7 +193,8 @@ const seedTickets = async (ctx = {}) => {
       ticketId: ticket._id,
       action: 'creation',
       visibilite: 'public',
-      acteur: users[requesterEmail]._id,
+      acteur: requester,
+      acteurModel: 'Client',
       acteurEmail: requesterEmail,
       metadata: { reference: ticket.reference, priorite },
     });
@@ -200,6 +203,7 @@ const seedTickets = async (ctx = {}) => {
         ticketId: ticket._id,
         action: 'statut',
         visibilite: 'public',
+        acteurModel: 'Systeme',
         acteurEmail: 'systeme',
         metadata: { de: 'Nouveau', vers: ticket.statut },
       });
@@ -208,7 +212,8 @@ const seedTickets = async (ctx = {}) => {
       ticketId: ticket._id,
       visibilite: 'public',
       corps: `Bonjour, merci de traiter l’incident ${ticket.reference} en priorité ${priorite}.`,
-      auteur: users[requesterEmail]._id,
+      auteur: requester,
+      auteurModel: 'Client',
     });
   }
   console.log(

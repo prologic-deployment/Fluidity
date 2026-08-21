@@ -3,7 +3,8 @@ const { z } = require('zod');
 const registerSchema = z.object({
   email: z.string().email('Email invalide'),
   password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  role: z.enum(['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION']).optional(),
+  // Rôles INTERNES uniquement — un client s'inscrit via /api/clients (ADMIN).
+  role: z.enum(['ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION']).optional(),
 });
 
 const loginSchema = z.object({

@@ -1,4 +1,5 @@
 const { Demande } = require('../models/demande.model');
+const { nextReference } = require('../models/sequence.model');
 
 /**
  * Demandes de démonstration couvrant plusieurs catégories, sous-catégories
@@ -63,16 +64,20 @@ const demoDemandes = [
  * Insère les demandes de démonstration (idempotent par objet + client).
  */
 const seedDemandes = async (ctx = {}) => {
-  const { users = {}, clients = {}, contrats = {} } = ctx;
+  const { clients = {}, contrats = {} } = ctx;
   let created = 0;
   for (const d of demoDemandes) {
-    const exists = await Demande.findOne({ objet: d.objet, requester: users[d.requesterEmail]._id });
+    const requester = clients[d.requesterEmail]?._id;
+    const exists = await Demande.findOne({ objet: d.objet, requester });
     if (exists) continue;
     const { clientEmail, requesterEmail, contratRef, ...data } = d;
+    const reference = await nextReference('demande', 'DEM');
     await Demande.create({
       ...data,
+      reference,
       clientId: clients[clientEmail]._id,
-      requester: users[requesterEmail]._id,
+      requester,
+      requesterModel: 'Client',
       contrat: contrats[contratRef]._id,
     });
     created += 1;

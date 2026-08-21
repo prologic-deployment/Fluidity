@@ -27,13 +27,14 @@ async function main() {
   const { Ticket } = require('../models/ticket.model');
   const { LoginActivity } = require('../models/login-activity.model');
 
-  // --- Utilisateurs & rôles ---
+  // --- Utilisateurs & rôles (INTERNES uniquement, plus de rôle CLIENT) ---
   const users = await Utilisateur.find();
-  assert.ok(users.length >= 9, `Utilisateurs insuffisants (${users.length})`);
+  assert.ok(users.length >= 7, `Utilisateurs insuffisants (${users.length})`);
   const roles = new Set(users.map((u) => u.role));
-  for (const r of ['ADMIN', 'CLIENT', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION']) {
+  for (const r of ['ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION']) {
     assert.ok(roles.has(r), `Rôle manquant : ${r}`);
   }
+  assert.ok(!roles.has('CLIENT'), 'Le rôle CLIENT ne doit plus exister côté Utilisateur');
   // Aucun tenantId résiduel
   for (const u of users) assert.strictEqual(u.tenantId, undefined, 'tenantId résiduel sur un utilisateur');
 
@@ -49,9 +50,16 @@ async function main() {
   assert.ok(pending, 'Compte 2FA pending absent');
   assert.strictEqual(pending.twoFactorEnabled, false, '2FA pending ne doit pas être activée');
 
-  // --- Clients & contrats (ObjectId) ---
+  // --- Clients (accès portail) & contrats (ObjectId) ---
   const clients = await Client.find();
   assert.strictEqual(clients.length, 2, 'Clients manquants');
+  // Les clients ont un accès portail (mot de passe hashé + état mustChangePassword)
+  const clientPortal = await Client.findOne({ email: 'client@fluidity.dev' }).select('+password');
+  assert.ok(clientPortal && clientPortal.password, 'Client sans accès portail (password)');
+  assert.ok(!clientPortal.password.includes('Password123!'), 'Mot de passe client stocké en clair');
+  const clientMustChange = await Client.findOne({ email: 'client2@fluidity.dev' }).select('+password');
+  assert.strictEqual(clientMustChange.mustChangePassword, true, 'client2 doit être en mustChangePassword');
+
   const contrats = await Contrat.find();
   assert.ok(contrats.length >= 3, 'Contrats manquants');
   for (const c of contrats) {
@@ -67,6 +75,7 @@ async function main() {
     assert.ok(mongoose.isValidObjectId(d.clientId), 'clientId demande non ObjectId');
     assert.ok(mongoose.isValidObjectId(d.contrat), 'contrat demande non ObjectId');
     assert.ok(mongoose.isValidObjectId(d.requester), 'requester demande non ObjectId');
+    assert.ok(/^DEM-\d{4}-\d{5}$/.test(d.reference), `Référence demande invalide : ${d.reference}`);
   }
 
   // --- Changements ---
@@ -75,6 +84,7 @@ async function main() {
   for (const ch of changements) {
     assert.ok(mongoose.isValidObjectId(ch.clientId), 'clientId changement non ObjectId');
     assert.ok(mongoose.isValidObjectId(ch.contrat), 'contrat changement non ObjectId');
+    assert.ok(/^CHG-\d{4}-\d{5}$/.test(ch.reference), `Référence changement invalide : ${ch.reference}`);
   }
   const cStatuses = new Set(changements.map((c) => c.statut));
   assert.ok(['Soumis', 'Planifié', 'Approuvé', 'Clôturé', "En cours d'implémentation"].every((s) => cStatuses.has(s)), 'Statuts de changements incomplets');

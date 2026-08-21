@@ -3,7 +3,12 @@ const jwt = require('jsonwebtoken');
 /**
  * Middleware d'authentification.
  * Vérifie le JWT présent dans l'en-tête "Authorization: Bearer <token>",
- * puis injecte req.userId, req.userRole, req.userEmail et req.tokenIat.
+ * puis injecte :
+ *   - req.userId   : ObjectId du principal (Utilisateur OU Client)
+ *   - req.userRole : rôle effectif ('CLIENT' pour un accès portail client)
+ *   - req.userEmail
+ *   - req.principalType : 'UTILISATEUR' | 'CLIENT'
+ *   - req.tokenIat
  */
 const authMiddleware = (req, res, next) => {
   try {
@@ -24,6 +29,7 @@ const authMiddleware = (req, res, next) => {
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     req.userEmail = decoded.email;
+    req.principalType = decoded.principal || 'UTILISATEUR';
     req.tokenIat = decoded.iat;
 
     next();
@@ -37,6 +43,7 @@ module.exports = { authMiddleware, requireRole };
 /**
  * Middleware de contrôle d'accès par rôle.
  * Usage : router.post('/', authMiddleware, requireRole('ADMIN'), handler)
+ * Le rôle effectif d'un accès portail client est 'CLIENT' (ROLE_PORTAIL).
  */
 function requireRole(...roles) {
   return (req, res, next) => {

@@ -210,13 +210,14 @@ async function main() {
   assert.ok(Array.isArray(r.json.activites), 'activités attendues');
   log(`Activité de connexion (${r.json.activites.length} événements)`);
 
-  // --- 13. Client = Utilisateur (CLIENT) : profil + fiche société ---
+  // --- 13. Client = accès portail Client (modèle Client, plus de rôle Utilisateur) ---
   r = await request('GET', '/auth/me', { token: clientToken });
   assert.strictEqual(r.status, 200);
-  assert.strictEqual(r.json.role, 'CLIENT', 'le compte client est un Utilisateur CLIENT');
-  assert.strictEqual(r.json.nom, 'Atlas Industries', 'fiche société (nom) attachée au profil CLIENT');
+  assert.strictEqual(r.json.role, 'CLIENT', 'rôle effectif CLIENT attendu');
+  assert.strictEqual(r.json.principalType, 'CLIENT', 'principalType CLIENT attendu');
+  assert.strictEqual(r.json.nom, 'Atlas Industries', 'raison sociale attachée au profil CLIENT');
   assert.ok(r.json.telephone, 'téléphone de la fiche société présent');
-  log('Client = Utilisateur CLIENT + fiche société attachée (/auth/me)');
+  log('Client = accès portail (modèle Client) + raison sociale (/auth/me)');
 
   // --- 14. 2FA pour un compte CLIENT (même architecture) ---
   r = await request('POST', '/auth/2fa/setup', { token: clientToken });
@@ -254,6 +255,44 @@ async function main() {
   assert.ok(typeof c0.auteur === 'object' && c0.auteur && c0.auteur.email, `auteur peuplé attendu, reçu: ${JSON.stringify(c0.auteur)}`);
   assert.ok(c0.auteur.firstName || c0.auteur.lastName || c0.auteur.email, 'auteur expose une identité affichable');
   log(`Commentaire : auteur peuplé (${c0.auteur.email}) — plus de [object Object] côté UI`);
+
+  // --- 16. Client : rappel de changement de mot de passe (mustChangePassword) ---
+  r = await request('POST', '/auth/login', { body: { email: 'client2@fluidity.dev', password: 'Password123!' } });
+  assert.strictEqual(r.status, 200, `login client2: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.principalType, 'CLIENT', 'client2 doit être un principal CLIENT');
+  assert.strictEqual(r.json.mustChangePassword, true, 'client2 doit être en mustChangePassword=true');
+  const client2Token = r.json.token;
+  log('Login client2 (mustChangePassword=true)');
+
+  // Changement du mot de passe -> lève l'obligation
+  r = await request('POST', '/auth/change-password', {
+    token: client2Token,
+    body: { currentPassword: 'Password123!', newPassword: 'NouveauPass123!', confirmation: 'NouveauPass123!' },
+  });
+  assert.strictEqual(r.status, 200, `change password client2: ${JSON.stringify(r.json)}`);
+  assert.strictEqual(r.json.mustChangePassword, false, 'mustChangePassword doit passer à false');
+
+  // Reconnexion : plus de rappel
+  r = await request('POST', '/auth/login', { body: { email: 'client2@fluidity.dev', password: 'NouveauPass123!' } });
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.json.mustChangePassword, false, 'plus de rappel après changement');
+  log('Changement mot de passe client2 -> mustChangePassword=false (rappel levé)');
+
+  // --- 17. Création d'un client par l'ADMIN (mot de passe provisoire + email) ---
+  r = await request('POST', '/clients', {
+    token: adminToken,
+    body: { email: 'nouveau-client@fluidity.dev', nom: 'Nouveau Client SARL', telephone: '+216 71 999 999', adresse: 'Tunis', statut: 'Actif' },
+  });
+  assert.strictEqual(r.status, 201, `create client: ${JSON.stringify(r.json)}`);
+  assert.ok(r.json.client && r.json.client._id, 'fiche client créée');
+  // En dev (sans SMTP) le mot de passe temporaire est retourné
+  const tempPwd = r.json.temporaryPassword;
+  assert.ok(tempPwd && typeof tempPwd === 'string' && tempPwd.length >= 8, 'mot de passe provisoire retourné (dev)');
+  // Le client peut se connecter avec le mot de passe provisoire + rappel actif
+  r = await request('POST', '/auth/login', { body: { email: 'nouveau-client@fluidity.dev', password: tempPwd } });
+  assert.strictEqual(r.status, 200, 'connexion client provisionné');
+  assert.strictEqual(r.json.mustChangePassword, true, 'nouveau client en mustChangePassword');
+  log('Admin crée un client (mot de passe provisoire + rappel actif)');
 
   console.log('\n[smoke] TOUS LES FLUX SONT PASSÉS.');
   await mongoose.disconnect();

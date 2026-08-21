@@ -1,4 +1,5 @@
 const { Changement } = require('../models/changement.model');
+const { nextReference } = require('../models/sequence.model');
 
 /**
  * Changements de démonstration couvrant plusieurs catégories, spécifications
@@ -103,16 +104,20 @@ const demoChangements = [
  * Insère les changements de démonstration (idempotent par objet + requester).
  */
 const seedChangements = async (ctx = {}) => {
-  const { users = {}, clients = {}, contrats = {} } = ctx;
+  const { clients = {}, contrats = {} } = ctx;
   let created = 0;
   for (const c of demoChangements) {
-    const exists = await Changement.findOne({ objetChangement: c.objetChangement, requester: users[c.requesterEmail]._id });
+    const requester = clients[c.requesterEmail]?._id;
+    const exists = await Changement.findOne({ objetChangement: c.objetChangement, requester });
     if (exists) continue;
     const { clientEmail, requesterEmail, contratRef, ...data } = c;
+    const reference = await nextReference('changement', 'CHG');
     await Changement.create({
       ...data,
+      reference,
       clientId: clients[clientEmail]._id,
-      requester: users[requesterEmail]._id,
+      requester,
+      requesterModel: 'Client',
       contrat: contrats[contratRef]._id,
     });
     created += 1;

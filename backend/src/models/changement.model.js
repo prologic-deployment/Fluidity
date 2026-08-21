@@ -199,8 +199,13 @@ const SpecificationsSchema = new Schema(
 
 const ChangementSchema = new Schema(
   {
+    // Référence incrémentale unique (CHG-YYYY-NNNNN).
+    reference: { type: String, required: true, trim: true, unique: true },
     clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
-    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    // Principal demandeur — Client (accès portail) ; 'Utilisateur' pour les
+    // enregistrements historiques (populate dynamique via requesterModel).
+    requester: { type: Schema.Types.ObjectId, refPath: 'requesterModel', required: true },
+    requesterModel: { type: String, enum: ['Utilisateur', 'Client'], default: 'Client' },
     objetChangement: { type: String, required: true },
     descriptionDetaillee: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },
@@ -224,6 +229,7 @@ const ChangementSchema = new Schema(
 ChangementSchema.index({ createdAt: -1 });
 ChangementSchema.index({ clientId: 1 });
 ChangementSchema.index({ requester: 1 });
+ChangementSchema.index({ reference: 1 }, { unique: true });
 
 /**
  * Normalise la section stockage pour compatibilité ascendante :

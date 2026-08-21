@@ -1,37 +1,35 @@
 const { Demande } = require('../models/demande.model');
 const { Client } = require('../models/client.model');
 const { Contrat } = require('../models/contrat.model');
+const { nextReference } = require('../models/sequence.model');
 const { sendSupportEmail } = require('../services/email.service');
 const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
-const { DEMANDE_TRANSITIONS, canTransition, availableTransitions } = require('../utils/workflow');
+const { DEMANDE_TRANSITIONS, DEMANDE_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
+const { PRINCIPAL_CLIENT } = require('../utils/principals');
 
 const populateDemande = (query) =>
   query
-    .populate('clientId', 'nom email telephone statut')
+    .populate('clientId', 'nom email telephone statut avatarUrl')
     .populate('contrat', 'reference intitule typeContrat')
-    .populate('requester', 'email firstName lastName role');
+    .populate('requester', 'email nom firstName lastName role avatarUrl');
 
-/**
- * Résout la fiche Client associée au compte authentifié (par email partagé).
- */
-async function resolveClient(req) {
-  return Client.findOne({ email: req.userEmail });
-}
+/** Le principal authentifié est-il un accès portail client ? */
+const estClient = (req) => req.principalType === PRINCIPAL_CLIENT || req.userRole === 'CLIENT';
 
 /**
  * Création d'une demande.
- * - Réservé au rôle CLIENT.
- * - clientId dérivé de la fiche Client correspondant au compte authentifié.
- * - statut initialisé à "Ouverte".
+ * - Réservé au rôle effectif CLIENT (accès portail).
+ * - clientId dérivé du compte authentifié (le Client EST le principal).
+ * - référence incrémentale générée côté serveur.
  */
 const createDemande = async (req, res) => {
   try {
-    if (req.userRole !== 'CLIENT') {
+    if (!estClient(req)) {
       res.status(403).json({ message: 'Seul un client peut créer une demande.' });
       return;
     }
 
-    const client = await resolveClient(req);
+    const client = await Client.findById(req.userId);
     if (!client) {
       res.status(400).json({ message: 'Aucune fiche client associée à ce compte.' });
       return;
@@ -43,22 +41,27 @@ const createDemande = async (req, res) => {
       return;
     }
 
+    const reference = await nextReference('demande', 'DEM');
+
     const demande = new Demande({
       ...req.body,
+      reference,
       clientId: client._id,
-      requester: req.userId,
+      requester: client._id,
+      requesterModel: 'Client',
       statut: 'Ouverte',
     });
     await demande.save();
 
     const html = renderEmailLayout({
-      preheader: `Nouvelle demande : ${demande.objet}`,
+      preheader: `Nouvelle demande ${reference} : ${demande.objet}`,
       icon: ICONS.fileCheck,
       heading: 'Nouvelle demande reçue',
       bodyHtml: `
         <p style="margin: 0 0 6px;">Une nouvelle demande de service vient d'être soumise${' '}
         ${renderBadge(demande.prioriteSouhaitee, demande.prioriteSouhaitee === 'Urgente' ? COLORS.destructive : demande.prioriteSouhaitee === 'Élevée' ? COLORS.warning : COLORS.primary)}.</p>
         ${renderDetailsTable([
+          { label: 'Référence', value: reference },
           { label: 'Objet', value: demande.objet },
           { label: 'Type', value: demande.typeDemande },
           { label: 'Catégorie', value: `${demande.categorie} / ${demande.sousCategorie}` },
@@ -69,7 +72,7 @@ const createDemande = async (req, res) => {
       ctaLabel: 'Voir les demandes',
       ctaUrl: `${FRONTEND_URL()}/demandes`,
     });
-    sendSupportEmail(`[Demande] ${demande.objet}`, html).catch(console.error);
+    sendSupportEmail(`[Demande ${reference}] ${demande.objet}`, html).catch(console.error);
 
     res.status(201).json(await populateDemande(Demande.findById(demande._id)));
   } catch (err) {
@@ -118,7 +121,7 @@ const updateDemande = async (req, res) => {
       return;
     }
 
-    if (req.userRole === 'CLIENT' && String(demande.requester) !== String(req.userId)) {
+    if (estClient(req) && String(demande.requester) !== String(req.userId)) {
       res.status(403).json({ message: 'Vous ne pouvez modifier que vos propres demandes.' });
       return;
     }
@@ -174,10 +177,9 @@ const changerStatutDemande = async (req, res) => {
     const statutActuel = demande.statut;
 
     // Annulation par le client propriétaire (statuts annulables)
-    const { DEMANDE_STATUTS_ANNULABLES } = require('../utils/workflow');
     if (
       nouveauStatut === 'Annulé' &&
-      req.userRole === 'CLIENT' &&
+      estClient(req) &&
       String(demande.requester) === String(req.userId) &&
       DEMANDE_STATUTS_ANNULABLES.includes(statutActuel)
     ) {
@@ -200,11 +202,11 @@ const changerStatutDemande = async (req, res) => {
     await demande.save();
 
     const html = renderEmailLayout({
-      preheader: `${demande.objet} : ${statutActuel} → ${nouveauStatut}`,
+      preheader: `${demande.reference} : ${statutActuel} → ${nouveauStatut}`,
       icon: ICONS.exchange,
       heading: 'Statut de demande mis à jour',
       bodyHtml: `
-        <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a changé de statut :</p>
+        <p style="margin: 0 0 12px;">La demande <strong>${demande.reference}</strong> a changé de statut :</p>
         <p style="margin: 0 0 12px;">
           ${renderBadge(statutActuel, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
@@ -214,7 +216,7 @@ const changerStatutDemande = async (req, res) => {
       ctaLabel: 'Voir les demandes',
       ctaUrl: `${FRONTEND_URL()}/demandes`,
     });
-    sendSupportEmail(`[Demande] Statut mis à jour — ${demande.objet}`, html).catch(console.error);
+    sendSupportEmail(`[Demande ${demande.reference}] Statut mis à jour`, html).catch(console.error);
 
     res.status(200).json(await populateDemande(Demande.findById(demande._id)));
   } catch (err) {

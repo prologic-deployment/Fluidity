@@ -14,20 +14,27 @@ const {
 } = require('../utils/workflow');
 const { calculatePriority } = require('../utils/ticket-priority');
 const { initSla, applySlaOnTransition, slaEtat } = require('../utils/ticket-sla');
+const { PRINCIPAL_CLIENT } = require('../utils/principals');
 
 /** Rôles internes habilités à traiter un ticket (affectation). */
 const ROLES_SUPPORT = ['SUPPORT_N1', 'EXPLOITATION', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'ADMIN'];
 
-const estClient = (req) => req.userRole === 'CLIENT';
+const estClient = (req) => req.principalType === PRINCIPAL_CLIENT || req.userRole === 'CLIENT';
 
 const filtreProprietaire = (req) => (estClient(req) ? { createdBy: req.userId } : {});
 
+const acteurMeta = (req) => ({
+  acteur: req.userId,
+  acteurModel: estClient(req) ? 'Client' : 'Utilisateur',
+  acteurEmail: req.userEmail,
+});
+
 const populateTicket = (query) =>
   query
-    .populate('clientId', 'email nom telephone statut')
+    .populate('clientId', 'email nom telephone statut avatarUrl')
     .populate('contrat', 'reference intitule typeContrat clientId statut')
     .populate('assignedTo', 'email firstName lastName role')
-    .populate('createdBy', 'email firstName lastName role');
+    .populate('createdBy', 'email nom firstName lastName role avatarUrl');
 
 function withSla(ticket) {
   if (!ticket) return ticket;
@@ -43,8 +50,7 @@ async function enregistrerActivite(ticket, action, req, metadata = {}, visibilit
     action,
     visibilite,
     metadata,
-    acteur: req ? req.userId : undefined,
-    acteurEmail: req ? req.userEmail : 'systeme',
+    ...(req ? acteurMeta(req) : { acteurModel: 'Systeme', acteurEmail: 'systeme' }),
   });
 }
 
@@ -67,7 +73,7 @@ const createTicket = async (req, res) => {
       return;
     }
 
-    const client = await Client.findOne({ email: req.userEmail });
+    const client = await Client.findById(req.userId);
     if (!client) {
       res.status(400).json({ message: 'Aucune fiche client associée à ce compte.' });
       return;
@@ -90,7 +96,8 @@ const createTicket = async (req, res) => {
     const ticket = new Ticket({
       clientId: client._id,
       contrat: contrat._id,
-      createdBy: req.userId,
+      createdBy: client._id,
+      createdByModel: 'Client',
       reference,
       type: 'Incident', // toujours Incident — jamais fourni par le client
       objet: req.body.objet.trim(),
@@ -445,6 +452,7 @@ const commenterTicket = async (req, res) => {
       visibilite,
       corps: req.body.corps.trim(),
       auteur: req.userId,
+      auteurModel: estClient(req) ? 'Client' : 'Utilisateur',
       piecesJointes: req.body.piecesJointes || [],
     });
 
@@ -481,7 +489,7 @@ const listerCommentaires = async (req, res) => {
     const filtre = { ticketId: ticket._id };
     if (estClient(req)) filtre.visibilite = 'public';
     const comments = await TicketComment.find(filtre)
-      .populate('auteur', 'email firstName lastName role avatarUrl')
+      .populate('auteur', 'email nom firstName lastName role avatarUrl')
       .sort({ createdAt: 1 });
     res.status(200).json(comments);
   } catch (err) {

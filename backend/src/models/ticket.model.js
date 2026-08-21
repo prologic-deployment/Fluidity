@@ -29,7 +29,10 @@ const TicketSchema = new Schema(
   {
     clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },
-    createdBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    // Principal qui a ouvert le ticket — Client (portail) ; 'Utilisateur' pour
+    // les enregistrements historiques (populate dynamique via createdByModel).
+    createdBy: { type: Schema.Types.ObjectId, refPath: 'createdByModel', required: true },
+    createdByModel: { type: String, enum: ['Utilisateur', 'Client'], default: 'Client' },
     reference: { type: String, required: true, trim: true, unique: true },
     type: { type: String, enum: TICKET_TYPES, default: 'Incident', required: true },
     objet: { type: String, required: true, trim: true, maxlength: 200 },

@@ -14,13 +14,12 @@ const DEMO_2FA_SECRET = 'JBSWY3DPEHPK3PXP';
 const DEMO_2FA_BACKUP = ['AAAA-AAAA', 'BBBB-BBBB', 'CCCC-CCCC', 'DDDD-DDDD', 'EEEE-EEEE'];
 
 /**
- * Comptes internes de démonstration (application mono-organisation).
- * Rôles : CLIENT | ADMIN | SUPPORT_N1 | RESPONSABLE_TECHNIQUE | COMMERCIAL | EXPLOITATION
+ * Comptes INTERNES de démonstration (application mono-organisation).
+ * Rôles : ADMIN | SUPPORT_N1 | RESPONSABLE_TECHNIQUE | COMMERCIAL | EXPLOITATION.
+ * NB : les comptes CLIENT vivent dans le modèle Client (voir client.seed.js).
  */
 const demoUsers = [
   { email: 'admin@fluidity.dev', password: DEMO_PASSWORD, role: 'ADMIN', firstName: 'Leila', lastName: 'Ben Ali', jobTitle: 'Directrice des opérations' },
-  { email: 'client@fluidity.dev', password: DEMO_PASSWORD, role: 'CLIENT', firstName: 'Atlas', lastName: 'Industries' },
-  { email: 'client2@fluidity.dev', password: DEMO_PASSWORD, role: 'CLIENT', firstName: 'Nova', lastName: 'Systems' },
   { email: 'support@fluidity.dev', password: DEMO_PASSWORD, role: 'SUPPORT_N1', firstName: 'Sarah', lastName: 'Mansour', jobTitle: 'Support N1' },
   { email: 'responsable@fluidity.dev', password: DEMO_PASSWORD, role: 'RESPONSABLE_TECHNIQUE', firstName: 'Nour', lastName: 'Manager', jobTitle: 'Responsable technique' },
   { email: 'commercial@fluidity.dev', password: DEMO_PASSWORD, role: 'COMMERCIAL', firstName: 'Yasmine', lastName: 'Commercial', jobTitle: 'Commerciale' },

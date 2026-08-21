@@ -3,15 +3,17 @@ const bcrypt = require('bcryptjs');
 const { Schema } = mongoose;
 
 /**
- * Rôles de l'application (mono-organisation) :
- * 'CLIENT' | 'ADMIN' | 'SUPPORT_N1' | 'RESPONSABLE_TECHNIQUE'
- * | 'COMMERCIAL' | 'EXPLOITATION'
+ * Rôles INTERNES de l'application (mono-organisation) :
+ * 'ADMIN' | 'SUPPORT_N1' | 'RESPONSABLE_TECHNIQUE' | 'COMMERCIAL' | 'EXPLOITATION'
+ *
+ * NB : « CLIENT » N'EST PAS un rôle Utilisateur. Depuis la refonte
+ * d'architecture, un client s'authentifie via le modèle Client (accès portail).
  *
  * Correspondance avec les groupes de rôles du workflow (voir utils/workflow.js) :
  *   AGENT   = SUPPORT_N1, EXPLOITATION
  *   MANAGER = RESPONSABLE_TECHNIQUE, COMMERCIAL
  */
-const ROLES = ['CLIENT', 'ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION'];
+const ROLES = ['ADMIN', 'SUPPORT_N1', 'RESPONSABLE_TECHNIQUE', 'COMMERCIAL', 'EXPLOITATION'];
 
 const UtilisateurSchema = new Schema(
   {
@@ -23,7 +25,7 @@ const UtilisateurSchema = new Schema(
       trim: true,
     },
     password: { type: String, required: true },
-    role: { type: String, enum: ROLES, default: 'CLIENT' },
+    role: { type: String, enum: ROLES, default: 'SUPPORT_N1' },
     resetToken: { type: String },
     resetTokenExpiry: { type: Date },
 

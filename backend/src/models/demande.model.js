@@ -13,10 +13,15 @@ const { DEMANDE_STATUTS } = require('../utils/workflow');
 
 const DemandeSchema = new Schema(
   {
+    // Référence incrémentale unique (DEM-YYYY-NNNNN).
+    reference: { type: String, required: true, trim: true, unique: true },
     // Client (entité commerciale) qui porte la demande — ObjectId.
     clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
-    // Compte utilisateur (CLIENT) qui a soumis la demande.
-    requester: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    // Principal qui a soumis la demande — le Client (accès portail) depuis la
+    // refonte d'architecture ; 'Utilisateur' ne subsiste que pour les
+    // enregistrements historiques (populate dynamique via requesterModel).
+    requester: { type: Schema.Types.ObjectId, refPath: 'requesterModel', required: true },
+    requesterModel: { type: String, enum: ['Utilisateur', 'Client'], default: 'Client' },
     objet: { type: String, required: true },
     typeDemande: { type: String, required: true },
     serviceEnvironnement: { type: String, required: true },
@@ -40,6 +45,7 @@ const DemandeSchema = new Schema(
 DemandeSchema.index({ createdAt: -1 });
 DemandeSchema.index({ clientId: 1 });
 DemandeSchema.index({ requester: 1 });
+DemandeSchema.index({ reference: 1 }, { unique: true });
 
 const Demande = mongoose.model('Demande', DemandeSchema);
 

@@ -61,6 +61,42 @@ const sendResetPasswordEmail = async (email, token) => {
 };
 
 /**
+ * Email de bienvenue envoyé à un client nouvellement provisionné, avec ses
+ * identifiants temporaires et l'instruction de changer son mot de passe.
+ * Le mot de passe en clair est transmis UNE SEULE FOIS via ce canal, puis
+ * immédiatement oublié côté serveur.
+ */
+const sendClientAccountEmail = async (client, temporaryPassword) => {
+  const html = renderEmailLayout({
+    preheader: 'Votre accès au portail Fluidity est prêt.',
+    icon: ICONS.fileCheck,
+    heading: 'Bienvenue sur Fluidity',
+    bodyHtml: `
+      <p style="margin: 0 0 10px;">Bonjour ${client.nom || ''},</p>
+      <p style="margin: 0 0 10px;">Votre compte a été créé. Utilisez les identifiants ci-dessous pour vous connecter au portail :</p>
+      <table style="margin: 0 0 12px; width: 100%; font-size: 14px; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 6px 8px; color: #64748b;">Adresse de connexion</td>
+          <td style="padding: 6px 8px; font-weight: 600;">${FRONTEND_URL()}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 8px; color: #64748b;">Email</td>
+          <td style="padding: 6px 8px; font-weight: 600;">${client.email}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 8px; color: #64748b;">Mot de passe temporaire</td>
+          <td style="padding: 6px 8px; font-weight: 600; font-family: monospace;">${temporaryPassword}</td>
+        </tr>
+      </table>
+      <p style="margin: 0;">Pour des raisons de sécurité, vous devrez <strong>changer votre mot de passe
+      temporaire</strong> lors de votre première connexion.</p>`,
+    ctaLabel: 'Accéder au portail',
+    ctaUrl: `${FRONTEND_URL()}/login`,
+  });
+  await sendEmail(client.email, 'Votre accès au portail Fluidity', html);
+};
+
+/**
  * Notification asynchrone à l'équipe Support (helpdesk).
  */
 const sendSupportEmail = async (subject, html) => {
@@ -90,4 +126,4 @@ const sendSupportEmail = async (subject, html) => {
   }
 };
 
-module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail };
+module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail, sendClientAccountEmail };

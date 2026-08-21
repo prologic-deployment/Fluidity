@@ -1,6 +1,8 @@
 const { Utilisateur } = require('../models/user.model');
+const { Client } = require('../models/client.model');
 const { issueSession, verifyTwoFactorToken } = require('./auth.controller');
 const { enregistrerActivite } = require('../utils/login-activity.util');
+const { PRINCIPAL_CLIENT } = require('../utils/principals');
 const { encryptSecret, decryptSecret } = require('../utils/crypto.util');
 const {
   generateSecret,
@@ -12,7 +14,8 @@ const {
 } = require('../utils/two-factor.util');
 
 /**
- * Double authentification (2FA) TOTP — chaque utilisateur gère SA propre 2FA.
+ * Double authentification (2FA) TOTP — chaque principal gère SA propre 2FA
+ * (Utilisateur interne OU Client portail).
  *
  * Cycle de vie :
  *   POST /api/auth/2fa/setup        -> secret chiffré (en attente) + QR code + clé manuelle
@@ -27,8 +30,19 @@ const {
  * le setup.
  */
 
+/** Charge le compte courant selon le type de principal (Utilisateur / Client). */
 async function loadAccount(req, extraSelect = '') {
-  return Utilisateur.findById(req.userId).select(extraSelect);
+  const Model = req.principalType === PRINCIPAL_CLIENT ? Client : Utilisateur;
+  return Model.findById(req.userId).select(extraSelect);
+}
+
+/** Charge un compte par id (Utilisateur OU Client) — pour verify-login. */
+async function loadAccountById(id, extraSelect = '') {
+  const client = await Client.findById(id).select(extraSelect);
+  if (client) return { account: client, principalType: PRINCIPAL_CLIENT };
+  const user = await Utilisateur.findById(id).select(extraSelect);
+  if (user) return { account: user, principalType: 'UTILISATEUR' };
+  return { account: null, principalType: null };
 }
 
 /**
@@ -154,7 +168,7 @@ const verifySetup = async (req, res) => {
  */
 const disable = async (req, res) => {
   try {
-    const user = await loadAccount(req, '+twoFactorSecret +twoFactorBackupCodes');
+    const user = await loadAccount(req, '+twoFactorSecret +twoFactorBackupCodes +password');
     if (!user) {
       res.status(404).json({ message: 'Compte introuvable' });
       return;
@@ -206,18 +220,20 @@ const verifyLogin = async (req, res) => {
       return;
     }
 
-    const user = await Utilisateur.findById(userId).select('+twoFactorSecret +twoFactorBackupCodes');
+    const { account: user, principalType } = await loadAccountById(userId, '+twoFactorSecret +twoFactorBackupCodes');
     if (!user || !user.twoFactorEnabled) {
       res.status(401).json({ message: 'Vérification impossible pour ce compte.' });
       return;
     }
+
+    const estClient = principalType === PRINCIPAL_CLIENT;
 
     const plainSecret = decryptSecret(user.twoFactorSecret);
     const { ok, backupUsed } = checkCode(user, plainSecret, req.body.code, true);
     if (!ok) {
       enregistrerActivite(req, {
         userId: user._id,
-        principalType: 'UTILISATEUR',
+        principalType: estClient ? PRINCIPAL_CLIENT : 'UTILISATEUR',
         succes: false,
         mfaUtilise: true,
         raisonEchec: 'CODE_2FA_INVALIDE',
@@ -227,7 +243,11 @@ const verifyLogin = async (req, res) => {
     }
     if (backupUsed) await user.save();
 
-    issueSession(res, user, { backupCodeUsed: backupUsed }, { req, mfaUtilise: true });
+    issueSession(res, user, { backupCodeUsed: backupUsed }, {
+      req,
+      mfaUtilise: true,
+      principalType: estClient ? PRINCIPAL_CLIENT : undefined,
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
