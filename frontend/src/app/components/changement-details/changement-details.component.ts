@@ -64,7 +64,7 @@ export class ChangementDetailsComponent implements OnInit {
       next: (c) => {
         this.changement = c;
         this.loading = false;
-        this.breadcrumb.setLabel(this.router.url, c.objetChangement);
+        this.breadcrumb.setLabel(this.router.url, c.reference ? `${c.reference} — ${c.objetChangement}` : c.objetChangement);
       },
       error: (err) => {
         this.error = err.error?.message || 'Changement introuvable.';

@@ -127,31 +127,11 @@
                 </p>
                 <p class="text-xs text-muted-foreground" *ngIf="status.enabled">Codes de secours restants : {{ status.backupCodesRemaining }}</p>
               </div>
-              <button *ngIf="!status.enabled && !qrCode" (click)="startSetup()" class="btn-primary">Activer la 2FA</button>
+              <button *ngIf="!status.enabled" (click)="openTwoFactorModal()" class="btn-primary">Activer la 2FA</button>
             </div>
 
-            <!-- Setup -->
-            <ng-container *ngIf="qrCode && manualKey">
-              <p class="text-sm">1. Scannez ce QR code avec Google Authenticator, Microsoft Authenticator ou toute application TOTP.</p>
-              <img [src]="qrCode" alt="QR code 2FA" class="rounded-lg border max-w-[220px]" />
-              <p class="text-sm">Clé manuelle : <code class="break-all">{{ manualKey }}</code></p>
-              <div class="flex gap-3">
-                <input [(ngModel)]="setupCode" [ngModelOptions]="{standalone: true}" class="input" maxlength="12" placeholder="Code à 6 chiffres" />
-                <button (click)="verifySetup()" class="btn-primary">Vérifier</button>
-              </div>
-            </ng-container>
-
-            <!-- Codes de secours -->
-            <ng-container *ngIf="backupCodes.length">
-              <p class="text-sm font-medium">Codes de secours — conservez-les précieusement (affichés une seule fois) :</p>
-              <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <code *ngFor="let c of backupCodes" class="rounded bg-muted px-2 py-1 text-center">{{ c }}</code>
-              </div>
-              <button (click)="backupCodes = []" class="btn-ghost">J'ai noté mes codes</button>
-            </ng-container>
-
             <!-- Disable -->
-            <ng-container *ngIf="status.enabled && !qrCode">
+            <ng-container *ngIf="status.enabled">
               <div class="border-t pt-4">
                 <p class="text-sm font-medium mb-2">Désactiver la 2FA (mot de passe ou code requis)</p>
                 <div class="flex flex-col gap-3">
@@ -249,4 +229,11 @@
     </div>
 
   </main>
+
+  <!-- Modale de configuration 2FA -->
+  <app-two-factor-modal
+    *ngIf="showTwoFactorModal"
+    (closed)="showTwoFactorModal = false"
+    (activated)="onTwoFactorActivated()">
+  </app-two-factor-modal>
 </div>

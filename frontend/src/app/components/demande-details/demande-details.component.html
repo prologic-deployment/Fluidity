@@ -4,6 +4,7 @@
       <div class="min-w-0">
         <a routerLink="/demandes" class="btn-link text-xs">&larr; Demandes</a>
         <div class="mt-1 flex flex-wrap items-center gap-2">
+          <span *ngIf="d.reference" class="font-mono text-sm font-semibold">{{ d.reference }}</span>
           <span [class]="statutClass(d.statut)"><span class="badge-dot"></span>{{ d.statut }}</span>
           <span [class]="prioriteClass(d.prioriteSouhaitee)"><span class="badge-dot"></span>{{ d.prioriteSouhaitee }}</span>
         </div>

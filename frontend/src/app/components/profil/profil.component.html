@@ -209,7 +209,17 @@
             <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Compte</p>
             <p><span class="text-muted-foreground">Email</span><br /><span class="break-all">{{ email }}</span></p>
             <p><span class="text-muted-foreground">Rôle</span><br />{{ roleLabel }}</p>
+            <p *ngIf="!estClient"><span class="text-muted-foreground">Poste</span><br />{{ profile?.jobTitle || '—' }}</p>
             <p><span class="text-muted-foreground">Membre depuis</span><br />{{ profile?.createdAt ? (profile!.createdAt | date: 'dd/MM/yyyy') : '—' }}</p>
+            <p *ngIf="profile?.updatedAt"><span class="text-muted-foreground">Dernière mise à jour</span><br />{{ profile!.updatedAt | date: 'dd/MM/yyyy' }}</p>
+          </div>
+        </section>
+
+        <!-- Bio (valeur affichée) -->
+        <section class="card animate-fade-in-up stagger-1" *ngIf="profile?.bio">
+          <div class="card-content py-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Bio</p>
+            <p class="mt-2 whitespace-pre-line text-sm text-foreground">{{ profile?.bio }}</p>
           </div>
         </section>
 

@@ -4,6 +4,7 @@
       <div class="min-w-0">
         <a routerLink="/changements" class="btn-link text-xs">&larr; Changements</a>
         <div class="mt-1 flex flex-wrap items-center gap-2">
+          <span *ngIf="c.reference" class="font-mono text-sm font-semibold">{{ c.reference }}</span>
           <span [class]="statutClass(c.statut)"><span class="badge-dot"></span>{{ c.statut }}</span>
           <span [class]="typeClass(c.typeChangement)"><span class="badge-dot"></span>{{ c.typeChangement }}</span>
         </div>

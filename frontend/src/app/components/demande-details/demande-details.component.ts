@@ -55,7 +55,7 @@ export class DemandeDetailsComponent implements OnInit {
       next: (d) => {
         this.demande = d;
         this.loading = false;
-        this.breadcrumb.setLabel(this.router.url, d.objet);
+        this.breadcrumb.setLabel(this.router.url, d.reference ? `${d.reference} — ${d.objet}` : d.objet);
       },
       error: (err) => {
         this.error = err.error?.message || 'Demande introuvable.';

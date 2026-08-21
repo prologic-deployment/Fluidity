@@ -7,31 +7,23 @@ import { BreadcrumbService } from '../../services/breadcrumb.service';
 interface Crumb {
   label: string;
   path?: string;
+  icon: string;
 }
 
 /** Détecte un identifiant MongoDB (24 hexadécimaux). */
 const OBJECT_ID_RE = /^[0-9a-fA-F]{24}$/;
 
 /**
- * Fil d'Ariane dynamique généré depuis le segment de route actif.
- * Les segments de détail (`:id`) sont résolus via le BreadcrumbService
- * (libellé enregistré par la page de détail) — jamais l'ObjectId brut.
+ * Fil d'Ariane moderne : icônes par segment, liens cliquables sur les segments
+ * précédents, élément courant non cliquable et visuellement distinct.
+ * Les segments de détail (`:id`) sont résolus via le BreadcrumbService —
+ * jamais l'ObjectId brut.
  */
 @Component({
   selector: 'app-breadcrumb',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  template: `
-    <nav class="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground" aria-label="Fil d'ariane">
-      <ng-container *ngFor="let crumb of crumbs; let last = last">
-        <span class="hidden sm:inline" *ngIf="!last">/</span>
-        <a *ngIf="!last && crumb.path" [routerLink]="crumb.path"
-           class="truncate transition-colors hover:text-foreground">{{ crumb.label }}</a>
-        <span *ngIf="!last && !crumb.path" class="truncate">{{ crumb.label }}</span>
-        <span *ngIf="last" class="truncate font-medium text-foreground">{{ crumb.label }}</span>
-      </ng-container>
-    </nav>
-  `,
+  templateUrl: './breadcrumb.component.html',
 })
 export class BreadcrumbComponent implements OnInit, OnDestroy {
   crumbs: Crumb[] = [];
@@ -62,44 +54,46 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
   private build(url: string): void {
     const segments = url.split('/').filter(Boolean).map((s) => s.split('?')[0]);
     const crumbs: Crumb[] = [];
+
+    // Racine « Accueil »
+    if (segments.length > 0) {
+      crumbs.push({ label: 'Accueil', path: '/', icon: 'home' });
+    }
+
     let path = '';
     for (const seg of segments) {
       path += `/${seg}`;
-      const label = this.resolve(seg, path);
-      // Ignore les segments sans libellé significatif (ex. ObjectId non résolu)
-      if (label === null) continue;
-      crumbs.push({ label, path });
+      const resolved = this.resolve(seg, path);
+      if (resolved === null) continue;
+      crumbs.push({ label: resolved.label, path, icon: resolved.icon });
     }
-    // Au moins un crumb d'accueil
     if (crumbs.length === 0) {
-      crumbs.push({ label: 'Accueil', path: '/' });
+      crumbs.push({ label: 'Accueil', path: '/', icon: 'home' });
     }
     this.crumbs = crumbs;
   }
 
-  /** Résout le libellé d'un segment ; `null` si le segment doit être masqué. */
-  private resolve(segment: string, path: string): string | null {
-    // Libellé dynamique enregistré par une page de détail
-    if (this.labels[path]) return this.labels[path];
+  private resolve(segment: string, path: string): { label: string; icon: string } | null {
+    if (this.labels[path]) {
+      return { label: this.labels[path], icon: 'record' };
+    }
 
-    const labels: Record<string, string> = {
-      demandes: 'Demandes',
-      nouvelle: 'Nouvelle demande',
-      nouveau: 'Nouveau',
-      changements: 'Changements',
-      tickets: 'Tickets / Incidents',
-      contrats: 'Contrats',
-      clients: 'Clients',
-      profil: 'Mon profil',
-      securite: 'Sécurité',
-      profile: 'Mon profil',
-      security: 'Sécurité',
+    const map: Record<string, { label: string; icon: string }> = {
+      demandes: { label: 'Demandes', icon: 'requests' },
+      nouvelle: { label: 'Nouvelle demande', icon: 'plus' },
+      nouveau: { label: 'Nouveau', icon: 'plus' },
+      changements: { label: 'Changements', icon: 'changes' },
+      tickets: { label: 'Tickets / Incidents', icon: 'tickets' },
+      contrats: { label: 'Contrats', icon: 'contracts' },
+      clients: { label: 'Clients', icon: 'clients' },
+      profil: { label: 'Mon profil', icon: 'profile' },
+      securite: { label: 'Sécurité', icon: 'security' },
+      profile: { label: 'Mon profil', icon: 'profile' },
+      security: { label: 'Sécurité', icon: 'security' },
     };
-    if (labels[segment]) return labels[segment];
+    if (map[segment]) return map[segment];
 
-    // Identifiant non résolu (ObjectId) : masqué tant qu'aucun libellé n'existe
-    if (OBJECT_ID_RE.test(segment)) return null;
-
-    return segment;
+    if (OBJECT_ID_RE.test(segment)) return null; // ObjectId non résolu → masqué
+    return { label: segment, icon: 'record' };
   }
 }

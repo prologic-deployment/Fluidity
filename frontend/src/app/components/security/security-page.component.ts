@@ -2,21 +2,20 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { TwoFactorModalComponent } from '../shared/two-factor-modal.component';
 import { TwoFactorStatus, LoginActivity } from '../../models/user.model';
 
 /**
  * Page Sécurité :
- *   1. Mot de passe (actuel + nouveau + confirmation, jauge de robustesse,
- *      affichage/masquage) — validation client ET serveur ;
- *   2. Double authentification (TOTP) ;
- *   3. Activité de connexion récente : journal d'audit paginé avec mise en
- *      évidence de la session courante.
+ *   1. Mot de passe (actuel + nouveau + confirmation, jauge de robustesse) ;
+ *   2. Double authentification (TOTP) — configuration via modale dédiée ;
+ *   3. Activité de connexion récente : journal d'audit paginé.
  * Un score de posture synthétise l'état réel du compte.
  */
 @Component({
   selector: 'app-security',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, TwoFactorModalComponent],
   templateUrl: './security-page.component.html',
 })
 export class SecurityPageComponent implements OnInit {
@@ -31,11 +30,8 @@ export class SecurityPageComponent implements OnInit {
   error: string | null = null;
   success: string | null = null;
 
-  // 2FA setup
-  qrCode: string | null = null;
-  manualKey: string | null = null;
-  setupCode = '';
-  backupCodes: string[] = [];
+  // 2FA : configuration via modale
+  showTwoFactorModal = false;
 
   // Disable
   disablePassword = '';
@@ -149,32 +145,15 @@ export class SecurityPageComponent implements OnInit {
 
   // --- 2FA -------------------------------------------------------------------
 
-  startSetup(): void {
+  openTwoFactorModal(): void {
     this.error = null;
     this.success = null;
-    this.auth.twoFactorSetup().subscribe({
-      next: (r) => {
-        this.qrCode = r.qrCode;
-        this.manualKey = r.manualKey;
-        this.setupCode = '';
-      },
-      error: (err) => (this.error = err.error?.message || 'Erreur lors du setup.'),
-    });
+    this.showTwoFactorModal = true;
   }
 
-  verifySetup(): void {
-    this.error = null;
-    this.auth.twoFactorVerifySetup(this.setupCode).subscribe({
-      next: (r) => {
-        this.backupCodes = r.backupCodes;
-        this.qrCode = null;
-        this.manualKey = null;
-        this.setupCode = '';
-        this.success = 'Double authentification activée.';
-        this.loadStatus();
-      },
-      error: (err) => (this.error = err.error?.message || 'Code invalide.'),
-    });
+  onTwoFactorActivated(): void {
+    this.success = 'Double authentification activée.';
+    this.loadStatus();
   }
 
   disable(): void {
