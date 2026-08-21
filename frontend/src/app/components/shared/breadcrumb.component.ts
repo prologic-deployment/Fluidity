@@ -55,9 +55,9 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
     const segments = url.split('/').filter(Boolean).map((s) => s.split('?')[0]);
     const crumbs: Crumb[] = [];
 
-    // Racine « Accueil »
+    // Racine « Accueil » → page d'accueil authentifiée (jamais /login).
     if (segments.length > 0) {
-      crumbs.push({ label: 'Accueil', path: '/', icon: 'home' });
+      crumbs.push({ label: 'Accueil', path: '/demandes', icon: 'home' });
     }
 
     let path = '';
@@ -68,7 +68,7 @@ export class BreadcrumbComponent implements OnInit, OnDestroy {
       crumbs.push({ label: resolved.label, path, icon: resolved.icon });
     }
     if (crumbs.length === 0) {
-      crumbs.push({ label: 'Accueil', path: '/', icon: 'home' });
+      crumbs.push({ label: 'Accueil', path: '/demandes', icon: 'home' });
     }
     this.crumbs = crumbs;
   }
