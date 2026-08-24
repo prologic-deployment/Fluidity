@@ -23,6 +23,7 @@ import {
   resolveCategorieSous,
   serializeSpecifications,
   showSpecSection,
+  watchSpecificationDependencies,
 } from '../../utils/specifications-form.factory';
 import { SpecificationsFormComponent } from '../shared/specifications-form.component';
 import { FormStepperComponent, StepperStep } from '../shared/form-stepper.component';
@@ -91,6 +92,7 @@ export class CreateChangementComponent implements OnInit {
     });
 
     this.ensureStockage();
+    watchSpecificationDependencies(this.form);
     this.toggleAutreValidator('serviceEnvironnement', 'serviceEnvironnementAutre');
 
     this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
@@ -109,6 +111,7 @@ export class CreateChangementComponent implements OnInit {
     this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
       if (this.form.get('categorie')?.value === AUTRE) return;
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
+      if (this.form.get('categorie')?.value === 'Stockage' && val !== AUTRE) this.ensureStockage();
       resetSpecsIncompatibles(this.form);
     });
 
@@ -137,6 +140,11 @@ export class CreateChangementComponent implements OnInit {
           capaciteGo: [null],
           protocole: [''],
           customProtocole: [''],
+          iops: [null],
+          throughputMbps: [null],
+          quotaGo: [null],
+          replication: [''],
+          encryption: [''],
         })
       );
     }

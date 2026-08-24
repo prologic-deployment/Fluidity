@@ -20,10 +20,12 @@ import { TranslatePipe } from '../../i18n/translate.pipe';
 import { UploadedFile } from '../../services/upload.service';
 import {
   buildSpecificationControls,
+  enableLegacySpecificationMode,
   resetSpecsIncompatibles,
   resolveCategorieSous,
   serializeSpecifications,
   showSpecSection,
+  watchSpecificationDependencies,
 } from '../../utils/specifications-form.factory';
 import { SpecificationsFormComponent } from '../shared/specifications-form.component';
 import { FormStepperComponent, StepperStep } from '../shared/form-stepper.component';
@@ -91,6 +93,7 @@ export class CreateTicketComponent implements OnInit {
     });
 
     this.ensureStockage();
+    watchSpecificationDependencies(this.form);
 
     this.form.get('categorie')?.valueChanges.subscribe((cat: string) => {
       const estAutre = cat === AUTRE;
@@ -108,6 +111,7 @@ export class CreateTicketComponent implements OnInit {
     this.form.get('sousCategorie')?.valueChanges.subscribe((val: string) => {
       if (this.form.get('categorie')?.value === AUTRE) return;
       this.setValidator(this.form.get('sousCategorieAutre'), val === AUTRE);
+      if (this.form.get('categorie')?.value === 'Stockage' && val !== AUTRE) this.ensureStockage();
       resetSpecsIncompatibles(this.form);
     });
 
@@ -172,6 +176,11 @@ export class CreateTicketComponent implements OnInit {
                   capaciteGo: [e.capaciteGo ?? null],
                   protocole: [e.protocole || '', Validators.required],
                   customProtocole: [e.customProtocole || ''],
+                  iops: [e.iops ?? null],
+                  throughputMbps: [e.throughputMbps ?? null],
+                  quotaGo: [e.quotaGo ?? null],
+                  replication: [e.replication || ''],
+                  encryption: [e.encryption || ''],
                 })
               );
             }
@@ -191,6 +200,7 @@ export class CreateTicketComponent implements OnInit {
             }
           }
         }
+        enableLegacySpecificationMode(this.form);
       },
       error: () => (this.error = 'Impossible de charger le ticket.'),
     });
@@ -206,6 +216,11 @@ export class CreateTicketComponent implements OnInit {
           capaciteGo: [null],
           protocole: [''],
           customProtocole: [''],
+          iops: [null],
+          throughputMbps: [null],
+          quotaGo: [null],
+          replication: [''],
+          encryption: [''],
         })
       );
     }

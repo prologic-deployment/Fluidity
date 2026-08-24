@@ -59,6 +59,8 @@ export interface Demande {
   /** Contrat — ObjectId en écriture, peuplé en lecture. */
   contrat: string | ContratRef;
   piecesJointes?: string[];
+  /** Dynamic technical specifications shared with changes and incidents. */
+  specifications?: Record<string, any>;
   statut?: StatutDemande;
   createdAt?: string;
   updatedAt?: string;

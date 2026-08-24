@@ -26,6 +26,7 @@ export interface Specifications {
   };
   serveur?: {
     os?: string;
+    osPrecision?: string;
     hostname?: string;
     cpuCores?: number;
     ramGo?: number;
@@ -51,18 +52,26 @@ export interface Specifications {
     nouvelleValeur?: string;
     ttl?: string;
     scopePool?: string;
+    plageDebut?: string;
+    plageFin?: string;
     plageAdresses?: string;
     reservation?: string;
     reseauDestination?: string;
     nextHop?: string;
-    metrique?: string;
+    metrique?: number;
     protocoleRoutage?: string;
     typeVpn?: string;
+    typeVpnPrecision?: string;
+    protocoleVpn?: string;
+    protocoleVpnPrecision?: string;
     reseauLocal?: string;
     reseauDistant?: string;
     chiffrementVpn?: string;
+    chiffrementVpnPrecision?: string;
     methodeAuth?: string;
+    methodeAuthPrecision?: string;
     peerGateway?: string;
+    portVpn?: number;
     typeLb?: string;
     vip?: string;
     serveursBackend?: string;
@@ -185,6 +194,9 @@ export interface Specifications {
     nomCommun?: string;
     emetteurCa?: string;
     validite?: string;
+    formatCertificat?: string;
+    dateExpiration?: string;
+    protocoleSecurite?: string;
     cibleInstallation?: string;
     renouvellementOuNouveau?: string;
   };
@@ -279,6 +291,11 @@ export interface StockageEntry {
   capaciteGo?: number;
   protocole: string;
   customProtocole?: string;
+  iops?: number;
+  throughputMbps?: number;
+  quotaGo?: number;
+  replication?: string;
+  encryption?: string;
   // Aliases anglais pour compatibilité payload
   storageType?: string;
   protocol?: string;
@@ -437,10 +454,10 @@ export const CHAMPS_PAR_SOUS_CATEGORIE: Record<string, Record<string, Record<str
     VLAN: { reseau: ['vlan', 'vlanName', 'descriptionVlan', 'interfaceAssociee', 'reseauCidr', 'passerelle'] },
     DNS: { reseau: ['zoneDns', 'typeEnregistrement', 'nomEnregistrement', 'valeurActuelle', 'nouvelleValeur', 'ttl'] },
     DHCP: {
-      reseau: ['scopePool', 'reseauCidr', 'masqueSousReseau', 'passerelle', 'dnsPrimaire', 'dnsSecondaire', 'plageAdresses', 'reservation'],
+      reseau: ['scopePool', 'reseauCidr', 'masqueSousReseau', 'passerelle', 'dnsPrimaire', 'dnsSecondaire', 'plageDebut', 'plageFin', 'plageAdresses', 'reservation'],
     },
     Routage: { reseau: ['reseauDestination', 'masqueSousReseau', 'nextHop', 'metrique', 'protocoleRoutage'] },
-    VPN: { reseau: ['typeVpn', 'reseauLocal', 'reseauDistant', 'chiffrementVpn', 'methodeAuth', 'peerGateway'] },
+    VPN: { reseau: ['typeVpn', 'typeVpnPrecision', 'protocoleVpn', 'protocoleVpnPrecision', 'reseauLocal', 'reseauDistant', 'chiffrementVpn', 'chiffrementVpnPrecision', 'methodeAuth', 'methodeAuthPrecision', 'peerGateway', 'portVpn'] },
     'Load Balancer': { reseau: ['typeLb', 'vip', 'serveursBackend', 'portsLb', 'protocoleLb', 'algorithmeLb', 'healthCheck'] },
     Switch: { reseau: ['nomSwitch', 'ipManagement', 'interfacePort', 'vlan', 'configRequise'] },
     WiFi: { reseau: ['ssid', 'modeSecurite', 'authentificationWifi', 'vlan', 'accessPoint'] },
@@ -449,7 +466,7 @@ export const CHAMPS_PAR_SOUS_CATEGORIE: Record<string, Record<string, Record<str
   },
   VM: {
     'Création VM': {
-      serveur: ['hostname', 'environnementVm', 'os', 'cpuCores', 'ramGo', 'disques', 'reseauVm', 'configIp', 'datacenter'],
+      serveur: ['hostname', 'environnementVm', 'os', 'osPrecision', 'cpuCores', 'ramGo', 'disques', 'reseauVm', 'configIp', 'datacenter'],
     },
     'Extension ressources': {
       serveur: ['vmCible', 'typeRessource', 'valeurActuelle', 'valeurDemandee', 'cpuCores', 'ramGo', 'disques'],
@@ -463,18 +480,18 @@ export const CHAMPS_PAR_SOUS_CATEGORIE: Record<string, Record<string, Record<str
     Autre: {},
   },
   'IA-GPU': {
-    'GPU Allocation': { iaGpu: ['typeGpu', 'nombreGpu', 'vramGo', 'versionCuda', 'serveurCible', 'framework', 'dureeEstimee'] },
-    Drivers: { iaGpu: ['typeGpu', 'versionPiloteActuelle', 'versionPiloteDemandee', 'compatibiliteCuda', 'serveurCible', 'fenetreMaintenance'] },
+    'GPU Allocation': { iaGpu: ['typeGpu', 'typeGpuPrecision', 'nombreGpu', 'vramGo', 'versionCuda', 'serveurCible', 'framework', 'dureeEstimee'] },
+    Drivers: { iaGpu: ['typeGpu', 'typeGpuPrecision', 'versionPiloteActuelle', 'versionPiloteDemandee', 'compatibiliteCuda', 'serveurCible', 'fenetreMaintenance'] },
     Autre: {},
   },
   Stockage: {
-    NAS: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
-    SAN: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
-    'Extension capacité': { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
-    Volume: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
-    NFS: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
-    SMB: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
-    Quotas: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole'] },
+    NAS: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
+    SAN: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
+    'Extension capacité': { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
+    Volume: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
+    NFS: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
+    SMB: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
+    Quotas: { stockage: ['typeStockage', 'capaciteGo', 'protocole', 'customStorageType', 'customProtocole', 'iops', 'throughputMbps', 'quotaGo', 'replication', 'encryption'] },
     Autre: {},
   },
   Sécurité: {
@@ -482,7 +499,7 @@ export const CHAMPS_PAR_SOUS_CATEGORIE: Record<string, Record<string, Record<str
     Firewall: {
       firewall: ['source', 'destination', 'protocole', 'ports', 'action', 'direction', 'dureeRegle', 'justification', 'reglesPareFeu'],
     },
-    Certificat: { securite: ['typeCertificat', 'nomCommun', 'emetteurCa', 'validite', 'cibleInstallation', 'renouvellementOuNouveau'] },
+    Certificat: { securite: ['typeCertificat', 'formatCertificat', 'nomCommun', 'emetteurCa', 'validite', 'dateExpiration', 'protocoleSecurite', 'cibleInstallation', 'renouvellementOuNouveau'] },
     Autre: {},
   },
   Sauvegarde: {
@@ -547,7 +564,7 @@ export function champVisible(
  * réfèrent tous via cette fonction.
  */
 export function sectionsPour(categorie: string | null | undefined, sousCategorie?: string | null): string[] {
-  if (!categorie) return [];
+  if (!categorie || !sousCategorie) return [];
   const regle = SECTIONS_SPECIFICATIONS[categorie];
   if (!regle) return [];
   const surcharge = sousCategorie ? regle.parSousCategorie?.[sousCategorie] : undefined;

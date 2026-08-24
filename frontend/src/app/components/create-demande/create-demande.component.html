@@ -117,6 +117,12 @@
                   </select>
                 </div>
                 <div>
+                  <label class="field-label">{{ 'demande.requestedDate' | t }}</label>
+                  <input type="date" formControlName="dateSouhaiteeRealisation" class="input" [attr.min]="today" />
+                  <p class="field-help">{{ 'demande.requestedDateHint' | t }}</p>
+                  <p *ngIf="form.get('dateSouhaiteeRealisation')?.hasError('pastDate') && form.get('dateSouhaiteeRealisation')?.touched" class="field-error">{{ 'demande.requestedDateInvalid' | t }}</p>
+                </div>
+                <div>
                   <label class="field-label">{{ 'form.contract' | t }}</label>
                   <select formControlName="contrat" class="select">
                     <option value="" disabled>{{ 'demande.selectContract' | t }}</option>
@@ -130,8 +136,13 @@
           </section>
         </div>
 
-        <!-- Étape 3 : Description & pièces jointes -->
+        <!-- Étape 3 : Spécifications techniques -->
         <div *ngIf="currentStep === 2" class="form-step-enter space-y-6">
+          <app-specifications-form [form]="form"></app-specifications-form>
+        </div>
+
+        <!-- Étape 4 : Description & pièces jointes -->
+        <div *ngIf="currentStep === 3" class="form-step-enter space-y-6">
           <section class="card">
             <div class="card-header-tinted">
               <div class="form-section-header">
