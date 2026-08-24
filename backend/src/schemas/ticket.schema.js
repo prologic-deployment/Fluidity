@@ -1,5 +1,6 @@
 const { z } = require('zod');
 const { objectId } = require('./common');
+const { specificationsSchema } = require('./specifications.schema');
 const { IMPACTS, URGENCES } = require('../utils/ticket-priority');
 
 const diagnosticSchema = z
@@ -34,7 +35,7 @@ const createTicketSchema = z.object({
   contrat: objectId('Contrat (ObjectId) requis'),
   piecesJointes: z.array(z.string()).optional(),
   diagnostic: diagnosticSchema,
-  specifications: z.record(z.any()).optional(),
+  specifications: specificationsSchema,
   priorite: z.string().optional(),
 });
 
@@ -47,7 +48,7 @@ const updateTicketSchema = z
     impact: z.enum(IMPACTS).optional(),
     urgence: z.enum(URGENCES).optional(),
     diagnostic: diagnosticSchema,
-    specifications: z.record(z.any()).optional(),
+    specifications: specificationsSchema,
     piecesJointes: z.array(z.string()).optional(),
   })
   .partial();

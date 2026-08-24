@@ -9,7 +9,8 @@
     "seed": "node src/seed/run.js",
     "seed:check": "node src/seed/check-seed.js",
     "smoke": "node src/seed/e2e-smoke.js",
-    "test": "node src/utils/ticket-priority.test.js"
+    "test": "node src/utils/ticket-priority.test.js && node src/schemas/specifications.schema.test.js",
+    "test:specifications": "node src/schemas/specifications.schema.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

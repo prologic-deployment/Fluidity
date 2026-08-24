@@ -37,6 +37,8 @@ const DemandeSchema = new Schema(
     informationsComplementaires: { type: String },
     contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },
     piecesJointes: [{ type: String }],
+    // Mixed keeps old records readable while the shared frontend validates new values.
+    specifications: { type: Schema.Types.Mixed, default: {} },
     statut: { type: String, enum: DEMANDE_STATUTS, default: 'Ouverte' },
   },
   { timestamps: true }
