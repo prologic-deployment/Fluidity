@@ -144,8 +144,19 @@ const listBoard = async (req, res) => {
     if (req.query.sprint && req.query.sprint !== 'all') {
       q.sprintId = mongoose.isValidObjectId(req.query.sprint) ? new mongoose.Types.ObjectId(req.query.sprint) : null;
     }
-    const tasks = await Task.find(q).sort({ order: 1 }).populate('assigneeId', USER_SELECT).lean();
-    res.json({ tasks: tasks.map((t) => ({ ...serializeTask(t, { assignee: t.assigneeId }) })), workflow: effectiveWorkflow(project) });
+    const [tasks, commentAgg] = await Promise.all([
+      Task.find(q).sort({ order: 1 }).populate('assigneeId', USER_SELECT).lean(),
+      ProjectComment.aggregate([
+        { $match: { tenantId: req.tenantId, projectId: project._id, targetType: 'task' } },
+        { $group: { _id: '$targetId', count: { $sum: 1 } } },
+      ]),
+    ]);
+    const commentCounts = {};
+    for (const c of commentAgg) commentCounts[String(c._id)] = c.count;
+    res.json({
+      tasks: tasks.map((t) => ({ ...serializeTask(t, { assignee: t.assigneeId, commentCount: commentCounts[String(t._id)] || 0 }) })),
+      workflow: effectiveWorkflow(project),
+    });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
