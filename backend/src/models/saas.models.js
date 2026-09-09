@@ -42,7 +42,7 @@ const ProductSchema = new Schema(
 const Product = mongoose.model('Product', ProductSchema);
 
 /** Statuts de souscription (cycle de vie SaaS standard). */
-const SUBSCRIPTION_STATUSES = ['trial', 'active', 'past_due', 'cancelled', 'expired'];
+const SUBSCRIPTION_STATUSES = ['trial', 'active', 'past_due', 'suspended', 'cancelled', 'expired'];
 const BILLING_PERIODS = ['monthly', 'annual'];
 
 /**
@@ -63,6 +63,8 @@ const SubscriptionSchema = new Schema(
     currency: { type: String, default: 'EUR' },
     startDate: { type: Date, required: true, default: Date.now },
     endDate: { type: Date },
+    /** Renouvellement automatique à l'échéance (piloté par l'admin tenant). */
+    autoRenew: { type: Boolean, default: true },
     provider: { type: String, default: 'manual' }, // 'manual' | provider id (à terme)
     providerRef: { type: String, default: '' },
   },
@@ -75,7 +77,7 @@ SubscriptionSchema.index({ tenantId: 1, status: 1 });
 const Subscription = mongoose.model('Subscription', SubscriptionSchema);
 
 /** Statuts d'assignation de licence. */
-const LICENSE_STATUSES = ['active', 'revoked'];
+const LICENSE_STATUSES = ['active', 'revoked', 'suspended'];
 
 /**
  * Licence utilisateur — assignation d'un siège de souscription à un
@@ -176,6 +178,48 @@ NotificationSchema.index({ tenantId: 1, userId: 1, read: 1, createdAt: -1 });
 
 const Notification = mongoose.model('Notification', NotificationSchema);
 
+/** Statuts d'une commande de souscription (checkout). */
+const ORDER_STATUSES = ['pending', 'paid', 'failed', 'cancelled', 'refunded'];
+
+/**
+ * Commande de souscription SaaS — le parcours d'achat du Tenant Admin.
+ *
+ * Derrière l'abstraction PaymentProvider (services/payment) : aucun PSP n'est
+ * branché par défaut, donc aucune commande n'est « payée » automatiquement.
+ * Le cycle réel : commande créée (pending) → paiement / facture confirmé par
+ * la plateforme → provisionnement de la souscription (activatedSubscriptionId)
+ * par le Super Admin. Jamais de fausse confirmation côté client.
+ */
+const OrderSchema = new Schema(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    productKey: { type: String, required: true, trim: true },
+    planId: { type: String, required: true, trim: true },
+    billingPeriod: { type: String, enum: BILLING_PERIODS, required: true },
+    seats: { type: Number, required: true, min: 1 },
+    unitPrice: { type: Number, default: 0 }, // prix par siège par cycle
+    subtotal: { type: Number, default: 0 },
+    total: { type: Number, default: 0 },
+    currency: { type: String, default: 'EUR' },
+    status: { type: String, enum: ORDER_STATUSES, default: 'pending' },
+    /** Méthode de paiement choisie : 'card' | 'bank_transfer' | 'invoice' | provider id. */
+    paymentMethod: { type: String, default: 'invoice' },
+    provider: { type: String, default: '' },
+    providerRef: { type: String, default: '' },
+    /** Souscription créée lors du provisionnement (par le Super Admin). */
+    activatedSubscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', default: null },
+    notes: { type: String, default: '' },
+  },
+  { timestamps: true }
+);
+
+OrderSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
+OrderSchema.index({ tenantId: 1, productKey: 1 });
+
+const Order = mongoose.model('Order', OrderSchema);
+
 module.exports = {
   Product,
   Subscription,
@@ -189,4 +233,7 @@ module.exports = {
   RoleAssignmentSchema,
   AuditLog,
   Notification,
+  Order,
+  OrderSchema,
+  ORDER_STATUSES,
 };

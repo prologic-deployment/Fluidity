@@ -35,8 +35,15 @@ check('clés en snake_case stable', () =>
   keys.forEach((k) => assert.match(k, /^[a-z][a-z0-9_]*$/))
 );
 check('ServiceDesk disponible', () => assert.strictEqual(getProduct('servicedesk').status, 'available'));
-check('un seul produit disponible (pas de fausses fonctionnalités)', () =>
-  assert.strictEqual(PRODUCTS.filter((p) => p.available).length, 1)
+check('Gestion de Projet disponible', () => assert.strictEqual(getProduct('project_management').status, 'available'));
+check('deux produits disponibles (ServiceDesk + Gestion de Projet)', () =>
+  assert.strictEqual(PRODUCTS.filter((p) => p.available).length, 2)
+);
+check('produits « bientôt » non disponibles (pas de fausses fonctionnalités)', () =>
+  assert.ok(PRODUCTS.filter((p) => p.status === 'coming_soon').every((p) => !p.available))
+);
+check('route applicative de Gestion de Projet', () =>
+  assert.strictEqual(getProduct('project_management').route, '/projets')
 );
 
 console.log('Test 2 : plans cohérents (3 plans par produit, prix positifs)');
@@ -132,6 +139,18 @@ check('AGENT → support_n1', () =>
 );
 check('MANAGER → service_manager', () =>
   assert.strictEqual(defaultProductRole('servicedesk', 'MANAGER', 'UTILISATEUR'), 'service_manager')
+);
+check('projet : TENANT_ADMIN → project_admin', () =>
+  assert.strictEqual(defaultProductRole('project_management', 'TENANT_ADMIN', 'UTILISATEUR'), 'project_admin')
+);
+check('projet : MANAGER → project_manager', () =>
+  assert.strictEqual(defaultProductRole('project_management', 'MANAGER', 'UTILISATEUR'), 'project_manager')
+);
+check('projet : AGENT → project_lead', () =>
+  assert.strictEqual(defaultProductRole('project_management', 'AGENT', 'UTILISATEUR'), 'project_lead')
+);
+check('projet : VIEWER → project_viewer', () =>
+  assert.strictEqual(defaultProductRole('project_management', 'VIEWER', 'UTILISATEUR'), 'project_viewer')
 );
 
 console.log('\nRésultat : ' + (failures ? `${failures} échec(s)` : 'OK — registre SaaS valide'));

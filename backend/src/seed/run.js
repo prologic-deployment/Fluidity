@@ -9,6 +9,7 @@ const { seedChangements } = require('./changement.seed');
 const { seedTickets } = require('./ticket.seed');
 const { seedLoginActivity } = require('./login-activity.seed');
 const { seedSaas } = require('./saas.seed');
+const { seedProjectManagement } = require('./project.seed');
 
 /**
  * Seed additif et idempotent. Usage : npm run seed
@@ -29,6 +30,7 @@ async function runSeed() {
     await seedTickets(tenants);
     await seedLoginActivity(tenants);
     await seedSaas();
+    await seedProjectManagement();
   } finally {
     await mongoose.disconnect();
   }

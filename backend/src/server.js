@@ -1,6 +1,7 @@
 const app = require('./app');
 const { connectDB } = require('./config/db.config');
 const { startTicketAutoCloseJob } = require('./jobs/ticket-auto-close.job');
+const { startProjectDeadlineJob } = require('./jobs/project-deadline.job');
 
 const PORT = process.env.PORT || 3000;
 
@@ -15,6 +16,7 @@ const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`[ServiceDesk] Serveur démarré sur le port ${PORT}`);
       startTicketAutoCloseJob();
+      startProjectDeadlineJob();
     });
   } catch (err) {
     console.error('[ServiceDesk] Impossible de démarrer le serveur :', err);

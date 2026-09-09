@@ -292,6 +292,7 @@ const ICONS = {
   fileCheck: 'D', // Nouvelle Demande
   refresh: 'C', // Nouveau Changement
   exchange: 'S', // changement de Statut
+  board: 'P', // Gestion de Projet
 };
 
 module.exports = { renderEmailLayout, renderBadge, renderDetailsTable, FRONTEND_URL, COLORS, ICONS };

@@ -210,8 +210,10 @@ const WORKFLOWS = {
       { from: 'todo', to: 'in_progress', permission: 'project.task.update' },
       { from: 'in_progress', to: 'blocked', permission: 'project.task.update' },
       { from: 'blocked', to: 'in_progress', permission: 'project.task.update' },
-      { from: 'in_progress', to: 'review', permission: 'project.task.complete' },
+      { from: 'in_progress', to: 'review', permission: 'project.task.update' },
       { from: 'review', to: 'completed', permission: 'project.task.complete', notify: true },
+      { from: 'review', to: 'in_progress', action: 'reopen', permission: 'project.task.update' },
+      { from: 'completed', to: 'in_progress', action: 'reopen', permission: 'project.task.update' },
       { from: '*', to: 'cancelled', permission: 'project.task.update' },
     ]
   ),
@@ -446,12 +448,12 @@ const PRODUCTS = [
     icon: 'project',
     emoji: '📊',
     color: '#0ea5e9',
-    status: PRODUCT_STATUS.COMING_SOON,
+    status: PRODUCT_STATUS.AVAILABLE,
     category: 'collaboration',
     slug: 'project-management', // URL publique du service
-    route: '/apps/project_management',
-    available: false,
-    featuresKey: ['products.project_management.f1', 'products.project_management.f2', 'products.project_management.f3', 'products.project_management.f4'],
+    route: '/projets', // entrée de l'application Gestion de Projet
+    available: true,
+    featuresKey: ['products.project_management.f1', 'products.project_management.f2', 'products.project_management.f3', 'products.project_management.f4', 'products.project_management.f5', 'products.project_management.f6'],
     benefitsKey: ['products.project_management.b1', 'products.project_management.b2', 'products.project_management.b3'],
     useCasesKey: ['products.project_management.u1', 'products.project_management.u2', 'products.project_management.u3'],
     related: ['collaboration', 'time_tracking', 'business_intelligence'],
@@ -882,9 +884,18 @@ const PERMISSIONS_BY_PRODUCT = {
     'servicedesk.contract.read', 'servicedesk.client.read', 'servicedesk.admin',
   ],
   project_management: [
+    'project.admin',
     'project.project.create', 'project.project.read', 'project.project.update', 'project.project.archive',
+    'project.member.manage',
     'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign',
-    'project.task.complete', 'project.task.comment', 'project.milestone.create', 'project.milestone.update',
+    'project.task.complete', 'project.task.delete', 'project.task.comment',
+    'project.milestone.create', 'project.milestone.update', 'project.milestone.delete',
+    'project.sprint.manage',
+    'project.risk.manage', 'project.issue.manage',
+    'project.file.manage',
+    'project.report.read',
+    'project.workflow.manage',
+    'project.activity.read',
   ],
   fleet_management: [
     'fleet.asset.create', 'fleet.asset.read', 'fleet.asset.update', 'fleet.asset.assign',
@@ -950,11 +961,11 @@ function rolePermissions(roleKey) {
     support_n2: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.update', 'servicedesk.ticket.assign', 'servicedesk.ticket.resolve', 'servicedesk.ticket.escalate', 'servicedesk.ticket.close'],
     requester: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.reopen'],
     // Project
-    project_admin: ['project.project.create', 'project.project.read', 'project.project.update', 'project.project.archive', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment', 'project.milestone.create', 'project.milestone.update'],
-    project_manager: ['project.project.create', 'project.project.read', 'project.project.update', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment', 'project.milestone.create', 'project.milestone.update'],
-    project_lead: ['project.project.read', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment'],
-    project_member: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment'],
-    project_viewer: ['project.project.read', 'project.task.read'],
+    project_admin: [...PERMISSIONS_BY_PRODUCT.project_management],
+    project_manager: ['project.project.create', 'project.project.read', 'project.project.update', 'project.member.manage', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.delete', 'project.task.comment', 'project.milestone.create', 'project.milestone.update', 'project.milestone.delete', 'project.sprint.manage', 'project.risk.manage', 'project.issue.manage', 'project.file.manage', 'project.report.read', 'project.activity.read'],
+    project_lead: ['project.project.read', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment', 'project.activity.read'],
+    project_member: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage'],
+    project_viewer: ['project.project.read', 'project.task.read', 'project.activity.read', 'project.report.read'],
     // Fleet
     fleet_admin: [...PERMISSIONS_BY_PRODUCT.fleet_management],
     fleet_manager: ['fleet.asset.create', 'fleet.asset.read', 'fleet.asset.update', 'fleet.asset.assign', 'fleet.maintenance.create', 'fleet.maintenance.update'],
@@ -1033,6 +1044,10 @@ function defaultProductRole(productKey, internalRole, principalType) {
       if (internalRole === 'PLATFORM_ADMIN' || internalRole === 'TENANT_ADMIN') return 'servicedesk_admin';
       if (internalRole === 'MANAGER') return 'service_manager';
       return internalRole === 'AGENT' ? 'support_n1' : 'viewer';
+    case 'project_management':
+      if (internalRole === 'PLATFORM_ADMIN' || internalRole === 'TENANT_ADMIN') return 'project_admin';
+      if (internalRole === 'MANAGER') return 'project_manager';
+      return internalRole === 'AGENT' ? 'project_lead' : 'project_viewer';
     default:
       return null;
   }

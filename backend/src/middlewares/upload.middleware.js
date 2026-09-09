@@ -8,6 +8,7 @@ const {
   CATEGORIE_PAR_DEFAUT,
   estCategorieValide,
   cheminDossierTenant,
+  SUBPATH_REGEX,
 } = require('../utils/upload-file.util');
 
 const MAX_FILE_SIZE_MB = 15;
@@ -22,14 +23,14 @@ const MAX_FILE_SIZE_MB = 15;
  * Le nom d'origine est conservé dans les métadonnées renvoyées au client,
  * jamais utilisé tel quel sur le disque (collisions & caractères indésirables).
  */
-const creerUpload = (categorie = CATEGORIE_PAR_DEFAUT) => {
+const creerUpload = (categorie = CATEGORIE_PAR_DEFAUT, subpath = '') => {
   if (!estCategorieValide(categorie)) {
     throw new Error(`Catégorie d'upload inconnue : « ${categorie} »`);
   }
   const storage = multer.diskStorage({
     destination: (req, _file, cb) => {
       try {
-        const dir = cheminDossierTenant(req.tenantId, categorie);
+        const dir = cheminDossierTenant(req.tenantId, categorie, subpath);
         fs.mkdirSync(dir, { recursive: true }); // dossiers créés à la volée
         cb(null, dir);
       } catch (err) {
@@ -52,6 +53,8 @@ const creerUpload = (categorie = CATEGORIE_PAR_DEFAUT) => {
  * (POST /api/uploads/:categorie?), puis délègue à l'instance multer dédiée.
  * Sans paramètre -> CATEGORIE_PAR_DEFAUT (« attachments ») : les appels
  * historiques continuent de fonctionner à l'identique.
+ * Sous-dossier optionnel ?subpath= (catégorie « projects » uniquement,
+ * segments stricts — ex. PRJ-2026-0001/Documents).
  */
 const uploadAvecCategorie = (req, res, next) => {
   const categorie = req.params.categorie || CATEGORIE_PAR_DEFAUT;
@@ -61,8 +64,17 @@ const uploadAvecCategorie = (req, res, next) => {
     });
     return;
   }
+  let subpath = '';
+  if (req.query.subpath) {
+    subpath = String(req.query.subpath);
+    if (!SUBPATH_REGEX.test(subpath) || (subpath !== '' && categorie !== 'projects')) {
+      res.status(400).json({ message: 'Sous-chemin d’upload invalide.' });
+      return;
+    }
+  }
   req.categorieUpload = categorie;
-  creerUpload(categorie).array('files', 10)(req, res, (err) => {
+  req.subpathUpload = subpath;
+  creerUpload(categorie, subpath).array('files', 10)(req, res, (err) => {
     if (err) {
       const message =
         err.code === 'LIMIT_FILE_SIZE'

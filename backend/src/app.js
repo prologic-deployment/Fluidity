@@ -13,6 +13,7 @@ const clientRoutes = require('./routes/client.route');
 const uploadRoutes = require('./routes/upload.route');
 const ticketRoutes = require('./routes/ticket.route');
 const platformRoutes = require('./routes/platform.route');
+const projectRoutes = require('./routes/project.route');
 
 dotenv.config();
 
@@ -75,5 +76,7 @@ app.use('/api/uploads', uploadRoutes);
 // Plateforme SaaS : catalogue produits, souscriptions, licences, rôles,
 // audit et notifications (multi-produits).
 app.use('/api/platform', platformRoutes);
+// Produit SaaS « Gestion de Projet » (project_management) — autorité serveur.
+app.use('/api/projects', projectRoutes);
 
 module.exports = app;

@@ -54,7 +54,13 @@ const CATEGORIES_UPLOAD = Object.freeze([
   'attachments',
   'logos',
   'documents',
+  // Fichiers du produit Gestion de Projet : sous-dossiers par projet
+  // (uploads/tenants/<tenantId>/projects/<projet>/<dossier>).
+  'projects',
 ]);
+
+/** Sous-chemin optionnel (catégorie « projects ») : segments stricts, max 3. */
+const SUBPATH_REGEX = /^[\w-]+(\/[\w-]+){0,2}$/;
 
 /** Catégorie appliquée quand l'appelant historique n'en précise pas. */
 const CATEGORIE_PAR_DEFAUT = 'attachments';
@@ -67,8 +73,8 @@ const FICHIER_UUID_REGEX = /^[0-9a-f-]{36}\.[a-z0-9]{2,5}$/i;
 
 const SEGMENT = '[\\w-]+';
 
-/** v2 : /uploads/tenants/<tenantId>/<categorie>/<fichier> */
-const URL_V2_REGEX = new RegExp(`^${PREFIXE_URL}/${DOSSIER_TENANTS}/(${SEGMENT})/(${SEGMENT})/([^/]+)$`);
+/** v2 : /uploads/tenants/<tenantId>/<categorie>/[sous-dossiers…]/<fichier> */
+const URL_V2_REGEX = new RegExp(`^${PREFIXE_URL}/${DOSSIER_TENANTS}/(${SEGMENT})/(${SEGMENT})(?:/${SEGMENT})*/([^/]+)$`);
 
 /** v1 (hérité) : /uploads/<tenantId>/<fichier> — jamais « tenants » en segment 2. */
 const URL_V1_REGEX = new RegExp(`^${PREFIXE_URL}/(?!${DOSSIER_TENANTS}/)(${SEGMENT})/([^/]+)$`);
@@ -87,16 +93,25 @@ const AVATAR_RELATIF_REGEX = new RegExp(
 const estCategorieValide = (categorie) => CATEGORIES_UPLOAD.includes(categorie);
 
 /** Chemin disque absolu du dossier d'une catégorie pour un tenant (créé au besoin par l'appelant). */
-const cheminDossierTenant = (tenantId, categorie = CATEGORIE_PAR_DEFAUT) => {
+const cheminDossierTenant = (tenantId, categorie = CATEGORIE_PAR_DEFAUT, subpath = '') => {
   if (!estCategorieValide(categorie)) {
     throw new Error(`Catégorie d'upload inconnue : « ${categorie} » (attendu : ${CATEGORIES_UPLOAD.join(', ')})`);
   }
-  return path.join(UPLOADS_ROOT, DOSSIER_TENANTS, String(tenantId || 'inconnu'), categorie);
+  const base = path.join(UPLOADS_ROOT, DOSSIER_TENANTS, String(tenantId || 'inconnu'), categorie);
+  if (subpath) {
+    if (!SUBPATH_REGEX.test(subpath)) {
+      throw new Error(`Sous-chemin d'upload invalide : « ${subpath} »`);
+    }
+    return path.join(base, subpath);
+  }
+  return base;
 };
 
-/** URL canonique relative d'un fichier téléversé. */
-const urlRelativeUpload = (tenantId, categorie, nomFichier) =>
-  `${PREFIXE_URL}/${DOSSIER_TENANTS}/${String(tenantId || 'inconnu')}/${categorie}/${nomFichier}`;
+/** URL canonique relative d'un fichier téléversé (sous-dossier optionnel). */
+const urlRelativeUpload = (tenantId, categorie, nomFichier, subpath = '') => {
+  const base = `${PREFIXE_URL}/${DOSSIER_TENANTS}/${String(tenantId || 'inconnu')}/${categorie}`;
+  return subpath ? `${base}/${subpath}/${nomFichier}` : `${base}/${nomFichier}`;
+};
 
 /**
  * Analyse une URL relative d'upload (v2 ou v1 héritée).
@@ -177,6 +192,7 @@ module.exports = {
   CATEGORIE_PAR_DEFAUT,
   AVATAR_RELATIF_REGEX,
   FICHIER_UUID_REGEX,
+  SUBPATH_REGEX,
   estCategorieValide,
   cheminDossierTenant,
   urlRelativeUpload,

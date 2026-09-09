@@ -83,6 +83,8 @@ const UtilisateurSchema = new Schema(
     bio: { type: String, default: '' },
     address: { type: String, default: '' },
     avatarUrl: { type: String, default: null },
+    // Langue de communication (emails & notifications) : fr | en.
+    language: { type: String, enum: ['fr', 'en'], default: 'fr' },
 
     // --- Double authentification TOTP (RFC 6238) — optionnelle, désactivée par défaut ---
     // Le secret est CHIFFRÉ (AES-256-GCM, crypto.util) — jamais stocké en clair.

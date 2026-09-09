@@ -16,11 +16,12 @@ const uploadFiles = (req, res) => {
   }
 
   const files = req.files.map((f) => ({
-    url: urlRelativeUpload(req.tenantId, req.categorieUpload, f.filename),
+    url: urlRelativeUpload(req.tenantId, req.categorieUpload, f.filename, req.subpathUpload || ''),
     nom: f.originalname,
     taille: f.size,
     type: f.mimetype,
     categorie: req.categorieUpload,
+    subpath: req.subpathUpload || '',
   }));
 
   res.status(201).json({ files });
