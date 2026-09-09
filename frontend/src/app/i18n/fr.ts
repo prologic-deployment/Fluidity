@@ -75,6 +75,7 @@ export const FR: Record<string, unknown> = {
     myTasks: 'Mes tâches',
     subscriptions: 'Abonnements',
     notifications: 'Notifications',
+    saas: 'Administration SaaS',
     allClients: 'Tous les clients',
     newClient: 'Nouveau client',
     users: 'Utilisateurs',
@@ -1269,6 +1270,10 @@ export const FR: Record<string, unknown> = {
 
 
   projects: {
+    detail: {
+      breadcrumb: 'Projet',
+      task: 'Tâche',
+    },
     tabs: {
       label: 'Navigation du projet',
       overview: 'Vue d’ensemble',

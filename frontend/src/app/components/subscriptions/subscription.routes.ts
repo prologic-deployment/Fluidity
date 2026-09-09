@@ -14,7 +14,7 @@ import { SubscriptionsOrdersComponent } from './subscriptions-orders.component';
 export const SUBSCRIPTION_ROUTES: Routes = [
   { path: '', component: SubscriptionsOverviewComponent },
   { path: 'produits', component: SubscriptionsCatalogComponent, data: { breadcrumb: 'subscriptions.catalog.label' } },
-  { path: 'produits/:key', component: SubscriptionCheckoutComponent, data: { breadcrumb: 'subscriptions.checkout' } },
+  { path: 'produits/:key', component: SubscriptionCheckoutComponent, data: { breadcrumb: 'subscriptions.checkout.title' } },
   { path: 'licences', component: SubscriptionsLicensesComponent, data: { breadcrumb: 'subscriptions.licenses.label' } },
   { path: 'commandes', component: SubscriptionsOrdersComponent, data: { breadcrumb: 'subscriptions.orders.label' } },
 ];
