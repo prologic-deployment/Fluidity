@@ -8,6 +8,8 @@ export interface ProductPlan {
   pricePerSeatMonthly: number;
   pricePerSeatAnnual: number;
   currency: string;
+  /** Clés de fonctionnalités i18n du plan (products.<key>.*). */
+  featuresKey?: string[];
 }
 
 export interface ProductRole {
@@ -87,12 +89,15 @@ export interface Subscription {
   productKey: string;
   planId: string;
   billingPeriod: 'monthly' | 'annual';
-  status: 'trial' | 'active' | 'past_due' | 'cancelled' | 'expired';
+  status: 'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled' | 'expired';
   seats: number;
   pricePerSeat: number;
   currency: string;
   startDate?: string;
   endDate?: string;
+  autoRenew?: boolean;
+  /** Utilisation des sièges (calculée côté serveur pour le portail). */
+  usage?: { seats: number; used: number; available: number };
 }
 
 export interface License {
@@ -100,7 +105,7 @@ export interface License {
   tenantId: string;
   productKey: string;
   userId: { _id: string; email: string; firstName?: string; lastName?: string; status?: string } | string;
-  status: 'active' | 'revoked';
+  status: 'active' | 'revoked' | 'suspended';
   startDate?: string;
   endDate?: string;
 }

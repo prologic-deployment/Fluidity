@@ -1,0 +1,106 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'subscriptions.licenses.title' | t }}</h2>
+    <a routerLink="/abonnements" class="btn-ghost btn-sm">{{ 'common.back' | t }}</a>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="skeleton h-64"></div>
+
+  <ng-container *ngIf="!loading">
+    <div class="flex items-center gap-3 mb-4 flex-wrap">
+      <button type="button" class="btn-primary btn-sm" (click)="openAssign()">{{ 'subscriptions.licenses.assign' | t }}</button>
+      <span class="text-sm text-muted-foreground">{{ 'subscriptions.licenses.hint' | t }}</span>
+    </div>
+
+    <!-- Formulaire d'assignation -->
+    <div class="card mb-6" *ngIf="assigning">
+      <div class="card-content p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div>
+          <label class="field-label">{{ 'subscriptions.licenses.user' | t }}</label>
+          <select [(ngModel)]="assignForm.userId" class="select mt-1">
+            <option value="" disabled>{{ 'subscriptions.licenses.selectUser' | t }}</option>
+            <option *ngFor="let u of users" [value]="u._id">{{ u.firstName }} {{ u.lastName }} ({{ u.email }})</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'subscriptions.licenses.product' | t }}</label>
+          <select [(ngModel)]="assignForm.productKey" class="select mt-1" (change)="onProductChange()">
+            <option *ngFor="let k of availableProducts" [value]="k">{{ 'products.' + k + '.name' | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'subscriptions.licenses.role' | t }}</label>
+          <select [(ngModel)]="assignForm.roleKey" class="select mt-1">
+            <option *ngFor="let r of rolesForCurrentProduct" [value]="r.key">{{ r.nameKey | t }}</option>
+          </select>
+        </div>
+        <div class="flex items-end gap-2">
+          <button type="button" class="btn-primary" [disabled]="!assignForm.userId || !assignForm.productKey" (click)="submitAssign()">{{ 'common.save' | t }}</button>
+          <button type="button" class="btn-ghost" (click)="assigning = false">{{ 'common.cancel' | t }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap" *ngIf="rows.length">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{{ 'subscriptions.licenses.user' | t }}</th>
+            <th>{{ 'subscriptions.licenses.product' | t }}</th>
+            <th>{{ 'subscriptions.licenses.role' | t }}</th>
+            <th>{{ 'subscriptions.licenses.statusLabel' | t }}</th>
+            <th class="hidden md:table-cell">{{ 'subscriptions.licenses.since' | t }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows; trackBy: trackRow">
+            <td>
+              <p class="font-medium">{{ row.userName || '—' }}</p>
+              <p class="text-xs text-muted-foreground">{{ row.userEmail }}</p>
+            </td>
+            <td class="text-sm">{{ 'products.' + row.productKey + '.name' | t }}</td>
+            <td class="text-sm">
+              <span *ngIf="row.roleKey" class="badge badge-outline">{{ roleName(row.productKey, row.roleKey) }}</span>
+              <span *ngIf="!row.roleKey" class="text-muted-foreground">—</span>
+            </td>
+            <td><span class="badge" [ngClass]="statusBadge(row.license.status)">{{ 'subscriptions.licenses.status.' + row.license.status | t }}</span></td>
+            <td class="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">{{ row.license.startDate | dateLocale:'short' }}</td>
+            <td class="text-right whitespace-nowrap">
+              <button *ngIf="row.license.status === 'active'" type="button" class="btn-ghost btn-sm" (click)="suspend(row)">{{ 'subscriptions.licenses.suspend' | t }}</button>
+              <button *ngIf="row.license.status === 'suspended'" type="button" class="btn-ghost btn-sm" (click)="activate(row)">{{ 'subscriptions.licenses.reactivate' | t }}</button>
+              <button *ngIf="row.license.status !== 'revoked'" type="button" class="btn-danger btn-sm ml-1" (click)="revoke(row)">{{ 'subscriptions.licenses.revoke' | t }}</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!rows.length" class="card">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'subscriptions.licenses.empty' | t }}</div>
+    </div>
+
+    <!-- Sièges par produit -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-6">
+      <div class="card" *ngFor="let s of subscriptions">
+        <div class="card-content p-4">
+          <div class="flex items-center justify-between">
+            <p class="font-medium">{{ 'products.' + s.productKey + '.name' | t }}</p>
+            <span class="badge" [ngClass]="s.status === 'active' ? 'badge-success' : 'badge-outline'">{{ 'subscriptions.meta.status.' + s.status | t }}</span>
+          </div>
+          <p class="text-sm text-muted-foreground mt-1">{{ 'subscriptions.meta.plan.' + s.planId | t }} · {{ 'subscriptions.meta.cycle.' + s.billingPeriod | t }}</p>
+          <div class="mt-3">
+            <div class="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>{{ usedSeats(s) }} / {{ totalSeats(s) }} {{ 'subscriptions.licenses.seats' | t }}</span>
+              <span>{{ s.usage?.available ?? s.seats }} {{ 'subscriptions.licenses.available' | t }}</span>
+            </div>
+            <div class="progress h-2">
+              <div class="progress-bar" [style.width.%]="seatPercent(s)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</main>

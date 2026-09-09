@@ -1,0 +1,45 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'subscriptions.orders.title' | t }}</h2>
+    <a routerLink="/abonnements" class="btn-ghost btn-sm">{{ 'common.back' | t }}</a>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="skeleton h-64"></div>
+
+  <div class="table-wrap" *ngIf="!loading && orders.length">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'subscriptions.orders.product' | t }}</th>
+          <th>{{ 'subscriptions.orders.plan' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'subscriptions.orders.cycle' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'subscriptions.orders.seats' | t }}</th>
+          <th>{{ 'subscriptions.orders.amount' | t }}</th>
+          <th>{{ 'subscriptions.orders.status' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'subscriptions.orders.date' | t }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let o of orders; trackBy: trackO">
+          <td class="font-medium">{{ 'products.' + o.productKey + '.name' | t }}</td>
+          <td class="text-sm">{{ 'subscriptions.meta.plan.' + o.planId | t }}</td>
+          <td class="hidden md:table-cell text-sm">{{ 'subscriptions.meta.cycle.' + o.billingPeriod | t }}</td>
+          <td class="hidden md:table-cell text-sm tabular-nums">{{ o.seats }}</td>
+          <td class="text-sm tabular-nums font-medium">{{ o.total }} {{ o.currency }}</td>
+          <td><span class="badge" [ngClass]="statusBadge(o.status)">{{ 'subscriptions.meta.orderStatus.' + o.status | t }}</span></td>
+          <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{{ o.createdAt | dateLocale:'short' }}</td>
+          <td class="text-right whitespace-nowrap">
+            <button *ngIf="o.status === 'pending'" type="button" class="btn-ghost btn-sm" (click)="checkout(o)">{{ 'subscriptions.orders.pay' | t }}</button>
+            <button *ngIf="o.status === 'pending'" type="button" class="btn-destructive btn-sm ml-1" (click)="cancel(o)">{{ 'subscriptions.orders.cancel' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !orders.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'subscriptions.orders.empty' | t }}</div>
+  </div>
+</main>

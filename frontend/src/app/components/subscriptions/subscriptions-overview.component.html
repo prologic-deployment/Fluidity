@@ -1,0 +1,144 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-[1600px] mx-auto px-4 lg:px-6 py-4 flex flex-wrap items-center gap-3">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-lg font-semibold tracking-tight">{{ 'subscriptions.overview.title' | t }}</h1>
+        <p class="text-sm text-muted-foreground">{{ 'subscriptions.overview.subtitle' | t }}</p>
+      </div>
+      <nav class="flex gap-2">
+        <a routerLink="/abonnements" class="btn-primary btn-sm">{{ 'subscriptions.overview.nav' | t }}</a>
+        <a routerLink="/abonnements/produits" class="btn-secondary btn-sm">{{ 'subscriptions.catalog.label' | t }}</a>
+        <a routerLink="/abonnements/licences" class="btn-secondary btn-sm">{{ 'subscriptions.licenses.label' | t }}</a>
+        <a routerLink="/abonnements/commandes" class="btn-secondary btn-sm">{{ 'subscriptions.orders.label' | t }}</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+    <div *ngIf="loading" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+    </div>
+
+    <ng-container *ngIf="overview">
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3 mb-6">
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums">{{ overview.totalProducts }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'subscriptions.overview.kpi.products' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{{ overview.activeSubscriptions }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'subscriptions.overview.kpi.active' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums">{{ overview.totalLicenses }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'subscriptions.overview.kpi.licenses' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">{{ overview.usedLicenses }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'subscriptions.overview.kpi.used' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums">{{ overview.availableLicenses }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'subscriptions.overview.kpi.available' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">{{ overview.upcomingRenewals.length }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'subscriptions.overview.kpi.renewals' | t }}</p>
+        </div></div>
+      </div>
+
+      <!-- Renouvellements à venir -->
+      <div class="card mb-6" *ngIf="overview.upcomingRenewals.length">
+        <div class="card-header py-3">{{ 'subscriptions.overview.upcoming' | t }}</div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let r of overview.upcomingRenewals" class="py-2 flex items-center gap-3 text-sm">
+            <span class="font-medium">{{ 'products.' + r.productKey + '.name' | t }}</span>
+            <span class="text-muted-foreground">{{ r.endDate | dateLocale:'short' }}</span>
+            <span class="badge ml-auto" [ngClass]="r.autoRenew ? 'badge-success' : 'badge-warning'">{{ (r.autoRenew ? 'subscriptions.overview.autoRenewOn' : 'subscriptions.overview.autoRenewOff') | t }}</span>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
+
+    <!-- Souscriptions -->
+    <div *ngIf="!loading && subscriptions.length" class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>{{ 'subscriptions.overview.product' | t }}</th>
+            <th>{{ 'subscriptions.overview.status' | t }}</th>
+            <th>{{ 'subscriptions.overview.plan' | t }}</th>
+            <th class="hidden md:table-cell">{{ 'subscriptions.overview.cycle' | t }}</th>
+            <th class="hidden md:table-cell">{{ 'subscriptions.overview.licenses' | t }}</th>
+            <th class="hidden lg:table-cell">{{ 'subscriptions.overview.period' | t }}</th>
+            <th>{{ 'subscriptions.overview.nextAmount' | t }}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of subscriptions; trackBy: trackS">
+            <td class="font-medium">{{ 'products.' + s.productKey + '.name' | t }}</td>
+            <td><span class="badge" [ngClass]="statusBadge(s.status)">{{ 'subscriptions.meta.status.' + s.status | t }}</span></td>
+            <td class="text-sm">{{ 'subscriptions.meta.plan.' + s.planId | t }}</td>
+            <td class="hidden md:table-cell text-sm">{{ 'subscriptions.meta.cycle.' + s.billingPeriod | t }}</td>
+            <td class="hidden md:table-cell text-sm tabular-nums">
+              {{ s.usage?.used || 0 }} / {{ s.usage?.seats || s.seats }}
+              <span class="text-muted-foreground">({{ s.usage?.available ?? s.seats }} {{ 'subscriptions.overview.available' | t }})</span>
+            </td>
+            <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">
+              {{ s.startDate | dateLocale:'short' }} → {{ s.endDate | dateLocale:'short' }}
+            </td>
+            <td class="text-sm tabular-nums font-medium">{{ nextAmount(s) }} {{ s.currency }}</td>
+            <td class="text-right whitespace-nowrap">
+              <button type="button" class="btn-ghost btn-sm" (click)="toggleAutoRenew(s)">
+                {{ (s.autoRenew ? 'subscriptions.overview.autoRenewOff' : 'subscriptions.overview.autoRenewOn') | t }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading && !subscriptions.length" class="card">
+      <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'subscriptions.overview.empty' | t }}</div>
+    </div>
+
+    <div class="card mt-6" *ngIf="!loading">
+      <div class="card-content p-4 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p class="font-medium">{{ 'subscriptions.overview.discover' | t }}</p>
+          <p class="text-sm text-muted-foreground">{{ 'subscriptions.overview.discoverSub' | t }}</p>
+        </div>
+        <a routerLink="/abonnements/produits" class="btn-primary btn-sm">{{ 'subscriptions.overview.browse' | t }}</a>
+      </div>
+    </div>
+
+    <!-- Préférences de notification (par utilisateur, canaux e-mail / in-app) -->
+    <div class="card mt-6" *ngIf="!loading">
+      <div class="card-header py-3">{{ 'subscriptions.overview.notifTitle' | t }}</div>
+      <div class="card-content py-2">
+        <p class="text-sm text-muted-foreground mb-2">{{ 'subscriptions.overview.notifSub' | t }}</p>
+        <div class="grid grid-cols-3 border-b border-border py-1.5 text-xs font-medium text-muted-foreground">
+          <span>{{ 'subscriptions.overview.product' | t }}</span>
+          <span class="text-center">{{ 'subscriptions.overview.notifEmail' | t }}</span>
+          <span class="text-center">{{ 'subscriptions.overview.notifInApp' | t }}</span>
+        </div>
+        <div *ngFor="let e of events" class="grid grid-cols-3 items-center border-b border-border/60 py-1.5 text-sm">
+          <span>{{ 'projects.notifyEvents.' + e | t }}</span>
+          <label class="flex items-center justify-center gap-2 cursor-pointer">
+            <input type="checkbox" [checked]="emailOf(e)" (change)="togglePref(e, 'email')" class="checkbox" />
+          </label>
+          <label class="flex items-center justify-center gap-2 cursor-pointer">
+            <input type="checkbox" [checked]="inappOf(e)" (change)="togglePref(e, 'inapp')" class="checkbox" />
+          </label>
+        </div>
+        <div class="pt-3 flex justify-end">
+          <button type="button" class="btn-primary btn-sm" (click)="savePrefs()">{{ 'subscriptions.overview.notifSave' | t }}</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
