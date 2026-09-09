@@ -23,7 +23,8 @@ export type CategorieUpload =
   | 'tickets'
   | 'attachments'
   | 'logos'
-  | 'documents';
+  | 'documents'
+  | 'projects';
 
 @Injectable({ providedIn: 'root' })
 export class UploadService {
@@ -36,12 +37,14 @@ export class UploadService {
    * (stockage organisé : uploads/tenants/<tenantId>/<categorie>/ côté
    * serveur — registre partagé CATEGORIES_UPLOAD). Sans catégorie, le
    * serveur applique « attachments » (comportement historique).
-   * Retourne les URLs canoniques relatives + métadonnées.
+   * `subpath` : sous-dossier strict (catégorie « projects »), ex.
+   * « PRJ-2026-0001/Tasks ». Retourne les URLs canoniques relatives.
    */
-  upload(files: File[], categorie?: CategorieUpload): Observable<UploadedFile[]> {
+  upload(files: File[], categorie?: CategorieUpload, subpath = ''): Observable<UploadedFile[]> {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f, f.name));
-    const cible = categorie ? `${this.baseUrl}/${categorie}` : this.baseUrl;
+    let cible = categorie ? `${this.baseUrl}/${categorie}` : this.baseUrl;
+    if (subpath) cible += `?subpath=${encodeURIComponent(subpath)}`;
     return this.http
       .post<{ files: UploadedFile[] }>(cible, formData)
       .pipe(map((res) => res.files));

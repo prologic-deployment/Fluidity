@@ -1,0 +1,115 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.tasks.title' | t }}</h2>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.tasks.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+  <div class="toolbar mb-4 flex-wrap">
+    <div class="search-field grow">
+      <input type="text" [(ngModel)]="q" (keyup.enter)="applyFilters()" placeholder="{{ 'projects.tasks.searchPh' | t }}" class="search-input" />
+    </div>
+    <select [(ngModel)]="fStatus" (change)="applyFilters()" class="filter-select">
+      <option value="">{{ 'projects.filters.allStatuses' | t }}</option>
+      <option *ngFor="let s of workflow" [value]="s.key">{{ s | pState }}</option>
+    </select>
+    <select [(ngModel)]="fPriority" (change)="applyFilters()" class="filter-select">
+      <option value="">{{ 'projects.filters.allPriorities' | t }}</option>
+      <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+    </select>
+    <select [(ngModel)]="fAssignee" (change)="applyFilters()" class="filter-select">
+      <option value="">{{ 'projects.filters.allAssignees' | t }}</option>
+      <option value="none">{{ 'projects.filters.unassigned' | t }}</option>
+    </select>
+    <button type="button" class="btn-ghost btn-sm" (click)="resetFilters()">{{ 'common.reset' | t }}</button>
+    <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading">{{ 'projects.tasks.count' | t: { n: total } }}</span>
+  </div>
+
+  <div *ngIf="loading" class="table-wrap p-4 space-y-3">
+    <div *ngFor="let _ of [1,2,3,4,5]" class="skeleton h-10 w-full"></div>
+  </div>
+
+  <div *ngIf="!loading && !tasks.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.tasks.empty' | t }}</div>
+  </div>
+
+  <div *ngIf="!loading && tasks.length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'projects.fields.ref' | t }}</th>
+          <th>{{ 'projects.fields.title' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.fields.status' | t }}</th>
+          <th>{{ 'projects.fields.priority' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.fields.assignee' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.fields.dueDate' | t }}</th>
+          <th class="hidden xl:table-cell">{{ 'projects.fields.estimated' | t }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of tasks; trackBy: trackTask" class="cursor-pointer" [routerLink]="['/projets', projectId, 'taches', t._id]">
+          <td class="font-mono text-xs whitespace-nowrap">
+            {{ t.ref }}
+            <span *ngIf="t.subtaskCount" class="badge badge-default text-[10px] ml-1">{{ t.subtaskCount }} ↓</span>
+          </td>
+          <td class="min-w-0">
+            <p class="font-medium truncate max-w-[340px]">{{ t.title }}</p>
+            <div class="flex flex-wrap gap-1 mt-1" *ngIf="t.tags?.length">
+              <span *ngFor="let tag of t.tags.slice(0, 3)" class="badge badge-default text-[10px]">{{ tag }}</span>
+            </div>
+          </td>
+          <td class="hidden md:table-cell"><span class="badge badge-secondary">{{ stateOf(t.status) | pState }}</span></td>
+          <td><span class="badge" [ngClass]="priorityBadge[t.priority]">{{ 'projects.meta.priority.' + t.priority | t }}</span></td>
+          <td class="hidden lg:table-cell text-sm">
+            <span *ngIf="assigneeName(t)">{{ assigneeName(t) }}</span>
+            <span *ngIf="!assigneeName(t)" class="text-muted-foreground">—</span>
+          </td>
+          <td class="hidden md:table-cell text-sm whitespace-nowrap" [class.text-red-600]="isOverdue(t)">{{ t.dueDate | dateLocale:'short' }}</td>
+          <td class="hidden xl:table-cell text-sm tabular-nums">{{ t.estimatedHours }}h</td>
+          <td class="text-right text-muted-foreground table-row-chevron">›</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="flex items-center justify-between px-4 py-3 text-sm border-t border-border" *ngIf="pages > 1">
+      <button class="btn-ghost btn-sm" [disabled]="page <= 1" (click)="goPage(page - 1)">{{ 'common.previous' | t }}</button>
+      <span class="text-muted-foreground tabular-nums">{{ page }} / {{ pages }}</span>
+      <button class="btn-ghost btn-sm" [disabled]="page >= pages" (click)="goPage(page + 1)">{{ 'common.next' | t }}</button>
+    </div>
+  </div>
+
+  <!-- Création rapide -->
+  <app-modal [open]="creating" [title]="'projects.tasks.new' | t" [subtitle]="'projects.tasks.newSub' | t" (closed)="creating = false">
+    <div class="space-y-4">
+      <div>
+        <label class="field-label">{{ 'projects.fields.title' | t }} *</label>
+        <input type="text" [(ngModel)]="newTask.title" class="input" maxlength="200" />
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="field-label">{{ 'projects.fields.status' | t }}</label>
+          <select [(ngModel)]="newTask.status" class="input">
+            <option *ngFor="let s of workflow" [value]="s.key">{{ s | pState }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
+          <select [(ngModel)]="newTask.priority" class="input">
+            <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.dueDate' | t }}</label>
+          <input type="date" [(ngModel)]="newTask.dueDate" class="input" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost" (click)="creating = false">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary" [disabled]="!newTask.title.trim() || submitting" (click)="submitCreate()">
+          {{ 'projects.tasks.create' | t }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+</main>

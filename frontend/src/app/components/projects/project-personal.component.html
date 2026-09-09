@@ -1,0 +1,110 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-[1600px] mx-auto px-4 lg:px-6 py-4">
+      <h1 class="text-lg font-semibold tracking-tight">{{ 'projects.personal.title' | t }}</h1>
+      <p class="text-sm text-muted-foreground">{{ 'projects.personal.subtitle' | t }}</p>
+    </div>
+  </header>
+
+  <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+    <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div *ngFor="let _ of [1,2,3]" class="skeleton h-64"></div>
+    </div>
+
+    <ng-container *ngIf="data">
+      <!-- KPIs personnels -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums">{{ data.myTasks.length }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.personal.kpi.myTasks' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">{{ data.dueToday.length }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.personal.kpi.dueToday' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums text-red-600 dark:text-red-400">{{ data.overdue.length }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.personal.kpi.overdue' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-3">
+          <p class="text-xl font-semibold tabular-nums">{{ data.myProjects.length }}</p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.personal.kpi.projects' | t }}</p>
+        </div></div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        <!-- En retard -->
+        <div class="card" *ngIf="hasOverdue">
+          <div class="card-header py-3 text-destructive">{{ 'projects.personal.overdue' | t }}</div>
+          <ul class="card-content py-2 divide-y divide-border">
+            <li *ngFor="let t of data.overdue.slice(0, 8); trackBy: trackTask" class="py-2">
+              <a [routerLink]="['/projets', t.projectId, 'taches', t._id]" class="text-sm hover:underline line-clamp-1">{{ t.ref }} — {{ t.title }}</a>
+              <p class="text-xs text-muted-foreground mt-0.5">{{ t.dueDate | dateLocale:'short' }}</p>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Mes tâches -->
+        <div class="card xl:col-span-2">
+          <div class="card-header py-3">{{ 'projects.personal.myTasks' | t }}</div>
+          <ul class="card-content py-2 divide-y divide-border">
+            <li *ngFor="let t of data.myTasks.slice(0, 12); trackBy: trackTask" class="py-2 flex items-center gap-3 min-w-0">
+              <span class="badge badge-secondary shrink-0 tabular-nums font-mono text-xs">{{ t.ref }}</span>
+              <div class="min-w-0 flex-1">
+                <a [routerLink]="['/projets', t.projectId, 'taches', t._id]" class="text-sm font-medium hover:underline line-clamp-1">{{ t.title }}</a>
+                <p class="text-xs text-muted-foreground">{{ t.projectId.code }} — {{ 'projects.meta.status.' + t.status | t }}</p>
+              </div>
+              <span class="badge shrink-0" [ngClass]="priorityBadge[t.priority]">{{ 'projects.meta.priority.' + t.priority | t }}</span>
+              <span class="text-xs text-muted-foreground shrink-0 hidden sm:block">{{ t.dueDate | dateLocale:'short' }}</span>
+            </li>
+            <li *ngIf="!data.myTasks.length" class="py-8 text-center text-sm text-muted-foreground">{{ 'projects.personal.noTasks' | t }}</li>
+          </ul>
+        </div>
+
+        <!-- Projets dont je suis responsable (managers) -->
+        <div class="card xl:col-span-3" *ngIf="data.managed.length">
+          <div class="card-header py-3">{{ 'projects.personal.managed' | t }}</div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>{{ 'projects.fields.code' | t }}</th>
+                  <th>{{ 'projects.fields.name' | t }}</th>
+                  <th class="hidden md:table-cell">{{ 'projects.fields.deadline' | t }}</th>
+                  <th>{{ 'projects.fields.health' | t }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of data.managed" class="cursor-pointer" [routerLink]="['/projets', p._id]">
+                  <td class="font-mono text-xs whitespace-nowrap">{{ p.code }}</td>
+                  <td class="font-medium truncate max-w-[280px]">{{ p.name }}</td>
+                  <td class="hidden md:table-cell text-sm whitespace-nowrap">{{ p.endDate | dateLocale:'short' }}</td>
+                  <td><span class="badge" [ngClass]="healthBadge[p.health || 'healthy']">{{ 'projects.health.' + (p.health || 'healthy') | t }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Mes projets (membre) -->
+        <div class="card xl:col-span-3" *ngIf="data.myProjects.length">
+          <div class="card-header py-3">{{ 'projects.personal.myProjects' | t }}</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 p-3">
+            <a *ngFor="let p of data.myProjects" [routerLink]="['/projets', p._id]" class="card card-hover">
+              <div class="card-content py-3">
+                <p class="text-xs font-mono text-muted-foreground">{{ p.code }}</p>
+                <p class="text-sm font-medium mt-1 line-clamp-2">{{ p.name }}</p>
+                <div class="flex items-center gap-2 mt-2">
+                  <span class="badge badge-outline">{{ 'projects.meta.methodology.' + p.methodology | t }}</span>
+                  <span class="badge badge-secondary">{{ 'projects.meta.status.' + p.status | t }}</span>
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </main>
+</div>

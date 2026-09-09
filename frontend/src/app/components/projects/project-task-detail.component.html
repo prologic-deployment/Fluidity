@@ -1,0 +1,217 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div *ngIf="loading" class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+    <div class="skeleton h-96 xl:col-span-2"></div>
+    <div class="skeleton h-96"></div>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <ng-container *ngIf="task">
+    <div class="flex items-center gap-2 mb-4 flex-wrap">
+      <span class="font-mono text-sm text-muted-foreground border border-border rounded px-1.5 py-0.5">{{ task.ref }}</span>
+      <h2 class="text-base font-semibold truncate max-w-full">{{ task.title }}</h2>
+      <span class="badge badge-secondary">{{ task.status | pState }}</span>
+      <span class="badge ml-auto" [ngClass]="priorityBadge[task.priority]">{{ 'projects.meta.priority.' + task.priority | t }}</span>
+      <button type="button" class="btn-ghost btn-sm" [class.btn-secondary]="watching" (click)="toggleWatch()">
+        {{ (watching ? 'projects.task.unwatch' : 'projects.task.watch') | t }}
+      </button>
+    </div>
+
+    <!-- Transitions de statut -->
+    <div class="flex items-center gap-2 mb-6 flex-wrap" *ngIf="availableTargets().length">
+      <span class="text-sm text-muted-foreground">{{ 'projects.task.moveTo' | t }} :</span>
+      <button
+        *ngFor="let s of availableTargets()"
+        type="button"
+        class="btn-ghost btn-sm"
+        (click)="transition(s.key)"
+      >{{ s | pState }}</button>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 items-start">
+      <!-- Colonne principale -->
+      <div class="space-y-3 xl:col-span-2">
+        <!-- Détails -->
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.details' | t }}</div>
+          <div class="card-content p-4 space-y-3">
+            <div>
+              <label class="field-label">{{ 'projects.fields.title' | t }}</label>
+              <input type="text" [(ngModel)]="editTitle" class="input" maxlength="200" />
+            </div>
+            <div>
+              <label class="field-label">{{ 'projects.fields.description' | t }}</label>
+              <textarea [(ngModel)]="editDescription" rows="4" class="input"></textarea>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
+                <select [(ngModel)]="editPriority" class="input">
+                  <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.assignee' | t }}</label>
+                <select [(ngModel)]="editAssignee" class="input">
+                  <option value="">{{ 'projects.filters.unassigned' | t }}</option>
+                  <option *ngFor="let m of members" [value]="memberIdOf(m)">{{ memberNameOf(m) }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.startDate' | t }}</label>
+                <input type="date" [(ngModel)]="editStart" class="input" />
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.dueDate' | t }}</label>
+                <input type="date" [(ngModel)]="editDue" class="input" />
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.estimated' | t }} (h)</label>
+                <input type="number" min="0" step="1" [(ngModel)]="editEstimated" class="input" />
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.logged' | t }} (h)</label>
+                <input type="number" min="0" step="1" [(ngModel)]="editLogged" class="input" />
+              </div>
+            </div>
+            <div>
+              <label class="field-label">{{ 'projects.fields.tags' | t }}</label>
+              <input type="text" [(ngModel)]="editTags" class="input" placeholder="{{ 'projects.task.tagsPh' | t }}" />
+            </div>
+            <div class="flex justify-end">
+              <button type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Checklist -->
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.checklist' | t }}</div>
+          <div class="card-content p-4 space-y-2">
+            <div *ngFor="let c of task.checklist; let i = index" class="flex items-center gap-2">
+              <input type="checkbox" [checked]="c.done" (change)="toggleChecklist(i)" class="checkbox" />
+              <span class="text-sm flex-1 min-w-0 truncate" [class.line-through]="c.done" [class.text-muted-foreground]="c.done">{{ c.text }}</span>
+              <button type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeChecklist(i)">×</button>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <input type="text" [(ngModel)]="newChecklist" (keyup.enter)="addChecklist()" class="input" placeholder="{{ 'projects.task.checklistPh' | t }}" />
+              <button type="button" class="btn-secondary btn-sm" (click)="addChecklist()">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sous-tâches -->
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.subtasks' | t }}</div>
+          <div class="card-content p-4 space-y-2">
+            <a
+              *ngFor="let s of data?.subtasks"
+              [routerLink]="['/projets', projectId, 'taches', s._id]"
+              class="flex items-center gap-2 text-sm py-1 hover:underline"
+            >
+              <span class="font-mono text-xs text-muted-foreground">{{ s.ref }}</span>
+              <span class="truncate flex-1 min-w-0">{{ s.title }}</span>
+              <span class="badge badge-secondary text-[10px]">{{ s.status | pState }}</span>
+            </a>
+            <p *ngIf="!data?.subtasks?.length" class="text-sm text-muted-foreground py-2">{{ 'projects.task.noSubtasks' | t }}</p>
+            <div class="flex gap-2 pt-1">
+              <input type="text" [(ngModel)]="newSubtask" (keyup.enter)="addSubtask()" class="input" placeholder="{{ 'projects.task.subtaskPh' | t }}" />
+              <button type="button" class="btn-secondary btn-sm" (click)="addSubtask()">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dépendances -->
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.dependencies' | t }}</div>
+          <div class="card-content p-4 space-y-2">
+            <div *ngFor="let d of task.dependencies" class="flex items-center gap-2 text-sm">
+              <span class="text-muted-foreground">⛓</span>
+              <span class="font-mono text-xs text-muted-foreground">{{ d.dependsOn?.ref }}</span>
+              <span class="truncate flex-1 min-w-0">{{ d.dependsOn?.title }}</span>
+              <span class="badge badge-outline text-[10px]">{{ 'projects.meta.dep.' + d.type | t }}</span>
+              <button type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeDependency(d.dependsOnId)">×</button>
+            </div>
+            <p *ngIf="!task.dependencies.length" class="text-sm text-muted-foreground py-2">{{ 'projects.task.noDeps' | t }}</p>
+            <div class="flex gap-2 pt-1">
+              <select [(ngModel)]="newDependency" class="input">
+                <option value="">{{ 'projects.task.depPh' | t }}</option>
+                <option *ngFor="let s of depCandidates" [value]="s._id">{{ s.ref }} — {{ s.title }}</option>
+              </select>
+              <button type="button" class="btn-secondary btn-sm" [disabled]="!newDependency" (click)="addDependency()">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Commentaires -->
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.comments' | t }}</div>
+          <div class="card-content p-4 space-y-4">
+            <div class="space-y-3">
+              <div *ngFor="let c of comments; trackBy: trackComment" class="flex gap-3">
+                <span class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium border border-border shrink-0">
+                  {{ initialsOf(c) }}
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-muted-foreground">
+                    <span class="font-medium text-foreground">{{ nameOf(c) }}</span> · {{ c.createdAt | dateLocale:'medium' }}
+                    <span *ngIf="c.edited" class="italic">· {{ 'projects.task.edited' | t }}</span>
+                  </p>
+                  <p class="text-sm mt-0.5 whitespace-pre-wrap break-words">{{ c.text }}</p>
+                </div>
+                <button type="button" class="text-muted-foreground hover:text-destructive text-xs self-start" (click)="deleteComment(c._id)">×</button>
+              </div>
+              <p *ngIf="!comments.length" class="text-sm text-muted-foreground">{{ 'projects.task.noComments' | t }}</p>
+            </div>
+            <div class="border-t border-border pt-3">
+              <textarea [(ngModel)]="commentText" rows="3" class="input" placeholder="{{ 'projects.task.commentPh' | t }}"></textarea>
+              <div class="flex justify-between items-center mt-2">
+                <p class="text-xs text-muted-foreground">{{ 'projects.task.mentionHint' | t }}</p>
+                <button type="button" class="btn-primary btn-sm" [disabled]="!commentText.trim() || commentSubmitting" (click)="addComment()">
+                  {{ 'projects.task.comment' | t }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne latérale -->
+      <div class="space-y-3">
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.files' | t }}</div>
+          <div class="card-content p-4 space-y-2">
+            <p *ngFor="let f of task.attachments" class="text-sm truncate">📎 {{ f.name }}</p>
+            <p *ngIf="!task.attachments.length" class="text-sm text-muted-foreground">{{ 'projects.task.noFiles' | t }}</p>
+            <label class="btn-secondary btn-sm inline-flex items-center gap-1 cursor-pointer mt-2">
+              {{ 'projects.task.upload' | t }}
+              <input type="file" multiple class="hidden" (change)="onFilesPicked($event)" />
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.meta' | t }}</div>
+          <dl class="card-content p-4 space-y-2 text-sm">
+            <div class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">{{ 'projects.fields.created' | t }}</dt>
+              <dd>{{ task.createdAt | dateLocale:'short' }}</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">{{ 'projects.fields.estimated' | t }}</dt>
+              <dd>{{ task.estimatedHours }}h</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">{{ 'projects.fields.logged' | t }}</dt>
+              <dd>{{ task.loggedHours }}h</dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-muted-foreground">{{ 'projects.fields.watchers' | t }}</dt>
+              <dd class="tabular-nums">{{ task.watchers.length }}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</main>

@@ -1,0 +1,97 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.team.title' | t }}</h2>
+    <button *ngIf="canManage" type="button" class="btn-primary btn-sm" (click)="toggleAdding()">
+      {{ (adding ? 'common.cancel' : 'projects.team.add') | t }}
+    </button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+  <!-- Ajout de membre -->
+  <div class="card mb-4" *ngIf="adding">
+    <div class="card-content p-4">
+      <div class="search-field mb-3">
+        <input type="text" [(ngModel)]="candidateQuery" (input)="searchCandidates(candidateQuery)" class="search-input" placeholder="{{ 'projects.team.searchPh' | t }}" />
+      </div>
+      <ul class="divide-y divide-border border border-border rounded" *ngIf="candidates.length">
+        <li *ngFor="let u of candidates" class="flex items-center gap-2 px-3 py-2 text-sm">
+          <span class="flex-1 min-w-0 truncate">
+            {{ u.firstName }} {{ u.lastName }}
+            <span class="text-muted-foreground text-xs">{{ u.email }}</span>
+          </span>
+          <span *ngIf="u.isMember" class="badge badge-outline text-[10px]">{{ 'projects.team.alreadyMember' | t }}</span>
+          <button *ngIf="!u.isMember" type="button" class="btn-secondary btn-sm" (click)="addUser(u)">+</button>
+        </li>
+      </ul>
+      <p *ngIf="!candidateLoading && candidateQuery.length >= 2 && !candidates.length" class="text-sm text-muted-foreground py-3">
+        {{ 'projects.team.noMatch' | t }}
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="table-wrap p-4 space-y-3">
+    <div *ngFor="let _ of [1,2,3]" class="skeleton h-12 w-full"></div>
+  </div>
+
+  <div *ngIf="!loading && members.length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'projects.fields.member' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.fields.role' | t }}</th>
+          <th>{{ 'projects.team.workload' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.team.activity' | t }}</th>
+          <th *ngIf="canManage"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of members; trackBy: trackM">
+          <td>
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium border border-border overflow-hidden shrink-0">
+                <img *ngIf="member(m)?.avatarUrl" [src]="member(m)?.avatarUrl | urlUpload" class="w-full h-full object-cover" alt="" />
+                <ng-container *ngIf="!member(m)?.avatarUrl">{{ initials(m) }}</ng-container>
+              </span>
+              <div class="min-w-0">
+                <p class="text-sm font-medium truncate">{{ member(m)?.name }}</p>
+                <p class="text-xs text-muted-foreground truncate">{{ member(m)?.email }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="hidden md:table-cell">
+            <select *ngIf="canManage" [value]="m.roleKey" (change)="changeRole(m, $any($event.target).value)" class="input !w-auto !py-1 text-xs">
+              <option *ngFor="let r of roles" [value]="r">{{ 'products.roles.' + r | t }}</option>
+            </select>
+            <span *ngIf="!canManage" class="badge badge-secondary">{{ 'products.roles.' + m.roleKey | t }}</span>
+          </td>
+          <td>
+            <ng-container *ngIf="loadOf(m) as w">
+              <div class="flex items-center gap-2">
+                <div class="flex-1 h-2 rounded bg-muted/50 overflow-hidden max-w-[120px]">
+                  <div class="h-full rounded" [ngClass]="{
+                    'bg-emerald-500': levelOf(w) === 'normal',
+                    'bg-slate-400': levelOf(w) === 'low',
+                    'bg-amber-500': levelOf(w) === 'high',
+                    'bg-red-500': levelOf(w) === 'over'
+                  }" [style.width.%]="Math.min(100, w.tasks * 12.5)"></div>
+                </div>
+                <span class="badge text-[10px]" [ngClass]="levelBadge(levelOf(w))">{{ 'projects.meta.workload.' + levelOf(w) | t }}</span>
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">{{ w.tasks }} {{ 'projects.overview.tasks' | t }} · {{ w.overdue }} {{ 'projects.team.overdue' | t }} · {{ w.estimatedHours }}h</p>
+            </ng-container>
+            <span *ngIf="!loadOf(m)" class="text-sm text-muted-foreground">—</span>
+          </td>
+          <td class="hidden lg:table-cell text-sm text-muted-foreground">{{ 'products.roles.' + m.roleKey | t }}</td>
+          <td *ngIf="canManage" class="text-right">
+            <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(m)">{{ 'projects.team.remove' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !members.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.team.empty' | t }}</div>
+  </div>
+</main>

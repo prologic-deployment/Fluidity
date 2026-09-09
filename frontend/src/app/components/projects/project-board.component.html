@@ -1,0 +1,82 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.board.title' | t }}</h2>
+    <select *ngIf="isScrum" [(ngModel)]="sprintFilter" (change)="refresh()" class="filter-select">
+      <option value="all">{{ 'projects.board.allSprints' | t }}</option>
+      <option *ngFor="let s of sprints" [value]="s._id">{{ s.name }}</option>
+    </select>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-40"></div>
+  </div>
+
+  <div *ngIf="!loading && columns.length" class="flex gap-3 overflow-x-auto pb-4 snap-x" role="list">
+    <div
+      *ngFor="let col of columns; trackBy: trackColumn"
+      class="snap-start shrink-0 w-[280px] sm:w-[300px] rounded-xl border border-border bg-muted/30 flex flex-col max-h-[calc(100vh-220px)]"
+      (dragover)="onDragOver($event)"
+      (drop)="onDrop($event, col, col.tasks.length)"
+    >
+      <!-- En-tête de colonne -->
+      <div class="px-3 py-2.5 border-b border-border flex items-center gap-2 sticky top-0 bg-card rounded-t-xl z-10">
+        <span class="w-2 h-2 rounded-full" [ngClass]="col.state | pStateDot"></span>
+        <span class="text-sm font-medium truncate">{{ col.state | pState }}</span>
+        <span class="badge badge-default tabular-nums ml-auto text-[10px]">{{ col.tasks.length }}</span>
+      </div>
+
+      <!-- Cartes -->
+      <div class="p-2 space-y-2 overflow-y-auto grow">
+        <div
+          *ngFor="let t of col.tasks; trackBy: trackTask"
+          class="card card-hover cursor-grab active:cursor-grabbing"
+          draggable="true"
+          (dragstart)="onDragStart($event, t)"
+          (dragend)="onDragEnd()"
+          (dragover)="onDragOver($event)"
+          (drop)="onDrop($event, col, col.tasks.indexOf(t))"
+          [routerLink]="['/projets', projectId, 'taches', t._id]"
+          [class.opacity-60]="dragTaskId === t._id"
+        >
+          <div class="card-content p-3">
+            <div class="flex items-center gap-1.5 flex-wrap mb-1.5">
+              <span class="font-mono text-[10px] text-muted-foreground">{{ t.ref }}</span>
+              <span class="badge shrink-0 text-[10px]" [ngClass]="priorityBadge[t.priority]">{{ 'projects.meta.priority.' + t.priority | t }}</span>
+              <span *ngIf="t.dependencies?.length" class="text-[10px] text-muted-foreground" [title]="'projects.board.hasDeps' | t">⛓ {{ t.dependencies.length }}</span>
+            </div>
+            <p class="text-sm font-medium line-clamp-2">{{ t.title }}</p>
+            <div class="flex flex-wrap gap-1 mt-1.5" *ngIf="t.tags?.length">
+              <span *ngFor="let tag of t.tags.slice(0, 4)" class="badge badge-default text-[10px]">{{ tag }}</span>
+            </div>
+            <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <span *ngIf="t.dueDate" class="flex items-center gap-1" [class.text-red-600]="isOverdue(t)">
+                🗓 {{ t.dueDate | dateLocale:'short' }}
+              </span>
+              <span *ngIf="metaCount(t).comments" class="flex items-center gap-0.5">💬 {{ metaCount(t).comments }}</span>
+              <span *ngIf="metaCount(t).files" class="flex items-center gap-0.5">📎 {{ metaCount(t).files }}</span>
+              <span *ngIf="t.estimatedHours" class="ml-auto tabular-nums">{{ t.estimatedHours }}h</span>
+            </div>
+            <div class="flex items-center gap-2 mt-2" *ngIf="t.assigneeId">
+              <span class="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium border border-border overflow-hidden shrink-0" [title]="assigneeName(t)">
+                <img *ngIf="assigneeAvatar(t)" [src]="assigneeAvatar(t) | urlUpload" class="w-full h-full object-cover" alt="" />
+                <ng-container *ngIf="!assigneeAvatar(t)">{{ initials(t) }}</ng-container>
+              </span>
+              <span class="text-xs truncate">{{ assigneeName(t) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          *ngIf="!col.tasks.length"
+          class="border-2 border-dashed border-border rounded-lg py-8 text-center text-xs text-muted-foreground"
+        >{{ 'projects.board.dropHere' | t }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !columns.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.board.empty' | t }}</div>
+  </div>
+</main>

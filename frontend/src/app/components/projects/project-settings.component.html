@@ -1,0 +1,139 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.settings.title' | t }}</h2>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div class="skeleton h-72"></div>
+    <div class="skeleton h-72"></div>
+  </div>
+
+  <ng-container *ngIf="project">
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
+      <!-- Informations générales -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.settings.general' | t }}</div>
+        <div class="card-content p-4 space-y-3">
+          <div>
+            <label class="field-label">{{ 'projects.fields.name' | t }}</label>
+            <input type="text" [(ngModel)]="form.name" class="input" maxlength="140" [disabled]="!canManage" />
+          </div>
+          <div>
+            <label class="field-label">{{ 'projects.fields.description' | t }}</label>
+            <textarea [(ngModel)]="form.description" rows="3" class="input" [disabled]="!canManage"></textarea>
+          </div>
+          <div>
+            <label class="field-label">{{ 'projects.fields.stakeholder' | t }}</label>
+            <input type="text" [(ngModel)]="form.stakeholder" class="input" maxlength="140" [disabled]="!canManage" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="field-label">{{ 'projects.fields.status' | t }}</label>
+              <select [(ngModel)]="form.status" class="input" [disabled]="!canManage">
+                <option *ngFor="let s of statuses" [value]="s">{{ 'projects.meta.status.' + s | t }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
+              <select [(ngModel)]="form.priority" class="input" [disabled]="!canManage">
+                <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">{{ 'projects.fields.visibility' | t }}</label>
+              <select [(ngModel)]="form.visibility" class="input" [disabled]="!canManage">
+                <option value="team">{{ 'projects.meta.visibility.team' | t }}</option>
+                <option value="tenant">{{ 'projects.meta.visibility.tenant' | t }}</option>
+                <option value="private">{{ 'projects.meta.visibility.private' | t }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="field-label">{{ 'projects.fields.startDate' | t }}</label>
+              <input type="date" [(ngModel)]="form.startDate" class="input" [disabled]="!canManage" />
+            </div>
+            <div>
+              <label class="field-label">{{ 'projects.fields.endDate' | t }}</label>
+              <input type="date" [(ngModel)]="form.endDate" class="input" [disabled]="!canManage" />
+            </div>
+          </div>
+          <div class="flex justify-end" *ngIf="canManage">
+            <button type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workflow personnalisé -->
+      <div class="card">
+        <div class="card-header py-3 flex items-center gap-2">
+          <span>{{ 'projects.settings.workflow' | t }}</span>
+          <button type="button" class="btn-ghost btn-sm ml-auto" (click)="resetWf()" [disabled]="!canManage">{{ 'projects.settings.wfReset' | t }}</button>
+        </div>
+        <div class="card-content p-4 space-y-2">
+          <p class="text-xs text-muted-foreground">{{ 'projects.settings.wfHint' | t }}</p>
+          <div *ngFor="let s of wfStates; trackBy: trackWf; let i = index" class="flex items-center gap-2">
+            <button type="button" class="btn-ghost btn-sm text-muted-foreground" (click)="moveWf(i, -1)" [disabled]="!canManage || i === 0">↑</button>
+            <button type="button" class="btn-ghost btn-sm text-muted-foreground" (click)="moveWf(i, 1)" [disabled]="!canManage || i === wfStates.length - 1">↓</button>
+            <input *ngIf="canManage" type="text" [(ngModel)]="s.label" class="input !py-1 text-sm flex-1" placeholder="{{ 'projects.settings.wfLabelPh' | t }}" />
+            <input *ngIf="canManage" type="text" [(ngModel)]="s.key" class="input !py-1 text-sm w-28 font-mono" placeholder="key" />
+            <span *ngIf="!canManage" class="text-sm flex-1">{{ s.label || s.key }}</span>
+            <label class="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+              <input type="checkbox" [(ngModel)]="s.terminal" [disabled]="!canManage" class="checkbox" />
+              {{ 'projects.settings.wfTerminal' | t }}
+            </label>
+            <button type="button" class="text-muted-foreground hover:text-destructive" (click)="removeWfState(i)" [disabled]="!canManage">×</button>
+          </div>
+          <div class="flex items-center gap-2 pt-2">
+            <button type="button" class="btn-secondary btn-sm" (click)="addWfState()" [disabled]="!canManage">+ {{ 'projects.settings.wfAdd' | t }}</button>
+            <button type="button" class="btn-primary btn-sm ml-auto" (click)="saveWorkflow()" [disabled]="!canManage || !wfDirty || saving">
+              {{ 'projects.settings.wfSave' | t }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Règles de santé -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.settings.health' | t }}</div>
+        <div class="card-content p-4 grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">{{ 'projects.settings.healthOverdueWeight' | t }}</label>
+            <input type="number" min="1" max="10" [(ngModel)]="health.overdueWeight" class="input" [disabled]="!canManage" />
+          </div>
+          <div>
+            <label class="field-label">{{ 'projects.settings.healthMilestoneDays' | t }}</label>
+            <input type="number" min="0" max="30" [(ngModel)]="health.milestoneDelayDays" class="input" [disabled]="!canManage" />
+          </div>
+          <div>
+            <label class="field-label">{{ 'projects.settings.healthDeadlineDays' | t }}</label>
+            <input type="number" min="1" max="90" [(ngModel)]="health.deadlineProximityDays" class="input" [disabled]="!canManage" />
+          </div>
+          <div>
+            <label class="field-label">{{ 'projects.settings.healthGapTolerance' | t }}</label>
+            <input type="number" min="0" max="50" [(ngModel)]="health.progressGapTolerance" class="input" [disabled]="!canManage" />
+          </div>
+          <div class="col-span-2 flex justify-end" *ngIf="canManage">
+            <button type="button" class="btn-primary btn-sm" (click)="saveHealth()">{{ 'projects.settings.healthSave' | t }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Archivage -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.settings.archive' | t }}</div>
+        <div class="card-content p-4">
+          <p class="text-sm text-muted-foreground">{{ 'projects.settings.archiveHint' | t }}</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ 'projects.settings.auditHint' | t }}</p>
+          <button
+            type="button"
+            class="btn-secondary btn-sm mt-3"
+            [disabled]="!canManage"
+            (click)="toggleArchive()"
+          >{{ (project.archived ? 'projects.settings.unarchive' : 'projects.settings.archive') | t }}</button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</main>

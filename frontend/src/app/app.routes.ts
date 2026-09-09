@@ -70,6 +70,22 @@ export const routes: Routes = [
         data: { breadcrumb: 'marketplace.comingSoonTag' },
       },
 
+      // ---- Produit SaaS « Gestion de Projet » (project_management) ----
+      {
+        path: 'projets',
+        data: { breadcrumb: 'nav.projects', productKey: 'project_management' },
+        canActivate: [productAccessGuard],
+        loadChildren: () => import('./components/projects/project.routes').then((m) => m.PROJECT_ROUTES),
+      },
+
+      // ---- Portail tenant « Abonnements & Licences » ----
+      {
+        path: 'abonnements',
+        data: { breadcrumb: 'nav.subscriptions' },
+        canActivate: [tenantAdminGuard],
+        loadChildren: () => import('./components/subscriptions/subscription.routes').then((m) => m.SUBSCRIPTION_ROUTES),
+      },
+
       // ---- Module ServiceDesk (produit existant) ----
       {
         path: 'tickets',

@@ -1,0 +1,45 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.activity.title' | t }}</h2>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+  <div class="toolbar mb-4 flex-wrap">
+    <select [(ngModel)]="fKind" (change)="applyFilters()" class="filter-select">
+      <option value="">{{ 'projects.activity.allKinds' | t }}</option>
+      <option *ngFor="let k of kinds" [value]="k">{{ 'projects.activity.kind.' + k | t }}</option>
+    </select>
+    <input type="text" [(ngModel)]="fUser" (keyup.enter)="applyFilters()" class="search-input w-48" placeholder="{{ 'projects.activity.userPh' | t }}" />
+    <button type="button" class="btn-ghost btn-sm" (click)="fKind = ''; fUser = ''; applyFilters()">{{ 'common.reset' | t }}</button>
+    <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading">{{ 'projects.activity.count' | t: { n: total } }}</span>
+  </div>
+
+  <div *ngIf="loading" class="card p-4 space-y-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-10 w-full"></div>
+  </div>
+
+  <div *ngIf="!loading && !items.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.activity.empty' | t }}</div>
+  </div>
+
+  <div class="card" *ngIf="!loading && items.length">
+    <ul class="card-content py-2 divide-y divide-border">
+      <li *ngFor="let a of items; trackBy: trackA" class="py-2.5 flex gap-3 text-sm">
+        <span class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></span>
+        <div class="min-w-0 flex-1">
+          <p class="break-words">
+            <span class="font-medium">{{ a.actorId?.firstName }} {{ a.actorId?.lastName }}</span>
+            <span class="text-muted-foreground"> — {{ a | pActivity }} </span>
+          </p>
+          <p class="text-xs text-muted-foreground mt-0.5">{{ a.createdAt | dateLocale:'medium' }}</p>
+        </div>
+      </li>
+    </ul>
+    <div class="flex items-center justify-between px-4 py-3 text-sm border-t border-border" *ngIf="pages > 1">
+      <button class="btn-ghost btn-sm" [disabled]="page <= 1" (click)="goPage(page - 1)">{{ 'common.previous' | t }}</button>
+      <span class="text-muted-foreground tabular-nums">{{ page }} / {{ pages }}</span>
+      <button class="btn-ghost btn-sm" [disabled]="page >= pages" (click)="goPage(page + 1)">{{ 'common.next' | t }}</button>
+    </div>
+  </div>
+</main>

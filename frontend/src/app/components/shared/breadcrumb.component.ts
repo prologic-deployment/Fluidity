@@ -4,6 +4,7 @@ import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router, RouterLi
 import { Observable, filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { BreadcrumbService } from './breadcrumb.service';
 
 export interface BreadcrumbItem {
   label: string;
@@ -18,8 +19,8 @@ export interface BreadcrumbItem {
  * Chaque route déclare son libellé via `data: { breadcrumb: 'Demandes' }` ;
  * les étapes intermédiaires sont cliquables, l'étape courante ne l'est pas.
  * Paramètres de route pris en charge : un jeton « :param » dans le libellé
- * est remplacé par la valeur du paramètre (extensible pour les futures
- * pages de détail, ex. `data: { breadcrumb: 'Demande :id' }`).
+ * est remplacé par la valeur du paramètre — sauf si un libellé humain est
+ * enregistré via BreadcrumbService (pages de détail : jamais d'ObjectId brut).
  * Les routes sans libellé sont simplement sautées (ex. le shell racine).
  */
 @Component({
@@ -38,7 +39,8 @@ export class BreadcrumbComponent {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private auth: AuthService
+    private auth: AuthService,
+    private breadcrumbs: BreadcrumbService
   ) {}
 
   /** Destination de l'étape racine selon le rôle (comme après connexion). */
@@ -59,7 +61,7 @@ export class BreadcrumbComponent {
       if (segmentPath) url += `/${segmentPath}`;
       const label = snapshot.data?.['breadcrumb'] as string | undefined;
       if (label) {
-        items.push({ label: this.resolveParams(label, snapshot), url });
+        items.push({ label: this.resolveParams(label, snapshot, url), url });
       }
       current = current.firstChild;
     }
@@ -68,8 +70,10 @@ export class BreadcrumbComponent {
     return items;
   }
 
-  /** Substitue les jetons « :param » par les paramètres effectifs de la route. */
-  private resolveParams(label: string, snapshot: ActivatedRouteSnapshot): string {
+  /** Substitue les jetons « :param » — priorité au libellé dynamique enregistré. */
+  private resolveParams(label: string, snapshot: ActivatedRouteSnapshot, url: string): string {
+    const dynamic = this.breadcrumbs.labelFor(url);
+    if (dynamic && label.includes(':')) return dynamic;
     return label.replace(/:([a-zA-Z][a-zA-Z0-9]*)/g, (token, name) => snapshot.params?.[name] ?? token);
   }
 }

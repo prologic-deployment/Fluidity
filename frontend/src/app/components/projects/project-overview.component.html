@@ -1,0 +1,135 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+  </div>
+
+  <ng-container *ngIf="data">
+    <!-- Compteurs -->
+    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3 mb-6">
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.taskStats.total }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.total' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{{ data.taskStats.completed }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.completed' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.taskStats.open }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.open' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-red-600 dark:text-red-400">{{ data.taskStats.overdue }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.overdue' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">{{ data.taskStats.blocked }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.blocked' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.taskStats.estimatedHours }}h</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.estimated' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.taskStats.loggedHours }}h</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.logged' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">{{ data.taskStats.progress }}%</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'projects.overview.progress' | t }}</p>
+      </div></div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+      <!-- Santé + raisons -->
+      <div class="card">
+        <div class="card-header py-3 flex items-center justify-between">
+          <span>{{ 'projects.overview.health' | t }}</span>
+          <span class="badge" [ngClass]="healthBadge[data.health.status]">{{ 'projects.health.' + data.health.status | t }}</span>
+        </div>
+        <div class="card-content py-3 space-y-2">
+          <p *ngFor="let r of data.health.reasons" class="text-sm flex items-start gap-2">
+            <span class="text-amber-500 mt-0.5">⚠</span>
+            <span>{{ r.key | t: r.params }}</span>
+          </p>
+          <p *ngIf="!data.health.reasons.length" class="text-sm text-muted-foreground">{{ 'projects.health.reasonNone' | t }}</p>
+        </div>
+      </div>
+
+      <!-- Échéances à venir -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.overview.upcoming' | t }}</div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let t of data.upcoming.tasks.slice(0, 6)" class="py-2 flex items-center gap-2 text-sm min-w-0">
+            <span class="badge badge-secondary shrink-0 font-mono text-xs">{{ t.ref }}</span>
+            <a [routerLink]="['/projets', data.project._id, 'taches', t._id]" class="truncate hover:underline flex-1 min-w-0">{{ t.title }}</a>
+            <span class="text-xs text-muted-foreground shrink-0">{{ t.dueDate | dateLocale:'short' }}</span>
+          </li>
+          <li *ngFor="let m of milestonesUpcoming" class="py-2 flex items-center gap-2 text-sm min-w-0">
+            <span class="badge badge-outline shrink-0">{{ m.kind === 'phase' ? ('projects.meta.kind.phase' | t) : ('projects.meta.kind.milestone' | t) }}</span>
+            <span class="truncate flex-1 min-w-0">{{ m.name }}</span>
+            <span class="text-xs text-muted-foreground shrink-0">{{ m.dueDate | dateLocale:'short' }}</span>
+          </li>
+          <li *ngIf="!data.upcoming.tasks.length && !milestonesUpcoming.length" class="py-6 text-center text-sm text-muted-foreground">
+            {{ 'projects.overview.noUpcoming' | t }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Risques -->
+      <div class="card">
+        <div class="card-header py-3 flex items-center justify-between">
+          <span>{{ 'projects.overview.risks' | t }}</span>
+          <a [routerLink]="['/projets', data.project._id, 'risques']" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">{{ 'projects.overview.seeAll' | t }}</a>
+        </div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let r of data.risks.slice(0, 6)" class="py-2 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="badge shrink-0" [ngClass]="severityBadge[r.severity]">{{ 'projects.meta.severity.' + r.severity | t }}</span>
+              <span class="truncate font-medium">{{ r.title }}</span>
+            </div>
+            <p class="text-xs text-muted-foreground mt-1 line-clamp-1">{{ r.mitigation }}</p>
+          </li>
+          <li *ngIf="!data.risks.length" class="py-6 text-center text-sm text-muted-foreground">{{ 'projects.overview.noRisks' | t }}</li>
+        </ul>
+      </div>
+
+      <!-- Charge de l'équipe -->
+      <div class="card xl:col-span-2">
+        <div class="card-header py-3">{{ 'projects.overview.workload' | t }}</div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let w of data.workload" class="py-2 flex items-center gap-3">
+            <span class="w-32 text-sm truncate font-medium">{{ memberName(w.userId) || ('projects.overview.unknownUser' | t) }}</span>
+            <div class="flex-1 h-2 rounded bg-muted/50 overflow-hidden">
+              <div class="h-full rounded" [ngClass]="{
+                'bg-emerald-500': workloadLevel(w) === 'normal',
+                'bg-slate-400': workloadLevel(w) === 'low',
+                'bg-amber-500': workloadLevel(w) === 'high',
+                'bg-red-500': workloadLevel(w) === 'over'
+              }" [style.width.%]="Math.min(100, w.tasks * 12.5)"></div>
+            </div>
+            <span class="badge shrink-0" [ngClass]="workloadBadge(workloadLevel(w))">{{ 'projects.meta.workload.' + workloadLevel(w) | t }}</span>
+            <span class="text-xs text-muted-foreground shrink-0 tabular-nums">{{ w.tasks }} {{ 'projects.overview.tasks' | t }} · {{ w.estimatedHours }}h</span>
+          </li>
+          <li *ngIf="!data.workload.length" class="py-6 text-center text-sm text-muted-foreground">{{ 'projects.overview.noWorkload' | t }}</li>
+        </ul>
+      </div>
+
+      <!-- Activité récente -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.overview.activity' | t }}</div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let a of data.activity.slice(0, 6)" class="py-2 text-sm min-w-0">
+            <p class="truncate">
+              <span class="font-medium">{{ a.actorId?.firstName }} {{ a.actorId?.lastName }}</span>
+              <span class="text-muted-foreground"> — {{ a | pActivity }} </span>
+            </p>
+            <p class="text-xs text-muted-foreground">{{ a.createdAt | dateLocale:'medium' }}</p>
+          </li>
+          <li *ngIf="!data.activity.length" class="py-6 text-center text-sm text-muted-foreground">{{ 'projects.overview.noActivity' | t }}</li>
+        </ul>
+      </div>
+    </div>
+  </ng-container>
+</main>

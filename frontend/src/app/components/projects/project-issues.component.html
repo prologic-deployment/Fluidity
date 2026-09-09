@@ -1,0 +1,85 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.issues.title' | t }}</h2>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.issues.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="table-wrap p-4 space-y-3">
+    <div *ngFor="let _ of [1,2,3]" class="skeleton h-10 w-full"></div>
+  </div>
+
+  <div *ngIf="!loading && issues.length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'projects.fields.title' | t }}</th>
+          <th>{{ 'projects.fields.priority' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.fields.status' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.fields.owner' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.fields.dueDate' | t }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let i of issues; trackBy: trackI">
+          <td class="min-w-0">
+            <p class="font-medium truncate max-w-[320px]">{{ i.title }}</p>
+            <p *ngIf="i.resolution" class="text-xs text-muted-foreground line-clamp-1 mt-0.5">✓ {{ i.resolution }}</p>
+          </td>
+          <td><span class="badge" [ngClass]="priorityBadge[i.priority]">{{ 'projects.meta.priority.' + i.priority | t }}</span></td>
+          <td class="hidden md:table-cell"><span class="badge" [ngClass]="statusBadge(i.status)">{{ 'projects.meta.issueStatus.' + i.status | t }}</span></td>
+          <td class="hidden lg:table-cell text-sm">{{ ownerName(i) || '—' }}</td>
+          <td class="hidden md:table-cell text-sm whitespace-nowrap">{{ i.dueDate | dateLocale:'short' }}</td>
+          <td class="text-right whitespace-nowrap">
+            <button type="button" class="btn-ghost btn-sm" (click)="openEdit(i)">{{ 'common.edit' | t }}</button>
+            <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(i)">{{ 'common.delete' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !issues.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.issues.empty' | t }}</div>
+  </div>
+
+  <app-modal [open]="creating || !!editing" [title]="(creating ? 'projects.issues.new' : 'projects.issues.edit') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-4">
+      <div>
+        <label class="field-label">{{ 'projects.fields.title' | t }} *</label>
+        <input type="text" [(ngModel)]="form.title" class="input" maxlength="200" />
+      </div>
+      <div>
+        <label class="field-label">{{ 'projects.fields.description' | t }}</label>
+        <textarea [(ngModel)]="form.description" rows="3" class="input"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
+          <select [(ngModel)]="form.priority" class="input">
+            <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.status' | t }}</label>
+          <select [(ngModel)]="form.status" class="input">
+            <option *ngFor="let s of statuses" [value]="s">{{ 'projects.meta.issueStatus.' + s | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.dueDate' | t }}</label>
+          <input type="date" [(ngModel)]="form.dueDate" class="input" />
+        </div>
+        <div class="col-span-2">
+          <label class="field-label">{{ 'projects.issues.resolution' | t }}</label>
+          <textarea [(ngModel)]="form.resolution" rows="2" class="input"></textarea>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary" [disabled]="!form.title.trim() || submitting" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

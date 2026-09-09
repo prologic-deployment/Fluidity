@@ -1,0 +1,125 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.reports.title' | t }}</h2>
+    <button type="button" class="btn-ghost btn-sm" (click)="exportStatusCsv()">⬇ CSV {{ 'projects.reports.statuses' | t }}</button>
+    <button type="button" class="btn-ghost btn-sm" (click)="exportRisksCsv()">⬇ CSV {{ 'projects.reports.risks' | t }}</button>
+    <button type="button" class="btn-secondary btn-sm" (click)="printReport()">🖨 {{ 'projects.reports.print' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div class="skeleton h-48"></div>
+    <div class="skeleton h-48"></div>
+  </div>
+
+  <ng-container *ngIf="data">
+    <!-- Progression & santé -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.progress' | t }}</div>
+        <div class="card-content p-4">
+          <div class="flex items-center gap-3">
+            <div class="flex-1 h-3 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="data.taskStats.progress"></div></div>
+            <span class="text-lg font-semibold tabular-nums">{{ data.taskStats.progress }}%</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-2">{{ data.taskStats.completed }}/{{ data.taskStats.total }} {{ 'projects.reports.completedTasks' | t }}</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.health' | t }}</div>
+        <div class="card-content p-4">
+          <span class="badge" [ngClass]="healthBadge[data.health.status]">{{ 'projects.health.' + data.health.status | t }}</span>
+          <ul class="mt-2 space-y-1">
+            <li *ngFor="let r of data.health.reasons" class="text-xs text-muted-foreground">• {{ r.key | t: r.params }}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.overdue' | t }}</div>
+        <div class="card-content p-4">
+          <p class="text-lg font-semibold tabular-nums text-red-600 dark:text-red-400">{{ data.taskStats.overdue }}</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ 'projects.reports.overdueDesc' | t }}</p>
+          <p class="text-lg font-semibold tabular-nums text-amber-600 dark:text-amber-400 mt-2">{{ data.taskStats.blocked }}</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ 'projects.reports.blockedDesc' | t }}</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.effort' | t }}</div>
+        <div class="card-content p-4">
+          <p class="text-lg font-semibold tabular-nums">{{ data.taskStats.estimatedHours }}h</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ 'projects.reports.estimated' | t }}</p>
+          <p class="text-lg font-semibold tabular-nums mt-2">{{ data.taskStats.loggedHours }}h</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ 'projects.reports.logged' | t }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+      <!-- Répartition par statut -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.statuses' | t }}</div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let row of statusRows" class="py-2 flex items-center gap-3 text-sm">
+            <span class="w-36 truncate">{{ row.label | pState }}</span>
+            <div class="flex-1 h-2 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="row.ratio"></div></div>
+            <span class="tabular-nums text-muted-foreground w-8 text-right">{{ row.count }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Jalons -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.milestones' | t }}</div>
+        <ul class="card-content py-2 divide-y divide-border">
+          <li *ngFor="let m of data.milestones" class="py-2 flex items-center gap-3 text-sm">
+            <span class="badge badge-outline shrink-0 text-[10px]">{{ m.kind === 'phase' ? ('projects.meta.kind.phase' | t) : ('projects.meta.kind.milestone' | t) }}</span>
+            <span class="truncate flex-1 min-w-0">{{ m.name }}</span>
+            <span class="text-xs text-muted-foreground shrink-0 whitespace-nowrap">{{ m.dueDate | dateLocale:'short' }}</span>
+            <span class="badge shrink-0" [ngClass]="milestoneBadge(m.status)">{{ 'projects.meta.milestoneStatus.' + m.status | t }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Vélocité des sprints -->
+      <div class="card" *ngIf="data.sprints.length">
+        <div class="card-header py-3">{{ 'projects.reports.velocity' | t }}</div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>{{ 'projects.fields.name' | t }}</th><th>{{ 'projects.sprints.velocity' | t }} (h)</th><th>{{ 'projects.sprints.tasks' | t }}</th><th>{{ 'projects.fields.status' | t }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let s of data.sprints">
+                <td class="truncate max-w-[200px]">{{ s.name }}</td>
+                <td class="tabular-nums">{{ s.velocity?.points || 0 }}</td>
+                <td class="tabular-nums">{{ s.velocity?.tasks || 0 }}</td>
+                <td><span class="badge badge-secondary">{{ 'projects.meta.sprintStatus.' + s.status | t }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Matrice de risques -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.reports.riskMatrix' | t }}</div>
+        <div class="card-content p-4 grid grid-cols-2 gap-2">
+          <div class="rounded-lg border border-border p-2 text-center">
+            <p class="text-xl font-semibold tabular-nums text-slate-500">{{ data.riskMatrix.low }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.meta.severity.low' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-2 text-center">
+            <p class="text-xl font-semibold tabular-nums text-sky-600">{{ data.riskMatrix.medium }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.meta.severity.medium' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-2 text-center">
+            <p class="text-xl font-semibold tabular-nums text-amber-600">{{ data.riskMatrix.high }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.meta.severity.high' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-2 text-center">
+            <p class="text-xl font-semibold tabular-nums text-red-600">{{ data.riskMatrix.critical }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.meta.severity.critical' | t }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</main>

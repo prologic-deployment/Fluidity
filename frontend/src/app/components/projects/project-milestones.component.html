@@ -1,0 +1,114 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.milestones.title' | t }}</h2>
+    <button type="button" class="btn-secondary btn-sm" (click)="openCreate('milestone')">{{ 'projects.milestones.new' | t }}</button>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate('phase')">{{ 'projects.milestones.newPhase' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div class="skeleton h-48"></div>
+    <div class="skeleton h-48"></div>
+  </div>
+
+  <!-- Phases (Waterfall / Hybride) -->
+  <div *ngIf="!loading && phases.length" class="mb-6">
+    <h3 class="text-sm font-medium text-muted-foreground mb-2">{{ 'projects.milestones.phases' | t }}</h3>
+    <div class="flex items-start gap-0 overflow-x-auto pb-2">
+      <ng-container *ngFor="let p of phases; trackBy: trackM; let i = index">
+        <div class="shrink-0 w-52 card">
+          <div class="card-content p-3">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] flex items-center justify-center font-semibold">{{ i + 1 }}</span>
+              <p class="text-sm font-medium truncate">{{ p.name }}</p>
+            </div>
+            <p class="text-xs text-muted-foreground mt-1">{{ p.startDate | dateLocale:'short' }} → {{ p.dueDate | dateLocale:'short' }}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="flex-1 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="p.progress || 0"></div></div>
+              <span class="text-xs tabular-nums text-muted-foreground">{{ p.progress }}%</span>
+            </div>
+            <div class="flex gap-1 mt-2 flex-wrap">
+              <button *ngFor="let s of phaseStatuses(p)" type="button" class="badge badge-outline text-[10px] cursor-pointer" (click)="setStatus(p, s)">{{ 'projects.meta.milestoneStatus.' + s | t }}</button>
+            </div>
+          </div>
+        </div>
+        <div class="shrink-0 w-8 flex items-center justify-center text-muted-foreground pt-6" *ngIf="i < phases.length - 1">→</div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Jalons -->
+  <div *ngIf="!loading && milestones.length" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div *ngFor="let m of milestones; trackBy: trackM" class="card" [class.border-red-300]="isOverdue(m)">
+      <div class="card-content p-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-medium text-sm">{{ m.name }}</span>
+          <span class="badge" [ngClass]="statusBadge(m.status)">{{ 'projects.meta.milestoneStatus.' + m.status | t }}</span>
+          <span class="badge badge-outline ml-auto tabular-nums" *ngIf="m.dueDate" [class.text-red-600]="isOverdue(m)">{{ m.dueDate | dateLocale:'short' }}</span>
+        </div>
+        <p class="text-sm text-muted-foreground mt-1 line-clamp-2">{{ m.description }}</p>
+        <div class="flex items-center gap-2 mt-2">
+          <div class="flex-1 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="m.progress || 0"></div></div>
+          <span class="text-xs tabular-nums text-muted-foreground">{{ m.progress }}%</span>
+        </div>
+        <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
+          <span *ngIf="memberName(m.ownerId)">{{ 'projects.fields.owner' | t }} : {{ memberName(m.ownerId) }}</span>
+          <button type="button" class="btn-ghost btn-sm ml-auto" (click)="openEdit(m)">{{ 'common.edit' | t }}</button>
+          <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(m)">{{ 'common.delete' | t }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !items.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.milestones.empty' | t }}</div>
+  </div>
+
+  <!-- Formulaire (création / édition) -->
+  <app-modal
+    [open]="creating || !!editing"
+    [title]="(creating ? 'projects.milestones.new' : 'projects.milestones.edit') | t"
+    (closed)="creating = false; editing = null"
+  >
+    <div class="space-y-4">
+      <div>
+        <label class="field-label">{{ 'projects.fields.name' | t }} *</label>
+        <input type="text" [(ngModel)]="form.name" class="input" maxlength="140" />
+      </div>
+      <div>
+        <label class="field-label">{{ 'projects.fields.description' | t }}</label>
+        <textarea [(ngModel)]="form.description" rows="3" class="input"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="field-label">{{ 'projects.fields.startDate' | t }}</label>
+          <input type="date" [(ngModel)]="form.startDate" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.dueDate' | t }}</label>
+          <input type="date" [(ngModel)]="form.dueDate" class="input" />
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.owner' | t }}</label>
+          <select [(ngModel)]="form.ownerId" class="input">
+            <option value="">—</option>
+            <option *ngFor="let m of members" [value]="memberIdOf(m)">{{ memberNameOf(m) }}</option>
+          </select>
+        </div>
+        <div *ngIf="form.kind === 'phase'">
+          <label class="field-label">{{ 'projects.milestones.dependsOn' | t }}</label>
+          <select [(ngModel)]="form.dependsOnId" class="input">
+            <option value="">—</option>
+            <option *ngFor="let p of phases" [value]="p._id" [disabled]="editing?._id === p._id">{{ p.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary" [disabled]="!form.name.trim() || submitting" (click)="creating ? submitCreate() : submitEdit()">
+          {{ 'common.save' | t }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+</main>

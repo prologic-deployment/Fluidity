@@ -1,0 +1,91 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.calendar.title' | t }}</h2>
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn-ghost btn-sm" (click)="move(-1)">←</button>
+      <span class="text-sm font-medium min-w-[180px] text-center">{{ view === 'month' ? monthLabel : weekLabel }}</span>
+      <button type="button" class="btn-ghost btn-sm" (click)="move(1)">→</button>
+    </div>
+    <div class="flex rounded-lg border border-border overflow-hidden">
+      <button type="button" class="px-3 py-1.5 text-xs" [ngClass]="view === 'month' ? 'bg-indigo-600 text-white' : 'hover:bg-muted'" (click)="view = 'month'">{{ 'projects.calendar.month' | t }}</button>
+      <button type="button" class="px-3 py-1.5 text-xs border-l border-border" [ngClass]="view === 'week' ? 'bg-indigo-600 text-white' : 'hover:bg-muted'" (click)="view = 'week'">{{ 'projects.calendar.week' | t }}</button>
+      <button type="button" class="px-3 py-1.5 text-xs border-l border-border" [ngClass]="view === 'list' ? 'bg-indigo-600 text-white' : 'hover:bg-muted'" (click)="view = 'list'">{{ 'projects.calendar.list' | t }}</button>
+    </div>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="skeleton h-96"></div>
+
+  <!-- Vue mois -->
+  <div class="card" *ngIf="!loading && view === 'month'">
+    <div class="grid grid-cols-7 border-b border-border text-xs text-muted-foreground">
+      <div *ngFor="let d of ['projects.calendar.mon','projects.calendar.tue','projects.calendar.wed','projects.calendar.thu','projects.calendar.fri','projects.calendar.sat','projects.calendar.sun']" class="p-2 text-center font-medium">{{ d | t }}</div>
+    </div>
+    <div class="grid grid-cols-7">
+      <div
+        *ngFor="let c of monthCells; trackBy: trackCell"
+        class="min-h-[92px] border-b border-r border-border p-1.5"
+        [ngClass]="{ 'bg-muted/20': !c.inMonth }"
+        [class.ring-1]="isToday(c.date)"
+        [class.ring-indigo-500]="isToday(c.date)"
+      >
+        <p class="text-xs tabular-nums" [class.text-muted-foreground]="!c.inMonth" [class.font-bold]="isToday(c.date)">{{ c.date.getDate() }}</p>
+        <div class="space-y-1 mt-1">
+          <ng-container *ngFor="let e of firstEvents(c.date); trackBy: trackEvent">
+            <a
+              *ngIf="taskLink(e) as link; else plainChip"
+              [routerLink]="link"
+              class="block text-[10px] rounded px-1 py-0.5 text-white truncate"
+              [ngClass]="e.color"
+              [title]="e.label"
+            >{{ e.ref || e.label }}</a>
+            <ng-template #plainChip>
+              <span class="block text-[10px] rounded px-1 py-0.5 text-white truncate" [ngClass]="e.color" [title]="e.label">{{ e.label }}</span>
+            </ng-template>
+          </ng-container>
+          <p *ngIf="eventsOn(c.date).length > 3" class="text-[10px] text-muted-foreground">+{{ eventsOn(c.date).length - 3 }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vue semaine -->
+  <div class="card" *ngIf="!loading && view === 'week'">
+    <div class="grid grid-cols-7 border-b border-border text-xs text-muted-foreground">
+      <div *ngFor="let d of weekDays" class="p-2 text-center">
+        <p class="font-medium">{{ d.getDate() }} {{ 'projects.calendar.monthShort.' + d.getMonth() | t }}</p>
+        <p *ngIf="isToday(d)" class="text-indigo-500 font-bold">●</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-7 min-h-[320px]">
+      <div *ngFor="let d of weekDays" class="border-r border-border p-1.5 space-y-1 last:border-r-0">
+        <ng-container *ngFor="let e of eventsOn(d); trackBy: trackEvent">
+          <a
+            *ngIf="taskLink(e) as link; else plainChip"
+            [routerLink]="link"
+            class="block text-[10px] rounded px-1 py-0.5 text-white truncate"
+            [ngClass]="e.color"
+            [title]="e.label"
+          >{{ e.ref || e.label }}</a>
+          <ng-template #plainChip>
+            <span class="block text-[10px] rounded px-1 py-0.5 text-white truncate" [ngClass]="e.color" [title]="e.label">{{ e.label }}</span>
+          </ng-template>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vue liste -->
+  <div class="card" *ngIf="!loading && view === 'list'">
+    <ul class="card-content py-2 divide-y divide-border">
+      <li *ngFor="let e of listEvents; trackBy: trackEvent" class="py-2 flex items-center gap-3 text-sm">
+        <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="e.color"></span>
+        <span class="text-xs text-muted-foreground tabular-nums whitespace-nowrap">{{ e.date | dateLocale:'short' }}</span>
+        <span class="badge badge-outline text-[10px] shrink-0">{{ kindLabel(e) | t }}</span>
+        <a *ngIf="taskLink(e) as link" [routerLink]="link" class="truncate hover:underline flex-1 min-w-0">{{ e.label }}</a>
+        <span *ngIf="!taskLink(e)" class="truncate flex-1 min-w-0">{{ e.label }}</span>
+      </li>
+      <li *ngIf="!listEvents.length" class="py-8 text-center text-sm text-muted-foreground">{{ 'projects.calendar.empty' | t }}</li>
+    </ul>
+  </div>
+</main>
