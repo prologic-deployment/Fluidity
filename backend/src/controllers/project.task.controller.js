@@ -12,6 +12,19 @@ const { loadProject } = require('./project.member.controller');
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 const OPEN_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'review'];
 
+/**
+ * Limite de travaux en cours (WIP) par colonne — configurable par projet
+ * (workflow.states[].wipLimit). Retourne la limite atteinte, sinon null.
+ * Les colonnes terminales (completed/cancelled) ne sont pas limitées.
+ */
+async function enforceWipLimit(tenantId, project, toStatus) {
+  if (['completed', 'cancelled'].includes(toStatus)) return null;
+  const state = effectiveWorkflow(project).states.find((st) => st.key === toStatus);
+  if (!state?.wipLimit || state.wipLimit <= 0) return null;
+  const inColumn = await Task.countDocuments({ tenantId, projectId: project._id, parentTaskId: null, status: toStatus });
+  return inColumn >= state.wipLimit ? state.wipLimit : null;
+}
+
 /** Génère la référence de tâche suivante par projet : TSK-001. */
 async function nextTaskRef(tenantId, projectId) {
   const last = await Task.findOne({ tenantId, projectId, ref: /^TSK-\d+$/ })
@@ -415,6 +428,11 @@ const transitionTask = async (req, res) => {
       res.status(400).json({ code: check.reason, message: 'Transition refusée par le workflow du projet.' });
       return;
     }
+    const wip = await enforceWipLimit(req.tenantId, project, to);
+    if (wip !== null) {
+      res.status(409).json({ code: 'WIP_LIMIT_REACHED', message: 'Limite de travaux en cours atteinte pour cette colonne.', limit: wip });
+      return;
+    }
     const from = task.status;
     task.status = to;
     // Cycle time : début effectif à la première entrée en exécution.
@@ -462,6 +480,11 @@ const moveTask = async (req, res) => {
       const check = validateTransition(project, task.status, toStatus, perms);
       if (!check.ok) {
         res.status(400).json({ code: check.reason, message: 'Transition refusée par le workflow du projet.' });
+        return;
+      }
+      const wip = await enforceWipLimit(req.tenantId, project, toStatus);
+      if (wip !== null) {
+        res.status(409).json({ code: 'WIP_LIMIT_REACHED', message: 'Limite de travaux en cours atteinte pour cette colonne.', limit: wip });
         return;
       }
       const from = task.status;

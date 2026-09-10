@@ -819,6 +819,8 @@ const updateWorkflowConfig = async (req, res) => {
       color: String(s.color || '').slice(0, 20),
       order: i,
       terminal: !!s.terminal,
+      // Limite WIP par colonne (0 = illimitée) — Kanban et flux continues.
+      wipLimit: Math.max(0, Math.min(99, Number(s.wipLimit) || 0)),
     }));
     await project.save();
     // Intégrité : les tâches dont l'état n'existe plus dans le nouveau

@@ -52,7 +52,17 @@ const listTime = async (req, res) => {
     for (const row of perUser) userMap[String(row._id)] = Math.round((row.minutes / 60) * 100) / 100;
     const totalMinutes = perUser.reduce((a, r) => a + r.minutes, 0);
     res.json({
-      entries,
+      entries: entries.map((e) => ({
+        _id: e._id,
+        userId: e.userId?._id || e.userId,
+        user: e.userId || null,
+        taskId: e.taskId?._id || e.taskId || null,
+        task: e.taskId || null,
+        date: e.date,
+        minutes: e.minutes,
+        note: e.note,
+        createdAt: e.createdAt,
+      })),
       perUser: Object.entries(userMap).map(([userId, hours]) => ({ userId, hours })),
       totalHours: Math.round((totalMinutes / 60) * 100) / 100,
     });
