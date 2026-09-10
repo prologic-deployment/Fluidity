@@ -18,7 +18,7 @@ const PORT = process.env.PORT || 3000;
       console.log(`[ServiceDesk] Serveur démarré sur le port ${PORT}`);
       startTicketAutoCloseJob();
       startProjectDeadlineJob();
-startSaaSLifecycleJob();
+      startSaaSLifecycleJob();
     });
   } catch (err) {
     console.error('[ServiceDesk] Impossible de démarrer le serveur :', err);

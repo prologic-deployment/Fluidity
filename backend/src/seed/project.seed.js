@@ -354,7 +354,13 @@ async function seedProjectManagement() {
     { ref: 'TSK-007', title: 'Revue de sécurité de l’espace client', status: 'backlog', priority: 'medium', assigneeId: null, dueDate: iso(20), estimatedHours: 16, order: 0 },
     { ref: 'TSK-008', title: 'Tableau de bord de suivi des paiements', status: 'completed', priority: 'medium', assigneeId: lead._id, dueDate: iso(-20), estimatedHours: 30, order: 1 },
   ];
-  for (const t of kTasks) await createTask(T, kanban, { ...t, completedAt: t.status === 'completed' ? days(-10) : null });
+  for (const t of kTasks) {
+    await createTask(T, kanban, {
+      ...t,
+      completedAt: t.status === 'completed' ? days(-10) : null,
+      startedAt: t.status === 'completed' ? days(-18) : t.status === 'in_progress' ? days(-5) : t.status === 'blocked' ? days(-6) : null,
+    });
+  }
   const migration = await Task.findOne({ tenantId: T, projectId: kanban._id, ref: 'TSK-004' });
   if (migration) {
     await createTask(T, kanban, { ref: 'TSK-004-1', title: 'Extraction des comptes existants', status: 'completed', priority: 'high', assigneeId: member._id, estimatedHours: 12, parentTaskId: migration._id, order: 0 });
@@ -427,7 +433,12 @@ async function seedProjectManagement() {
     { ref: 'TSK-108', title: 'Widgets iOS (écran verrouillé)', status: 'backlog', priority: 'low', assigneeId: null, estimatedHours: 16, order: 1 },
     { ref: 'TSK-109', title: 'Accessibilité : contrastes et tailles dynamiques', status: 'backlog', priority: 'high', assigneeId: viewer._id, estimatedHours: 12, order: 2 },
   ];
-  for (const t of sTasks) await createTask(T, scrum, t);
+  for (const t of sTasks) {
+    await createTask(T, scrum, {
+      ...t,
+      startedAt: t.status === 'completed' ? days(-33) : t.status === 'in_progress' ? days(-6) : null,
+    });
+  }
 
   // Épopées + story points (backlog Scrum)
   const epicUx = await createTask(T, scrum, {
@@ -507,7 +518,12 @@ async function seedProjectManagement() {
     { ref: 'TSK-204', title: 'Réplication des bases de données', status: 'in_progress', priority: 'critical', assigneeId: member._id, milestoneId: phases[2]._id, dueDate: iso(5), estimatedHours: 36, order: 1 },
     { ref: 'TSK-205', title: 'Plan de tests de charge', status: 'todo', priority: 'medium', assigneeId: lead._id, milestoneId: phases[3]._id, dueDate: iso(15), estimatedHours: 24, order: 0 },
   ];
-  for (const t of wTasks) await createTask(T, waterfall, t);
+  for (const t of wTasks) {
+    await createTask(T, waterfall, {
+      ...t,
+      startedAt: t.status === 'completed' ? days(-60) : t.status === 'in_progress' ? days(-8) : null,
+    });
+  }
   // Jalons de phase (portes)
   await createMilestone(T, waterfall, { kind: 'milestone', name: 'Gel des exigences', dueDate: iso(-58), status: 'completed', progress: 100, ownerId: manager._id });
   await createMilestone(T, waterfall, { kind: 'milestone', name: 'Revue de conception', dueDate: iso(-38), status: 'completed', progress: 100, ownerId: manager._id });
