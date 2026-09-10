@@ -5,6 +5,7 @@ const {
   LicenseAssignment,
   RoleAssignment,
   Notification,
+  Order,
 } = require('../models/saas.models');
 const {
   Project,
@@ -16,6 +17,9 @@ const {
   Issue,
   ProjectComment,
   ProjectActivity,
+  TimeEntry,
+  Deliverable,
+  ProjectEvent,
 } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
@@ -96,6 +100,57 @@ async function ensureRole({ tenantId, productKey, userId, roleKey }) {
   );
 }
 
+/** Commande d'abonnement idempotente (par tenant + produit + type + sièges). */
+async function ensureOrder({ tenantId, userId, productKey, planId, billingPeriod = 'monthly', seats, orderType = 'subscription', status = 'pending_approval', subscriptionId = null, activatedSubscriptionId = null, reviewedBy = null, reviewNote = '', notes = '' }) {
+  const existing = await Order.findOne({ tenantId, productKey, orderType, seats });
+  if (existing) return existing;
+  const product = await Product.findOne({ key: productKey });
+  const plan = product?.plans?.find((pl) => pl.id === planId);
+  const unitPrice = plan?.pricePerSeatMonthly ?? 0;
+  const total = unitPrice * seats;
+  return Order.create({
+    tenantId,
+    userId,
+    productId: product?._id,
+    productKey,
+    planId,
+    billingPeriod,
+    seats,
+    orderType,
+    status,
+    subscriptionId,
+    activatedSubscriptionId,
+    reviewedBy,
+    reviewNote,
+    notes,
+    unitPrice,
+    subtotal: total,
+    total,
+    currency: 'EUR',
+    paymentMode: 'manual_approval',
+    paymentMethod: 'manual',
+    provider: 'manual',
+  });
+}
+
+async function ensureTimeEntry({ tenantId, projectId, taskId, userId, date, minutes, note = '' }) {
+  const existing = await TimeEntry.findOne({ tenantId, projectId, taskId, userId, date });
+  if (existing) return existing;
+  return TimeEntry.create({ tenantId, projectId, taskId, userId, date, minutes, note });
+}
+
+async function ensureDeliverable(tenantId, project, fields) {
+  const existing = await Deliverable.findOne({ tenantId, projectId: project._id, title: fields.title });
+  if (existing) return existing;
+  return Deliverable.create({ tenantId, projectId: project._id, ...fields });
+}
+
+async function ensureEvent(tenantId, project, fields) {
+  const existing = await ProjectEvent.findOne({ tenantId, projectId: project._id, title: fields.title, date: fields.date });
+  if (existing) return existing;
+  return ProjectEvent.create({ tenantId, projectId: project._id, ...fields });
+}
+
 /** Crée un projet (idempotent par code) et son équipe. */
 async function createProject({ tenantId, code, name, description, stakeholder, managerId, methodology, status, priority, startDate, endDate, tags = [], team = [] }) {
   const existing = await Project.findOne({ tenantId, code });
@@ -165,6 +220,55 @@ async function seedProjectManagement() {
     return;
   }
 
+  // ---- Commandes (cycle d'approbation plateforme) ---------------------------
+  const platformAdmin = await Utilisateur.findOne({ role: 'PLATFORM_ADMIN' }).lean();
+  const novaSub = await Subscription.findOne({ tenantId: nova._id, productKey: 'project_management' });
+  if (novaSub) {
+    // Historique : souscription initiale approuvée par la plateforme.
+    await ensureOrder({
+      tenantId: nova._id,
+      userId: admin?._id || nova._id,
+      productKey: 'project_management',
+      planId: 'business',
+      seats: 8,
+      orderType: 'subscription',
+      status: 'completed',
+      subscriptionId: novaSub._id,
+      activatedSubscriptionId: novaSub._id,
+      reviewedBy: platformAdmin?._id || null,
+      reviewNote: 'Souscription approuvée — bienvenue dans Fluidity !',
+    });
+    // EN ATTENTE : l'équipe est passée de 8 à 10 membres licenciés (8 sièges
+    // consommés) → commande d'extension à 12 sièges, à approuver par la plateforme.
+    await ensureOrder({
+      tenantId: nova._id,
+      userId: admin?._id || nova._id,
+      productKey: 'project_management',
+      planId: 'business',
+      seats: 12,
+      orderType: 'seat_expansion',
+      status: 'pending_approval',
+      subscriptionId: novaSub._id,
+      notes: 'Extension d\'équipe : Product Owner, Scrum Master, développeur, designer et QA intégrés au programme Transformation Digitale.',
+    });
+  }
+  if (fluidity && fluidity._id) {
+    const fluiditySub = await Subscription.findOne({ tenantId: fluidity._id, productKey: 'project_management' });
+    const fluidityAdmin = await Utilisateur.findOne({ tenantId: fluidity._id, role: 'TENANT_ADMIN' }).lean();
+    // EN ATTENTE : renouvellement après expiration (souscription expirée).
+    await ensureOrder({
+      tenantId: fluidity._id,
+      userId: fluidityAdmin?._id || fluidity._id,
+      productKey: 'project_management',
+      planId: 'business',
+      seats: 5,
+      orderType: 'subscription',
+      status: 'pending_approval',
+      subscriptionId: fluiditySub?._id || null,
+      notes: 'Renouvellement de la souscription expirée — équipe de 5.',
+    });
+  }
+
   // ---- Utilisateurs & rôles produit ---------------------------------------
   const admin = await Utilisateur.findOne({ email: 'nova-admin@nova-systems.dev' }).lean();
   const manager = await Utilisateur.findOne({ email: 'manager@nova-systems.dev' }).lean();
@@ -172,16 +276,31 @@ async function seedProjectManagement() {
   const member = await Utilisateur.findOne({ email: 'dora.reseau@nova-systems.dev' }).lean();
   const viewer = await Utilisateur.findOne({ email: 'viewer@nova-systems.dev' }).lean();
   const unlicensed = await Utilisateur.findOne({ email: 'nabil.user@nova-systems.dev' }).lean();
+  const po = await Utilisateur.findOne({ email: 'aziz.po@nova-systems.dev' }).lean();
+  const scrumMaster = await Utilisateur.findOne({ email: 'hana.sm@nova-systems.dev' }).lean();
+  const dev = await Utilisateur.findOne({ email: 'yacine.dev@nova-systems.dev' }).lean();
+  const designer = await Utilisateur.findOne({ email: 'meriem.design@nova-systems.dev' }).lean();
+  const qa = await Utilisateur.findOne({ email: 'fares.qa@nova-systems.dev' }).lean();
 
-  // Licences : 5 sièges consommés sur 8 (l'utilisateur « unlicensed » reste sans).
-  for (const u of [admin, manager, lead, member, viewer]) {
+  // Licences : 10 comptes licenciés pour 8 sièges (l'équipe a grandi) — d'où
+  // la commande de sièges supplémentaires « en attente d'approbation » plus bas.
+  // L'utilisateur « unlicensed » reste sans licence (test de refus d'accès).
+  const coreUsers = [admin, manager, lead, member, viewer];
+  const extendedUsers = [po, scrumMaster, dev, designer, qa];
+  for (const [u, roleKey] of [
+    [admin, 'project_admin'],
+    [manager, 'project_manager'],
+    [lead, 'project_lead'],
+    [viewer, 'project_viewer'],
+    [member, 'project_member'],
+    [po, 'product_owner'],
+    [scrumMaster, 'scrum_master'],
+    [dev, 'developer'],
+    [designer, 'designer'],
+    [qa, 'qa'],
+  ]) {
     if (u) {
       await ensureLicense({ tenantId: nova._id, productKey: 'project_management', userId: u._id });
-      const roleKey =
-        String(u._id) === String(admin._id) ? 'project_admin'
-          : String(u._id) === String(manager._id) ? 'project_manager'
-            : String(u._id) === String(lead._id) ? 'project_lead'
-              : String(u._id) === String(viewer._id) ? 'project_viewer' : 'project_member';
       await ensureRole({ tenantId: nova._id, productKey: 'project_management', userId: u._id, roleKey });
     }
   }
@@ -196,6 +315,11 @@ async function seedProjectManagement() {
     { userId: lead._id, roleKey: 'project_lead' },
     { userId: member._id, roleKey: 'project_member' },
     { userId: viewer._id, roleKey: 'project_viewer' },
+    { userId: po._id, roleKey: 'product_owner' },
+    { userId: scrumMaster._id, roleKey: 'scrum_master' },
+    { userId: dev._id, roleKey: 'developer' },
+    { userId: designer._id, roleKey: 'designer' },
+    { userId: qa._id, roleKey: 'qa' },
   ].filter((m) => m.userId);
 
   const T = nova._id;
@@ -303,6 +427,35 @@ async function seedProjectManagement() {
     { ref: 'TSK-109', title: 'Accessibilité : contrastes et tailles dynamiques', status: 'backlog', priority: 'high', assigneeId: viewer._id, estimatedHours: 12, order: 2 },
   ];
   for (const t of sTasks) await createTask(T, scrum, t);
+
+  // Épopées + story points (backlog Scrum)
+  const epicUx = await createTask(T, scrum, {
+    ref: 'EPC-001', title: 'Expérience utilisateur mobile', type: 'epic', status: 'todo', priority: 'high',
+    assigneeId: null, points: 10, businessValue: 900, estimatedHours: 52, order: 0,
+    description: 'Moderniser les parcours clés de l’application : accueil, widgets et accessibilité.',
+    acceptanceCriteria: 'Chaque écran livré doit respecter le design system et passer les tests d’accessibilité.',
+  });
+  const epicSync = await createTask(T, scrum, {
+    ref: 'EPC-002', title: 'Fiabilité & synchronisation', type: 'epic', status: 'in_progress', priority: 'high',
+    assigneeId: null, points: 21, businessValue: 700, estimatedHours: 60, order: 1,
+    description: 'Synchronisation hors-ligne robuste et couverture de tests de bout en bout.',
+    acceptanceCriteria: 'Aucune perte de données après coupure réseau ; suite E2E verte en CI.',
+  });
+  // Points et rattachement des user stories
+  const storyPoints = {
+    'TSK-101': { points: 8, epicId: null },
+    'TSK-102': { points: 5, epicId: null },
+    'TSK-103': { points: 8, epicId: epicSync?._id },
+    'TSK-104': { points: 8, epicId: epicSync?._id },
+    'TSK-105': { points: 13, epicId: epicSync?._id, businessValue: 400 },
+    'TSK-106': { points: 8, epicId: epicSync?._id, businessValue: 300 },
+    'TSK-107': { points: 5, epicId: epicUx?._id, businessValue: 500 },
+    'TSK-108': { points: 2, epicId: epicUx?._id, businessValue: 150 },
+    'TSK-109': { points: 3, epicId: epicUx?._id, businessValue: 250 },
+  };
+  for (const [ref, upd] of Object.entries(storyPoints)) {
+    await Task.updateOne({ tenantId: T, projectId: scrum._id, ref }, { $set: { points: upd.points, type: 'story', ...(upd.epicId ? { epicId: upd.epicId } : {}), ...(upd.businessValue ? { businessValue: upd.businessValue } : {}) } });
+  }
   await createMilestone(T, scrum, { kind: 'milestone', name: 'Publication sur les stores', dueDate: iso(30), status: 'not_started', progress: 0, ownerId: manager._id });
 
   // =========================================================================
@@ -389,6 +542,80 @@ async function seedProjectManagement() {
     { ref: 'TSK-303', title: 'Synthèse du cadrage', status: 'todo', priority: 'high', assigneeId: manager._id, milestoneId: hPhase1._id, dueDate: iso(7), estimatedHours: 12, order: 2 },
   ];
   for (const t of hTasks) await createTask(T, hybrid, t);
+
+  // =========================================================================
+  // 5. PROJET BROUILLON — cycle de vie (draft → planning → active)
+  // =========================================================================
+  await createProject({
+    tenantId: T,
+    code: 'PRJ-2026-0005',
+    name: 'Observatoire Qualité',
+    description: 'Tableau de bord qualité transverse (projet en cours de cadrage).',
+    stakeholder: 'Direction Qualité',
+    managerId: manager._id,
+    methodology: 'kanban',
+    status: 'draft',
+    priority: 'low',
+    startDate: iso(5),
+    endDate: iso(60),
+    tags: ['qualité'],
+    team: [
+      { userId: manager._id, roleKey: 'project_manager' },
+      { userId: qa._id, roleKey: 'qa' },
+    ].filter((m) => m.userId),
+  });
+
+  // =========================================================================
+  // 6. SUIVI DU TEMPS, LIVRABLES, ÉVÉNEMENTS (réunions & décisions)
+  // =========================================================================
+  const tsk103 = await Task.findOne({ tenantId: T, projectId: scrum._id, ref: 'TSK-103' });
+  const tsk104 = await Task.findOne({ tenantId: T, projectId: scrum._id, ref: 'TSK-104' });
+  const tsk106 = await Task.findOne({ tenantId: T, projectId: scrum._id, ref: 'TSK-106' });
+  const tsk107 = await Task.findOne({ tenantId: T, projectId: scrum._id, ref: 'TSK-107' });
+  if (tsk103) {
+    await ensureTimeEntry({ tenantId: T, projectId: scrum._id, taskId: tsk103._id, userId: member._id, date: days(-2), minutes: 150, note: 'Intégration APNs' });
+    await ensureTimeEntry({ tenantId: T, projectId: scrum._id, taskId: tsk103._id, userId: member._id, date: days(-1), minutes: 180, note: 'File d’attente des notifications' });
+  }
+  if (tsk104) {
+    await ensureTimeEntry({ tenantId: T, projectId: scrum._id, taskId: tsk104._id, userId: lead._id, date: days(-1), minutes: 240, note: 'Push Android + canaux' });
+  }
+  if (tsk106) {
+    await ensureTimeEntry({ tenantId: T, projectId: scrum._id, taskId: tsk106._id, userId: qa._id, date: days(-1), minutes: 90, note: 'Scénarios E2E' });
+  }
+  if (tsk107) {
+    await ensureTimeEntry({ tenantId: T, projectId: scrum._id, taskId: tsk107._id, userId: dev._id, date: days(-1), minutes: 120, note: 'Spike : refonte de l’accueil' });
+  }
+  const kt2 = await Task.findOne({ tenantId: T, projectId: kanban._id, ref: 'TSK-002' });
+  const kt3 = await Task.findOne({ tenantId: T, projectId: kanban._id, ref: 'TSK-003' });
+  if (kt2) await ensureTimeEntry({ tenantId: T, projectId: kanban._id, taskId: kt2._id, userId: member._id, date: days(-1), minutes: 300, note: 'Écrans de récupération' });
+  if (kt3) await ensureTimeEntry({ tenantId: T, projectId: kanban._id, taskId: kt3._id, userId: lead._id, date: days(-2), minutes: 180, note: 'Raccordement du PSP' });
+
+  // Livrables — cycle d'approbation (draft → submitted → approved/rejected)
+  await ensureDeliverable(T, kanban, {
+    title: 'Charte graphique du portail', description: 'Couleurs, typographies et composants de la refonte.', status: 'approved',
+    version: 1, dueDate: iso(0), submittedBy: member._id, submittedAt: days(-12), approvedBy: manager._id, approvedAt: days(-9),
+  });
+  await ensureDeliverable(T, kanban, {
+    title: 'Prototype cliquable du parcours client', description: 'Parcours complet : connexion, tickets, facturation.', status: 'submitted',
+    version: 1, dueDate: iso(1), submittedBy: member._id, submittedAt: days(-2),
+  });
+  await ensureDeliverable(T, scrum, {
+    title: 'Build de démonstration — Sprint 2', description: 'Build de recette pour la revue de sprint.', status: 'submitted',
+    version: 2, dueDate: iso(3), submittedBy: lead._id, submittedAt: days(-1),
+  });
+  await ensureDeliverable(T, scrum, {
+    title: 'Dossier d’accessibilité WCAG', description: 'Audit et plan de conformité AA.', status: 'draft',
+    version: 1, dueDate: iso(15),
+  });
+
+  // Événements — réunions, décisions, échéances (calendrier)
+  await ensureEvent(T, scrum, { title: 'Revue de sprint 1', type: 'meeting', date: days(-28), description: 'Démonstration des fondations et du design system.', createdBy: scrumMaster?._id });
+  await ensureEvent(T, scrum, { title: 'Sprint planning — Sprint 2', type: 'meeting', date: days(-12), description: 'Sélection du backlog et engagement de l’équipe.', createdBy: scrumMaster?._id });
+  await ensureEvent(T, scrum, { title: 'Daily stand-up', type: 'meeting', date: days(0), description: 'Point quotidien de 15 minutes.', createdBy: scrumMaster?._id });
+  await ensureEvent(T, scrum, { title: 'Décision : notifications locales d’abord', type: 'decision', date: days(-6), description: 'Livrer les notifications locales avant la synchronisation temps réel.', createdBy: po?._id });
+  await ensureEvent(T, kanban, { title: 'Comité de pilotage mensuel', type: 'meeting', date: days(2), description: 'Avancement, risques et arbitrages.', createdBy: manager._id });
+  await ensureEvent(T, kanban, { title: 'Échéance : bêta privée du portail', type: 'deadline', date: days(14), description: 'Ouverture de la bêta aux 20 premiers clients.', createdBy: manager._id });
+  await ensureEvent(T, waterfall, { title: 'Réunion de cadrage de la bascule', type: 'meeting', date: days(4), description: 'Choix de la fenêtre de bascule et plan de retour arrière.', createdBy: manager._id });
 
   // =========================================================================
   // Activités & notifications (démonstration des journaux)

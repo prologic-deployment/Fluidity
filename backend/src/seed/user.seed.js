@@ -96,6 +96,12 @@ const seedUsers = async (tenants = {}) => {
     { tenantId: nova._id, email: 'viewer@nova-systems.dev', password: DEMO_PASSWORD, role: 'VIEWER', department: 'Audit', firstName: 'Rania', lastName: 'Lecture' },
     { tenantId: nova._id, email: 'nabil.user@nova-systems.dev', password: DEMO_PASSWORD, role: 'VIEWER', department: 'Métier', firstName: 'Nabil', lastName: 'User' },
     { tenantId: nova._id, email: 'dora.reseau@nova-systems.dev', password: DEMO_PASSWORD, role: 'AGENT', department: 'Réseau', firstName: 'Dora', lastName: 'Net' },
+    // Équipe projet enrichie : PO, Scrum Master, Dev, Designer, QA (rôles produit dédiés)
+    { tenantId: nova._id, email: 'aziz.po@nova-systems.dev', password: DEMO_PASSWORD, role: 'MANAGER', department: 'Produit', firstName: 'Aziz', lastName: 'Po' },
+    { tenantId: nova._id, email: 'hana.sm@nova-systems.dev', password: DEMO_PASSWORD, role: 'MANAGER', department: 'Agilité', firstName: 'Hana', lastName: 'Scrum' },
+    { tenantId: nova._id, email: 'yacine.dev@nova-systems.dev', password: DEMO_PASSWORD, role: 'AGENT', department: 'Développement', firstName: 'Yacine', lastName: 'Dev' },
+    { tenantId: nova._id, email: 'meriem.design@nova-systems.dev', password: DEMO_PASSWORD, role: 'AGENT', department: 'Design', firstName: 'Meriem', lastName: 'Design' },
+    { tenantId: nova._id, email: 'fares.qa@nova-systems.dev', password: DEMO_PASSWORD, role: 'AGENT', department: 'Qualité', firstName: 'Fares', lastName: 'Qa' },
   ];
 
   if (carthage) {
