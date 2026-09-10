@@ -1,0 +1,95 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.deliverables.title' | t }}</h2>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.deliverables.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="space-y-3">
+    <div class="skeleton h-40"></div>
+    <div class="skeleton h-40"></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <div class="card" *ngIf="deliverables.length">
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ 'projects.fields.title' | t }}</th>
+              <th>{{ 'projects.deliverables.status' | t }}</th>
+              <th>{{ 'projects.deliverables.version' | t }}</th>
+              <th>{{ 'projects.fields.deadline' | t }}</th>
+              <th>{{ 'projects.deliverables.submittedBy' | t }}</th>
+              <th>{{ 'projects.deliverables.approvedBy' | t }}</th>
+              <th class="w-64 text-right">{{ 'common.actions' | t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of deliverables">
+              <td class="max-w-[260px]">
+                <p class="font-medium text-sm truncate">{{ d.title }}</p>
+                <p class="text-xs text-muted-foreground line-clamp-1" *ngIf="d.description">{{ d.description }}</p>
+                <p class="text-xs text-destructive mt-1" *ngIf="d.status === 'rejected' && d.rejectionNote">{{ 'projects.deliverables.rejectionNote' | t }} : {{ d.rejectionNote }}</p>
+              </td>
+              <td><span class="badge" [ngClass]="badge[d.status]">{{ 'projects.deliverables.meta.' + d.status | t }}</span></td>
+              <td class="text-xs tabular-nums">v{{ d.version }}</td>
+              <td class="whitespace-nowrap text-xs" [class.text-red-600]="d.status !== 'approved' && isPast(d.dueDate)">{{ d.dueDate ? (d.dueDate | dateLocale:'short') : '—' }}</td>
+              <td class="text-xs">{{ name(d.submittedBy) }}</td>
+              <td class="text-xs">{{ name(d.approvedBy) }}</td>
+              <td class="whitespace-nowrap text-right">
+                <button *ngIf="d.status === 'draft'" type="button" class="btn-outline btn-xs mr-1" (click)="submitForReview(d)">{{ 'projects.deliverables.submit' | t }}</button>
+                <button *ngIf="d.status === 'draft'" type="button" class="btn-ghost btn-xs mr-1" (click)="openEdit(d)">{{ 'common.edit' | t }}</button>
+                <button *ngIf="d.status === 'submitted' && canApprove" type="button" class="btn-primary btn-xs mr-1" (click)="approve(d)">{{ 'projects.deliverables.approve' | t }}</button>
+                <button *ngIf="d.status === 'submitted' && canApprove" type="button" class="btn-outline btn-xs mr-1 text-destructive" (click)="openReject(d)">{{ 'projects.deliverables.reject' | t }}</button>
+                <button *ngIf="d.status === 'draft'" type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(d)">{{ 'common.delete' | t }}</button>
+                <span *ngIf="d.status === 'submitted' && !canApprove" class="text-xs text-muted-foreground">{{ 'projects.deliverables.pendingReview' | t }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div *ngIf="!deliverables.length" class="card"><div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.deliverables.empty' | t }}</div></div>
+  </ng-container>
+
+  <app-modal [open]="creating || !!editing" [title]="(editing ? 'common.edit' : 'projects.deliverables.new') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-3 p-4" *ngIf="creating || editing">
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.title' | t }}</span>
+        <input type="text" [(ngModel)]="form.title" maxlength="160" class="input mt-1" />
+      </label>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.description' | t }}</span>
+        <textarea [(ngModel)]="form.description" rows="3" maxlength="3000" class="input mt-1"></textarea>
+      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.deliverables.version' | t }}</span>
+          <input type="number" min="1" [(ngModel)]="form.version" class="input mt-1" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.fields.deadline' | t }}</span>
+          <input type="date" [(ngModel)]="form.dueDate" class="input mt-1" />
+        </label>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="submitting || !form.title.trim()" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="!!rejecting" [title]="'projects.deliverables.reject' | t" (closed)="rejecting = null">
+    <div class="space-y-3 p-4" *ngIf="rejecting">
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.deliverables.rejectionNote' | t }}</span>
+        <textarea [(ngModel)]="rejectionNote" rows="3" maxlength="1000" class="input mt-1"></textarea>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="rejecting = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" (click)="confirmReject()">{{ 'projects.deliverables.reject' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

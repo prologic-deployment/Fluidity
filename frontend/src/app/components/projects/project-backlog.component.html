@@ -1,0 +1,106 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.backlog.title' | t }}</h2>
+    <button *ngIf="canManage" type="button" class="btn-outline btn-sm" (click)="openCreate('epic')">{{ 'projects.backlog.newEpic' | t }}</button>
+    <button *ngIf="canManage" type="button" class="btn-primary btn-sm" (click)="openCreate('user_story')">{{ 'projects.backlog.newStory' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="grid gap-3">
+    <div class="skeleton h-40"></div>
+    <div class="skeleton h-24"></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <div *ngIf="!data.epics.length && !data.unassigned.length" class="card"><div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.backlog.empty' | t }}</div></div>
+
+    <!-- Épopées + user stories -->
+    <div class="space-y-4" *ngIf="data.epics.length">
+      <div *ngFor="let e of data.epics" class="card">
+        <div class="card-header py-3 flex items-center gap-2 flex-wrap">
+          <span class="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">{{ e.ref }}</span>
+          <span class="font-medium">{{ e.title }}</span>
+          <span class="badge badge-secondary">{{ 'projects.backlog.epic' | t }}</span>
+          <span class="text-xs text-muted-foreground ml-auto flex items-center gap-3 flex-wrap">
+            <span>{{ 'projects.backlog.stories' | t }} : <span class="font-medium">{{ e.items.length }}</span></span>
+            <span>{{ 'projects.fields.points' | t }} : <span class="font-medium">{{ totalPoints(e.items) }}</span></span>
+            <span>{{ 'projects.backlog.businessValue' | t }} : <span class="font-medium">{{ e.businessValue || 0 }}</span></span>
+            <button *ngIf="canManage" type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
+            <button *ngIf="canManage" type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
+          </span>
+        </div>
+        <div class="card-content p-3" *ngIf="e.description || e.acceptanceCriteria">
+          <p class="text-xs text-muted-foreground" *ngIf="e.description">{{ e.description }}</p>
+          <p class="text-xs text-muted-foreground mt-1" *ngIf="e.acceptanceCriteria"><span class="font-medium">{{ 'projects.fields.acceptanceCriteria' | t }} :</span> {{ e.acceptanceCriteria }}</p>
+        </div>
+        <div class="card-content px-3 pb-3">
+          <p *ngIf="!e.items.length" class="text-xs text-muted-foreground px-2 py-2">{{ 'projects.backlog.noStories' | t }}</p>
+          <div *ngFor="let t of e.items" class="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-3 py-2 mt-2">
+            <span class="badge shrink-0" [ngClass]="t.status === 'todo' ? 'badge-secondary' : 'badge-outline'">{{ 'projects.meta.status.' + t.status | t }}</span>
+            <span class="font-mono text-xs text-muted-foreground shrink-0">{{ t.ref }}</span>
+            <button type="button" class="text-sm font-medium text-left hover:underline line-clamp-1" (click)="openEdit(t)">{{ t.title }}</button>
+            <span class="text-xs text-muted-foreground shrink-0 ml-auto flex items-center gap-3">
+              <span *ngIf="assigneeName(t)">{{ assigneeName(t) }}</span>
+              <span>{{ 'projects.fields.points' | t }} : <span class="font-medium">{{ t.points || 0 }}</span></span>
+              <span>{{ 'projects.backlog.businessValue' | t }} : <span class="font-medium">{{ t.businessValue || 0 }}</span></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stories non planifiées -->
+    <div class="card mt-4" *ngIf="data.unassigned.length">
+      <div class="card-header py-3">{{ 'projects.backlog.unassigned' | t }}</div>
+      <div class="card-content px-3 pb-3">
+        <div *ngFor="let t of data.unassigned" class="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-3 py-2 mt-2">
+          <span class="badge badge-outline shrink-0">{{ 'projects.meta.status.' + t.status | t }}</span>
+          <span class="font-mono text-xs text-muted-foreground shrink-0">{{ t.ref }}</span>
+          <button type="button" class="text-sm font-medium text-left hover:underline line-clamp-1" (click)="openEdit(t)">{{ t.title }}</button>
+          <span class="text-xs text-muted-foreground shrink-0 ml-auto flex items-center gap-3">
+            <span *ngIf="assigneeName(t)">{{ assigneeName(t) }}</span>
+            <span>{{ 'projects.fields.points' | t }} : <span class="font-medium">{{ t.points || 0 }}</span></span>
+            <span>{{ 'projects.backlog.businessValue' | t }} : <span class="font-medium">{{ t.businessValue || 0 }}</span></span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <app-modal [open]="creating || !!editing" [title]="(editing ? 'common.edit' : 'projects.backlog.new') | t" [subtitle]="(form.type === 'epic' ? 'projects.backlog.epic' : 'projects.backlog.story') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-3 p-4" *ngIf="creating || editing">
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.title' | t }}</span>
+        <input type="text" [(ngModel)]="form.title" class="input mt-1" maxlength="200" />
+      </label>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.description' | t }}</span>
+        <textarea [(ngModel)]="form.description" rows="2" class="input mt-1"></textarea>
+      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.fields.points' | t }}</span>
+          <input type="number" min="0" [(ngModel)]="form.points" class="input mt-1" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.backlog.businessValue' | t }}</span>
+          <input type="number" min="0" [(ngModel)]="form.businessValue" class="input mt-1" />
+        </label>
+      </div>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.priority' | t }}</span>
+        <select [(ngModel)]="form.priority" class="select mt-1">
+          <option *ngFor="let p of ['low','medium','high','critical']" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+        </select>
+      </label>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.acceptanceCriteria' | t }}</span>
+        <textarea [(ngModel)]="form.acceptanceCriteria" rows="2" class="input mt-1"></textarea>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="submitting || !form.title.trim()" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

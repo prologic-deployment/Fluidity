@@ -146,8 +146,8 @@ export class PlatformService {
     return this.http.get<{ orders: OrderItem[] }>(`${this.base}/me/orders`);
   }
 
-  /** Crée une COMMANDE d'abonnement (parcours d'achat) — statut initial « pending ». */
-  createOrder(payload: { productKey: string; planId: string; billingPeriod: 'monthly' | 'annual'; seats: number; paymentMethod: string }): Observable<{ order: OrderItem }> {
+  /** Crée une COMMANDE d'abonnement ou d'extension de sièges — statut initial « pending_approval ». */
+  createOrder(payload: { productKey: string; planId: string; billingPeriod: 'monthly' | 'annual'; seats: number; paymentMethod: string; subscriptionId?: string }): Observable<{ order: OrderItem }> {
     return this.http.post<{ order: OrderItem }>(`${this.base}/me/orders`, payload);
   }
 
@@ -159,6 +159,19 @@ export class PlatformService {
   /** Checkout d'une commande — 501 tant qu'aucun PSP n'est configuré. */
   orderCheckout(id: string): Observable<{ url: string }> {
     return this.http.post<{ url: string }>(`${this.base}/me/orders/${id}/checkout`, {});
+  }
+
+  /** Commandes de TOUS les tenants (Super Admin) — examen & approbation. */
+  platformOrders(): Observable<{ orders: OrderItem[] }> {
+    return this.http.get<{ orders: OrderItem[] }>(`${this.base}/orders`);
+  }
+
+  approveOrder(id: string, note?: string): Observable<{ order: OrderItem; subscription?: Subscription }> {
+    return this.http.post<{ order: OrderItem; subscription?: Subscription }>(`${this.base}/orders/${id}/approve`, { note });
+  }
+
+  rejectOrder(id: string, note?: string): Observable<{ order: OrderItem }> {
+    return this.http.post<{ order: OrderItem }>(`${this.base}/orders/${id}/reject`, { note });
   }
 
   /** Active/désactive le renouvellement automatique d'une souscription. */

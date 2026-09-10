@@ -1,0 +1,63 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.events.title' | t }}</h2>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.events.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="space-y-3">
+    <div class="skeleton h-16"></div>
+    <div class="skeleton h-16"></div>
+    <div class="skeleton h-16"></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <div class="space-y-2" *ngIf="events.length">
+      <div *ngFor="let e of events" class="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3">
+        <span class="text-lg shrink-0" aria-hidden="true">{{ icons[e.type] }}</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <p class="text-sm font-medium truncate">{{ e.title }}</p>
+            <span class="badge badge-outline">{{ 'projects.events.meta.' + e.type | t }}</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-0.5 line-clamp-1" *ngIf="e.description">{{ e.description }}</p>
+        </div>
+        <span class="text-xs text-muted-foreground whitespace-nowrap shrink-0" [class.text-red-600]="isPast(e)">{{ e.date | dateLocale:'short' }}</span>
+        <span class="flex items-center gap-1 shrink-0">
+          <button type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
+          <button type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
+        </span>
+      </div>
+    </div>
+    <div *ngIf="!events.length" class="card"><div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.events.empty' | t }}</div></div>
+  </ng-container>
+
+  <app-modal [open]="creating || !!editing" [title]="(editing ? 'common.edit' : 'projects.events.new') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-3 p-4" *ngIf="creating || editing">
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.title' | t }}</span>
+        <input type="text" [(ngModel)]="form.title" maxlength="140" class="input mt-1" />
+      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.events.type' | t }}</span>
+          <select [(ngModel)]="form.type" class="select mt-1">
+            <option *ngFor="let t of types" [value]="t">{{ 'projects.events.meta.' + t | t }}</option>
+          </select>
+        </label>
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.events.date' | t }}</span>
+          <input type="date" [(ngModel)]="form.date" class="input mt-1" />
+        </label>
+      </div>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.description' | t }}</span>
+        <textarea [(ngModel)]="form.description" rows="3" maxlength="2000" class="input mt-1"></textarea>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="submitting || !form.title.trim() || !form.date" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

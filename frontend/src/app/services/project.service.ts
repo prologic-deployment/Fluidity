@@ -5,7 +5,9 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import {
   ActivityEntry,
+  BacklogData,
   CalendarData,
+  Deliverable,
   GlobalDashboard,
   Issue,
   Milestone,
@@ -14,6 +16,7 @@ import {
   ProjectComment,
   ProjectDashboard,
   ProjectDetailResponse,
+  ProjectEvent,
   ProjectFile,
   ProjectMember,
   ReportsData,
@@ -21,6 +24,7 @@ import {
   Sprint,
   Task,
   TaskDetailResponse,
+  TimeEntry,
   WorkflowState,
 } from '../models/project.model';
 
@@ -289,6 +293,75 @@ export class ProjectService {
 
   deleteFile(id: string, fileId: string): Observable<{ ok: boolean }> {
     return this.http.delete<{ ok: boolean }>(`${this.base}/${id}/files/${fileId}`);
+  }
+
+  // --- Backlog Scrum (épopées & user stories) ------------------------------
+
+  backlog(id: string): Observable<BacklogData> {
+    return this.http.get<BacklogData>(`${this.base}/${id}/backlog`);
+  }
+
+  // --- Suivi du temps -------------------------------------------------------
+
+  time(id: string, userId?: string, taskId?: string): Observable<{ entries: TimeEntry[]; perUser: { userId: string; hours: number }[]; totalHours: number }> {
+    const filters: Record<string, string> = {};
+    if (userId) filters['userId'] = userId;
+    if (taskId) filters['taskId'] = taskId;
+    return this.http.get<{ entries: TimeEntry[]; perUser: { userId: string; hours: number }[]; totalHours: number }>(`${this.base}/${id}/time`, {
+      params: this.params(filters),
+    });
+  }
+
+  createTime(id: string, payload: { taskId?: string | null; date: string; minutes: number; note?: string }): Observable<{ entry: TimeEntry }> {
+    return this.http.post<{ entry: TimeEntry }>(`${this.base}/${id}/time`, payload);
+  }
+
+  updateTime(id: string, entryId: string, payload: { minutes?: number; date?: string; note?: string }): Observable<{ entry: TimeEntry }> {
+    return this.http.patch<{ entry: TimeEntry }>(`${this.base}/${id}/time/${entryId}`, payload);
+  }
+
+  deleteTime(id: string, entryId: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.base}/${id}/time/${entryId}`);
+  }
+
+  // --- Livrables (cycle d'approbation) --------------------------------------
+
+  deliverables(id: string): Observable<{ deliverables: Deliverable[] }> {
+    return this.http.get<{ deliverables: Deliverable[] }>(`${this.base}/${id}/deliverables`);
+  }
+
+  createDeliverable(id: string, payload: Partial<Deliverable>): Observable<{ deliverable: Deliverable }> {
+    return this.http.post<{ deliverable: Deliverable }>(`${this.base}/${id}/deliverables`, payload);
+  }
+
+  updateDeliverable(id: string, deliverableId: string, payload: Partial<Deliverable>): Observable<{ deliverable: Deliverable }> {
+    return this.http.put<{ deliverable: Deliverable }>(`${this.base}/${id}/deliverables/${deliverableId}`, payload);
+  }
+
+  transitionDeliverable(id: string, deliverableId: string, to: string, note?: string): Observable<{ deliverable: Deliverable }> {
+    return this.http.patch<{ deliverable: Deliverable }>(`${this.base}/${id}/deliverables/${deliverableId}/status`, { to, note });
+  }
+
+  deleteDeliverable(id: string, deliverableId: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.base}/${id}/deliverables/${deliverableId}`);
+  }
+
+  // --- Événements projet (réunions, décisions) ------------------------------
+
+  events(id: string): Observable<{ events: ProjectEvent[] }> {
+    return this.http.get<{ events: ProjectEvent[] }>(`${this.base}/${id}/events`);
+  }
+
+  createEvent(id: string, payload: { title: string; type: string; description?: string; date: string }): Observable<{ event: ProjectEvent }> {
+    return this.http.post<{ event: ProjectEvent }>(`${this.base}/${id}/events`, payload);
+  }
+
+  updateEvent(id: string, eventId: string, payload: Partial<ProjectEvent>): Observable<{ event: ProjectEvent }> {
+    return this.http.put<{ event: ProjectEvent }>(`${this.base}/${id}/events/${eventId}`, payload);
+  }
+
+  deleteEvent(id: string, eventId: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.base}/${id}/events/${eventId}`);
   }
 
   /** Statistiques de sprint (récupérées via listSprints). */

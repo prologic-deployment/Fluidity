@@ -1,0 +1,92 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.time.title' | t }}</h2>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.time.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="space-y-3">
+    <div class="skeleton h-10 w-80"></div>
+    <div class="skeleton h-56"></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Totaux -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4" *ngIf="perUser.length || totalHours">
+      <div class="card p-4">
+        <p class="text-xs text-muted-foreground">{{ 'projects.time.total' | t }}</p>
+        <p class="text-xl font-semibold tabular-nums mt-1">{{ totalHours }} h</p>
+      </div>
+      <div class="card p-4 col-span-1 sm:col-span-3">
+        <p class="text-xs text-muted-foreground mb-2">{{ 'projects.time.byMember' | t }}</p>
+        <div class="flex flex-wrap gap-2">
+          <span *ngFor="let u of perUser" class="rounded-lg border border-border bg-muted/40 px-2.5 py-1 text-xs">
+            <span class="font-medium">{{ userNameFor(u.userId) }}</span> · <span class="tabular-nums">{{ u.hours }} h</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saisies -->
+    <div class="card" *ngIf="entries.length">
+      <div class="overflow-x-auto">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>{{ 'projects.time.date' | t }}</th>
+              <th>{{ 'projects.time.member' | t }}</th>
+              <th>{{ 'projects.fields.task' | t }}</th>
+              <th class="text-right">{{ 'projects.time.hours' | t }}</th>
+              <th>{{ 'projects.time.note' | t }}</th>
+              <th class="w-20"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let e of entries">
+              <td class="whitespace-nowrap text-xs">{{ e.date | dateLocale:'short' }}</td>
+              <td class="text-xs">{{ userName(e) }}</td>
+              <td class="text-xs">{{ taskLabel(e) }}</td>
+              <td class="text-right text-xs font-medium tabular-nums">{{ (e.minutes / 60).toFixed(2) }} h</td>
+              <td class="text-xs text-muted-foreground max-w-[320px] truncate">{{ e.note }}</td>
+              <td class="whitespace-nowrap text-right">
+                <button type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
+                <button type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div *ngIf="!entries.length" class="card"><div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.time.empty' | t }}</div></div>
+  </ng-container>
+
+  <app-modal [open]="creating || !!editing" [title]="(editing ? 'common.edit' : 'projects.time.new') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-3 p-4" *ngIf="creating || editing">
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.task' | t }}</span>
+        <select [(ngModel)]="form.taskId" class="select mt-1">
+          <option value="">{{ 'projects.time.noTask' | t }}</option>
+          <option *ngFor="let t of tasks" [value]="t._id">{{ t.ref }} — {{ t.title }}</option>
+        </select>
+      </label>
+      <div class="grid grid-cols-2 gap-3">
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.time.date' | t }}</span>
+          <input type="date" [(ngModel)]="form.date" class="input mt-1" />
+        </label>
+        <label class="block text-sm">
+          <span class="text-muted-foreground">{{ 'projects.time.minutes' | t }}</span>
+          <input type="number" min="1" max="1440" [(ngModel)]="form.minutes" class="input mt-1" />
+        </label>
+      </div>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.time.note' | t }}</span>
+        <textarea [(ngModel)]="form.note" rows="2" maxlength="500" class="input mt-1"></textarea>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="submitting || !form.date || !form.minutes" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

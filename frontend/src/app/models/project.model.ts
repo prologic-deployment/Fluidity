@@ -5,10 +5,13 @@
  */
 
 export type Methodology = 'kanban' | 'scrum' | 'waterfall' | 'hybrid';
-export type ProjectStatus = 'planning' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type TaskType = 'task' | 'subtask' | 'bug' | 'user_story' | 'epic' | 'deliverable' | 'milestone_task';
+export type DeliverableStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+export type ProjectEventType = 'meeting' | 'decision' | 'event' | 'deadline';
+export type ProjectStatus = 'draft' | 'planning' | 'active' | 'on_hold' | 'at_risk' | 'paused' | 'completed' | 'cancelled' | 'archived';
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
-export type ProjectRoleKey = 'project_admin' | 'project_manager' | 'project_lead' | 'project_member' | 'project_viewer';
-export type HealthStatus = 'healthy' | 'at_risk' | 'critical';
+export type ProjectRoleKey = 'project_admin' | 'project_manager' | 'project_lead' | 'scrum_master' | 'product_owner' | 'developer' | 'designer' | 'qa' | 'project_member' | 'project_viewer';
+export type HealthStatus = 'on_track' | 'at_risk' | 'off_track';
 
 export interface HealthReason {
   key: string;
@@ -31,6 +34,7 @@ export interface WorkflowState {
   color?: string;
   order: number;
   terminal?: boolean;
+  wipLimit?: number;
 }
 
 export interface Project {
@@ -52,6 +56,12 @@ export interface Project {
   workflow?: WorkflowState[];
   settings: { sprintLengthDays: number; wipLimit: number };
   healthRules?: { overdueWeight: number; milestoneDelayDays: number; deadlineProximityDays: number; progressGapTolerance: number };
+  healthOverride?: { status: HealthStatus | null; reason: string; by: string | null; at: string | null } | null;
+  objectives?: string;
+  successCriteria?: string;
+  businessValue?: number;
+  estimatedEffortHours?: number;
+  color?: string;
   attachments: { name: string; url: string; size?: number }[];
   archived: boolean;
   createdAt: string;
@@ -108,6 +118,14 @@ export interface Task {
   _id: string;
   projectId: string;
   parentTaskId: string | null;
+  epicId?: string | null;
+  epic?: { _id: string; ref: string; title: string } | null;
+  type?: TaskType;
+  points?: number;
+  businessValue?: number;
+  acceptanceCriteria?: string;
+  remainingHours?: number;
+  startedAt?: string | null;
   ref: string;
   title: string;
   description: string;
@@ -171,8 +189,67 @@ export interface Sprint {
   endDate: string | null;
   completedAt?: string | null;
   retrospective?: { wentWell: string; wentWrong: string; actions: string[] };
-  stats?: { total: number; completed: number; blocked: number; committed: number; delivered: number; remaining: number; progress: number };
+  /** Enrichissements des rapports (statistiques calculées côté serveur). */
+  pointsCommitted?: number;
+  pointsDelivered?: number;
+  velocityPoints?: number;
+  burndown?: { day: string; remaining: number; ideal: number }[];
+  burnup?: { day: string; completed: number; total: number }[];
+  stats?: {
+    total: number; completed: number; blocked: number; committed: number; delivered: number; remaining: number; progress: number;
+    pointsCommitted?: number; pointsDelivered?: number; velocityPoints?: number;
+    burndown?: { day: string; remaining: number; ideal: number }[];
+    burnup?: { day: string; completed: number; total: number }[];
+  };
   velocity?: { points: number; tasks: number };
+}
+
+export interface TimeEntry {
+  _id: string;
+  projectId: string;
+  taskId: string | null;
+  task?: { _id: string; ref: string; title: string } | null;
+  userId: string;
+  user?: UserBrief | null;
+  date: string;
+  minutes: number;
+  note: string;
+  createdAt?: string;
+}
+
+export interface Deliverable {
+  _id: string;
+  projectId: string;
+  milestoneId: string | null;
+  taskId: string | null;
+  title: string;
+  description: string;
+  status: DeliverableStatus;
+  version: number;
+  dueDate: string | null;
+  files: TaskAttachment[];
+  submittedBy?: UserBrief | string | null;
+  submittedAt: string | null;
+  approvedBy?: UserBrief | string | null;
+  approvedAt: string | null;
+  rejectionNote: string;
+  createdAt?: string;
+}
+
+export interface ProjectEvent {
+  _id: string;
+  projectId: string;
+  title: string;
+  type: ProjectEventType;
+  description: string;
+  date: string;
+  createdBy?: string | null;
+  createdAt?: string;
+}
+
+export interface BacklogData {
+  epics: (Task & { items: Task[] })[];
+  unassigned: Task[];
 }
 
 export interface Risk {
@@ -264,7 +341,7 @@ export interface UpcomingTask {
 
 export interface GlobalDashboard {
   totals: { projects: number; active: number; completed: number; overdue: number; tasks: number; tasksCompleted: number; tasksOverdue: number };
-  healthCounts: { healthy: number; at_risk: number; critical: number };
+  healthCounts: { on_track: number; at_risk: number; off_track: number };
   healthByProject: { _id: string; code: string; name: string; status: string; methodology: string; health: HealthStatus }[];
   methodologyDist: Record<string, number>;
   completionTrend: { month: string; count: number }[];
@@ -304,6 +381,17 @@ export interface ReportsData {
   sprints: (Sprint & { velocity?: { points: number; tasks: number } })[];
   risks: Risk[];
   riskMatrix: { low: number; medium: number; high: number; critical: number };
+  cycleTime?: { averageDays: number; sampleSize: number; minDays: number; maxDays: number };
+  throughput?: { weekStart: string; count: number }[];
+  timeSummary?: { estimatedHours: number; loggedHours: number; remainingHours: number; variance: number; entryCount: number };
+}
+
+export interface CalendarData {
+  tasks: Task[];
+  milestones: Milestone[];
+  sprints: Sprint[];
+  events?: ProjectEvent[];
+  project: { startDate: string | null; endDate: string | null };
 }
 
 export interface CalendarData {
@@ -332,8 +420,14 @@ export interface OrderItem {
   subtotal: number;
   total: number;
   currency: string;
-  status: 'pending' | 'paid' | 'failed' | 'cancelled' | 'refunded';
+  status: 'pending_approval' | 'pending' | 'approved' | 'completed' | 'paid' | 'failed' | 'rejected' | 'cancelled' | 'refunded';
+  orderType?: 'subscription' | 'seat_expansion';
+  paymentMode?: 'manual_approval' | string;
   paymentMethod: string;
+  reviewedBy?: { _id?: string; email?: string; firstName?: string; lastName?: string } | string | null;
+  reviewedAt?: string | null;
+  reviewNote?: string;
+  notes?: string;
   createdAt: string;
   activatedSubscriptionId?: string | null;
 }
