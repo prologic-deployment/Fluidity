@@ -93,6 +93,9 @@
             </td>
             <td class="text-sm tabular-nums font-medium">{{ nextAmount(s) }} {{ s.currency }}</td>
             <td class="text-right whitespace-nowrap">
+              <button *ngIf="(s.usage?.available ?? 0) === 0 && ['active', 'trial', 'past_due'].includes(s.status)" type="button" class="btn-outline btn-sm mr-1" (click)="openExpand(s)">
+                + {{ 'subscriptions.overview.addSeats' | t }}
+              </button>
               <button type="button" class="btn-ghost btn-sm" (click)="toggleAutoRenew(s)">
                 {{ (s.autoRenew ? 'subscriptions.overview.autoRenewOff' : 'subscriptions.overview.autoRenewOn') | t }}
               </button>

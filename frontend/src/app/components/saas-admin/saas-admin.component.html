@@ -81,6 +81,52 @@
       </div>
     </section>
 
+    <!-- Commandes (examen & approbation) -->
+    <section *ngIf="tab === 'orders'" class="space-y-4">
+      <div class="rounded-xl border border-border bg-card p-5">
+        <h2 class="text-sm font-semibold">{{ 'saas.ordersTitle' | t }}</h2>
+        <p class="text-xs text-muted-foreground mt-1">{{ 'saas.ordersSubtitle' | t }}</p>
+      </div>
+
+      <div class="rounded-xl border border-border bg-card p-5">
+        <h3 class="text-sm font-medium mb-3">{{ 'saas.ordersPending' | t }} <span class="badge badge-warning ml-1">{{ pendingOrders().length }}</span></h3>
+        <p *ngIf="!pendingOrders().length" class="text-sm text-muted-foreground">{{ 'saas.ordersEmpty' | t }}</p>
+        <div class="space-y-3" *ngIf="pendingOrders().length">
+          <div *ngFor="let o of pendingOrders()" class="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium">{{ tenantName(o) }} — {{ 'products.' + o.productKey + '.name' | t }}</p>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                {{ 'subscriptions.meta.orderType.' + (o.orderType || 'subscription') | t }} · {{ 'subscriptions.meta.plan.' + o.planId | t }} · {{ 'saas.orderSeats' | t }} : {{ o.seats }} · <span class="font-medium">{{ o.total }} {{ o.currency }}</span> · {{ 'saas.orderRequestedBy' | t }} : {{ requesterName(o) }}
+              </p>
+              <p class="text-xs text-muted-foreground" *ngIf="o.notes">{{ o.notes }}</p>
+              <input type="text" class="input mt-2 max-w-md" [placeholder]="('saas.approveNote' | t)" [(ngModel)]="reviewNote[o._id]" />
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button" class="btn-primary btn-sm" (click)="approve(o)">{{ 'saas.approve' | t }}</button>
+              <button type="button" class="btn-destructive btn-sm" (click)="reject(o)">{{ 'saas.reject' | t }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto rounded-xl border border-border bg-card">
+        <table class="table">
+          <thead><tr><th>{{ 'saas.orderTenant' | t }}</th><th>{{ 'saas.orderProduct' | t }}</th><th>{{ 'saas.orderType' | t }}</th><th>{{ 'saas.orderSeats' | t }}</th><th>{{ 'saas.orderTotal' | t }}</th><th>{{ 'saas.orderStatus' | t }}</th><th>{{ 'saas.orderDate' | t }}</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let o of pastOrders()">
+              <td class="text-sm">{{ tenantName(o) }}</td>
+              <td class="text-sm">{{ 'products.' + o.productKey + '.name' | t }}</td>
+              <td class="text-sm">{{ 'subscriptions.meta.orderType.' + (o.orderType || 'subscription') | t }}</td>
+              <td class="text-sm tabular-nums">{{ o.seats }}</td>
+              <td class="text-sm tabular-nums">{{ o.total }} {{ o.currency }}</td>
+              <td><span class="badge" [ngClass]="orderStatusBadge(o)">{{ 'subscriptions.meta.orderStatus.' + o.status | t }}</span></td>
+              <td class="whitespace-nowrap text-xs text-muted-foreground">{{ o.createdAt | dateLocale:'short' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- Rôles produit -->
     <section *ngIf="tab === 'roles'" class="space-y-3">
       <div *ngFor="let r of roleCatalog" class="rounded-xl border border-border bg-card px-5 py-4">

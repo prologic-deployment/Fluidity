@@ -9,14 +9,19 @@ import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { FormsModule } from '@angular/forms';
+import { ModalComponent } from '../shared/modal.component';
 
 /** Événements de notification du produit (miroir backend, clés i18n). */
 const PROJECT_EVENTS = [
   'task_assigned', 'task_reassigned', 'task_mention', 'task_comment', 'task_deadline',
   'task_overdue', 'task_status_changed', 'milestone_approaching', 'milestone_overdue',
   'project_invitation', 'project_role_changed', 'sprint_started', 'sprint_completed',
-  'risk_assigned', 'issue_assigned', 'subscription_purchase', 'subscription_renewal',
-  'license_assigned', 'license_removed',
+  'sprint_ending', 'project_completed', 'risk_assigned', 'issue_assigned',
+  'subscription_purchase', 'subscription_requested', 'subscription_approved', 'subscription_rejected',
+  'subscription_renewal', 'subscription_expiring', 'license_assigned', 'license_removed',
+  'license_limit_reached', 'deliverable_submitted', 'deliverable_approved', 'deliverable_rejected',
+  'time_logged',
 ] as const;
 
 /**
@@ -28,7 +33,7 @@ const PROJECT_EVENTS = [
 @Component({
   selector: 'app-subscriptions-overview',
   standalone: true,
-  imports: [CommonModule, RouterLink, ...I18N_IMPORTS],
+  imports: [CommonModule, RouterLink, FormsModule, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './subscriptions-overview.component.html',
 })
 export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
@@ -38,6 +43,9 @@ export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
   subscriptions: Subscription[] = [];
   events = PROJECT_EVENTS;
   prefs: NotificationPreferences = {};
+  expanding: Subscription | null = null;
+  extraSeats = 5;
+  expandingBusy = false;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -87,6 +95,36 @@ export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
   nextAmount(s: Subscription): number {
     const unit = s.billingPeriod === 'annual' ? Math.round(s.pricePerSeat * 10) : s.pricePerSeat;
     return unit * s.seats;
+  }
+
+  openExpand(s: Subscription): void {
+    this.expanding = s;
+    this.extraSeats = 5;
+  }
+
+  confirmExpand(): void {
+    if (!this.expanding || this.extraSeats < 1) return;
+    this.expandingBusy = true;
+    this.platform
+      .createOrder({
+        productKey: this.expanding.productKey,
+        planId: this.expanding.planId,
+        billingPeriod: this.expanding.billingPeriod,
+        seats: this.extraSeats,
+        paymentMethod: 'manual',
+        subscriptionId: this.expanding._id,
+      })
+      .subscribe({
+        next: () => {
+          this.expandingBusy = false;
+          this.expanding = null;
+          this.toast.success(this.i18n.t('subscriptions.overview.expandSent'));
+        },
+        error: (err) => {
+          this.expandingBusy = false;
+          this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        },
+      });
   }
 
   async toggleAutoRenew(s: Subscription): Promise<void> {

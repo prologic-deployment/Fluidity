@@ -64,9 +64,13 @@ export class SubscriptionsOrdersComponent implements OnInit, OnDestroy {
 
   statusBadge(status: OrderItem['status']): string {
     return {
+      pending_approval: 'badge-warning',
       pending: 'badge-warning',
+      approved: 'badge-secondary',
+      completed: 'badge-success',
       paid: 'badge-success',
       failed: 'badge-destructive',
+      rejected: 'badge-destructive',
       cancelled: 'badge-secondary',
       refunded: 'badge-outline',
     }[status] || 'badge-outline';

@@ -15,6 +15,7 @@
           <th>{{ 'subscriptions.orders.plan' | t }}</th>
           <th class="hidden md:table-cell">{{ 'subscriptions.orders.cycle' | t }}</th>
           <th class="hidden md:table-cell">{{ 'subscriptions.orders.seats' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'saas.orderType' | t }}</th>
           <th>{{ 'subscriptions.orders.amount' | t }}</th>
           <th>{{ 'subscriptions.orders.status' | t }}</th>
           <th class="hidden lg:table-cell">{{ 'subscriptions.orders.date' | t }}</th>
@@ -27,12 +28,14 @@
           <td class="text-sm">{{ 'subscriptions.meta.plan.' + o.planId | t }}</td>
           <td class="hidden md:table-cell text-sm">{{ 'subscriptions.meta.cycle.' + o.billingPeriod | t }}</td>
           <td class="hidden md:table-cell text-sm tabular-nums">{{ o.seats }}</td>
+          <td class="hidden md:table-cell text-sm">{{ o.orderType ? ('subscriptions.meta.orderType.' + o.orderType | t) : '—' }}</td>
           <td class="text-sm tabular-nums font-medium">{{ o.total }} {{ o.currency }}</td>
           <td><span class="badge" [ngClass]="statusBadge(o.status)">{{ 'subscriptions.meta.orderStatus.' + o.status | t }}</span></td>
           <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{{ o.createdAt | dateLocale:'short' }}</td>
           <td class="text-right whitespace-nowrap">
-            <button *ngIf="o.status === 'pending'" type="button" class="btn-ghost btn-sm" (click)="checkout(o)">{{ 'subscriptions.orders.pay' | t }}</button>
-            <button *ngIf="o.status === 'pending'" type="button" class="btn-destructive btn-sm ml-1" (click)="cancel(o)">{{ 'subscriptions.orders.cancel' | t }}</button>
+            <span *ngIf="o.status === 'pending_approval'" class="text-xs text-muted-foreground mr-2">{{ 'saas.manualApproval' | t }}</span>
+            <button *ngIf="['pending_approval', 'pending'].includes(o.status)" type="button" class="btn-ghost btn-sm" (click)="checkout(o)">{{ 'subscriptions.orders.pay' | t }}</button>
+            <button *ngIf="['pending_approval', 'pending'].includes(o.status)" type="button" class="btn-destructive btn-sm ml-1" (click)="cancel(o)">{{ 'subscriptions.orders.cancel' | t }}</button>
           </td>
         </tr>
       </tbody>

@@ -5,6 +5,7 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { PlatformService } from '../../services/platform.service';
 import { TenantService } from '../../services/tenant.service';
 import { ProductInfo, Subscription } from '../../models/product.model';
+import { OrderItem } from '../../models/project.model';
 
 /**
  * Administration SaaS de la plateforme (Super Admin) :
@@ -25,8 +26,10 @@ export class SaasAdminComponent implements OnInit {
   licenses: unknown[] = [];
   audit: { items: { _id: string; userId: string | null; productKey: string; action: string; resource: string; createdAt: string }[]; total: number; pages: number } = { items: [], total: 0, pages: 1 };
   roleCatalog: { productKey: string; nameKey: string; roles: { key: string; nameKey: string }[] }[] = [];
+  orders: OrderItem[] = [];
+  reviewNote: Record<string, string> = {};
 
-  tab: 'catalog' | 'subscriptions' | 'licenses' | 'roles' | 'audit' = 'catalog';
+  tab: 'catalog' | 'subscriptions' | 'licenses' | 'roles' | 'audit' | 'orders' = 'catalog';
 
   // Formulaire provisionnement
   form = {
@@ -45,6 +48,7 @@ export class SaasAdminComponent implements OnInit {
   readonly tabs = [
     { key: 'catalog' as const, label: 'saas.tabCatalog' },
     { key: 'subscriptions' as const, label: 'saas.tabSubscriptions' },
+    { key: 'orders' as const, label: 'saas.tabOrders' },
     { key: 'licenses' as const, label: 'saas.tabLicenses' },
     { key: 'roles' as const, label: 'saas.tabRoles' },
     { key: 'audit' as const, label: 'saas.tabAudit' },
@@ -58,6 +62,7 @@ export class SaasAdminComponent implements OnInit {
     this.loadTenants();
     this.loadSubscriptions();
     this.loadAudit();
+    this.loadOrders();
   }
 
   loadAudit(page = 1): void {
@@ -76,6 +81,68 @@ export class SaasAdminComponent implements OnInit {
       next: (t) => (this.tenants = t.map((x) => ({ _id: x._id || '', name: x.name }))),
       error: () => (this.tenants = []),
     });
+  }
+
+  loadOrders(): void {
+    this.platform.platformOrders().subscribe({
+      next: (r) => (this.orders = r.orders || []),
+      error: () => (this.orders = []),
+    });
+  }
+
+  pendingOrders(): OrderItem[] {
+    return this.orders.filter((o) => ['pending_approval', 'pending', 'draft'].includes(o.status));
+  }
+
+  pastOrders(): OrderItem[] {
+    return this.orders.filter((o) => !['pending_approval', 'pending', 'draft'].includes(o.status));
+  }
+
+  approve(o: OrderItem): void {
+    this.platform.approveOrder(o._id, this.reviewNote[o._id] || '').subscribe({
+      next: () => {
+        this.success = 'Souscription activée.';
+        this.reviewNote[o._id] = '';
+        this.loadOrders();
+        this.loadSubscriptions();
+      },
+      error: (err) => (this.error = err?.error?.message || 'Échec de l’approbation.'),
+    });
+  }
+
+  reject(o: OrderItem): void {
+    this.platform.rejectOrder(o._id, this.reviewNote[o._id] || '').subscribe({
+      next: () => {
+        this.success = 'Commande rejetée.';
+        this.reviewNote[o._id] = '';
+        this.loadOrders();
+      },
+      error: (err) => (this.error = err?.error?.message || 'Échec du rejet.'),
+    });
+  }
+
+  orderStatusBadge(o: OrderItem): string {
+    return {
+      pending_approval: 'badge-warning',
+      pending: 'badge-warning',
+      approved: 'badge-secondary',
+      completed: 'badge-success',
+      paid: 'badge-success',
+      failed: 'badge-destructive',
+      rejected: 'badge-destructive',
+      cancelled: 'badge-secondary',
+      refunded: 'badge-outline',
+    }[o.status] || 'badge-outline';
+  }
+
+  tenantName(o: OrderItem): string {
+    const t = o as OrderItem & { tenantName?: string };
+    return t.tenantName || '—';
+  }
+
+  requesterName(o: OrderItem): string {
+    const r = (o as OrderItem & { userId?: { firstName?: string; lastName?: string; email?: string } }).userId;
+    return r ? `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.email || '—' : '—';
   }
 
   loadSubscriptions(): void {
