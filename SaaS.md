@@ -8,8 +8,23 @@ modulaires vendus indépendamment.
 
 | Statut | Produits |
 |---|---|
-| **Disponible** | `servicedesk` (Cloud ServiceDesk / Cloud Ticketing) |
-| **Bientôt** | `project_management`, `fleet_management`, `hr_center`, `crm`, `contract_management`, `asset_management`, `knowledge_center`, `monitoring`, `backup_management`, `security_center`, `document_management`, `business_intelligence`, `ai_assistant`, `procurement`, `time_tracking`, `collaboration` |
+| **Disponible** | `servicedesk` (Cloud ServiceDesk / Cloud Ticketing), `project_management` (Gestion de Projet) |
+| **Bientôt** | `fleet_management`, `hr_center`, `crm`, `contract_management`, `asset_management`, `knowledge_center`, `monitoring`, `backup_management`, `security_center`, `document_management`, `business_intelligence`, `ai_assistant`, `procurement`, `time_tracking`, `collaboration` |
+
+### Gestion de Projet (disponible)
+
+Cycle de vie complet des projets (`draft → planning → active → completed →
+archived`, avec `on_hold`, `at_risk`, `cancelled`), 10 rôles produit
+(`project_admin`, `project_manager`, `project_lead`, `scrum_master`,
+`product_owner`, `developer`, `designer`, `qa`, `project_member`,
+`project_viewer`), méthodologies Kanban/Scrum/Waterfall/Hybride
+configurables par projet, backlog (épopées + story points), sprints
+(burndown/vélocité), suivi du temps, livrables avec cycle d'approbation,
+réunions & décisions, limites WIP par colonne, rapports (cycle time,
+débit, temps) et santé projet (`on_track/at_risk/off_track` avec override
+justifié). Les commandes du produit suivent le cycle d'approbation
+plateforme : `pending_approval → approved → completed`
+(voir `docs/project-management-flows.md`).
 
 Un produit est une **entrée de registre** (`backend/src/products/registry.js`) :
 `key` stable, clés i18n, icône, route, statut, plans, rôles par défaut,
