@@ -188,6 +188,11 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     return s.status === 'active';
   }
 
+  burnHeight(remaining: number, committed: number): number {
+    if (!committed) return 0;
+    return Math.min(100, Math.max(4, (remaining / committed) * 100));
+  }
+
   trackS(_i: number, s: Sprint): string {
     return s._id;
   }

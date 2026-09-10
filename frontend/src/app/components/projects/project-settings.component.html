@@ -59,9 +59,50 @@
               <input type="date" [(ngModel)]="form.endDate" class="input" [disabled]="!canManage" />
             </div>
           </div>
+          <div class="pt-1">
+            <p class="text-xs font-medium text-muted-foreground mb-2">{{ 'projects.settings.framing' | t }} — {{ 'projects.settings.framingHint' | t }}</p>
+            <div class="space-y-3">
+              <div>
+                <label class="field-label">{{ 'projects.fields.objectives' | t }}</label>
+                <textarea [(ngModel)]="form.objectives" rows="2" class="input" [disabled]="!canManage"></textarea>
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.successCriteria' | t }}</label>
+                <textarea [(ngModel)]="form.successCriteria" rows="2" class="input" [disabled]="!canManage"></textarea>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="field-label">{{ 'projects.fields.businessValue' | t }}</label>
+                  <input type="number" min="0" [(ngModel)]="form.businessValue" class="input" [disabled]="!canManage" />
+                </div>
+                <div>
+                  <label class="field-label">{{ 'projects.fields.estimatedEffortHours' | t }}</label>
+                  <input type="number" min="0" [(ngModel)]="form.estimatedEffortHours" class="input" [disabled]="!canManage" />
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="flex justify-end" *ngIf="canManage">
             <button type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Cycle de vie -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.settings.lifecycle' | t }}</div>
+        <div class="card-content p-4">
+          <p class="text-xs text-muted-foreground mb-3">{{ 'projects.settings.lifecycleHint' | t }}</p>
+          <p class="text-sm mb-2">
+            {{ 'projects.fields.status' | t }} : <span class="badge badge-secondary">{{ 'projects.meta.status.' + project.status | t }}</span>
+          </p>
+          <div class="flex flex-wrap gap-2" *ngIf="nextStatuses().length">
+            <span class="text-xs text-muted-foreground self-center">{{ 'projects.settings.nextStatus' | t }}</span>
+            <button *ngFor="let s of nextStatuses()" type="button" class="btn-outline btn-sm" [disabled]="!canManage" (click)="changeStatus(s)">
+              → {{ 'projects.meta.status.' + s | t }}
+            </button>
+          </div>
+          <p *ngIf="!nextStatuses().length" class="text-xs text-muted-foreground">{{ 'projects.settings.noNextStatus' | t }}</p>
         </div>
       </div>
 
@@ -83,6 +124,10 @@
               <input type="checkbox" [(ngModel)]="s.terminal" [disabled]="!canManage" class="checkbox" />
               {{ 'projects.settings.wfTerminal' | t }}
             </label>
+            <label class="flex items-center gap-1 text-xs text-muted-foreground shrink-0" [title]="'projects.settings.wfWipHint' | t">
+              <input type="number" min="0" max="99" [(ngModel)]="s.wipLimit" [disabled]="!canManage" class="input !py-0.5 text-xs w-16" />
+              {{ 'projects.settings.wfWip' | t }}
+            </label>
             <button type="button" class="text-muted-foreground hover:text-destructive" (click)="removeWfState(i)" [disabled]="!canManage">×</button>
           </div>
           <div class="flex items-center gap-2 pt-2">
@@ -91,6 +136,33 @@
               {{ 'projects.settings.wfSave' | t }}
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Santé forcée -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.settings.healthOverride' | t }}</div>
+        <div class="card-content p-4 space-y-3">
+          <p class="text-xs text-muted-foreground">{{ 'projects.settings.healthOverrideHint' | t }}</p>
+          <div class="flex flex-wrap items-end gap-3">
+            <div>
+              <label class="field-label">{{ 'projects.fields.status' | t }}</label>
+              <select [(ngModel)]="override.status" class="input" [disabled]="!canManage">
+                <option value="">{{ 'projects.settings.healthOverrideClear' | t }}</option>
+                <option value="on_track">{{ 'projects.health.on_track' | t }}</option>
+                <option value="at_risk">{{ 'projects.health.at_risk' | t }}</option>
+                <option value="off_track">{{ 'projects.health.off_track' | t }}</option>
+              </select>
+            </div>
+            <div class="flex-1 min-w-[220px]">
+              <label class="field-label">{{ 'projects.settings.healthOverrideReason' | t }}</label>
+              <input type="text" [(ngModel)]="override.reason" maxlength="500" class="input" [disabled]="!canManage" />
+            </div>
+            <button type="button" class="btn-primary btn-sm" [disabled]="!canManage" (click)="applyOverride()">{{ 'projects.settings.healthOverrideSave' | t }}</button>
+          </div>
+          <p *ngIf="project.healthOverride?.status" class="text-xs text-muted-foreground">
+            {{ 'projects.health.reasonOverride' | t:{ reason: project.healthOverride?.reason || '' } }}
+          </p>
         </div>
       </div>
 

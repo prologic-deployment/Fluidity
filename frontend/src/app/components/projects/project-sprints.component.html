@@ -81,9 +81,14 @@
           <span class="text-xs text-muted-foreground ml-auto">{{ s.startDate | dateLocale:'short' }} → {{ s.endDate | dateLocale:'short' }}</span>
         </div>
         <p *ngIf="s.goal" class="text-sm text-muted-foreground mt-1 line-clamp-1">{{ s.goal }}</p>
-        <div class="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+        <div class="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
           <span>{{ 'projects.sprints.tasks' | t }} : <b class="tabular-nums">{{ s.stats?.completed || 0 }}/{{ s.stats?.total || 0 }}</b></span>
-          <span *ngIf="s.velocity?.points">{{ 'projects.sprints.velocity' | t }} : <b class="tabular-nums">{{ s.velocity?.points }}h</b> / {{ s.velocity?.tasks }} {{ 'projects.sprints.velocityTasks' | t }}</span>
+          <span *ngIf="s.stats?.pointsCommitted">{{ 'projects.sprints.velocity' | t }} : <b class="tabular-nums">{{ s.stats?.velocityPoints || 0 }} pts</b> · {{ 'projects.reports.pointsCommitted' | t }} <b class="tabular-nums">{{ s.stats?.pointsCommitted }}</b> · {{ 'projects.reports.pointsDelivered' | t }} <b class="tabular-nums">{{ s.stats?.pointsDelivered }}</b></span>
+        </div>
+        <div class="mt-2" *ngIf="(s.stats?.burndown || []).length">
+          <div class="flex items-end gap-px h-10" [attr.aria-label]="'projects.reports.burndown' | t">
+            <div *ngFor="let b of s.stats!.burndown" class="flex-1 rounded-t bg-indigo-500/70" [style.height.%]="burnHeight(b.remaining, s.stats!.pointsCommitted || 1)" [title]="(b.day | slice:0:10) + ' — ' + b.remaining"></div>
+          </div>
         </div>
         <!-- Rétrospective -->
         <div *ngIf="s.retrospective?.wentWell || s.retrospective?.wentWrong" class="mt-3 grid grid-cols-2 gap-2 text-xs">

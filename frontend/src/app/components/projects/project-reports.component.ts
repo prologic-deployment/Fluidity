@@ -58,6 +58,18 @@ export class ProjectReportsComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  /** Hauteur relative d'un point de burndown (restant / engagé). */
+  burnHeight(remaining: number, committed: number): number {
+    if (!committed) return 0;
+    return Math.min(100, Math.max(4, (remaining / committed) * 100));
+  }
+
+  /** Hauteur d'une barre de débit hebdomadaire. */
+  throughputHeight(count: number): number {
+    const max = Math.max(1, ...(this.data?.throughput || []).map((w) => w.count));
+    return Math.max(6, (count / max) * 100);
+  }
+
   /** Export CSV (tâches agrégées par statut — la liste détaillée est exportable à la demande). */
   exportStatusCsv(): void {
     if (!this.data) return;

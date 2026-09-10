@@ -53,9 +53,9 @@
             <p class="text-xs text-muted-foreground">{{ 'projects.dashboard.health' | t }}</p>
           </div>
           <div class="flex gap-2 mt-1.5 text-xs">
-            <span class="badge badge-success tabular-nums">{{ data.healthCounts.healthy }}</span>
+            <span class="badge badge-success tabular-nums">{{ data.healthCounts.on_track }}</span>
             <span class="badge badge-warning tabular-nums">{{ data.healthCounts.at_risk }}</span>
-            <span class="badge badge-destructive tabular-nums">{{ data.healthCounts.critical }}</span>
+            <span class="badge badge-destructive tabular-nums">{{ data.healthCounts.off_track }}</span>
           </div>
         </div></div>
       </div>
@@ -192,7 +192,7 @@
             <td class="whitespace-nowrap text-sm">{{ p.manager ? (p.manager.firstName + ' ' + p.manager.lastName) : '—' }}</td>
             <td><span class="badge badge-outline">{{ 'projects.meta.methodology.' + p.methodology | t }}</span></td>
             <td><span class="badge badge-secondary">{{ 'projects.meta.status.' + p.status | t }}</span></td>
-            <td class="hidden md:table-cell"><span class="badge" [ngClass]="healthBadge[p.health || 'healthy']">{{ 'projects.health.' + (p.health || 'healthy') | t }}</span></td>
+            <td class="hidden md:table-cell"><span class="badge" [ngClass]="healthBadge[p.health || 'on_track']">{{ 'projects.health.' + (p.health || 'on_track') | t }}</span></td>
             <td class="hidden md:table-cell">
               <div class="flex items-center gap-2">
                 <div class="w-16 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="p.progress || 0"></div></div>

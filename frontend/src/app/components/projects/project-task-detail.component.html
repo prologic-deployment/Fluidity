@@ -190,6 +190,11 @@
           </div>
         </div>
 
+        <div class="card" *ngIf="task.acceptanceCriteria">
+          <div class="card-header py-3">{{ 'projects.fields.acceptanceCriteria' | t }}</div>
+          <div class="card-content p-4 text-sm whitespace-pre-wrap">{{ task.acceptanceCriteria }}</div>
+        </div>
+
         <div class="card">
           <div class="card-header py-3">{{ 'projects.task.meta' | t }}</div>
           <dl class="card-content p-4 space-y-2 text-sm">
@@ -204,6 +209,14 @@
             <div class="flex justify-between gap-2">
               <dt class="text-muted-foreground">{{ 'projects.fields.logged' | t }}</dt>
               <dd>{{ task.loggedHours }}h</dd>
+            </div>
+            <div class="flex justify-between gap-2" *ngIf="task.points">
+              <dt class="text-muted-foreground">{{ 'projects.fields.points' | t }}</dt>
+              <dd class="tabular-nums">{{ task.points }}</dd>
+            </div>
+            <div class="flex justify-between gap-2" *ngIf="task.businessValue">
+              <dt class="text-muted-foreground">{{ 'projects.fields.businessValue' | t }}</dt>
+              <dd class="tabular-nums">{{ task.businessValue }}</dd>
             </div>
             <div class="flex justify-between gap-2">
               <dt class="text-muted-foreground">{{ 'projects.fields.watchers' | t }}</dt>

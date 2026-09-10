@@ -81,7 +81,7 @@
                   <td class="font-mono text-xs whitespace-nowrap">{{ p.code }}</td>
                   <td class="font-medium truncate max-w-[280px]">{{ p.name }}</td>
                   <td class="hidden md:table-cell text-sm whitespace-nowrap">{{ p.endDate | dateLocale:'short' }}</td>
-                  <td><span class="badge" [ngClass]="healthBadge[p.health || 'healthy']">{{ 'projects.health.' + (p.health || 'healthy') | t }}</span></td>
+                  <td><span class="badge" [ngClass]="healthBadge[p.health || 'on_track']">{{ 'projects.health.' + (p.health || 'on_track') | t }}</span></td>
                 </tr>
               </tbody>
             </table>

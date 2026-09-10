@@ -6,9 +6,11 @@ import { ProjectService } from '../../services/project.service';
 import { CalendarData, Sprint, Task } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
+const eventIcons: Record<string, string> = { meeting: '📅', decision: '⚖️', deadline: '⏰', event: '📌' };
+
 interface CalendarEvent {
   date: string; // ISO yyyy-mm-dd
-  kind: 'task' | 'milestone' | 'sprint' | 'project';
+  kind: 'task' | 'milestone' | 'sprint' | 'project' | 'event';
   label: string;
   ref?: string;
   id?: string;
@@ -93,6 +95,16 @@ export class ProjectCalendarComponent implements OnInit, OnDestroy {
     }
     if (d.project.startDate) events.push({ date: d.project.startDate.slice(0, 10), kind: 'project', label: '▶', color: 'bg-slate-400' });
     if (d.project.endDate) events.push({ date: d.project.endDate.slice(0, 10), kind: 'project', label: '■', color: 'bg-slate-500' });
+    // Réunions, décisions, échéances (ProjectEvent)
+    const eventColors: Record<string, string> = {
+      meeting: 'bg-sky-500',
+      decision: 'bg-fuchsia-500',
+      deadline: 'bg-rose-500',
+      event: 'bg-teal-500',
+    };
+    for (const ev of d.events || []) {
+      events.push({ date: ev.date.slice(0, 10), kind: 'event', label: `${eventIcons[ev.type] || ''} ${ev.title}`.trim(), id: ev._id, color: eventColors[ev.type] || 'bg-teal-500' });
+    }
     this.events = events;
   }
 

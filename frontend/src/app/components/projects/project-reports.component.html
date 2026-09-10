@@ -85,16 +85,88 @@
         <div class="card-header py-3">{{ 'projects.reports.velocity' | t }}</div>
         <div class="table-wrap">
           <table class="table">
-            <thead><tr><th>{{ 'projects.fields.name' | t }}</th><th>{{ 'projects.sprints.velocity' | t }} (h)</th><th>{{ 'projects.sprints.tasks' | t }}</th><th>{{ 'projects.fields.status' | t }}</th></tr></thead>
+            <thead>
+              <tr>
+                <th>{{ 'projects.fields.name' | t }}</th>
+                <th>{{ 'projects.sprints.velocity' | t }} (pts)</th>
+                <th>{{ 'projects.reports.pointsCommitted' | t }}</th>
+                <th>{{ 'projects.reports.pointsDelivered' | t }}</th>
+                <th class="hidden md:table-cell">{{ 'projects.reports.burndown' | t }}</th>
+                <th>{{ 'projects.fields.status' | t }}</th>
+              </tr>
+            </thead>
             <tbody>
               <tr *ngFor="let s of data.sprints">
                 <td class="truncate max-w-[200px]">{{ s.name }}</td>
-                <td class="tabular-nums">{{ s.velocity?.points || 0 }}</td>
-                <td class="tabular-nums">{{ s.velocity?.tasks || 0 }}</td>
+                <td class="tabular-nums">{{ s.velocityPoints ?? s.velocity?.points ?? 0 }}</td>
+                <td class="tabular-nums">{{ s.pointsCommitted ?? 0 }}</td>
+                <td class="tabular-nums">{{ s.pointsDelivered ?? 0 }}</td>
+                <td class="hidden md:table-cell">
+                  <div class="flex items-end gap-px h-8" *ngIf="(s.burndown || []).length; else noBurn">
+                    <div *ngFor="let b of s.burndown" class="w-2 rounded-t bg-indigo-500/70" [style.height.%]="burnHeight(b.remaining, s.pointsCommitted || 1)" [title]="b.day.slice(0, 10) + ' — ' + b.remaining"></div>
+                  </div>
+                  <ng-template #noBurn><span class="text-xs text-muted-foreground">—</span></ng-template>
+                </td>
                 <td><span class="badge badge-secondary">{{ 'projects.meta.sprintStatus.' + s.status | t }}</span></td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Cycle time & débit -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3" *ngIf="data.cycleTime || data.throughput">
+        <div class="card" *ngIf="data.cycleTime">
+          <div class="card-header py-3">{{ 'projects.reports.cycleTime' | t }}</div>
+          <div class="card-content p-4 grid grid-cols-2 gap-2">
+            <div class="rounded-lg border border-border p-3 text-center">
+              <p class="text-xl font-semibold tabular-nums">{{ data.cycleTime.averageDays }}</p>
+              <p class="text-xs text-muted-foreground">{{ 'projects.reports.cycleTimeAvg' | t }}</p>
+            </div>
+            <div class="rounded-lg border border-border p-3 text-center">
+              <p class="text-xl font-semibold tabular-nums">{{ data.cycleTime.minDays }} – {{ data.cycleTime.maxDays }}</p>
+              <p class="text-xs text-muted-foreground">{{ 'projects.reports.cycleTimeMin' | t }} / {{ 'projects.reports.cycleTimeMax' | t }}</p>
+            </div>
+            <p class="col-span-2 text-xs text-muted-foreground">{{ 'projects.reports.cycleTimeSample' | t }} : {{ data.cycleTime.sampleSize }}</p>
+          </div>
+        </div>
+        <div class="card" *ngIf="data.throughput?.length">
+          <div class="card-header py-3">{{ 'projects.reports.throughput' | t }}</div>
+          <div class="card-content p-4">
+            <div class="flex items-end gap-2 h-24">
+              <div *ngFor="let w of data.throughput" class="flex-1 flex flex-col items-center gap-1">
+                <span class="text-xs tabular-nums text-muted-foreground">{{ w.count }}</span>
+                <div class="w-full rounded-t bg-emerald-500/70" [style.height.%]="throughputHeight(w.count)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Temps & effort -->
+      <div class="card" *ngIf="data.timeSummary">
+        <div class="card-header py-3">{{ 'projects.reports.timeTitle' | t }}</div>
+        <div class="card-content p-4 grid grid-cols-2 md:grid-cols-5 gap-2">
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ data.timeSummary.estimatedHours }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.estimated' | t }} (h)</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ data.timeSummary.loggedHours }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.logged' | t }} (h)</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ data.timeSummary.remainingHours }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.timeRemaining' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums" [class.text-red-600]="data.timeSummary.variance > 0">{{ data.timeSummary.variance }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.timeVariance' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ data.timeSummary.entryCount }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.timeEntries' | t }}</p>
+          </div>
         </div>
       </div>
 

@@ -18,6 +18,10 @@ import { ProjectIssuesComponent } from './project-issues.component';
 import { ProjectReportsComponent } from './project-reports.component';
 import { ProjectSettingsComponent } from './project-settings.component';
 import { ProjectCalendarComponent } from './project-calendar.component';
+import { ProjectBacklogComponent } from './project-backlog.component';
+import { ProjectTimeComponent } from './project-time.component';
+import { ProjectDeliverablesComponent } from './project-deliverables.component';
+import { ProjectEventsComponent } from './project-events.component';
 
 /**
  * Routes du produit GESTION DE PROJET (montées en lazy sous /projets,
@@ -43,6 +47,10 @@ export const PROJECT_ROUTES: Routes = [
       { path: 'planning', component: ProjectPlanningComponent, data: { breadcrumb: 'projects.tabs.planning' } },
       { path: 'jalons', component: ProjectMilestonesComponent, data: { breadcrumb: 'projects.tabs.milestones' } },
       { path: 'sprints', component: ProjectSprintsComponent, data: { breadcrumb: 'projects.tabs.sprints' } },
+      { path: 'backlog', component: ProjectBacklogComponent, data: { breadcrumb: 'projects.tabs.backlog' } },
+      { path: 'temps', component: ProjectTimeComponent, data: { breadcrumb: 'projects.tabs.time' } },
+      { path: 'livrables', component: ProjectDeliverablesComponent, data: { breadcrumb: 'projects.tabs.deliverables' } },
+      { path: 'reunions', component: ProjectEventsComponent, data: { breadcrumb: 'projects.tabs.events' } },
       { path: 'equipe', component: ProjectTeamComponent, data: { breadcrumb: 'projects.tabs.team' } },
       { path: 'fichiers', component: ProjectFilesComponent, data: { breadcrumb: 'projects.tabs.files' } },
       { path: 'activite', component: ProjectActivityComponent, data: { breadcrumb: 'projects.tabs.activity' } },

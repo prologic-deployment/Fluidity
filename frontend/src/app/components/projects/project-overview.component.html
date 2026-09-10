@@ -41,6 +41,31 @@
       </div></div>
     </div>
 
+    <!-- Cadrage : objectifs, critères de succès, valeur métier -->
+    <div class="card mb-3" *ngIf="data.project?.objectives || data.project?.successCriteria || data.project?.businessValue">
+      <div class="card-header py-3">{{ 'projects.settings.framing' | t }}</div>
+      <div class="card-content p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div *ngIf="data.project?.objectives">
+          <p class="text-xs font-medium text-muted-foreground mb-1">{{ 'projects.fields.objectives' | t }}</p>
+          <p class="text-sm whitespace-pre-wrap">{{ data.project.objectives }}</p>
+        </div>
+        <div *ngIf="data.project?.successCriteria">
+          <p class="text-xs font-medium text-muted-foreground mb-1">{{ 'projects.fields.successCriteria' | t }}</p>
+          <p class="text-sm whitespace-pre-wrap">{{ data.project.successCriteria }}</p>
+        </div>
+        <div class="flex gap-3 flex-wrap" *ngIf="data.project?.businessValue || data.project?.estimatedEffortHours">
+          <div *ngIf="data.project?.businessValue">
+            <p class="text-xs font-medium text-muted-foreground mb-1">{{ 'projects.fields.businessValue' | t }}</p>
+            <p class="text-sm tabular-nums">{{ data.project.businessValue }}</p>
+          </div>
+          <div *ngIf="data.project?.estimatedEffortHours">
+            <p class="text-xs font-medium text-muted-foreground mb-1">{{ 'projects.fields.estimatedEffortHours' | t }}</p>
+            <p class="text-sm tabular-nums">{{ data.project.estimatedEffortHours }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
       <!-- Santé + raisons -->
       <div class="card">

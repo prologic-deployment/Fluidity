@@ -1,4 +1,4 @@
-import { Methodology, Priority, ProjectRoleKey, ProjectStatus } from '../../models/project.model';
+import { DeliverableStatus, Methodology, Priority, ProjectEventType, ProjectRoleKey, ProjectStatus, TaskType } from '../../models/project.model';
 
 /**
  * Constantes GESTION DE PROJET — miroir du backend (project.models.js).
@@ -8,7 +8,7 @@ import { Methodology, Priority, ProjectRoleKey, ProjectStatus } from '../../mode
 
 export const METHODOLOGIES: Methodology[] = ['kanban', 'scrum', 'waterfall', 'hybrid'];
 
-export const PROJECT_STATUSES: ProjectStatus[] = ['planning', 'active', 'paused', 'completed'];
+export const PROJECT_STATUSES: ProjectStatus[] = ['draft', 'planning', 'active', 'on_hold', 'at_risk', 'completed', 'cancelled', 'archived'];
 
 export const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'critical'];
 
@@ -16,9 +16,31 @@ export const PROJECT_MEMBER_ROLES: ProjectRoleKey[] = [
   'project_admin',
   'project_manager',
   'project_lead',
+  'scrum_master',
+  'product_owner',
+  'developer',
+  'designer',
+  'qa',
   'project_member',
   'project_viewer',
 ];
+
+export const TASK_TYPES: TaskType[] = ['task', 'subtask', 'bug', 'user_story', 'epic', 'deliverable', 'milestone_task'];
+export const DELIVERABLE_STATUSES: DeliverableStatus[] = ['draft', 'submitted', 'approved', 'rejected'];
+export const PROJECT_EVENT_TYPES: ProjectEventType[] = ['meeting', 'decision', 'event', 'deadline'];
+
+/** Transitions de cycle de vie autorisées (miroir serveur PROJECT_TRANSITIONS). */
+export const PROJECT_LIFECYCLE: Record<ProjectStatus, ProjectStatus[]> = {
+  draft: ['planning', 'cancelled'],
+  planning: ['active', 'cancelled', 'draft'],
+  active: ['on_hold', 'at_risk', 'completed', 'cancelled', 'planning'],
+  on_hold: ['active', 'cancelled'],
+  at_risk: ['active', 'on_hold', 'cancelled'],
+  paused: ['active', 'cancelled'],
+  completed: ['active', 'archived'],
+  cancelled: ['archived', 'planning'],
+  archived: ['active'],
+};
 
 export const SPRINT_STATUSES = ['planned', 'active', 'paused', 'completed'] as const;
 
@@ -41,9 +63,23 @@ export const PRIORITY_BADGE: Record<Priority, string> = {
 };
 
 export const HEALTH_BADGE: Record<string, string> = {
-  healthy: 'badge-success',
+  on_track: 'badge-success',
   at_risk: 'badge-warning',
-  critical: 'badge-destructive',
+  off_track: 'badge-destructive',
+};
+
+export const DELIVERABLE_BADGE: Record<DeliverableStatus, string> = {
+  draft: 'badge-secondary',
+  submitted: 'badge-warning',
+  approved: 'badge-success',
+  rejected: 'badge-destructive',
+};
+
+export const EVENT_ICONS: Record<ProjectEventType, string> = {
+  meeting: '📅',
+  decision: '⚖️',
+  event: '📌',
+  deadline: '⏰',
 };
 
 export const SEVERITY_BADGE: Record<string, string> = {
