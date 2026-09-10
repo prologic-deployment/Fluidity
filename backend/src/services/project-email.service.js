@@ -279,6 +279,118 @@ const TEMPLATES = {
       cta: 'My products',
     },
   },
+  sprint_ending: {
+    fr: {
+      subject: 'Fin de sprint imminente : {{goal}}',
+      heading: 'Le sprint se termine bientôt',
+      body: `Le sprint <strong>{{goal}}</strong> du projet {{projectName}} se termine prochainement. Pensez à mettre à jour vos tâches avant la revue.`,
+      cta: 'Voir le sprint',
+    },
+    en: {
+      subject: 'Sprint ending soon: {{goal}}',
+      heading: 'The sprint is ending soon',
+      body: `Sprint <strong>{{goal}}</strong> in project {{projectName}} ends soon. Please update your tasks before the review.`,
+      cta: 'View the sprint',
+    },
+  },
+  project_completed: {
+    fr: {
+      subject: 'Projet terminé : {{projectName}}',
+      heading: 'Un projet est terminé',
+      body: `Le projet <strong>{{projectName}}</strong> ({{projectCode}}) a été marqué comme terminé. Félicitations à toute l'équipe !`,
+      cta: 'Voir le projet',
+    },
+    en: {
+      subject: 'Project completed: {{projectName}}',
+      heading: 'A project has been completed',
+      body: `Project <strong>{{projectName}}</strong> ({{projectCode}}) has been marked as completed. Congratulations to the whole team!`,
+      cta: 'View the project',
+    },
+  },
+  subscription_purchase: {
+    fr: {
+      subject: 'Demande d\'achat reçue : {{productName}}',
+      heading: 'Votre demande a été transmise à la plateforme',
+      body: `Votre demande pour <strong>{{productName}}</strong> (plan {{plan}}, {{seats}} siège(s), {{total}}) a été enregistrée. Elle est en attente d'approbation par la plateforme — paiement non requis pendant la bêta (approbation manuelle).`,
+      cta: 'Suivre ma demande',
+    },
+    en: {
+      subject: 'Purchase request received: {{productName}}',
+      heading: 'Your request has been sent to the platform',
+      body: `Your request for <strong>{{productName}}</strong> (plan {{plan}}, {{seats}} seat(s), {{total}}) has been recorded. It is pending platform approval — no payment required during beta (manual approval).`,
+      cta: 'Track my request',
+    },
+  },
+  subscription_requested: {
+    fr: {
+      subject: 'Nouvelle demande d\'achat : {{productName}}',
+      heading: 'Une demande d\'achat attend votre approbation',
+      body: `<strong>{{tenantName}}</strong> a demandé <strong>{{productName}}</strong> ({{seats}} siège(s)). Mode bêta : paiement non requis — approbation manuelle.`,
+      cta: 'Examiner la demande',
+    },
+    en: {
+      subject: 'New purchase request: {{productName}}',
+      heading: 'A purchase request awaits your approval',
+      body: `<strong>{{tenantName}}</strong> requested <strong>{{productName}}</strong> ({{seats}} seat(s)). Beta mode: no payment required — manual approval.`,
+      cta: 'Review the request',
+    },
+  },
+  subscription_approved: {
+    fr: {
+      subject: 'Demande approuvée : {{productName}}',
+      heading: 'Votre produit est activé',
+      body: `Votre demande pour <strong>{{productName}}</strong> a été approuvée : la souscription ({{seats}} sièges) est active et vous pouvez assigner les licences à vos utilisateurs.`,
+      cta: 'Gérer mes licences',
+    },
+    en: {
+      subject: 'Request approved: {{productName}}',
+      heading: 'Your product is now active',
+      body: `Your request for <strong>{{productName}}</strong> has been approved: the subscription ({{seats}} seats) is active and you can assign licences to your users.`,
+      cta: 'Manage my licences',
+    },
+  },
+  subscription_rejected: {
+    fr: {
+      subject: 'Demande refusée : {{productName}}',
+      heading: 'Votre demande n\'a pas été approuvée',
+      body: `Votre demande pour <strong>{{productName}}</strong> a été refusée par la plateforme.{{#note}} Motif : {{note}}.{{/note}}`,
+      cta: 'Voir mes demandes',
+    },
+    en: {
+      subject: 'Request rejected: {{productName}}',
+      heading: 'Your request was not approved',
+      body: `Your request for <strong>{{productName}}</strong> was rejected by the platform.{{#note}} Reason: {{note}}.{{/note}}`,
+      cta: 'View my requests',
+    },
+  },
+  subscription_expiring: {
+    fr: {
+      subject: 'Expiration prochaine : {{productName}}',
+      heading: 'Votre souscription expire bientôt',
+      body: `Votre souscription <strong>{{productName}}</strong> arrive à échéance le {{endDate}}. Pensez à la renouveler pour conserver l'accès de vos équipes.`,
+      cta: 'Mes abonnements',
+    },
+    en: {
+      subject: 'Expiring soon: {{productName}}',
+      heading: 'Your subscription is expiring soon',
+      body: `Your <strong>{{productName}}</strong> subscription ends on {{endDate}}. Renew it to keep your teams' access.`,
+      cta: 'My subscriptions',
+    },
+  },
+  license_limit_reached: {
+    fr: {
+      subject: 'Limite de licences atteinte : {{productName}}',
+      heading: 'Tous vos sièges sont assignés',
+      body: `Les {{seats}} sièges de <strong>{{productName}}</strong> sont tous assignés ({{used}} utilisés). Demandez des sièges supplémentaires pour ajouter des utilisateurs.`,
+      cta: 'Demander des sièges',
+    },
+    en: {
+      subject: 'Licence limit reached: {{productName}}',
+      heading: 'All your seats are assigned',
+      body: `All {{seats}} seats of <strong>{{productName}}</strong> are assigned ({{used}} used). Request additional seats to add more users.`,
+      cta: 'Request seats',
+    },
+  },
 };
 
 /** Interpolation simplifiée : {{key}} + sections conditionnelles {{#key}}…{{/key}}. */

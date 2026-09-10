@@ -1,5 +1,6 @@
 const { Utilisateur } = require('../models/user.model');
-const { Notification, NotificationPreference } = require('../models/saas.models');
+const { Notification } = require('../models/saas.models');
+const { NotificationPreference } = require('../models/project.models');
 const { sendProjectEventEmail } = require('./project-email.service');
 
 /**
@@ -30,6 +31,21 @@ const EVENT_I18N = {
   sprint_completed: { titleKey: 'projects.notify.sprint_completed.title', bodyKey: 'projects.notify.sprint_completed.body' },
   risk_assigned: { titleKey: 'projects.notify.risk_assigned.title', bodyKey: 'projects.notify.risk_assigned.body' },
   issue_assigned: { titleKey: 'projects.notify.issue_assigned.title', bodyKey: 'projects.notify.issue_assigned.body' },
+  sprint_ending: { titleKey: 'projects.notify.sprint_ending.title', bodyKey: 'projects.notify.sprint_ending.body' },
+  project_completed: { titleKey: 'projects.notify.project_completed.title', bodyKey: 'projects.notify.project_completed.body' },
+  subscription_purchase: { titleKey: 'projects.notify.subscription_purchase.title', bodyKey: 'projects.notify.subscription_purchase.body' },
+  subscription_requested: { titleKey: 'projects.notify.subscription_requested.title', bodyKey: 'projects.notify.subscription_requested.body' },
+  subscription_approved: { titleKey: 'projects.notify.subscription_approved.title', bodyKey: 'projects.notify.subscription_approved.body' },
+  subscription_rejected: { titleKey: 'projects.notify.subscription_rejected.title', bodyKey: 'projects.notify.subscription_rejected.body' },
+  subscription_renewal: { titleKey: 'projects.notify.subscription_renewal.title', bodyKey: 'projects.notify.subscription_renewal.body' },
+  subscription_expiring: { titleKey: 'projects.notify.subscription_expiring.title', bodyKey: 'projects.notify.subscription_expiring.body' },
+  license_assigned: { titleKey: 'projects.notify.license_assigned.title', bodyKey: 'projects.notify.license_assigned.body' },
+  license_removed: { titleKey: 'projects.notify.license_removed.title', bodyKey: 'projects.notify.license_removed.body' },
+  license_limit_reached: { titleKey: 'projects.notify.license_limit_reached.title', bodyKey: 'projects.notify.license_limit_reached.body' },
+  deliverable_submitted: { titleKey: 'projects.notify.deliverable_submitted.title', bodyKey: 'projects.notify.deliverable_submitted.body' },
+  deliverable_approved: { titleKey: 'projects.notify.deliverable_approved.title', bodyKey: 'projects.notify.deliverable_approved.body' },
+  deliverable_rejected: { titleKey: 'projects.notify.deliverable_rejected.title', bodyKey: 'projects.notify.deliverable_rejected.body' },
+  time_logged: { titleKey: 'projects.notify.time_logged.title', bodyKey: 'projects.notify.time_logged.body' },
 };
 
 const PRODUCT_KEY = 'project_management';

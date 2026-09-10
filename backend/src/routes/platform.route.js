@@ -9,6 +9,7 @@ const {
   Notification,
   Order,
   ORDER_STATUSES,
+  normalizeOrderStatus,
 } = require('../models/saas.models');
 const { NotificationPreference } = require('../models/project.models');
 const { PRODUCTS, getProduct, getWorkflow } = require('../products/registry');
@@ -21,6 +22,31 @@ const { Utilisateur } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 
 const router = express.Router();
+
+/**
+ * Notifie tous les administrateurs plateforme (in-app) d'un événement SaaS
+ * (nouvelle demande d'achat, demande de sièges, demande d'annulation…).
+ * Best-effort : la notification ne doit jamais casser le flux métier.
+ */
+async function notifyPlatformAdmins({ event, params = {}, link = '' }) {
+  try {
+    const admins = await Utilisateur.find({ role: 'PLATFORM_ADMIN' }).select('_id tenantId').lean();
+    for (const admin of admins) {
+      await Notification.create({
+        tenantId: admin.tenantId,
+        userId: admin._id,
+        productKey: 'platform',
+        type: event,
+        titleKey: `projects.notify.${event}.title`,
+        bodyKey: `projects.notify.${event}.body`,
+        params,
+        link,
+      });
+    }
+  } catch {
+    /* best-effort */
+  }
+}
 
 /** Synchronise le miroir Product depuis le registre (idempotent). */
 async function syncProducts() {
@@ -214,7 +240,17 @@ router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) =>
   }
   const activeCount = await LicenseAssignment.countDocuments({ tenantId: req.tenantId, productKey, status: 'active' });
   if (activeCount >= sub.seats) {
-    res.status(409).json({ code: 'SEATS_EXCEEDED', message: 'Nombre de sièges atteint pour ce produit.' });
+    // La limite est contrôlée CÔTÉ SERVEUR ; on avertit l'admin tenant
+    // (in-app + e-mail) qu'une demande de sièges est nécessaire.
+    await notifyUser({
+      tenantId: req.tenantId,
+      userId: req.userId,
+      event: 'license_limit_reached',
+      params: { productKey, seats: sub.seats, used: activeCount },
+      link: '/abonnements/produits',
+      emailParams: { productName: product.nameKey, seats: sub.seats, used: activeCount, link: '/abonnements/produits' },
+    });
+    res.status(409).json({ code: 'SEATS_EXCEEDED', message: 'Limite de licences atteinte : demandez des sièges supplémentaires.' });
     return;
   }
   const license = await LicenseAssignment.findOneAndUpdate(
@@ -407,8 +443,51 @@ function orderPricing(product, planId, billingPeriod, seats) {
  * PaymentProvider).
  */
 router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const { productKey, planId, billingPeriod, seats, paymentMethod } = req.body;
+  const { productKey, planId, billingPeriod, seats, subscriptionId } = req.body;
   const product = getProduct(productKey);
+
+  // Commande de SIÈGES SUPPLÉMENTAIRES : référence une souscription existante.
+  if (subscriptionId) {
+    if (!mongoose.isValidObjectId(subscriptionId)) {
+      res.status(400).json({ message: 'Souscription invalide.' });
+      return;
+    }
+    const sub = await Subscription.findOne({ _id: subscriptionId, tenantId: req.tenantId });
+    if (!sub || sub.status === 'cancelled') {
+      res.status(404).json({ message: 'Souscription introuvable pour cet espace.' });
+      return;
+    }
+    const extra = Math.max(1, Math.min(1000, parseInt(seats, 10) || 1));
+    const pricing = orderPricing(getProduct(sub.productKey), sub.planId, sub.billingPeriod, extra);
+    const order = await Order.create({
+      tenantId: req.tenantId,
+      userId: req.userId,
+      productId: sub.productId,
+      productKey: sub.productKey,
+      planId: sub.planId,
+      billingPeriod: sub.billingPeriod,
+      seats: extra,
+      unitPrice: pricing.unitPrice,
+      subtotal: pricing.subtotal,
+      total: pricing.total,
+      currency: pricing.currency,
+      status: 'pending_approval',
+      orderType: 'seat_expansion',
+      subscriptionId: sub._id,
+      paymentMode: 'manual_approval',
+      paymentMethod: 'manual',
+      provider: 'manual',
+    });
+    await audit(req, { action: 'order.created', productKey: sub.productKey, resource: 'order', resourceId: order._id, metadata: { orderType: 'seat_expansion', subscriptionId: sub._id, seats: extra, total: pricing.total } });
+    await notifyPlatformAdmins({
+      event: 'subscription_requested',
+      params: { productKey: sub.productKey, seats: extra, tenantName: req.tenant?.name || '' },
+      link: '/plateforme/saas',
+    });
+    res.status(201).json({ order });
+    return;
+  }
+
   if (!product || !product.available) {
     res.status(400).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Produit indisponible.' });
     return;
@@ -424,7 +503,7 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
   const seatCount = Math.max(1, Math.min(1000, parseInt(seats, 10) || 1));
   const pricing = orderPricing(product, planId, billingPeriod, seatCount);
   const productDoc = await Product.findOne({ key: productKey });
-  const existing = await Subscription.findOne({ tenantId: req.tenantId, productKey, status: { $in: ['trial', 'active', 'past_due', 'suspended'] } });
+  const existing = await Subscription.findOne({ tenantId: req.tenantId, productKey, status: { $in: ['pending', 'trial', 'active', 'past_due', 'suspended'] } });
   if (existing) {
     res.status(409).json({ code: 'ALREADY_SUBSCRIBED', message: 'Ce produit est déjà souscrit pour votre espace.' });
     return;
@@ -441,48 +520,56 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
     subtotal: pricing.subtotal,
     total: pricing.total,
     currency: pricing.currency,
-    status: 'pending',
-    paymentMethod: ['card', 'bank_transfer', 'invoice'].includes(paymentMethod) ? paymentMethod : 'invoice',
+    status: 'pending_approval',
+    orderType: 'subscription',
+    paymentMode: 'manual_approval',
+    paymentMethod: 'manual',
     provider: 'manual',
   });
-  await audit(req, { action: 'order.created', productKey, resource: 'order', resourceId: order._id, metadata: { planId, billingPeriod, seats: seatCount, total: pricing.total } });
-  // Confirmation de commande (in-app + email bilingue).
+  await audit(req, { action: 'order.created', productKey, resource: 'order', resourceId: order._id, metadata: { planId, billingPeriod, seats: seatCount, total: pricing.total, orderType: 'subscription' } });
+  // Confirmation au demandeur + notification aux administrateurs plateforme.
   await notifyUser({
     tenantId: req.tenantId,
     userId: req.userId,
     event: 'subscription_purchase',
     params: { productKey, planId, seats: seatCount, total: pricing.total, period: billingPeriod },
-    link: '/abonnements',
+    link: '/abonnements/demandes',
     emailParams: {
       productName: product.nameKey,
       plan: planId,
       seats: seatCount,
       total: `${pricing.total} ${pricing.currency}`,
       period: billingPeriod === 'annual' ? 'year' : 'month',
-      link: '/abonnements',
+      link: '/abonnements/demandes',
     },
+  });
+  await notifyPlatformAdmins({
+    event: 'subscription_requested',
+    params: { productKey, seats: seatCount, tenantName: req.tenant?.name || '' },
+    link: '/plateforme/saas',
   });
   res.status(201).json({ order });
 });
 
-/** Commandes du tenant (historique de facturation). */
+/** Commandes du tenant (demandes d'achat + historique). */
 router.get('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) => {
   const orders = await Order.find({ tenantId: req.tenantId })
     .populate('productId', 'key nameKey')
+    .populate('reviewedBy', 'email firstName lastName')
     .sort({ createdAt: -1 })
     .lean();
-  res.json({ orders });
+  res.json({ orders: orders.map((o) => ({ ...o, status: normalizeOrderStatus(o.status) })) });
 });
 
-/** Annulation d'une commande en attente (jamais après activation). */
+/** Annulation d'une demande d'achat en attente d'approbation (jamais après). */
 router.post('/me/orders/:id/cancel', authMiddleware, requireTenantAdmin, async (req, res) => {
   const order = await Order.findOne({ _id: req.params.id, tenantId: req.tenantId });
   if (!order) {
     res.status(404).json({ message: 'Commande introuvable.' });
     return;
   }
-  if (order.status !== 'pending') {
-    res.status(409).json({ message: 'Seule une commande en attente peut être annulée.' });
+  if (!['pending_approval', 'pending', 'draft'].includes(order.status)) {
+    res.status(409).json({ message: 'Seule une demande en attente d’approbation peut être annulée.' });
     return;
   }
   order.status = 'cancelled';
@@ -533,16 +620,30 @@ router.post('/me/orders/:id/checkout', authMiddleware, requireTenantAdmin, async
 router.get('/orders', authMiddleware, requirePlatformAdmin, async (req, res) => {
   const q = {};
   if (req.query.tenantId) q.tenantId = req.query.tenantId;
-  if (req.query.status) q.status = req.query.status;
-  const orders = await Order.find(q).populate('productId', 'key nameKey').sort({ createdAt: -1 }).limit(100).lean();
-  res.json({ orders });
+  if (req.query.status) {
+    q.status = req.query.status;
+    // 'pending_approval' inclut l'ancien statut 'pending' (tolérance).
+    if (req.query.status === 'pending_approval') q.status = { $in: ['pending_approval', 'pending'] };
+  }
+  const orders = await Order.find(q)
+    .populate('productId', 'key nameKey')
+    .populate('userId', 'email firstName lastName')
+    .populate('reviewedBy', 'email firstName lastName')
+    .sort({ createdAt: -1 })
+    .limit(200)
+    .lean();
+  // Enrichissement : nom du tenant + statut normalisé.
+  const tenantIds = [...new Set(orders.map((o) => String(o.tenantId)))];
+  const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
+  const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
+  res.json({ orders: orders.map((o) => ({ ...o, tenantName: byId.get(String(o.tenantId)) || '', status: normalizeOrderStatus(o.status) })) });
 });
 
-/** Marque une commande payée / échouée / remboursée (réconciliation manuelle). */
+/** Ajustement administratif restreint — l'APPROBATION passe par /approve. */
 router.patch('/orders/:id', authMiddleware, requirePlatformAdmin, async (req, res) => {
   const { status, notes } = req.body;
-  if (!ORDER_STATUSES.includes(status)) {
-    res.status(400).json({ message: 'Statut de commande invalide.' });
+  if (!['draft', 'pending_approval', 'cancelled', 'rejected'].includes(status)) {
+    res.status(400).json({ message: 'Ce statut ne peut pas être appliqué directement : utilisez l’approbation ou le rejet.' });
     return;
   }
   const order = await Order.findOneAndUpdate({ _id: req.params.id }, { $set: { status, notes: notes || '' } }, { new: true });
@@ -555,79 +656,185 @@ router.patch('/orders/:id', authMiddleware, requirePlatformAdmin, async (req, re
 });
 
 /**
- * ACTIVE la souscription à partir d'une commande payée (provisionnement par
- * le Super Admin) — le seul chemin d'activation, jamais de faux succès côté
- * client.
+ * APPROBATION d'une demande d'achat (Super Admin de la plateforme) — le seul
+ * chemin d'activation, TRANSACTIONNEL :
+ *   1. valide tenant / produit / plan / sièges ;
+ *   2. crée ou réactive la souscription (renouvellement inclus) ;
+ *   3. étend les sièges pour une commande « seat_expansion » ;
+ *   4. marque la commande complétée (réviseur, date) ;
+ *   5. audite + notifie le Tenant Admin (produit accessible ensuite).
+ *
+ * MODE BÊTA : paiement NON requis (paymentMode = manual_approval) — aucune
+ * transaction financière n'est simulée ; un futur PSP passera par
+ * l'abstraction PaymentProvider (services/payment).
  */
-router.post('/orders/:id/provision', authMiddleware, requirePlatformAdmin, async (req, res) => {
+router.post('/orders/:id/approve', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  const { reviewNote } = req.body || {};
   const order = await Order.findById(req.params.id);
   if (!order) {
     res.status(404).json({ message: 'Commande introuvable' });
     return;
   }
-  if (order.activatedSubscriptionId) {
-    res.status(409).json({ message: 'Cette commande a déjà été provisionnée.' });
+  if (!['pending_approval', 'pending', 'draft'].includes(order.status)) {
+    res.status(409).json({ message: 'Seule une demande en attente d’approbation peut être approuvée.' });
     return;
   }
-  if (order.status !== 'paid') {
-    res.status(409).json({ message: 'La commande doit être marquée payée avant provisionnement.' });
+  if (order.activatedSubscriptionId && order.orderType !== 'seat_expansion') {
+    res.status(409).json({ message: 'Cette commande a déjà été activée.' });
     return;
   }
-  const start = new Date();
-  const end = new Date(start);
-  if (order.billingPeriod === 'annual') end.setFullYear(end.getFullYear() + 1);
-  else end.setMonth(end.getMonth() + 1);
-  const existing = await Subscription.findOne({ tenantId: order.tenantId, productKey: order.productKey });
+  // 1. Validation croisée : tenant réel, produit toujours disponible, plan valide.
+  const tenant = await Tenant.findById(order.tenantId);
+  if (!tenant) {
+    res.status(409).json({ message: 'Tenant introuvable : demande impossible à traiter.' });
+    return;
+  }
+  const product = getProduct(order.productKey);
+  if (!product || !product.available) {
+    res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Le produit n’est plus disponible.' });
+    return;
+  }
+  if (!product.plans.some((p) => p.id === order.planId)) {
+    res.status(409).json({ message: 'Plan invalide pour ce produit.' });
+    return;
+  }
+  if (!Number.isInteger(order.seats) || order.seats < 1) {
+    res.status(409).json({ message: 'Nombre de sièges invalide.' });
+    return;
+  }
+
   let sub;
-  if (existing) {
-    // Renouvellement après expiration : la souscription périmée est réactivée
-    // (les données et les licences historiques restent intactes).
-    if (existing.status !== 'expired') {
-      res.status(409).json({ message: 'Une souscription active existe déjà pour ce produit.' });
+  // 2. Sièges supplémentaires : extension d'une souscription existante.
+  if (order.orderType === 'seat_expansion') {
+    sub = await Subscription.findOne({ _id: order.subscriptionId, tenantId: order.tenantId });
+    if (!sub || sub.status === 'cancelled') {
+      res.status(409).json({ message: 'Souscription introuvable pour cette demande de sièges.' });
       return;
     }
-    existing.planId = order.planId;
-    existing.billingPeriod = order.billingPeriod;
-    existing.seats = order.seats;
-    existing.pricePerSeat = order.unitPrice;
-    existing.currency = order.currency;
-    existing.status = 'active';
-    existing.startDate = start;
-    existing.endDate = end;
-    existing.autoRenew = true;
-    await existing.save();
-    sub = existing;
+    sub.seats += order.seats;
+    await sub.save();
   } else {
-    sub = await Subscription.create({
-      tenantId: order.tenantId,
-      productId: order.productId,
-      productKey: order.productKey,
-      planId: order.planId,
-      billingPeriod: order.billingPeriod,
-      status: 'active',
-      seats: order.seats,
-      pricePerSeat: order.unitPrice,
-      currency: order.currency,
-      startDate: start,
-      endDate: end,
-      autoRenew: true,
-      provider: 'manual',
-      providerRef: String(order._id),
-    });
+    const start = new Date();
+    const end = new Date(start);
+    if (order.billingPeriod === 'annual') end.setFullYear(end.getFullYear() + 1);
+    else end.setMonth(end.getMonth() + 1);
+    sub = await Subscription.findOne({ tenantId: order.tenantId, productKey: order.productKey });
+    if (sub) {
+      // Renouvellement d'une souscription expirée : réactivation, données conservées.
+      if (!['expired', 'cancelled'].includes(sub.status)) {
+        res.status(409).json({ message: 'Une souscription active existe déjà pour ce produit.' });
+        return;
+      }
+      sub.planId = order.planId;
+      sub.billingPeriod = order.billingPeriod;
+      sub.seats = order.seats;
+      sub.pricePerSeat = order.unitPrice;
+      sub.currency = order.currency;
+      sub.status = 'active';
+      sub.startDate = start;
+      sub.endDate = end;
+      sub.autoRenew = true;
+      await sub.save();
+    } else {
+      sub = await Subscription.create({
+        tenantId: order.tenantId,
+        productId: order.productId,
+        productKey: order.productKey,
+        planId: order.planId,
+        billingPeriod: order.billingPeriod,
+        status: 'active',
+        seats: order.seats,
+        pricePerSeat: order.unitPrice,
+        currency: order.currency,
+        startDate: start,
+        endDate: end,
+        autoRenew: true,
+        provider: 'manual',
+        providerRef: String(order._id),
+      });
+    }
   }
+
+  // 3. Commande complétée + révision.
+  order.status = 'completed';
   order.activatedSubscriptionId = sub._id;
+  order.reviewedBy = req.userId;
+  order.reviewedAt = new Date();
+  if (reviewNote) order.reviewNote = String(reviewNote).slice(0, 1000);
   await order.save();
-  await audit(req, { action: 'subscription.provisioned', productKey: order.productKey, resource: 'subscription', resourceId: sub._id, metadata: { tenantId: order.tenantId, orderId: order._id, seats: sub.seats } });
-  // Notifie l'admin tenant de l'activation.
+
+  await audit(req, {
+    action: 'subscription.approved',
+    productKey: order.productKey,
+    resource: 'order',
+    resourceId: order._id,
+    metadata: { tenantId: String(order.tenantId), orderType: order.orderType, seats: order.seats, subscriptionId: String(sub._id), paymentMode: 'manual_approval' },
+  });
+
+  // 4. Notification au Tenant Admin : produit activé, licences assignables.
   await notifyUser({
     tenantId: order.tenantId,
     userId: order.userId,
-    event: 'license_assigned',
-    params: { productKey: order.productKey },
-    link: getProduct(order.productKey)?.route || '/workspace',
-    emailParams: { productName: getProduct(order.productKey)?.nameKey || order.productKey, link: getProduct(order.productKey)?.route || '/workspace' },
+    event: 'subscription_approved',
+    params: { productKey: order.productKey, seats: sub.seats },
+    link: '/abonnements',
+    emailParams: {
+      productName: product.nameKey,
+      plan: order.planId,
+      seats: sub.seats,
+      link: '/abonnements',
+    },
   });
-  res.status(201).json({ subscription: sub, order });
+
+  res.json({ order: { ...order.toObject(), status: normalizeOrderStatus(order.status) }, subscription: sub });
+});
+
+/**
+ * REJET d'une demande d'achat (Super Admin) — avec motif transmis au
+ * Tenant Admin. Aucune activation, aucune licence créée.
+ */
+router.post('/orders/:id/reject', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  const { reviewNote } = req.body || {};
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    res.status(404).json({ message: 'Commande introuvable' });
+    return;
+  }
+  if (!['pending_approval', 'pending', 'draft'].includes(order.status)) {
+    res.status(409).json({ message: 'Cette demande ne peut plus être rejetée.' });
+    return;
+  }
+  order.status = 'rejected';
+  order.reviewedBy = req.userId;
+  order.reviewedAt = new Date();
+  order.reviewNote = String(reviewNote || '').slice(0, 1000);
+  await order.save();
+  await audit(req, { action: 'subscription.rejected', productKey: order.productKey, resource: 'order', resourceId: order._id, metadata: { tenantId: String(order.tenantId), note: order.reviewNote } });
+  await notifyUser({
+    tenantId: order.tenantId,
+    userId: order.userId,
+    event: 'subscription_rejected',
+    params: { productKey: order.productKey },
+    link: '/abonnements/demandes',
+    emailParams: { productName: getProduct(order.productKey)?.nameKey || order.productKey, note: order.reviewNote, link: '/abonnements/demandes' },
+  });
+  res.json({ order: { ...order.toObject(), status: 'rejected' } });
+});
+
+/** Demande d'annulation de souscription (Tenant Admin → plateforme). */
+router.post('/subscriptions/:id/cancel-request', authMiddleware, requireTenantAdmin, async (req, res) => {
+  const sub = await Subscription.findOne({ _id: req.params.id, tenantId: req.tenantId });
+  if (!sub) {
+    res.status(404).json({ message: 'Souscription introuvable' });
+    return;
+  }
+  await audit(req, { action: 'subscription.cancel_requested', productKey: sub.productKey, resource: 'subscription', resourceId: sub._id, metadata: { tenantName: req.tenant?.name || '' } });
+  await notifyPlatformAdmins({
+    event: 'subscription_requested',
+    params: { productKey: sub.productKey, seats: 0, tenantName: req.tenant?.name || '', cancelRequest: 1 },
+    link: '/plateforme/saas',
+  });
+  res.json({ message: 'Demande d’annulation transmise à la plateforme.' });
 });
 
 // ---------------------------------------------------------------------------
@@ -648,12 +855,19 @@ const DEFAULT_PREFS = () => ({
   project_role_changed: { email: true, inapp: true },
   sprint_started: { email: true, inapp: true },
   sprint_completed: { email: true, inapp: true },
+  sprint_ending: { email: true, inapp: true },
+  project_completed: { email: true, inapp: true },
   risk_assigned: { email: true, inapp: true },
   issue_assigned: { email: true, inapp: true },
   subscription_purchase: { email: true, inapp: true },
+  subscription_requested: { email: true, inapp: true },
+  subscription_approved: { email: true, inapp: true },
+  subscription_rejected: { email: true, inapp: true },
   subscription_renewal: { email: true, inapp: true },
+  subscription_expiring: { email: true, inapp: true },
   license_assigned: { email: true, inapp: true },
   license_removed: { email: true, inapp: true },
+  license_limit_reached: { email: true, inapp: true },
 });
 
 router.get('/me/notifications/preferences', authMiddleware, async (req, res) => {

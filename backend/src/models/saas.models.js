@@ -41,8 +41,13 @@ const ProductSchema = new Schema(
 
 const Product = mongoose.model('Product', ProductSchema);
 
-/** Statuts de souscription (cycle de vie SaaS standard). */
-const SUBSCRIPTION_STATUSES = ['trial', 'active', 'past_due', 'suspended', 'cancelled', 'expired'];
+/**
+ * Statuts de souscription (cycle de vie SaaS) :
+ *   pending → active (approbation plateforme) ; puis suspended / cancelled /
+ *   expired ; le renouvellement d'une souscription expirée repasse par le
+ *   parcours de commande (ordre + approbation).
+ */
+const SUBSCRIPTION_STATUSES = ['pending', 'trial', 'active', 'past_due', 'suspended', 'cancelled', 'expired'];
 const BILLING_PERIODS = ['monthly', 'annual'];
 
 /**
@@ -65,6 +70,8 @@ const SubscriptionSchema = new Schema(
     endDate: { type: Date },
     /** Renouvellement automatique à l'échéance (piloté par l'admin tenant). */
     autoRenew: { type: Boolean, default: true },
+    /** Dernier avertissement d'expiration envoyé (job cycle de vie). */
+    lastExpiryNotifiedAt: { type: Date, default: null },
     provider: { type: String, default: 'manual' }, // 'manual' | provider id (à terme)
     providerRef: { type: String, default: '' },
   },
@@ -179,16 +186,33 @@ NotificationSchema.index({ tenantId: 1, userId: 1, read: 1, createdAt: -1 });
 const Notification = mongoose.model('Notification', NotificationSchema);
 
 /** Statuts d'une commande de souscription (checkout). */
-const ORDER_STATUSES = ['pending', 'paid', 'failed', 'cancelled', 'refunded'];
+/**
+ * Statuts de commande — cycle d'APPROBATION (mode bêta, paiement différé) :
+ *   draft → pending_approval → approved → completed (activation faite)
+ *                    └→ rejected / cancelled.
+ * Les anciens statuts ('pending','paid','failed','refunded') restent acceptés
+ * en lecture (tolérance d'anciens documents) et sont normalisés à l'affichage.
+ */
+const ORDER_STATUSES = ['draft', 'pending_approval', 'approved', 'rejected', 'cancelled', 'completed', 'pending', 'paid', 'failed', 'refunded'];
+
+/** Normalise un statut historique vers le cycle d'approbation courant. */
+function normalizeOrderStatus(status) {
+  if (status === 'pending') return 'pending_approval';
+  if (status === 'paid') return 'approved';
+  if (status === 'failed') return 'rejected';
+  if (status === 'refunded') return 'cancelled';
+  return status;
+}
 
 /**
- * Commande de souscription SaaS — le parcours d'achat du Tenant Admin.
+ * Commande de souscription SaaS — parcours d'achat du Tenant Admin.
  *
- * Derrière l'abstraction PaymentProvider (services/payment) : aucun PSP n'est
- * branché par défaut, donc aucune commande n'est « payée » automatiquement.
- * Le cycle réel : commande créée (pending) → paiement / facture confirmé par
- * la plateforme → provisionnement de la souscription (activatedSubscriptionId)
- * par le Super Admin. Jamais de fausse confirmation côté client.
+ * MODE BÊTA : aucun fournisseur de paiement en ligne n'est branché — la
+ * commande naît « pending_approval », le Super Admin de la plateforme
+ * l'examine puis l'APPROUVE (activation transactionnelle de la souscription
+ * et des licences) ou la REJETTE. Aucune transaction financière simulée ;
+ * l'abstraction PaymentProvider (services/payment) reste le point
+ * d'intégration d'un futur PSP (Stripe…).
  */
 const OrderSchema = new Schema(
   {
@@ -203,12 +227,25 @@ const OrderSchema = new Schema(
     subtotal: { type: Number, default: 0 },
     total: { type: Number, default: 0 },
     currency: { type: String, default: 'EUR' },
-    status: { type: String, enum: ORDER_STATUSES, default: 'pending' },
-    /** Méthode de paiement choisie : 'card' | 'bank_transfer' | 'invoice' | provider id. */
-    paymentMethod: { type: String, default: 'invoice' },
-    provider: { type: String, default: '' },
+    status: { type: String, enum: ORDER_STATUSES, default: 'pending_approval' },
+    /** Type de commande : souscription initiale / renouvellement / sièges supplémentaires. */
+    orderType: { type: String, enum: ['subscription', 'seat_expansion'], default: 'subscription' },
+    /** Souscription concernée (commande de sièges supplémentaires). */
+    subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', default: null },
+    /**
+     * Mode de paiement : en bêta, toujours « manual_approval » — le paiement
+     * n'est PAS requis et AUCUNE transaction n'est simulée. Un futur PSP
+     * passera par l'abstraction PaymentProvider.
+     */
+    paymentMode: { type: String, default: 'manual_approval' },
+    paymentMethod: { type: String, default: 'manual' },
+    provider: { type: String, default: 'manual' },
     providerRef: { type: String, default: '' },
-    /** Souscription créée lors du provisionnement (par le Super Admin). */
+    /** Révision par la plateforme (approbation / rejet). */
+    reviewedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    reviewedAt: { type: Date, default: null },
+    reviewNote: { type: String, default: '', maxlength: 1000 },
+    /** Souscription créée/étendue lors de l'approbation. */
     activatedSubscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription', default: null },
     notes: { type: String, default: '' },
   },
@@ -221,6 +258,7 @@ OrderSchema.index({ tenantId: 1, productKey: 1 });
 const Order = mongoose.model('Order', OrderSchema);
 
 module.exports = {
+  normalizeOrderStatus,
   Product,
   Subscription,
   SubscriptionSchema,
