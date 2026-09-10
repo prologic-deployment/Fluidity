@@ -12,6 +12,7 @@ import {
   RoleAssignment,
   Subscription,
 } from '../models/product.model';
+import { NotificationPreferences, OrderItem, PortalOverview } from '../models/project.model';
 
 /**
  * Service plateforme SaaS : catalogue public, droits (entitlements),
@@ -62,6 +63,11 @@ export class PlatformService {
   entitlements(): Observable<Entitlements | null> {
     if (this.entitlementsSubject.value) return this.entitlementsSubject.asObservable();
     return this.fetchEntitlements().pipe(catchError(() => of(null)));
+  }
+
+  /** Entitlements déjà chargés (lecture synchrone pour les vues). */
+  entitlementsValue(): Entitlements | null {
+    return this.entitlementsSubject.value;
   }
 
   /** Réinitialise le cache (login/logout). */
@@ -121,6 +127,53 @@ export class PlatformService {
 
   revokeLicense(id: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.base}/licenses/${id}`);
+  }
+
+  /** Cycle de vie de licence : suspendre / réactiver (accès coupé, données conservées). */
+  updateLicense(id: string, status: 'active' | 'suspended'): Observable<{ license: License }> {
+    return this.http.patch<{ license: License }>(`${this.base}/licenses/${id}`, { status });
+  }
+
+  // --- Portail tenant « Abonnements & Licences » ----------------------------
+
+  /** KPIs du portail (produits, abonnements, sièges, renouvellements). */
+  overview(): Observable<PortalOverview> {
+    return this.http.get<PortalOverview>(`${this.base}/me/overview`);
+  }
+
+  /** Commandes du tenant (historique de facturation). */
+  orders(): Observable<{ orders: OrderItem[] }> {
+    return this.http.get<{ orders: OrderItem[] }>(`${this.base}/me/orders`);
+  }
+
+  /** Crée une COMMANDE d'abonnement (parcours d'achat) — statut initial « pending ». */
+  createOrder(payload: { productKey: string; planId: string; billingPeriod: 'monthly' | 'annual'; seats: number; paymentMethod: string }): Observable<{ order: OrderItem }> {
+    return this.http.post<{ order: OrderItem }>(`${this.base}/me/orders`, payload);
+  }
+
+  /** Annule une commande en attente. */
+  cancelOrder(id: string): Observable<{ order: OrderItem }> {
+    return this.http.post<{ order: OrderItem }>(`${this.base}/me/orders/${id}/cancel`, {});
+  }
+
+  /** Checkout d'une commande — 501 tant qu'aucun PSP n'est configuré. */
+  orderCheckout(id: string): Observable<{ url: string }> {
+    return this.http.post<{ url: string }>(`${this.base}/me/orders/${id}/checkout`, {});
+  }
+
+  /** Active/désactive le renouvellement automatique d'une souscription. */
+  setAutoRenew(id: string, autoRenew: boolean): Observable<{ subscription: Subscription }> {
+    return this.http.patch<{ subscription: Subscription }>(`${this.base}/subscriptions/${id}/autorenew`, { autoRenew });
+  }
+
+  // --- Préférences de notification ------------------------------------------
+
+  notificationPreferences(): Observable<{ preferences: NotificationPreferences }> {
+    return this.http.get<{ preferences: NotificationPreferences }>(`${this.base}/me/notifications/preferences`);
+  }
+
+  updateNotificationPreferences(events: NotificationPreferences): Observable<{ preferences: NotificationPreferences }> {
+    return this.http.patch<{ preferences: NotificationPreferences }>(`${this.base}/me/notifications/preferences`, { events });
   }
 
   // --- Rôles produit (admin tenant) ----------------------------------------

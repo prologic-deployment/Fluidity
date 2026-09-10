@@ -1,0 +1,62 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.files.title' | t }}</h2>
+    <label class="btn-primary btn-sm inline-flex items-center gap-1 cursor-pointer">
+      {{ uploading ? '…' : ('projects.files.upload' | t) }}
+      <input type="file" multiple class="hidden" (change)="onFilesPicked($event)" [disabled]="uploading" />
+    </label>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+  <!-- Dossiers -->
+  <div class="flex gap-2 mb-4 flex-wrap">
+    <button
+      *ngFor="let f of folders"
+      type="button"
+      class="btn-sm"
+      [ngClass]="folder === f ? 'btn-primary' : 'btn-ghost'"
+      (click)="selectFolder(f)"
+    >{{ 'projects.files.folder.' + f | t }}</button>
+  </div>
+
+  <div *ngIf="loading" class="table-wrap p-4 space-y-3">
+    <div *ngFor="let _ of [1,2,3]" class="skeleton h-10 w-full"></div>
+  </div>
+
+  <div *ngIf="!loading && files.length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'projects.fields.file' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.fields.folder' | t }}</th>
+          <th class="hidden sm:table-cell">{{ 'projects.fields.size' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.fields.uploadedBy' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.fields.date' | t }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of files; trackBy: trackF">
+          <td>
+            <a [href]="f.url | urlUpload" target="_blank" rel="noopener" class="flex items-center gap-2 text-sm hover:underline min-w-0">
+              <span>📎</span>
+              <span class="truncate max-w-[320px]">{{ f.name }}</span>
+            </a>
+          </td>
+          <td class="hidden md:table-cell text-sm text-muted-foreground">{{ 'projects.files.folder.' + f.folder | t }}</td>
+          <td class="hidden sm:table-cell text-sm tabular-nums text-muted-foreground">{{ sizeOf(f.size) }}</td>
+          <td class="hidden lg:table-cell text-sm">{{ uploadedByName(f) }}</td>
+          <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{{ f.createdAt | dateLocale:'short' }}</td>
+          <td class="text-right">
+            <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(f)">{{ 'common.delete' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !files.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.files.empty' | t }}</div>
+  </div>
+</main>

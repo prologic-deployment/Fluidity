@@ -80,11 +80,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
     });
     this.i18n.lang$.pipe(takeUntil(this.destroy$)).subscribe(() => this.cdr.markForCheck());
     // Sélecteur de produit : entitlement serveur (jamais de localStorage).
+    // L'arrivée des entitlements peut révéler de nouveaux produits → modèle reconstruit.
     this.platform
       .entitlements()
       .pipe(takeUntil(this.destroy$))
       .subscribe((e) => {
         this.productEntitlements = e?.products.filter((p) => p.licensed) || [];
+        this.refreshModel();
         this.cdr.markForCheck();
       });
   }
@@ -152,6 +154,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
     // Workspace tenant : visible pour tout rôle tenant, ou Super Admin en impersonation
     // NB : « Mon profil » n'est plus ici — accessible via le menu du profil (topbar).
     if (!this.isPlatformAdmin || this.impersonation) {
+      // Produit SaaS « Gestion de Projet » — visible si droit serveur (entitlements).
+      if (this.platform.canAccess('project_management')) {
+        groups.push({
+          label: 'nav.projects',
+          icon: 'kanban',
+          open: true,
+          children: [
+            { label: 'nav.allProjects', path: '/projets' },
+            { label: 'nav.myTasks', path: '/projets/mes-taches' },
+          ],
+        });
+      }
+
       groups.push({
         label: 'nav.workspace',
         icon: 'grid',
@@ -162,6 +177,20 @@ export class SidebarComponent implements OnInit, OnDestroy {
           { label: 'nav.changements', path: '/changements' },
         ],
       });
+
+      if (this.isTenantAdmin || this.isPlatformAdmin) {
+        groups.push({
+          label: 'nav.subscriptions',
+          icon: 'card',
+          open: true,
+          children: [
+            { label: 'subscriptions.overview.nav', path: '/abonnements' },
+            { label: 'subscriptions.catalog.label', path: '/abonnements/produits' },
+            { label: 'subscriptions.licenses.label', path: '/abonnements/licences' },
+            { label: 'subscriptions.orders.label', path: '/abonnements/commandes' },
+          ],
+        });
+      }
 
       if (this.isTenantAdmin || this.isPlatformAdmin) {
         groups.push({

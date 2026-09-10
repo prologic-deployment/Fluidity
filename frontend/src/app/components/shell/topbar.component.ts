@@ -5,6 +5,7 @@ import { Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { BreadcrumbComponent } from '../shared/breadcrumb.component';
+import { NotificationsBellComponent } from '../shared/notifications-bell.component';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { PLATFORM_NAME } from '../../branding';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -22,7 +23,7 @@ import { AppLang, I18nService } from '../../i18n/i18n.service';
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, BreadcrumbComponent, UrlUploadPipe, ...I18N_IMPORTS],
+  imports: [CommonModule, RouterLink, BreadcrumbComponent, NotificationsBellComponent, UrlUploadPipe, ...I18N_IMPORTS],
   templateUrl: './topbar.component.html',
 })
 export class TopbarComponent {

@@ -45,6 +45,7 @@ router.get('/:id/activity', access(), activityController.listActivity);
 
 // --- Membres ---------------------------------------------------------------
 router.get('/:id/members', access(), memberController.listMembers);
+router.get('/:id/members/available', access('project.member.manage'), memberController.availableUsers);
 router.post('/:id/members', access('project.member.manage'), memberController.addMember);
 router.patch('/:id/members/:userId', access('project.member.manage'), memberController.updateMemberRole);
 router.delete('/:id/members/:userId', access('project.member.manage'), memberController.removeMember);

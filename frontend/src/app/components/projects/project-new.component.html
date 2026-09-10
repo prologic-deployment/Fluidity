@@ -1,0 +1,160 @@
+<div class="min-h-screen">
+  <header class="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
+    <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
+    <div class="max-w-3xl mx-auto px-4 lg:px-6 py-4">
+      <h1 class="text-lg font-semibold tracking-tight">{{ 'projects.new.title' | t }}</h1>
+      <p class="text-sm text-muted-foreground">{{ 'projects.new.subtitle' | t }}</p>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 lg:px-6 py-6">
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+
+    <!-- Étapes -->
+    <ol class="flex items-center gap-2 mb-6 text-sm">
+      <li class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 1 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">1</span>
+        <span [class.font-medium]="step === 1">{{ 'projects.new.step1' | t }}</span>
+      </li>
+      <li class="h-px flex-1 bg-border"></li>
+      <li class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 2 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">2</span>
+        <span [class.font-medium]="step === 2">{{ 'projects.new.step2' | t }}</span>
+      </li>
+      <li class="h-px flex-1 bg-border"></li>
+      <li class="flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 3 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">3</span>
+        <span [class.font-medium]="step === 3">{{ 'projects.new.step3' | t }}</span>
+      </li>
+    </ol>
+
+    <!-- Étape 1 : identité -->
+    <div class="card mb-4" *ngIf="step === 1">
+      <div class="card-content p-5 space-y-4">
+        <div class="text-xs text-muted-foreground flex items-center gap-2">
+          <span class="font-mono border border-border rounded px-1.5 py-0.5">{{ 'projects.fields.code' | t }} : PRJ-{{ currentYear }}-••••</span>
+          <span>{{ 'projects.new.autoRef' | t }}</span>
+        </div>
+        <div>
+          <label class="field-label" for="p-name">{{ 'projects.fields.name' | t }} *</label>
+          <input id="p-name" type="text" [(ngModel)]="name" class="input" maxlength="140" placeholder="{{ 'projects.new.namePh' | t }}" />
+        </div>
+        <div>
+          <label class="field-label" for="p-desc">{{ 'projects.fields.description' | t }}</label>
+          <textarea id="p-desc" [(ngModel)]="description" rows="4" class="input" placeholder="{{ 'projects.new.descPh' | t }}"></textarea>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label" for="p-stake">{{ 'projects.fields.stakeholder' | t }}</label>
+            <input id="p-stake" type="text" [(ngModel)]="stakeholder" class="input" maxlength="140" />
+          </div>
+          <div>
+            <label class="field-label">{{ 'projects.fields.tags' | t }}</label>
+            <div class="flex gap-2">
+              <input type="text" [(ngModel)]="tagsInput" (keyup.enter)="addTag()" class="input" placeholder="{{ 'projects.new.tagsPh' | t }}" />
+              <button type="button" class="btn-secondary btn-sm" (click)="addTag()">+</button>
+            </div>
+            <div class="flex flex-wrap gap-1.5 mt-2" *ngIf="tags.length">
+              <span *ngFor="let t of tags" class="badge badge-default gap-1">
+                {{ t }}
+                <button type="button" class="hover:text-destructive" (click)="removeTag(t)">×</button>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Étape 2 : équipe -->
+    <div class="card mb-4" *ngIf="step === 2">
+      <div class="card-content p-5 space-y-4">
+        <div>
+          <label class="field-label" for="p-manager">{{ 'projects.fields.manager' | t }}</label>
+          <select id="p-manager" [(ngModel)]="managerId" class="input">
+            <option value="">{{ 'projects.new.noManager' | t }}</option>
+            <option *ngFor="let u of users" [value]="u._id">{{ fullName(u) }} ({{ u.email }})</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.team' | t }}</label>
+          <div class="flex flex-wrap gap-1.5 mb-2" *ngIf="team.length">
+            <span *ngFor="let m of team" class="badge badge-secondary gap-1">
+              {{ userName(m.userId) }}
+              <select [(ngModel)]="m.roleKey" class="bg-transparent border-0 text-xs">
+                <option *ngFor="let r of memberRoles" [value]="r">{{ 'products.roles.' + r | t }}</option>
+              </select>
+              <button type="button" class="hover:text-destructive" (click)="removeTeamMember(m.userId)">×</button>
+            </span>
+          </div>
+          <input type="text" [(ngModel)]="teamQuery" class="input" placeholder="{{ 'projects.new.teamPh' | t }}" />
+          <ul class="mt-2 border border-border rounded divide-y divide-border" *ngIf="teamQuery.length >= 2 && filteredUsers.length">
+            <li *ngFor="let u of filteredUsers; trackBy: trackUser">
+              <button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-muted flex justify-between" (click)="addTeamMember(u)">
+                <span>{{ fullName(u) }} <span class="text-muted-foreground text-xs">{{ u.email }}</span></span>
+                <span class="text-muted-foreground">+</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Étape 3 : planification & méthodologie -->
+    <div class="card mb-4" *ngIf="step === 3">
+      <div class="card-content p-5 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="field-label" for="p-start">{{ 'projects.fields.startDate' | t }}</label>
+            <input id="p-start" type="date" [(ngModel)]="startDate" class="input" />
+          </div>
+          <div>
+            <label class="field-label" for="p-end">{{ 'projects.fields.endDate' | t }}</label>
+            <input id="p-end" type="date" [(ngModel)]="endDate" class="input" />
+          </div>
+          <div>
+            <label class="field-label" for="p-meth">{{ 'projects.meta.methodology.label' | t }}</label>
+            <select id="p-meth" [(ngModel)]="methodology" class="input">
+              <option *ngFor="let m of methodologies" [value]="m">{{ 'projects.meta.methodology.' + m | t }}</option>
+            </select>
+            <p class="text-xs text-muted-foreground mt-1">{{ 'projects.meta.methodology.desc.' + methodology | t }}</p>
+          </div>
+          <div>
+            <label class="field-label" for="p-prio">{{ 'projects.meta.priority.label' | t }}</label>
+            <select id="p-prio" [(ngModel)]="priority" class="input">
+              <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="p-status">{{ 'projects.fields.status' | t }}</label>
+            <select id="p-status" [(ngModel)]="status" class="input">
+              <option *ngFor="let s of statuses" [value]="s">{{ 'projects.meta.status.' + s | t }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="p-vis">{{ 'projects.fields.visibility' | t }}</label>
+            <select id="p-vis" [(ngModel)]="visibility" class="input">
+              <option value="team">{{ 'projects.meta.visibility.team' | t }}</option>
+              <option value="tenant">{{ 'projects.meta.visibility.tenant' | t }}</option>
+              <option value="private">{{ 'projects.meta.visibility.private' | t }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <input id="p-budget" type="checkbox" [(ngModel)]="budgetEnabled" class="checkbox" />
+          <label for="p-budget" class="text-sm">{{ 'projects.fields.budget' | t }}</label>
+          <input *ngIf="budgetEnabled" type="number" min="0" step="100" [(ngModel)]="budgetAmount" class="input w-40" />
+          <span *ngIf="budgetEnabled" class="text-sm text-muted-foreground">EUR</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn-ghost" [disabled]="submitting" (click)="back()" *ngIf="step > 1">{{ 'common.back' | t }}</button>
+      <button type="button" class="btn-primary ml-auto" [disabled]="!canNextStep || submitting" (click)="next()" *ngIf="step < 3">{{ 'common.next' | t }}</button>
+      <button type="button" class="btn-primary ml-auto" [disabled]="submitting" (click)="submit()" *ngIf="step === 3">
+        {{ submitting ? '…' : ('projects.new.create' | t) }}
+      </button>
+    </div>
+  </main>
+</div>

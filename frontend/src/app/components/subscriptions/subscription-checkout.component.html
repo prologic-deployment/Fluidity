@@ -1,0 +1,144 @@
+<main class="max-w-4xl mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">
+      {{ 'subscriptions.checkout.title' | t }} — {{ product ? ('products.' + product.key + '.name' | t) : '…' }}
+    </h2>
+    <a routerLink="/abonnements/produits" class="btn-ghost btn-sm">{{ 'common.back' | t }}</a>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="skeleton h-96"></div>
+
+  <!-- Étapes -->
+  <ol class="flex items-center gap-2 mb-6 text-sm" *ngIf="!loading && !completedOrder">
+    <li class="flex items-center gap-2">
+      <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 1 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">1</span>
+      <span>{{ 'subscriptions.checkout.stepPlan' | t }}</span>
+    </li>
+    <li class="h-px flex-1 bg-border"></li>
+    <li class="flex items-center gap-2">
+      <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 2 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">2</span>
+      <span>{{ 'subscriptions.checkout.stepSeats' | t }}</span>
+    </li>
+    <li class="h-px flex-1 bg-border"></li>
+    <li class="flex items-center gap-2">
+      <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 3 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">3</span>
+      <span>{{ 'subscriptions.checkout.stepCycle' | t }}</span>
+    </li>
+    <li class="h-px flex-1 bg-border"></li>
+    <li class="flex items-center gap-2">
+      <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 4 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">4</span>
+      <span>{{ 'subscriptions.checkout.stepSummary' | t }}</span>
+    </li>
+  </ol>
+
+  <ng-container *ngIf="product && !loading">
+    <!-- Étape 1 : plan -->
+    <div class="card mb-4" *ngIf="step === 1">
+      <div class="card-content p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <button
+          *ngFor="let p of product.plans; trackBy: trackPlan"
+          type="button"
+          class="rounded-xl border-2 p-4 text-left transition-colors"
+          [class.border-indigo-500]="planId === p.id"
+          [class.border-border]="planId !== p.id"
+          (click)="planId = p.id"
+        >
+          <p class="font-semibold">{{ 'subscriptions.meta.plan.' + p.id | t }}</p>
+          <p class="text-2xl font-bold mt-2 tabular-nums">{{ p.pricePerSeatMonthly }} €<span class="text-xs font-normal text-muted-foreground">/{{ 'subscriptions.meta.month' | t }}/{{ 'subscriptions.meta.seat' | t }}</span></p>
+          <p class="text-xs text-muted-foreground mt-1">{{ p.pricePerSeatAnnual }} €/{{ 'subscriptions.meta.year' | t }}/{{ 'subscriptions.meta.seat' | t }}</p>
+          <ul class="mt-3 space-y-1 text-sm">
+            <li *ngFor="let f of p.featuresKey || []" class="flex gap-2"><span class="text-emerald-500">✓</span>{{ 'products.' + product.key + '.' + f | t }}</li>
+          </ul>
+        </button>
+      </div>
+    </div>
+
+    <!-- Étape 2 : licences -->
+    <div class="card mb-4" *ngIf="step === 2">
+      <div class="card-content p-6 flex flex-col items-center">
+        <label class="field-label self-start">{{ 'subscriptions.checkout.seatsLabel' | t }}</label>
+        <div class="flex items-center gap-4 mt-2">
+          <button type="button" class="btn-secondary btn-sm" (click)="seats = Math.max(1, seats - 1)">−</button>
+          <span class="text-4xl font-bold tabular-nums w-20 text-center">{{ seats }}</span>
+          <button type="button" class="btn-secondary btn-sm" (click)="seats = Math.min(1000, seats + 1)">+</button>
+        </div>
+        <p class="text-sm text-muted-foreground mt-3">{{ 'subscriptions.checkout.seatsHint' | t }}</p>
+      </div>
+    </div>
+
+    <!-- Étape 3 : cycle + paiement -->
+    <div class="card mb-4" *ngIf="step === 3">
+      <div class="card-content p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="field-label">{{ 'subscriptions.checkout.cycle' | t }}</p>
+          <div class="grid grid-cols-2 gap-2 mt-1">
+            <button type="button" class="rounded-lg border-2 p-3 text-sm" [class.border-indigo-500]="cycle === 'monthly'" [class.border-border]="cycle !== 'monthly'" (click)="cycle = 'monthly'">
+              <p class="font-medium">{{ 'subscriptions.meta.cycle.monthly' | t }}</p>
+              <p class="text-muted-foreground text-xs">{{ unitPrice }} €/{{ 'subscriptions.meta.seat' | t }}/{{ 'subscriptions.meta.month' | t }}</p>
+            </button>
+            <button type="button" class="rounded-lg border-2 p-3 text-sm" [class.border-indigo-500]="cycle === 'annual'" [class.border-border]="cycle !== 'annual'" (click)="cycle = 'annual'">
+              <p class="font-medium">{{ 'subscriptions.meta.cycle.annual' | t }} <span class="badge badge-success text-[10px]">−17%</span></p>
+              <p class="text-muted-foreground text-xs">{{ unitPrice }} €/{{ 'subscriptions.meta.seat' | t }}/{{ 'subscriptions.meta.year' | t }}</p>
+            </button>
+          </div>
+        </div>
+        <div>
+          <p class="field-label">{{ 'subscriptions.checkout.payment' | t }}</p>
+          <div class="space-y-2 mt-1">
+            <label class="flex items-center gap-2 text-sm border border-border rounded-lg p-2.5 cursor-pointer" [class.border-indigo-500]="paymentMethod === 'bank_transfer'">
+              <input type="radio" [(ngModel)]="paymentMethod" value="bank_transfer" class="checkbox" />
+              🏦 {{ 'subscriptions.checkout.bankTransfer' | t }}
+            </label>
+            <label class="flex items-center gap-2 text-sm border border-border rounded-lg p-2.5 cursor-pointer" [class.border-indigo-500]="paymentMethod === 'invoice'">
+              <input type="radio" [(ngModel)]="paymentMethod" value="invoice" class="checkbox" />
+              🧾 {{ 'subscriptions.checkout.invoice' | t }}
+            </label>
+            <label class="flex items-center gap-2 text-sm border border-border rounded-lg p-2.5 opacity-60 cursor-not-allowed">
+              <input type="radio" [checked]="paymentMethod === 'card'" disabled class="checkbox" />
+              💳 {{ 'subscriptions.checkout.cardComingSoon' | t }}
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Étape 4 : récapitulatif -->
+    <div class="card mb-4" *ngIf="step === 4">
+      <div class="card-content p-4">
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between"><dt class="text-muted-foreground">{{ 'subscriptions.checkout.product' | t }}</dt><dd class="font-medium">{{ 'products.' + product.key + '.name' | t }}</dd></div>
+          <div class="flex justify-between"><dt class="text-muted-foreground">{{ 'subscriptions.checkout.plan' | t }}</dt><dd>{{ 'subscriptions.meta.plan.' + planId | t }}</dd></div>
+          <div class="flex justify-between"><dt class="text-muted-foreground">{{ 'subscriptions.checkout.cycle' | t }}</dt><dd>{{ 'subscriptions.meta.cycle.' + cycle | t }}</dd></div>
+          <div class="flex justify-between"><dt class="text-muted-foreground">{{ 'subscriptions.checkout.seats' | t }}</dt><dd class="tabular-nums">{{ seats }}</dd></div>
+          <div class="flex justify-between"><dt class="text-muted-foreground">{{ 'subscriptions.checkout.unitPrice' | t }}</dt><dd class="tabular-nums">{{ unitPrice }} €</dd></div>
+          <div class="flex justify-between"><dt class="text-muted-foreground">{{ 'subscriptions.checkout.payment' | t }}</dt><dd>{{ 'subscriptions.checkout.' + paymentMethod | t }}</dd></div>
+          <div class="flex justify-between border-t border-border pt-2 text-base"><dt class="font-medium">{{ 'subscriptions.checkout.total' | t }}</dt><dd class="font-bold tabular-nums">{{ total }} €</dd></div>
+        </dl>
+        <p class="text-xs text-muted-foreground mt-3">{{ 'subscriptions.checkout.honestNote' | t }}</p>
+      </div>
+    </div>
+
+    <!-- Étape 5 : confirmation -->
+    <div class="card mb-4" *ngIf="step === 5 && completedOrder">
+      <div class="card-content p-8 text-center">
+        <p class="text-4xl">✅</p>
+        <h3 class="text-lg font-semibold mt-3">{{ 'subscriptions.checkout.done' | t }}</h3>
+        <p class="text-sm text-muted-foreground mt-2">{{ 'subscriptions.checkout.doneBody' | t: { total: completedOrder.total, currency: completedOrder.currency } }}</p>
+        <div class="flex justify-center gap-2 mt-5">
+          <button type="button" class="btn-primary btn-sm" (click)="goOrders()">{{ 'subscriptions.checkout.seeOrders' | t }}</button>
+          <button type="button" class="btn-ghost btn-sm" (click)="goOverview()">{{ 'subscriptions.overview.nav' | t }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-2" *ngIf="step < 5">
+      <button type="button" class="btn-ghost" (click)="back()" *ngIf="step > 1">{{ 'common.back' | t }}</button>
+      <button type="button" class="btn-primary ml-auto" [disabled]="!canNext" (click)="next()" *ngIf="step < 4">{{ 'common.next' | t }}</button>
+      <button type="button" class="btn-primary ml-auto" [disabled]="submitting" (click)="confirm()" *ngIf="step === 4">
+        {{ submitting ? '…' : ('subscriptions.checkout.confirm' | t) }}
+      </button>
+    </div>
+  </ng-container>
+</main>

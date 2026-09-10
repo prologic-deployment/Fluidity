@@ -1,0 +1,118 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.risks.title' | t }}</h2>
+    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.risks.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <div class="skeleton h-56"></div>
+    <div class="skeleton h-56"></div>
+  </div>
+
+  <!-- Matrice probabilité × impact -->
+  <div class="card mb-4" *ngIf="!loading && risks.length">
+    <div class="card-header py-3">{{ 'projects.risks.matrix' | t }}</div>
+    <div class="card-content p-4 overflow-x-auto">
+      <table class="w-full min-w-[560px] border-collapse text-sm">
+        <thead>
+          <tr>
+            <th class="p-2 text-left text-xs text-muted-foreground font-normal w-24"></th>
+            <th *ngFor="let l of ['low','medium','high']" class="p-2 text-center text-xs font-medium">{{ 'projects.meta.impact.' + l | t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let l of ['high','medium','low']">
+            <td class="p-2 text-xs font-medium text-muted-foreground">{{ 'projects.meta.probability.' + l | t }}</td>
+            <td *ngFor="let i of ['low','medium','high']" class="p-1.5 align-top">
+              <div class="rounded-lg border border-border min-h-[64px] p-1.5 space-y-1 bg-card/50">
+                <button
+                  *ngFor="let r of matrixCell(l, i)"
+                  type="button"
+                  class="block w-full text-left text-xs rounded px-1.5 py-1 border"
+                  [ngClass]="matrixBorder(r)"
+                  [title]="r.title + ' — ' + r.mitigation"
+                  (click)="openEdit(r)"
+                >
+                  <span class="badge shrink-0" [ngClass]="severityBadge[r.severity]">{{ 'projects.meta.severity.' + r.severity | t }}</span>
+                  <span class="line-clamp-1 mt-0.5">{{ r.title }}</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Registre -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3" *ngIf="!loading">
+    <div *ngFor="let r of risks; trackBy: trackR" class="card">
+      <div class="card-content p-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="badge" [ngClass]="severityBadge[r.severity]">{{ 'projects.meta.severity.' + r.severity | t }}</span>
+          <span class="font-medium text-sm">{{ r.title }}</span>
+          <span class="badge badge-outline ml-auto">{{ 'projects.meta.riskStatus.' + r.status | t }}</span>
+        </div>
+        <p class="text-sm text-muted-foreground mt-1 line-clamp-2">{{ r.description }}</p>
+        <div class="text-xs text-muted-foreground mt-1 flex gap-3 flex-wrap">
+          <span>{{ 'projects.meta.probability.label' | t }} : {{ 'projects.meta.probability.' + r.probability | t }}</span>
+          <span>{{ 'projects.meta.impact.label' | t }} : {{ 'projects.meta.impact.' + r.impact | t }}</span>
+          <span *ngIf="ownerName(r)">{{ 'projects.fields.owner' | t }} : {{ ownerName(r) }}</span>
+          <span *ngIf="r.dueDate">{{ 'projects.fields.dueDate' | t }} : {{ r.dueDate | dateLocale:'short' }}</span>
+        </div>
+        <p *ngIf="r.mitigation" class="text-sm mt-2 rounded-lg bg-muted/40 p-2">{{ 'projects.risks.mitigation' | t }} : {{ r.mitigation }}</p>
+        <div class="flex gap-1 mt-2 flex-wrap">
+          <button *ngIf="r.status === 'open'" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'mitigating')">{{ 'projects.risks.mitigate' | t }}</button>
+          <button *ngIf="r.status === 'mitigating'" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'resolved')">{{ 'projects.risks.resolve' | t }}</button>
+          <button *ngIf="r.status !== 'closed'" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'closed')">{{ 'projects.risks.close' | t }}</button>
+          <button type="button" class="btn-ghost btn-sm ml-auto" (click)="openEdit(r)">{{ 'common.edit' | t }}</button>
+          <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(r)">{{ 'common.delete' | t }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !risks.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.risks.empty' | t }}</div>
+  </div>
+
+  <app-modal [open]="creating || !!editing" [title]="(creating ? 'projects.risks.new' : 'projects.risks.edit') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-4">
+      <div>
+        <label class="field-label">{{ 'projects.fields.title' | t }} *</label>
+        <input type="text" [(ngModel)]="form.title" class="input" maxlength="200" />
+      </div>
+      <div>
+        <label class="field-label">{{ 'projects.fields.description' | t }}</label>
+        <textarea [(ngModel)]="form.description" rows="3" class="input"></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="field-label">{{ 'projects.meta.probability.label' | t }}</label>
+          <select [(ngModel)]="form.probability" class="input">
+            <option *ngFor="let l of levels" [value]="l">{{ 'projects.meta.probability.' + l | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.meta.impact.label' | t }}</label>
+          <select [(ngModel)]="form.impact" class="input">
+            <option *ngFor="let l of levels" [value]="l">{{ 'projects.meta.impact.' + l | t }}</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="field-label">{{ 'projects.risks.mitigation' | t }}</label>
+          <textarea [(ngModel)]="form.mitigation" rows="2" class="input"></textarea>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.dueDate' | t }}</label>
+          <input type="date" [(ngModel)]="form.dueDate" class="input" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" class="btn-ghost" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary" [disabled]="!form.title.trim() || submitting" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

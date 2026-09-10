@@ -1,0 +1,82 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.planning.title' | t }}</h2>
+    <button type="button" class="btn-ghost btn-sm" (click)="scrollToToday()">{{ 'projects.planning.today' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <div *ngIf="loading" class="skeleton h-80"></div>
+
+  <div *ngIf="!loading && rows.length" class="card overflow-hidden">
+    <!-- En-tête de l'échelle -->
+    <div class="flex border-b border-border">
+      <div class="w-64 shrink-0 border-r border-border p-2 text-xs text-muted-foreground font-medium">{{ 'projects.planning.legend' | t }}</div>
+      <div class="flex-1 overflow-hidden relative h-10" #timelineHead>
+        <span *ngFor="let t of dayTicks" class="absolute top-0 text-[10px] text-muted-foreground tabular-nums" [style.left.px]="t.offset">{{ t.label }}</span>
+      </div>
+    </div>
+
+    <!-- Lignes -->
+    <div class="relative max-h-[60vh] overflow-auto" #timelineScroll>
+      <div class="relative" [style.width.px]="(totalDays + 1) * dayWidth + 300">
+        <!-- Grille verticale + ligne du jour -->
+        <div class="absolute inset-y-0 left-64 right-0 pointer-events-none">
+          <span *ngFor="let t of dayTicks" class="absolute inset-y-0 border-l border-border/60" [style.left.px]="t.offset"></span>
+          <span class="absolute inset-y-0 border-l-2 border-indigo-500/70" [style.left.px]="todayOffset * dayWidth"></span>
+        </div>
+
+        <div *ngFor="let row of rows; trackBy: trackRow" class="flex border-b border-border/60" [attr.data-row]="row.id">
+          <!-- Libellé -->
+          <div class="w-64 shrink-0 border-r border-border px-3 py-2 min-h-[34px] flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="row.kind === 'phase' ? 'bg-violet-500' : row.kind === 'milestone' ? 'bg-amber-500' : row.kind === 'sprint' ? 'bg-emerald-500' : 'bg-indigo-500'"></span>
+            <a *ngIf="rowLink(row) as link" [routerLink]="link" class="text-sm truncate hover:underline min-w-0">
+              <span *ngIf="row.ref" class="font-mono text-xs text-muted-foreground">{{ row.ref }} </span>{{ isPlaceholder(row) ? (row.label | t) : row.label }}
+            </a>
+            <span *ngIf="!rowLink(row)" class="text-sm truncate min-w-0">{{ isPlaceholder(row) ? (row.label | t) : row.label }}</span>
+          </div>
+
+          <!-- Barre -->
+          <div class="relative flex-1 py-1.5">
+            <div
+              class="absolute top-1.5 bottom-1.5 rounded flex items-center px-1.5 min-w-[10px]"
+              [ngClass]="row.color"
+              [style.left.px]="xOf(row.start)"
+              [style.width.px]="widthOf(row.start, row.end)"
+              [attr.data-bar]="row.id"
+              [title]="row.kind === 'task' ? (row.ref || '') + ' ' + row.label : ''"
+            >
+              <span *ngIf="row.kind === 'task' && row.ref" class="text-[9px] text-white/90 font-mono truncate">{{ row.ref }}</span>
+              <span *ngIf="row.kind === 'milestone'" class="text-[9px] text-white">◆</span>
+              <span *ngIf="row.kind === 'sprint'" class="text-[10px] text-white truncate">{{ row.label }}</span>
+            </div>
+            <!-- Progression (phases) -->
+            <div
+              *ngIf="row.kind === 'phase' && row.progress !== undefined && row.id !== 'project'"
+              class="absolute top-1.5 bottom-1.5 rounded-l bg-violet-700/80"
+              [style.left.px]="xOf(row.start)"
+              [style.width.px]="(widthOf(row.start, row.end) * (row.progress || 0)) / 100"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Dépendances (SVG) -->
+        <svg *ngIf="dependencyLines.length" class="absolute inset-0 pointer-events-none" [style.width.px]="(totalDays + 1) * dayWidth + 300" height="100%">
+          <line
+            *ngFor="let l of dependencyLines; trackBy: trackLine"
+            [attr.x1]="l.x1"
+            [attr.y1]="l.y1"
+            [attr.x2]="l.x2"
+            [attr.y2]="l.y2"
+            stroke="#6366f1"
+            stroke-width="1.5"
+            stroke-dasharray="4 3"
+          />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !rows.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.planning.empty' | t }}</div>
+  </div>
+</main>

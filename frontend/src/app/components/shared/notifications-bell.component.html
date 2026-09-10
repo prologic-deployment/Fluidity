@@ -1,0 +1,57 @@
+<!-- Cloche de notifications : badge non-lus + liste déroulante -->
+<div class="relative">
+  <button
+    type="button"
+    (click)="toggle()"
+    class="btn-icon-sm relative text-muted-foreground hover:bg-accent hover:text-foreground"
+    [attr.aria-expanded]="open"
+    [attr.aria-label]="'nav.notifications' | t"
+  >
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </svg>
+    <span
+      *ngIf="unread > 0"
+      class="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground"
+    >{{ unread > 99 ? '99+' : unread }}</span>
+  </button>
+
+  <!-- Liste déroulante -->
+  <div
+    *ngIf="open"
+    (click)="$event.stopPropagation()"
+    class="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] origin-top-right animate-scale-in
+      overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10 dark:shadow-black/40"
+  >
+    <div class="flex items-center justify-between border-b border-border px-4 py-2.5">
+      <p class="text-sm font-semibold">{{ 'notifications.title' | t }}</p>
+      <span *ngIf="unread" class="badge badge-outline tabular-nums">{{ unread }}</span>
+    </div>
+    <ul class="max-h-96 overflow-y-auto divide-y divide-border">
+      <li *ngFor="let n of items; trackBy: trackN">
+        <button
+          type="button"
+          (click)="openItem(n)"
+          class="w-full px-4 py-2.5 text-left transition-colors hover:bg-accent/60"
+          [ngClass]="{ 'bg-primary/[0.04]': !n.read }"
+        >
+          <span class="flex items-start gap-2">
+            <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" [class.bg-primary]="!n.read" [class.bg-transparent]="n.read"></span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-medium leading-snug">{{ title(n) }}</span>
+              <span class="mt-0.5 block text-xs leading-snug text-muted-foreground">{{ body(n) }}</span>
+              <span class="mt-1 block text-[10px] text-muted-foreground">{{ n.createdAt | dateLocale:'short' }}</span>
+            </span>
+          </span>
+        </button>
+      </li>
+      <li *ngIf="!items.length" class="px-4 py-10 text-center text-sm text-muted-foreground">{{ 'notifications.empty' | t }}</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Fermeture au clic extérieur -->
+<ng-container *ngIf="open">
+  <div class="fixed inset-0 z-40" (click)="close()" aria-hidden="true"></div>
+</ng-container>

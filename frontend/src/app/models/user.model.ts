@@ -11,6 +11,8 @@ export interface AppUser {
   _id?: string;
   tenantId?: string | null;
   email: string;
+  firstName?: string;
+  lastName?: string;
   role: AppRole;
   status?: UserStatus;
   department?: string;

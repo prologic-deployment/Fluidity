@@ -161,4 +161,48 @@ const removeMember = async (req, res) => {
   }
 };
 
-module.exports = { listMembers, addMember, updateMemberRole, removeMember, loadProject };
+/**
+ * Utilisateurs du tenant disponibles pour l'équipe (recherche limitée,
+ * réservé aux gestionnaires de membres — ne fuit jamais la liste complète).
+ */
+const availableUsers = async (req, res) => {
+  try {
+    const project = await loadProject(req, res);
+    if (!project) return;
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    if (!can(role, CAN.manageMembers)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes.' });
+      return;
+    }
+    const q = String(req.query.q || '').trim();
+    const filter = { tenantId: req.tenantId, status: { $ne: 'suspended' } };
+    if (q.length >= 2) {
+      filter.$or = [
+        { email: { $regex: q, $options: 'i' } },
+        { firstName: { $regex: q, $options: 'i' } },
+        { lastName: { $regex: q, $options: 'i' } },
+      ];
+    }
+    const users = await Utilisateur.find(filter).select('email firstName lastName avatarUrl jobTitle status').limit(20).lean();
+    const memberIds = new Set(
+      (await ProjectMember.find({ projectId: project._id }).distinct('userId')).map(String)
+    );
+    res.json({
+      users: users.map((u) => ({
+        _id: u._id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        avatarUrl: u.avatarUrl,
+        jobTitle: u.jobTitle,
+        status: u.status,
+        isMember: memberIds.has(String(u._id)),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
+module.exports = { listMembers, addMember, updateMemberRole, removeMember, availableUsers, loadProject };

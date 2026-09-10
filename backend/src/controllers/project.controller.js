@@ -263,13 +263,17 @@ const getProject = async (req, res) => {
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
     const manager = project.managerId ? await Utilisateur.findById(project.managerId).select(USER_SELECT).lean() : null;
-    const members = await ProjectMember.find({ projectId: project._id }).populate('userId', USER_SELECT).lean();
-    const health = await projectHealth(project);
+    const [members, health, counts] = await Promise.all([
+      ProjectMember.find({ projectId: project._id }).populate('userId', USER_SELECT).lean(),
+      projectHealth(project),
+      taskCounts(req.tenantId, project._id),
+    ]);
     res.json({
       project: serializeProject(project, { manager }),
       myRole: { roleKey: role.roleKey, isMember: role.isMember },
       members: members.map((m) => ({ _id: m._id, userId: m.userId, roleKey: m.roleKey, joinedAt: m.joinedAt })),
       health,
+      taskStats: counts,
       workflow: effectiveWorkflow(project),
     });
   } catch (err) {
