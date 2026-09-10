@@ -220,55 +220,6 @@ async function seedProjectManagement() {
     return;
   }
 
-  // ---- Commandes (cycle d'approbation plateforme) ---------------------------
-  const platformAdmin = await Utilisateur.findOne({ role: 'PLATFORM_ADMIN' }).lean();
-  const novaSub = await Subscription.findOne({ tenantId: nova._id, productKey: 'project_management' });
-  if (novaSub) {
-    // Historique : souscription initiale approuvée par la plateforme.
-    await ensureOrder({
-      tenantId: nova._id,
-      userId: admin?._id || nova._id,
-      productKey: 'project_management',
-      planId: 'business',
-      seats: 8,
-      orderType: 'subscription',
-      status: 'completed',
-      subscriptionId: novaSub._id,
-      activatedSubscriptionId: novaSub._id,
-      reviewedBy: platformAdmin?._id || null,
-      reviewNote: 'Souscription approuvée — bienvenue dans Fluidity !',
-    });
-    // EN ATTENTE : l'équipe est passée de 8 à 10 membres licenciés (8 sièges
-    // consommés) → commande d'extension à 12 sièges, à approuver par la plateforme.
-    await ensureOrder({
-      tenantId: nova._id,
-      userId: admin?._id || nova._id,
-      productKey: 'project_management',
-      planId: 'business',
-      seats: 12,
-      orderType: 'seat_expansion',
-      status: 'pending_approval',
-      subscriptionId: novaSub._id,
-      notes: 'Extension d\'équipe : Product Owner, Scrum Master, développeur, designer et QA intégrés au programme Transformation Digitale.',
-    });
-  }
-  if (fluidity && fluidity._id) {
-    const fluiditySub = await Subscription.findOne({ tenantId: fluidity._id, productKey: 'project_management' });
-    const fluidityAdmin = await Utilisateur.findOne({ tenantId: fluidity._id, role: 'TENANT_ADMIN' }).lean();
-    // EN ATTENTE : renouvellement après expiration (souscription expirée).
-    await ensureOrder({
-      tenantId: fluidity._id,
-      userId: fluidityAdmin?._id || fluidity._id,
-      productKey: 'project_management',
-      planId: 'business',
-      seats: 5,
-      orderType: 'subscription',
-      status: 'pending_approval',
-      subscriptionId: fluiditySub?._id || null,
-      notes: 'Renouvellement de la souscription expirée — équipe de 5.',
-    });
-  }
-
   // ---- Utilisateurs & rôles produit ---------------------------------------
   const admin = await Utilisateur.findOne({ email: 'nova-admin@nova-systems.dev' }).lean();
   const manager = await Utilisateur.findOne({ email: 'manager@nova-systems.dev' }).lean();
@@ -321,6 +272,56 @@ async function seedProjectManagement() {
     { userId: designer._id, roleKey: 'designer' },
     { userId: qa._id, roleKey: 'qa' },
   ].filter((m) => m.userId);
+
+  // ---- Commandes (cycle d'approbation plateforme) ---------------------------
+  const platformAdmin = await Utilisateur.findOne({ role: 'PLATFORM_ADMIN' }).lean();
+  const novaSub = await Subscription.findOne({ tenantId: nova._id, productKey: 'project_management' });
+  if (novaSub) {
+    // Historique : souscription initiale approuvée par la plateforme.
+    await ensureOrder({
+      tenantId: nova._id,
+      userId: admin?._id || nova._id,
+      productKey: 'project_management',
+      planId: 'business',
+      seats: 8,
+      orderType: 'subscription',
+      status: 'completed',
+      subscriptionId: novaSub._id,
+      activatedSubscriptionId: novaSub._id,
+      reviewedBy: platformAdmin?._id || null,
+      reviewNote: 'Souscription approuvée — bienvenue dans Fluidity !',
+    });
+    // EN ATTENTE : l'équipe est passée de 8 à 10 membres licenciés (8 sièges
+    // consommés) → commande d'extension à 12 sièges, à approuver par la plateforme.
+    await ensureOrder({
+      tenantId: nova._id,
+      userId: admin?._id || nova._id,
+      productKey: 'project_management',
+      planId: 'business',
+      seats: 4,
+      orderType: 'seat_expansion',
+      status: 'pending_approval',
+      subscriptionId: novaSub._id,
+      notes: 'Extension d\'équipe (8 → 12 sièges) : Product Owner, Scrum Master, développeur, designer et QA intégrés au programme Transformation Digitale.',
+    });
+  }
+  if (fluidity && fluidity._id) {
+    const fluiditySub = await Subscription.findOne({ tenantId: fluidity._id, productKey: 'project_management' });
+    const fluidityAdmin = await Utilisateur.findOne({ tenantId: fluidity._id, role: 'TENANT_ADMIN' }).lean();
+    // EN ATTENTE : renouvellement après expiration (souscription expirée).
+    await ensureOrder({
+      tenantId: fluidity._id,
+      userId: fluidityAdmin?._id || fluidity._id,
+      productKey: 'project_management',
+      planId: 'business',
+      seats: 5,
+      orderType: 'subscription',
+      status: 'pending_approval',
+      subscriptionId: fluiditySub?._id || null,
+      notes: 'Renouvellement de la souscription expirée — équipe de 5.',
+    });
+  }
+
 
   const T = nova._id;
 
@@ -454,7 +455,7 @@ async function seedProjectManagement() {
     'TSK-109': { points: 3, epicId: epicUx?._id, businessValue: 250 },
   };
   for (const [ref, upd] of Object.entries(storyPoints)) {
-    await Task.updateOne({ tenantId: T, projectId: scrum._id, ref }, { $set: { points: upd.points, type: 'story', ...(upd.epicId ? { epicId: upd.epicId } : {}), ...(upd.businessValue ? { businessValue: upd.businessValue } : {}) } });
+    await Task.updateOne({ tenantId: T, projectId: scrum._id, ref }, { $set: { points: upd.points, type: 'user_story', ...(upd.epicId ? { epicId: upd.epicId } : {}), ...(upd.businessValue ? { businessValue: upd.businessValue } : {}) } });
   }
   await createMilestone(T, scrum, { kind: 'milestone', name: 'Publication sur les stores', dueDate: iso(30), status: 'not_started', progress: 0, ownerId: manager._id });
 

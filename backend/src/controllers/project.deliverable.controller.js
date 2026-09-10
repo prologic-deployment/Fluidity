@@ -145,7 +145,11 @@ const transitionDeliverable = async (req, res) => {
     }
     const { to, note } = req.body;
     if (to === 'submitted') {
-      if (!can(role, CAN.updateTasks) || deliverable.status !== 'draft') {
+      if (!can(role, CAN.updateTasks)) {
+        res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour soumettre un livrable.' });
+        return;
+      }
+      if (deliverable.status !== 'draft') {
         res.status(400).json({ message: 'Seul un livrable en brouillon peut être soumis.' });
         return;
       }
@@ -164,8 +168,12 @@ const transitionDeliverable = async (req, res) => {
       }
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.deliverable_submitted', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title } });
     } else if (to === 'approved' || to === 'rejected') {
-      if (!can(role, CAN.approveWork) || deliverable.status !== 'submitted') {
-        res.status(400).json({ message: 'Seul un livrable soumis peut être approuvé/rejeté (permission d’acceptation requise).' });
+      if (!can(role, CAN.approveWork)) {
+        res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Réservé au Chef de projet ou au Product Owner.' });
+        return;
+      }
+      if (deliverable.status !== 'submitted') {
+        res.status(400).json({ message: 'Seul un livrable soumis peut être approuvé ou rejeté.' });
         return;
       }
       deliverable.status = to;

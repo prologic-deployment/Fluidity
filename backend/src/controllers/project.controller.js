@@ -19,6 +19,7 @@ const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../u
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers, notifyProjectManager } = require('../services/project-notify.service');
+const { sprintStats } = require('./project.sprint.controller');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -490,7 +491,7 @@ const globalDashboard = async (req, res) => {
     const projectIds = projects.map((p) => p._id);
 
     const taskAgg = await Task.aggregate([
-      { $match: { tenantId: req.tenantId, projectId: { $in: projectIds } } },
+      { $match: { tenantId: new mongoose.Types.ObjectId(req.tenantId), projectId: { $in: projectIds } } },
       {
         $group: {
           _id: null,
@@ -503,7 +504,7 @@ const globalDashboard = async (req, res) => {
     const taskTotals = taskAgg[0] || { total: 0, completed: 0, overdue: 0 };
 
     const healths = await Promise.all(projects.map((p) => projectHealth(p)));
-    const healthCounts = { healthy: 0, at_risk: 0, critical: 0 };
+    const healthCounts = { on_track: 0, at_risk: 0, off_track: 0 };
     let healthByProject = [];
     projects.forEach((p, i) => {
       healthCounts[healths[i].status] += 1;
@@ -516,7 +517,7 @@ const globalDashboard = async (req, res) => {
     // Tendance de complétion sur 6 mois (tâches complétées par mois).
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const trend = await Task.aggregate([
-      { $match: { tenantId: req.tenantId, projectId: { $in: projectIds }, status: 'completed', completedAt: { $gte: sixMonthsAgo } } },
+      { $match: { tenantId: new mongoose.Types.ObjectId(req.tenantId), projectId: { $in: projectIds }, status: 'completed', completedAt: { $gte: sixMonthsAgo } } },
       {
         $group: {
           _id: { y: { $year: '$completedAt' }, m: { $month: '$completedAt' } },
@@ -665,15 +666,26 @@ const projectReports = async (req, res) => {
       sprintVelocity[key].points += t.points || t.estimatedHours || 0;
       sprintVelocity[key].tasks += 1;
     }
-    const sprintsWithVelocity = sprints.map((s) => ({
-      _id: s._id,
-      name: s.name,
-      status: s.status,
-      startDate: s.startDate,
-      endDate: s.endDate,
-      goal: s.goal,
-      velocity: sprintVelocity[String(s._id)] || { points: 0, tasks: 0 },
-    }));
+    const sprintsWithVelocity = await Promise.all(
+      sprints.map(async (s) => {
+        const stats = await sprintStats(req.tenantId, project._id, s._id).catch(() => null);
+        return {
+          _id: s._id,
+          name: s.name,
+          status: s.status,
+          startDate: s.startDate,
+          endDate: s.endDate,
+          goal: s.goal,
+          velocity: sprintVelocity[String(s._id)] || { points: 0, tasks: 0 },
+          pointsCommitted: stats?.pointsCommitted ?? 0,
+          pointsDelivered: stats?.pointsDelivered ?? 0,
+          velocityPoints: stats?.velocityPoints ?? 0,
+          burndown: stats?.burndown ?? [],
+          burnup: stats?.burnup ?? [],
+          progress: stats?.progress ?? 0,
+        };
+      })
+    );
 
     // Cycle time (jours entre début effectif et complétion) + débit hebdomadaire.
     const withCycle = completed.filter((t) => t.startedAt && t.completedAt);

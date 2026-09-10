@@ -102,7 +102,7 @@ const ProjectSchema = new Schema(
     },
     /** Forçage manuel de la santé par le chef de projet (avec justification). */
     healthOverride: {
-      status: { type: String, enum: ['on_track', 'at_risk', 'off_track'], default: null },
+      status: { type: String, enum: ['on_track', 'at_risk', 'off_track', null], default: null },
       reason: { type: String, default: '', maxlength: 500 },
       by: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
       at: { type: Date, default: null },

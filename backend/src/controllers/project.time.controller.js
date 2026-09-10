@@ -45,7 +45,7 @@ const listTime = async (req, res) => {
       .lean();
     // Agrégats par utilisateur.
     const perUser = await TimeEntry.aggregate([
-      { $match: { tenantId: req.tenantId, projectId: project._id } },
+      { $match: { tenantId: new mongoose.Types.ObjectId(req.tenantId), projectId: project._id } },
       { $group: { _id: '$userId', minutes: { $sum: '$minutes' } } },
     ]);
     const userMap = {};

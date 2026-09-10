@@ -868,6 +868,10 @@ const DEFAULT_PREFS = () => ({
   license_assigned: { email: true, inapp: true },
   license_removed: { email: true, inapp: true },
   license_limit_reached: { email: true, inapp: true },
+  deliverable_submitted: { email: true, inapp: true },
+  deliverable_approved: { email: true, inapp: true },
+  deliverable_rejected: { email: true, inapp: true },
+  time_logged: { email: true, inapp: true },
 });
 
 router.get('/me/notifications/preferences', authMiddleware, async (req, res) => {

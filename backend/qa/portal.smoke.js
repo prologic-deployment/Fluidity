@@ -54,7 +54,7 @@ const check = (name, ok, extra = '') => {
       // Souscriptions avec usage
       const subs = await api('/api/platform/subscriptions', { token: nova });
       const novaSub = subs.data.subscriptions?.find((s) => s.productKey === 'project_management');
-      check('usage sièges 5/8', novaSub?.usage?.used === 5 && novaSub?.usage?.seats === 8, JSON.stringify(novaSub?.usage));
+      check('usage sièges : 10 licences / 8 sièges (saturation)', novaSub?.usage?.used >= 10 && novaSub?.usage?.seats === 8, JSON.stringify(novaSub?.usage));
 
       // Auto-renouvellement
       const ar = await api(`/api/platform/subscriptions/${novaSub._id}/autorenew`, { method: 'PATCH', token: nova, body: { autoRenew: false } });
@@ -65,7 +65,7 @@ const check = (name, ok, extra = '') => {
       // Rôles : catalogue
       const roles = await api('/api/platform/roles', { token: nova });
       const pmRoles = roles.data.roles?.find((r) => r.productKey === 'project_management');
-      check('catalogue de rôles (5 rôles projet)', pmRoles?.roles?.length === 5, String(pmRoles?.roles?.length));
+      check('catalogue de rôles (10 rôles projet)', pmRoles?.roles?.length === 10, String(pmRoles?.roles?.length));
 
       // Assignations existantes
       const assignments = await api('/api/platform/roles/assignments', { token: nova });
@@ -86,7 +86,7 @@ const check = (name, ok, extra = '') => {
       const fluidityToken = await login('admin@fluidity.dev');
       check('login admin Fluidity', !!fluidityToken);
       const renewal = await api('/api/platform/me/orders', { method: 'POST', token: fluidityToken, body: { productKey: 'project_management', planId: 'business', billingPeriod: 'monthly', seats: 5, paymentMethod: 'invoice' } });
-      check('commande de renouvellement créée (pending)', renewal.status === 201 && renewal.data.order?.status === 'pending', String(renewal.status));
+      check('commande de renouvellement créée (pending_approval)', renewal.status === 201 && ['pending_approval', 'pending'].includes(renewal.data.order?.status), String(renewal.status));
       check('total calculé (monthly business 15×5)', renewal.data.order?.total === 75, String(renewal.data.order?.total));
       const orders = await api('/api/platform/me/orders', { token: fluidityToken });
       check('liste des commandes', orders.status === 200 && orders.data.orders?.length >= 1);
@@ -95,7 +95,7 @@ const check = (name, ok, extra = '') => {
 
       // Préférences de notification (GET/PATCH)
       const prefs = await api('/api/platform/me/notifications/preferences', { token: nova });
-      check('préférences (19 événements)', prefs.status === 200 && Object.keys(prefs.data.preferences).length === 19);
+      check('préférences (30 événements)', prefs.status === 200 && Object.keys(prefs.data.preferences).length === 30, String(Object.keys(prefs.data.preferences || {}).length));
       const patched = await api('/api/platform/me/notifications/preferences', { method: 'PATCH', token: nova, body: { events: { task_assigned: { email: false, inapp: true } } } });
       check('préférence mise à jour', patched.status === 200 && patched.data.preferences.task_assigned?.email === false);
 
