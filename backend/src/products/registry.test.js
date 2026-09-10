@@ -146,8 +146,8 @@ check('projet : TENANT_ADMIN → project_admin', () =>
 check('projet : MANAGER → project_manager', () =>
   assert.strictEqual(defaultProductRole('project_management', 'MANAGER', 'UTILISATEUR'), 'project_manager')
 );
-check('projet : AGENT → project_lead', () =>
-  assert.strictEqual(defaultProductRole('project_management', 'AGENT', 'UTILISATEUR'), 'project_lead')
+check('projet : AGENT → developer', () =>
+  assert.strictEqual(defaultProductRole('project_management', 'AGENT', 'UTILISATEUR'), 'developer')
 );
 check('projet : VIEWER → project_viewer', () =>
   assert.strictEqual(defaultProductRole('project_management', 'VIEWER', 'UTILISATEUR'), 'project_viewer')

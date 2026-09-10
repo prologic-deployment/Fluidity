@@ -50,7 +50,12 @@ const DEFAULT_ROLES = {
   project_management: [
     { key: 'project_admin', nameKey: 'products.roles.project_admin' },
     { key: 'project_manager', nameKey: 'products.roles.project_manager' },
+    { key: 'product_owner', nameKey: 'products.roles.product_owner' },
+    { key: 'scrum_master', nameKey: 'products.roles.scrum_master' },
     { key: 'project_lead', nameKey: 'products.roles.project_lead' },
+    { key: 'developer', nameKey: 'products.roles.developer' },
+    { key: 'designer', nameKey: 'products.roles.designer' },
+    { key: 'qa', nameKey: 'products.roles.qa' },
     { key: 'project_member', nameKey: 'products.roles.project_member' },
     { key: 'project_viewer', nameKey: 'products.roles.project_viewer' },
   ],
@@ -889,11 +894,17 @@ const PERMISSIONS_BY_PRODUCT = {
     'project.member.manage',
     'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign',
     'project.task.complete', 'project.task.delete', 'project.task.comment',
-    'project.milestone.create', 'project.milestone.update', 'project.milestone.delete',
+    'project.backlog.manage',
+    'project.approval.manage',
+    'project.milestone.read', 'project.milestone.create', 'project.milestone.update', 'project.milestone.delete',
     'project.sprint.manage',
     'project.risk.manage', 'project.issue.manage',
     'project.file.manage',
-    'project.report.read',
+    'project.time.log', 'project.time.manage',
+    'project.deliverable.manage',
+    'project.event.manage',
+    'project.health.override',
+    'project.report.read', 'project.report.export',
     'project.workflow.manage',
     'project.activity.read',
   ],
@@ -962,9 +973,14 @@ function rolePermissions(roleKey) {
     requester: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.reopen'],
     // Project
     project_admin: [...PERMISSIONS_BY_PRODUCT.project_management],
-    project_manager: ['project.project.create', 'project.project.read', 'project.project.update', 'project.member.manage', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.delete', 'project.task.comment', 'project.milestone.create', 'project.milestone.update', 'project.milestone.delete', 'project.sprint.manage', 'project.risk.manage', 'project.issue.manage', 'project.file.manage', 'project.report.read', 'project.activity.read'],
-    project_lead: ['project.project.read', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment', 'project.activity.read'],
-    project_member: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage'],
+    project_manager: ['project.project.create', 'project.project.read', 'project.project.update', 'project.project.archive', 'project.member.manage', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.delete', 'project.task.comment', 'project.backlog.manage', 'project.approval.manage', 'project.milestone.create', 'project.milestone.update', 'project.milestone.delete', 'project.sprint.manage', 'project.risk.manage', 'project.issue.manage', 'project.file.manage', 'project.time.log', 'project.time.manage', 'project.deliverable.manage', 'project.event.manage', 'project.health.override', 'project.report.read', 'project.report.export', 'project.workflow.manage', 'project.activity.read'],
+    product_owner: ['project.project.read', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.backlog.manage', 'project.approval.manage', 'project.milestone.read', 'project.activity.read', 'project.report.read'],
+    scrum_master: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.sprint.manage', 'project.backlog.manage', 'project.activity.read', 'project.report.read'],
+    project_lead: ['project.project.read', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment', 'project.time.manage', 'project.activity.read'],
+    developer: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log', 'project.activity.read'],
+    designer: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log', 'project.activity.read'],
+    qa: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.issue.manage', 'project.file.manage', 'project.time.log', 'project.activity.read'],
+    project_member: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log'],
     project_viewer: ['project.project.read', 'project.task.read', 'project.activity.read', 'project.report.read'],
     // Fleet
     fleet_admin: [...PERMISSIONS_BY_PRODUCT.fleet_management],
@@ -1047,7 +1063,8 @@ function defaultProductRole(productKey, internalRole, principalType) {
     case 'project_management':
       if (internalRole === 'PLATFORM_ADMIN' || internalRole === 'TENANT_ADMIN') return 'project_admin';
       if (internalRole === 'MANAGER') return 'project_manager';
-      return internalRole === 'AGENT' ? 'project_lead' : 'project_viewer';
+      if (internalRole === 'AGENT') return 'developer';
+      return 'project_viewer';
     default:
       return null;
   }

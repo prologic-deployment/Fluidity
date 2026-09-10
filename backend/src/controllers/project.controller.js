@@ -8,14 +8,17 @@ const {
   Risk,
   Issue,
   ProjectActivity,
+  TimeEntry,
+  ProjectEvent,
 } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
-const { METHODOLOGIES, PROJECT_STATUSES } = require('../models/project.models');
+const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { effectiveWorkflow } = require('../utils/project-workflow.util');
 const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
+const { notifyProjectMembers, notifyProjectManager } = require('../services/project-notify.service');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -39,6 +42,12 @@ function serializeProject(p, extra = {}) {
     workflow: p.workflow,
     settings: p.settings,
     healthRules: p.healthRules,
+    healthOverride: p.healthOverride,
+    objectives: p.objectives,
+    successCriteria: p.successCriteria,
+    businessValue: p.businessValue,
+    estimatedEffortHours: p.estimatedEffortHours,
+    color: p.color,
     attachments: p.attachments,
     archived: p.archived,
     createdAt: p.createdAt,
@@ -165,7 +174,7 @@ const searchProjects = async (req, res) => {
   try {
     const text = String(req.query.q || '').trim();
     if (text.length < 2) {
-      res.json({ projects: [], tasks: [], milestones: [] });
+      res.json({ projects: [], tasks: [], milestones: [], issues: [] });
       return;
     }
     const rx = { $regex: text, $options: 'i' };
@@ -175,7 +184,7 @@ const searchProjects = async (req, res) => {
       .select('_id code name status methodology')
       .lean();
     const projectIds = (await Project.find(scope).select('_id').lean()).map((p) => p._id);
-    const [tasks, milestones] = await Promise.all([
+    const [tasks, milestones, issues] = await Promise.all([
       Task.find({ tenantId: req.tenantId, projectId: { $in: projectIds }, $or: [{ title: rx }, { ref: rx }] })
         .limit(10)
         .select('_id projectId ref title status assigneeId')
@@ -184,8 +193,12 @@ const searchProjects = async (req, res) => {
         .limit(5)
         .select('_id projectId name dueDate status')
         .lean(),
+      Issue.find({ tenantId: req.tenantId, projectId: { $in: projectIds }, $or: [{ title: rx }, { description: rx }] })
+        .limit(5)
+        .select('_id projectId title status priority')
+        .lean(),
     ]);
-    res.json({ projects, tasks, milestones });
+    res.json({ projects, tasks, milestones, issues });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }
@@ -290,7 +303,7 @@ const updateProject = async (req, res) => {
     }
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
-    const { name, description, stakeholder, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules } = req.body;
+    const { name, description, stakeholder, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules, objectives, successCriteria, businessValue, estimatedEffortHours, color, healthOverride } = req.body;
     if (name !== undefined && !String(name).trim()) {
       res.status(400).json({ message: 'Le nom du projet est requis.' });
       return;
@@ -317,7 +330,30 @@ const updateProject = async (req, res) => {
       }
       project.methodology = methodology;
     }
-    if (status !== undefined && PROJECT_STATUSES.includes(status)) project.status = status;
+    // Cycle de vie : transitions contrôlées (PROJECT_TRANSITIONS) — chaque
+    // changement est audité et journalisé (activité projet).
+    if (status !== undefined && status !== project.status) {
+      const canonical = status === 'paused' ? 'on_hold' : status;
+      if (!PROJECT_STATUSES.includes(canonical)) {
+        res.status(400).json({ message: 'Statut de projet invalide.' });
+        return;
+      }
+      const allowed = PROJECT_TRANSITIONS[project.status] || [];
+      if (canonical !== project.status && !allowed.includes(canonical)) {
+        res.status(400).json({ code: 'INVALID_PROJECT_TRANSITION', message: `Transition de cycle de vie refusée : ${project.status} → ${canonical}.` });
+        return;
+      }
+      const from = project.status;
+      project.status = canonical;
+      await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.project_status_changed', targetType: 'project', targetId: project._id, metadata: { from, to: canonical } });
+      await audit(req, { action: 'project.status_changed', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { from, to: canonical } });
+      if (canonical === 'completed') {
+        const members = await ProjectMember.find({ tenantId: req.tenantId, projectId: project._id }).select('userId').lean();
+        await notifyProjectMembers({ tenantId: req.tenantId, projectId: project._id, members: members.map((m) => m.userId), event: 'project_completed', params: { projectName: project.name, projectCode: project.code }, link: `/projets/${project._id}` });
+      }
+    } else if (status !== undefined && PROJECT_STATUSES.includes(status)) {
+      project.status = status;
+    }
     if (priority !== undefined) project.priority = priority;
     if (visibility !== undefined) project.visibility = visibility;
     if (tags !== undefined) project.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
@@ -341,6 +377,26 @@ const updateProject = async (req, res) => {
         deadlineProximityDays: healthRules.deadlineProximityDays ?? project.healthRules.deadlineProximityDays,
         progressGapTolerance: healthRules.progressGapTolerance ?? project.healthRules.progressGapTolerance,
       };
+    }
+    if (objectives !== undefined) project.objectives = String(objectives || '');
+    if (successCriteria !== undefined) project.successCriteria = String(successCriteria || '');
+    if (businessValue !== undefined) project.businessValue = String(businessValue || '');
+    if (estimatedEffortHours !== undefined) project.estimatedEffortHours = Math.max(0, Number(estimatedEffortHours) || 0);
+    if (color !== undefined) project.color = String(color || '');
+    // Forçage manuel de la santé (chef de projet) — avec justification.
+    if (healthOverride !== undefined) {
+      const overrideStatus = healthOverride?.status || null;
+      if (overrideStatus && !['on_track', 'at_risk', 'off_track'].includes(overrideStatus)) {
+        res.status(400).json({ message: 'Statut de santé invalide.' });
+        return;
+      }
+      project.healthOverride = {
+        status: overrideStatus,
+        reason: String(healthOverride.reason || '').slice(0, 500),
+        by: overrideStatus ? req.userId : null,
+        at: overrideStatus ? new Date() : null,
+      };
+      await audit(req, { action: 'project.health_overridden', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { status: overrideStatus } });
     }
     await project.save();
     if (previousEnd && project.endDate && previousEnd.getTime() !== project.endDate.getTime()) {
@@ -564,7 +620,7 @@ const personalDashboard = async (req, res) => {
     const healths = managed.length
       ? await Promise.all(managed.map((p) => projectHealth(p)))
       : [];
-    const managedWithHealth = managed.map((p, i) => ({ ...p, health: healths[i]?.status || 'healthy' }));
+    const managedWithHealth = managed.map((p, i) => ({ ...p, health: healths[i]?.status || 'on_track' }));
 
     res.json({
       myTasks: tasks,
@@ -599,14 +655,14 @@ const projectReports = async (req, res) => {
       Sprint.find({ tenantId: req.tenantId, projectId: project._id }).sort({ startDate: -1 }).lean(),
       Risk.find({ tenantId: req.tenantId, projectId: project._id }).lean(),
     ]);
-    // Vélocité Scrum : tâches complétées par sprint (heures estimées).
-    const completed = await Task.find({ tenantId: req.tenantId, projectId: project._id, status: 'completed' }).select('sprintId estimatedHours completedAt').lean();
+    // Vélocité Scrum : story POINTS livrés par sprint (repli : heures estimées).
+    const completed = await Task.find({ tenantId: req.tenantId, projectId: project._id, status: 'completed' }).select('sprintId estimatedHours points startedAt completedAt').lean();
     const sprintVelocity = {};
     for (const t of completed) {
       if (!t.sprintId) continue;
       const key = String(t.sprintId);
       sprintVelocity[key] = sprintVelocity[key] || { points: 0, tasks: 0 };
-      sprintVelocity[key].points += t.estimatedHours || 0;
+      sprintVelocity[key].points += t.points || t.estimatedHours || 0;
       sprintVelocity[key].tasks += 1;
     }
     const sprintsWithVelocity = sprints.map((s) => ({
@@ -618,6 +674,38 @@ const projectReports = async (req, res) => {
       goal: s.goal,
       velocity: sprintVelocity[String(s._id)] || { points: 0, tasks: 0 },
     }));
+
+    // Cycle time (jours entre début effectif et complétion) + débit hebdomadaire.
+    const withCycle = completed.filter((t) => t.startedAt && t.completedAt);
+    const cycleDays = withCycle.map((t) => Math.max(0.5, (new Date(t.completedAt) - new Date(t.startedAt)) / 86400000));
+    const cycleTime = {
+      averageDays: cycleDays.length ? Math.round((cycleDays.reduce((a, b) => a + b, 0) / cycleDays.length) * 10) / 10 : 0,
+      sampleSize: cycleDays.length,
+      minDays: cycleDays.length ? Math.round(Math.min(...cycleDays) * 10) / 10 : 0,
+      maxDays: cycleDays.length ? Math.round(Math.max(...cycleDays) * 10) / 10 : 0,
+    };
+    const throughput = [];
+    for (let w = 7; w >= 0; w -= 1) {
+      const end = new Date(Date.now() - w * 7 * 86400000);
+      const start = new Date(end.getTime() - 7 * 86400000);
+      const n = await Task.countDocuments({ tenantId: req.tenantId, projectId: project._id, completedAt: { $gte: start, $lt: end } });
+      throughput.push({ weekStart: start.toISOString(), count: n });
+    }
+
+    // TEMPS : estimé / consigné / restant / écart (agrégat des saisies).
+    const timeEntries = await TimeEntry.find({ tenantId: req.tenantId, projectId: project._id }).select('minutes').lean();
+    const allTasks = await Task.find({ tenantId: req.tenantId, projectId: project._id }).select('estimatedHours remainingHours').lean();
+    const estimatedTotal = allTasks.reduce((a, t) => a + (t.estimatedHours || 0), 0);
+    const loggedTotal = Math.round((timeEntries.reduce((a, t) => a + (t.minutes || 0), 0) / 60) * 100) / 100;
+    const remainingTotal = allTasks.reduce((a, t) => a + (t.remainingHours || 0), 0);
+    const timeSummary = {
+      estimatedHours: Math.round(estimatedTotal * 100) / 100,
+      loggedHours: loggedTotal,
+      remainingHours: Math.round(remainingTotal * 100) / 100,
+      variance: Math.round((loggedTotal - estimatedTotal) * 100) / 100,
+      entryCount: timeEntries.length,
+    };
+
     res.json({
       taskStats: counts,
       health,
@@ -631,6 +719,9 @@ const projectReports = async (req, res) => {
         high: risks.filter((r) => r.severity === 'high').length,
         critical: risks.filter((r) => r.severity === 'critical').length,
       },
+      cycleTime,
+      throughput,
+      timeSummary,
     });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
@@ -646,7 +737,7 @@ const projectCalendar = async (req, res) => {
     }
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
-    const [tasks, milestones, sprints] = await Promise.all([
+    const [tasks, milestones, sprints, events] = await Promise.all([
       Task.find({ tenantId: req.tenantId, projectId: project._id, dueDate: { $ne: null } })
         .select('ref title dueDate status priority assigneeId')
         .lean(),
@@ -656,8 +747,12 @@ const projectCalendar = async (req, res) => {
       Sprint.find({ tenantId: req.tenantId, projectId: project._id })
         .select('name startDate endDate status goal')
         .lean(),
+      ProjectEvent.find({ tenantId: req.tenantId, projectId: project._id })
+        .select('title type description date createdBy')
+        .sort({ date: 1 })
+        .lean(),
     ]);
-    res.json({ tasks, milestones, sprints, project: { startDate: project.startDate, endDate: project.endDate } });
+    res.json({ tasks, milestones, sprints, events, project: { startDate: project.startDate, endDate: project.endDate } });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur', error: err.message });
   }

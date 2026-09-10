@@ -11,6 +11,9 @@ const issueController = require('../controllers/project.issue.controller');
 const commentController = require('../controllers/project.comment.controller');
 const fileController = require('../controllers/project.file.controller');
 const activityController = require('../controllers/project.activity.controller');
+const timeController = require('../controllers/project.time.controller');
+const deliverableController = require('../controllers/project.deliverable.controller');
+const eventController = require('../controllers/project.event.controller');
 
 /**
  * API GESTION DE PROJET — produit 'project_management'.
@@ -49,6 +52,28 @@ router.get('/:id/members/available', access('project.member.manage'), memberCont
 router.post('/:id/members', access('project.member.manage'), memberController.addMember);
 router.patch('/:id/members/:userId', access('project.member.manage'), memberController.updateMemberRole);
 router.delete('/:id/members/:userId', access('project.member.manage'), memberController.removeMember);
+
+// --- Backlog Scrum (épopées + user stories non planifiées) ----------------
+router.get('/:id/backlog', access(), taskController.listBacklog);
+
+// --- Temps (time tracking) -------------------------------------------------
+router.get('/:id/time', access(), timeController.listTime);
+router.post('/:id/time', access('project.time.log'), timeController.createTimeEntry);
+router.patch('/:id/time/:entryId', access('project.time.log'), timeController.updateTimeEntry);
+router.delete('/:id/time/:entryId', access('project.time.log'), timeController.deleteTimeEntry);
+
+// --- Livrables (cycle d'approbation) ----------------------------------------
+router.get('/:id/deliverables', access(), deliverableController.listDeliverables);
+router.post('/:id/deliverables', access('project.task.update'), deliverableController.createDeliverable);
+router.put('/:id/deliverables/:deliverableId', access('project.task.update'), deliverableController.updateDeliverable);
+router.patch('/:id/deliverables/:deliverableId/status', access('project.task.update'), deliverableController.transitionDeliverable);
+router.delete('/:id/deliverables/:deliverableId', access('project.task.delete'), deliverableController.deleteDeliverable);
+
+// --- Événements projet (réunions, décisions — calendrier) ------------------
+router.get('/:id/events', access(), eventController.listEvents);
+router.post('/:id/events', access('project.event.manage'), eventController.createEvent);
+router.put('/:id/events/:eventId', access('project.event.manage'), eventController.updateEvent);
+router.delete('/:id/events/:eventId', access('project.event.manage'), eventController.deleteEvent);
 
 // --- Tâches ----------------------------------------------------------------
 router.get('/:id/tasks', access(), taskController.listTasks);

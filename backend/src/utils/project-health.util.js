@@ -20,9 +20,21 @@ function daysBetween(a, b) {
  * @param project document projet (avec healthRules)
  * @param stats { overdueTasks, blockedTasks, delayedMilestones: [{name, daysLate}],
  *                totalTasks, completedTasks }
- * @returns { status: 'healthy'|'at_risk'|'critical', score, reasons: [{key, params}] }
+ * @returns { status: 'on_track'|'at_risk'|'off_track', score, reasons: [{key, params}] }
+ *
+ * Un forçage manuel (Project.healthOverride) par le chef de projet — avec
+ * justification — prévaut sur le calcul automatique.
  */
 function computeProjectHealth(project, stats) {
+  // Forçage manuel du chef de projet (avec justification) : prévaut.
+  if (project.healthOverride?.status) {
+    return {
+      status: project.healthOverride.status,
+      score: null,
+      reasons: [{ key: 'projects.health.reasonOverride', params: { reason: project.healthOverride.reason || '' } }],
+      overridden: true,
+    };
+  }
   const rules = project.healthRules || {};
   const overdueWeight = rules.overdueWeight ?? 3;
   const milestoneDelayDays = rules.milestoneDelayDays ?? 3;
@@ -84,8 +96,8 @@ function computeProjectHealth(project, stats) {
     }
   }
 
-  const status = score >= 5 ? 'critical' : score >= 2 ? 'at_risk' : 'healthy';
-  return { status, score, reasons };
+  const status = score >= 5 ? 'off_track' : score >= 2 ? 'at_risk' : 'on_track';
+  return { status, score, reasons, overridden: false };
 }
 
 module.exports = { computeProjectHealth };

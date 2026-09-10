@@ -36,11 +36,48 @@ async function sprintStats(tenantId, projectId, sprintId) {
         blocked: { $sum: { $cond: [{ $eq: ['$status', 'blocked'] }, 1, 0] } },
         committed: { $sum: '$estimatedHours' },
         delivered: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$estimatedHours', 0] } },
+        pointsCommitted: { $sum: '$points' },
+        pointsDelivered: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$points', 0] } },
       },
     },
   ]);
-  const row = agg[0] || { total: 0, completed: 0, blocked: 0, committed: 0, delivered: 0 };
-  return { ...row, remaining: row.total - row.completed, progress: row.total ? Math.round((row.completed / row.total) * 100) : 0 };
+  const row = agg[0] || { total: 0, completed: 0, blocked: 0, committed: 0, delivered: 0, pointsCommitted: 0, pointsDelivered: 0 };
+
+  // BURNDOWN / BURNUP (story points) : cumul des complétions par jour du sprint
+  // comparé à la ligne idéale (linéaire du total engagé vers zéro).
+  const sprint = await Sprint.findById(sprintId).select('startDate endDate').lean();
+  const tasks = await Task.find({ tenantId, projectId, sprintId, parentTaskId: null })
+    .select('points status completedAt')
+    .lean();
+  let burndown = [];
+  let burnup = [];
+  const totalPoints = tasks.reduce((a, t) => a + (t.points || 0), 0);
+  const start = sprint?.startDate ? new Date(sprint.startDate) : null;
+  const end = sprint?.endDate ? new Date(sprint.endDate) : null;
+  if (start && end && totalPoints > 0) {
+    const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
+    let completedSoFar = 0;
+    for (let d = 0; d <= days; d += 1) {
+      const dayStart = new Date(start.getTime() + d * 86400000);
+      const dayEnd = new Date(dayStart.getTime() + 86400000);
+      completedSoFar += tasks
+        .filter((t) => t.status === 'completed' && t.completedAt && new Date(t.completedAt) >= dayStart && new Date(t.completedAt) < dayEnd)
+        .reduce((a, t) => a + (t.points || 0), 0);
+      const ideal = Math.round(totalPoints * (1 - d / days) * 10) / 10;
+      const remaining = Math.round(Math.max(0, totalPoints - completedSoFar) * 10) / 10;
+      burndown.push({ day: d, remaining, ideal });
+      burnup.push({ day: d, completed: Math.round(completedSoFar * 10) / 10, total: totalPoints });
+    }
+  }
+
+  return {
+    ...row,
+    remaining: row.total - row.completed,
+    progress: row.total ? Math.round((row.completed / row.total) * 100) : 0,
+    velocityPoints: row.pointsDelivered,
+    burndown,
+    burnup,
+  };
 }
 
 const listSprints = async (req, res) => {

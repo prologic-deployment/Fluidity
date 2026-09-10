@@ -12,7 +12,9 @@ const { ProjectMember } = require('../models/project.models');
  *   - non-membre → lecture seule UNIQUEMENT si le projet est visible du
  *     tenant (visibility 'tenant'), sinon accès refusé.
  *
- * Rang (rank) croissant : viewer 0 < member 1 < lead 2 < manager 3 < admin 4.
+ * Rang (rank) croissant :
+ *   viewer 0 < contributor 1 < dev/designer/qa 2 < team lead 3
+ *   < scrum master / product owner 4 < manager 5 < admin 6.
  * Chaque contrôleur traduit le rang en droits fins — AUCUN composant ne
  * code en dur ses propres règles de permission.
  */
@@ -20,9 +22,14 @@ const { ProjectMember } = require('../models/project.models');
 const RANKS = {
   project_viewer: 0,
   project_member: 1,
-  project_lead: 2,
-  project_manager: 3,
-  project_admin: 4,
+  developer: 2,
+  designer: 2,
+  qa: 2,
+  project_lead: 3,
+  scrum_master: 4,
+  product_owner: 4,
+  project_manager: 5,
+  project_admin: 6,
 };
 
 /**
@@ -68,18 +75,22 @@ function guardProjectRole(res, role) {
 
 /**
  * Rang minimal pour une action de gestion — petit DSL lisible :
- *   canManageProject  → admin (4)
- *   canManageMembers  → manager (3)
- *   canManageTasks    → lead (2) : créer, affecter, planifier
- *   canUpdateTasks    → member (1) : mettre à jour une tâche (assigné compris)
- *   canComment        → member (1)
- *   canView           → viewer (0)
+ *   manageProject    → manager (5) : cycle de vie, santé, workflow
+ *   manageMembers    → manager (5)
+ *   manageBacklog    → scrum master / product owner (4)
+ *   approveWork      → scrum master / product owner (4) : acceptation
+ *   manageTasks      → lead (3) : créer, affecter, planifier
+ *   updateTasks      → dev/designer/qa (2) : mettre à jour une tâche assignée
+ *   comment          → contributor (1)
+ *   view             → viewer (0)
  */
 const CAN = {
-  manageProject: 4,
-  manageMembers: 3,
-  manageTasks: 2,
-  updateTasks: 1,
+  manageProject: 5,
+  manageMembers: 5,
+  manageBacklog: 4,
+  approveWork: 4,
+  manageTasks: 3,
+  updateTasks: 2,
   comment: 1,
   view: 0,
 };

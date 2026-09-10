@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { Project, Task, ProjectComment } = require('../models/project.models');
-const { TASK_PRIORITIES, DEPENDENCY_TYPES } = require('../models/project.models');
+const { TASK_PRIORITIES, TASK_TYPES, DEPENDENCY_TYPES } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { validateTransition, effectiveWorkflow } = require('../utils/project-workflow.util');
@@ -27,6 +27,8 @@ function serializeTask(t, extra = {}) {
     _id: t._id,
     projectId: t.projectId,
     parentTaskId: t.parentTaskId,
+    epicId: t.epicId,
+    type: t.type,
     ref: t.ref,
     title: t.title,
     description: t.description,
@@ -40,9 +42,15 @@ function serializeTask(t, extra = {}) {
     dueDate: t.dueDate,
     estimatedHours: t.estimatedHours,
     loggedHours: t.loggedHours,
+    remainingHours: t.remainingHours,
+    points: t.points,
+    businessValue: t.businessValue,
+    acceptanceCriteria: t.acceptanceCriteria,
     tags: t.tags,
     order: t.order,
     watchers: t.watchers,
+    startedAt: t.startedAt,
+    completedAt: t.completedAt,
     dependencies: t.dependencies,
     checklist: t.checklist,
     attachments: t.attachments,
@@ -216,7 +224,7 @@ const createTask = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour créer des tâches.' });
       return;
     }
-    const { title, description, status, priority, assigneeId, sprintId, milestoneId, startDate, dueDate, estimatedHours, tags, parentTaskId, order } = req.body;
+    const { title, description, status, priority, assigneeId, sprintId, milestoneId, startDate, dueDate, estimatedHours, remainingHours, points, businessValue, acceptanceCriteria, tags, parentTaskId, epicId, type, order } = req.body;
     if (!title || !String(title).trim()) {
       res.status(400).json({ message: 'Le titre de la tâche est requis.' });
       return;
@@ -234,11 +242,21 @@ const createTask = async (req, res) => {
         return;
       }
     }
+    if (epicId) {
+      const epic = await Task.findOne({ _id: epicId, tenantId: req.tenantId, projectId: project._id }).lean();
+      if (!epic) {
+        res.status(400).json({ message: 'Épic introuvable dans ce projet.' });
+        return;
+      }
+    }
+    const taskType = type && TASK_TYPES.includes(type) ? type : parentTaskId ? 'subtask' : 'task';
     const ref = await nextTaskRef(req.tenantId, project._id);
     const task = await Task.create({
       tenantId: req.tenantId,
       projectId: project._id,
       parentTaskId: parentTaskId || null,
+      epicId: epicId || null,
+      type: taskType,
       ref,
       title: String(title).trim(),
       description: description || '',
@@ -251,6 +269,10 @@ const createTask = async (req, res) => {
       startDate: startDate ? new Date(startDate) : null,
       dueDate: dueDate ? new Date(dueDate) : null,
       estimatedHours: Number(estimatedHours) || 0,
+      remainingHours: Number(remainingHours) || 0,
+      points: Number(points) || 0,
+      businessValue: Number(businessValue) || 0,
+      acceptanceCriteria: acceptanceCriteria || '',
       tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
       order: typeof order === 'number' ? order : 0,
       watchers: [req.userId],
@@ -285,7 +307,7 @@ const updateTask = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Vous ne pouvez pas modifier cette tâche.' });
       return;
     }
-    const { title, description, priority, assigneeId, sprintId, milestoneId, startDate, dueDate, estimatedHours, loggedHours, tags, dependencies } = req.body;
+    const { title, description, priority, assigneeId, sprintId, milestoneId, startDate, dueDate, estimatedHours, loggedHours, remainingHours, points, businessValue, acceptanceCriteria, type, epicId, tags, dependencies } = req.body;
     const previousAssignee = task.assigneeId;
     if (title !== undefined) {
       if (!String(title).trim()) {
@@ -311,6 +333,29 @@ const updateTask = async (req, res) => {
     if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : null;
     if (estimatedHours !== undefined) task.estimatedHours = Math.max(0, Number(estimatedHours) || 0);
     if (loggedHours !== undefined) task.loggedHours = Math.max(0, Number(loggedHours) || 0);
+    if (remainingHours !== undefined) task.remainingHours = Math.max(0, Number(remainingHours) || 0);
+    if (points !== undefined) task.points = Math.max(0, Number(points) || 0);
+    if (businessValue !== undefined) task.businessValue = Math.max(0, Number(businessValue) || 0);
+    if (acceptanceCriteria !== undefined) task.acceptanceCriteria = String(acceptanceCriteria || '');
+    if (type !== undefined) {
+      if (!TASK_TYPES.includes(type)) {
+        res.status(400).json({ message: 'Type de tâche invalide.' });
+        return;
+      }
+      task.type = type;
+    }
+    if (epicId !== undefined) {
+      if (epicId) {
+        const epic = await Task.findOne({ _id: epicId, tenantId: req.tenantId, projectId: project._id }).lean();
+        if (!epic) {
+          res.status(400).json({ message: 'Épic introuvable dans ce projet.' });
+          return;
+        }
+        task.epicId = epicId;
+      } else {
+        task.epicId = null;
+      }
+    }
     if (tags !== undefined) task.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
     if (dependencies !== undefined) {
       if (!Array.isArray(dependencies) || dependencies.length > 50) {
@@ -372,6 +417,8 @@ const transitionTask = async (req, res) => {
     }
     const from = task.status;
     task.status = to;
+    // Cycle time : début effectif à la première entrée en exécution.
+    if (['in_progress', 'review'].includes(to) && !task.startedAt) task.startedAt = new Date();
     if (to === 'completed') task.completedAt = new Date();
     else if (from === 'completed') task.completedAt = null;
     await task.save();
@@ -520,8 +567,59 @@ const toggleWatcher = async (req, res) => {
   }
 };
 
+
+/**
+ * BACKLOG Scrum (route /:id/backlog) : épopées, user stories et tâches non
+ * planifiées (hors sprint), triées par valeur métier décroissante puis
+ * priorité — le Product Owner / Scrum Master peut prioriser (points,
+ * valeur métier) et planifier en sprint.
+ */
+const listBacklog = async (req, res) => {
+  try {
+    const project = await loadProject(req, res);
+    if (!project) return;
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    const unplannedStatuses = ['backlog', 'todo'];
+    const epics = await Task.find({ tenantId: req.tenantId, projectId: project._id, type: 'epic' })
+      .populate('assigneeId', 'email firstName lastName')
+      .sort({ createdAt: 1 })
+      .lean();
+    const items = await Task.find({
+      tenantId: req.tenantId,
+      projectId: project._id,
+      type: { $in: ['task', 'subtask', 'bug', 'user_story', 'milestone_task'] },
+      status: { $in: unplannedStatuses },
+      sprintId: null,
+    })
+      .populate('assigneeId', 'email firstName lastName')
+      .populate('epicId', 'ref title')
+      .sort({ businessValue: -1, priority: 1, createdAt: 1 })
+      .limit(200)
+      .lean();
+    // Répartition : user stories rattachées à leur épopée.
+    const storiesByEpic = {};
+    for (const item of items) {
+      if (item.epicId) {
+        const key = String(item.epicId._id || item.epicId);
+        (storiesByEpic[key] = storiesByEpic[key] || []).push(serializeTask(item));
+      }
+    }
+    const epicsOut = epics.map((e) => ({
+      ...serializeTask(e),
+      items: storiesByEpic[String(e._id)] || [],
+      points: (storiesByEpic[String(e._id)] || []).reduce((sum, t) => sum + (t.points || 0), 0),
+    }));
+    const unassigned = items.filter((i) => !i.epicId).map((i) => serializeTask(i));
+    res.json({ epics: epicsOut, unassigned });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+};
+
 module.exports = {
   listTasks,
+  listBacklog,
   listBoard,
   getTask,
   createTask,

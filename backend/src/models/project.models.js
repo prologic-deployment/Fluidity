@@ -17,8 +17,24 @@ const { Schema } = mongoose;
 /** Méthodologies supportées — extensibles via le registre produit. */
 const METHODOLOGIES = ['kanban', 'scrum', 'waterfall', 'hybrid'];
 
-/** Statuts de projet (cycle de vie métier). */
-const PROJECT_STATUSES = ['planning', 'active', 'paused', 'completed', 'cancelled'];
+/** Statuts de projet (cycle de vie métier complet). */
+const PROJECT_STATUSES = ['draft', 'planning', 'active', 'on_hold', 'at_risk', 'completed', 'cancelled', 'archived', 'paused'];
+
+/**
+ * Transitions autorisées du cycle de vie projet (carte source unique).
+ * 'paused' est accepté en alias historique de 'on_hold'.
+ */
+const PROJECT_TRANSITIONS = {
+  draft: ['planning', 'cancelled'],
+  planning: ['active', 'cancelled', 'draft'],
+  active: ['on_hold', 'at_risk', 'completed', 'cancelled', 'planning'],
+  on_hold: ['active', 'cancelled'],
+  paused: ['active', 'cancelled'], // alias on_hold
+  at_risk: ['active', 'on_hold', 'cancelled'],
+  completed: ['active', 'archived'],
+  cancelled: ['archived', 'planning'],
+  archived: ['active'],
+};
 
 const PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VISIBILITIES = ['private', 'team', 'tenant'];
@@ -68,6 +84,8 @@ const ProjectSchema = new Schema(
         color: { type: String, default: '' },
         order: { type: Number, default: 0 },
         terminal: { type: Boolean, default: false },
+        /** Limite WIP de la colonne Kanban (0 = illimité). */
+        wipLimit: { type: Number, default: 0, min: 0 },
       },
     ],
     /** Configuration par méthodologie (longueur de sprint, etc.). */
@@ -82,6 +100,19 @@ const ProjectSchema = new Schema(
       deadlineProximityDays: { type: Number, default: DEFAULT_HEALTH_RULES.deadlineProximityDays },
       progressGapTolerance: { type: Number, default: DEFAULT_HEALTH_RULES.progressGapTolerance },
     },
+    /** Forçage manuel de la santé par le chef de projet (avec justification). */
+    healthOverride: {
+      status: { type: String, enum: ['on_track', 'at_risk', 'off_track'], default: null },
+      reason: { type: String, default: '', maxlength: 500 },
+      by: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+      at: { type: Date, default: null },
+    },
+    /** Champs de cadrage étendus (objectifs, valeur métier…). */
+    objectives: { type: String, default: '', maxlength: 3000 },
+    successCriteria: { type: String, default: '', maxlength: 3000 },
+    businessValue: { type: String, default: '', maxlength: 3000 },
+    estimatedEffortHours: { type: Number, default: 0, min: 0 },
+    color: { type: String, default: '' },
     attachments: [
       {
         name: String,
@@ -106,7 +137,10 @@ ProjectSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 const Project = mongoose.model('Project', ProjectSchema);
 
 /** Rôles projet (membres) — alignés sur les rôles produit du registre. */
-const PROJECT_MEMBER_ROLES = ['project_admin', 'project_manager', 'project_lead', 'project_member', 'project_viewer'];
+const PROJECT_MEMBER_ROLES = [
+  'project_admin', 'project_manager', 'product_owner', 'scrum_master',
+  'project_lead', 'developer', 'designer', 'qa', 'project_member', 'project_viewer',
+];
 
 const ProjectMemberSchema = new Schema(
   {
@@ -129,7 +163,10 @@ const ProjectMember = mongoose.model('ProjectMember', ProjectMemberSchema);
 /** Priorités de tâche. */
 const TASK_PRIORITIES = PRIORITIES;
 /** Types de dépendance entre tâches. */
-const DEPENDENCY_TYPES = ['blocks', 'blocked_by', 'relates_to'];
+const DEPENDENCY_TYPES = ['blocks', 'blocked_by', 'relates_to', 'depends_on', 'duplicates'];
+
+/** Types de tâche (Scrum / métier). */
+const TASK_TYPES = ['task', 'subtask', 'bug', 'user_story', 'epic', 'deliverable', 'milestone_task'];
 
 const TaskSchema = new Schema(
   {
@@ -137,6 +174,10 @@ const TaskSchema = new Schema(
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     /** Tâche parente (sous-tâche) — un seul niveau, comme la maquette produit. */
     parentTaskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
+    /** Épic contenant (Scrum) — null pour les tâches hors épopée. */
+    epicId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
+    /** Type de tâche (tâche, sous-tâche, bug, user story, épopée…). */
+    type: { type: String, enum: TASK_TYPES, default: 'task' },
     /** Référence lisible générée par projet : TSK-001. */
     ref: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true, maxlength: 200 },
@@ -155,6 +196,14 @@ const TaskSchema = new Schema(
     estimatedHours: { type: Number, default: 0, min: 0 },
     /** Effort consigné (heures) — agrégat des saisies de temps. */
     loggedHours: { type: Number, default: 0, min: 0 },
+    /** Reste à faire estimé (heures) — saisi par l'assigné. */
+    remainingHours: { type: Number, default: 0, min: 0 },
+    /** Story points (Scrum) — vélocité et burndown. */
+    points: { type: Number, default: 0, min: 0 },
+    /** Valeur métier (Product Owner) — priorisation du backlog. */
+    businessValue: { type: Number, default: 0, min: 0 },
+    /** Critères d'acceptation (user stories) — texte libre. */
+    acceptanceCriteria: { type: String, default: '', maxlength: 3000 },
     tags: [{ type: String, trim: true }],
     /** Position Kanban au sein de sa colonne (ordre croissant). */
     order: { type: Number, default: 0 },
@@ -186,6 +235,8 @@ const TaskSchema = new Schema(
     ],
     /** Dernière notification d'échéance envoyée (job deadline). */
     lastDeadlineNotifiedAt: { type: Date, default: null },
+    /** Début effectif (première entrée en exécution) — cycle time. */
+    startedAt: { type: Date, default: null },
     completedAt: { type: Date, default: null },
   },
   { timestamps: true }
@@ -195,9 +246,90 @@ TaskSchema.index({ tenantId: 1, projectId: 1, status: 1, order: 1 });
 TaskSchema.index({ tenantId: 1, projectId: 1, assigneeId: 1 });
 TaskSchema.index({ tenantId: 1, assigneeId: 1, dueDate: 1 });
 TaskSchema.index({ tenantId: 1, projectId: 1, parentTaskId: 1 });
+TaskSchema.index({ tenantId: 1, projectId: 1, epicId: 1 });
+TaskSchema.index({ tenantId: 1, projectId: 1, type: 1 });
 TaskSchema.index({ tenantId: 1, projectId: 1, dueDate: 1 });
 
 const Task = mongoose.model('Task', TaskSchema);
+
+/** Saisie de temps (time tracking) — par utilisateur et par tâche. */
+const TimeEntrySchema = new Schema(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    taskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
+    userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
+    /** Date travaillée (saisie rétroactive autorisée). */
+    date: { type: Date, required: true },
+    minutes: { type: Number, required: true, min: 1, max: 1440 },
+    note: { type: String, default: '', maxlength: 500 },
+  },
+  { timestamps: true }
+);
+
+TimeEntrySchema.index({ tenantId: 1, projectId: 1, date: -1 });
+TimeEntrySchema.index({ tenantId: 1, projectId: 1, userId: 1 });
+TimeEntrySchema.index({ tenantId: 1, projectId: 1, taskId: 1 });
+
+const TimeEntry = mongoose.model('TimeEntry', TimeEntrySchema);
+
+/** Statuts des livrables (cycle d'approbation). */
+const DELIVERABLE_STATUSES = ['draft', 'submitted', 'approved', 'rejected'];
+
+const DeliverableSchema = new Schema(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    milestoneId: { type: Schema.Types.ObjectId, ref: 'Milestone', default: null },
+    taskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
+    title: { type: String, required: true, trim: true, maxlength: 160 },
+    description: { type: String, default: '', maxlength: 3000 },
+    status: { type: String, enum: DELIVERABLE_STATUSES, default: 'draft' },
+    version: { type: Number, default: 1, min: 1 },
+    dueDate: { type: Date, default: null },
+    files: [
+      {
+        name: String,
+        url: String,
+        size: Number,
+        type: String,
+        uploadedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur' },
+        uploadedAt: { type: Date, default: Date.now },
+      },
+    ],
+    submittedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    submittedAt: { type: Date, default: null },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    approvedAt: { type: Date, default: null },
+    rejectionNote: { type: String, default: '', maxlength: 1000 },
+  },
+  { timestamps: true }
+);
+
+DeliverableSchema.index({ tenantId: 1, projectId: 1, status: 1 });
+DeliverableSchema.index({ tenantId: 1, projectId: 1, milestoneId: 1 });
+
+const Deliverable = mongoose.model('Deliverable', DeliverableSchema);
+
+/** Types d'événement projet (calendrier). */
+const EVENT_TYPES = ['meeting', 'decision', 'event', 'deadline'];
+
+const ProjectEventSchema = new Schema(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    title: { type: String, required: true, trim: true, maxlength: 140 },
+    type: { type: String, enum: EVENT_TYPES, default: 'event' },
+    description: { type: String, default: '', maxlength: 2000 },
+    date: { type: Date, required: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+  },
+  { timestamps: true }
+);
+
+ProjectEventSchema.index({ tenantId: 1, projectId: 1, date: 1 });
+
+const ProjectEvent = mongoose.model('ProjectEvent', ProjectEventSchema);
 
 /** Types de jalons : « phase » (séquentiel Waterfall) ou « milestone » (porte). */
 const MILESTONE_KINDS = ['milestone', 'phase'];
@@ -244,6 +376,8 @@ const SprintSchema = new Schema(
     startDate: { type: Date, default: null },
     endDate: { type: Date, default: null },
     completedAt: { type: Date, default: null },
+    /** Dernier avertissement de fin de sprint envoyé (job cycle de vie). */
+    lastEndingNotifiedAt: { type: Date, default: null },
     /** Rétrospective (Scrum) : texte libre saisi par l'équipe. */
     retrospective: {
       wentWell: { type: String, default: '' },
@@ -428,12 +562,19 @@ const PROJECT_NOTIFICATION_EVENTS = [
   'project_role_changed',
   'sprint_started',
   'sprint_completed',
+  'sprint_ending',
+  'project_completed',
   'risk_assigned',
   'issue_assigned',
   'subscription_purchase',
+  'subscription_requested',
+  'subscription_approved',
+  'subscription_rejected',
   'subscription_renewal',
+  'subscription_expiring',
   'license_assigned',
   'license_removed',
+  'license_limit_reached',
 ];
 
 module.exports = {
@@ -447,10 +588,15 @@ module.exports = {
   ProjectComment,
   ProjectActivity,
   ProjectFile,
+  TimeEntry,
+  Deliverable,
+  ProjectEvent,
   NotificationPreference,
   METHODOLOGIES,
   PROJECT_STATUSES,
+  PROJECT_TRANSITIONS,
   TASK_PRIORITIES,
+  TASK_TYPES,
   DEPENDENCY_TYPES,
   PROJECT_MEMBER_ROLES,
   MILESTONE_KINDS,
@@ -460,6 +606,8 @@ module.exports = {
   RISK_SEVERITIES,
   RISK_STATUSES,
   ISSUE_STATUSES,
+  DELIVERABLE_STATUSES,
+  EVENT_TYPES,
   COMMENT_TARGETS,
   PROJECT_NOTIFICATION_EVENTS,
   DEFAULT_HEALTH_RULES,
