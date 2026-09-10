@@ -1,6 +1,6 @@
 # Rapport final — Gestion de Projet (parité fonctionnelle & SaaS)
 
-**Date :** 2026-09-10 · **Branche :** `A4-work` · **État :** tout est committé localement, **push en attente d'un token Git valide**
+**Date :** 2026-09-10 · **Branche :** `A4-work` · **État :** ✅ **tout est poussé sur `origin/A4-work`** (`c460ed0`)
 
 ---
 
@@ -62,21 +62,28 @@
 
 ---
 
-## 3. Git
+## 3. Git — ✅ poussé sur `origin/A4-work`
 
-7 commits logiques sur `A4-work` (jamais de commit géant) :
+Commits logiques sur `A4-work` (jamais de commit géant) — **l'historique distant
+a été intégré via un merge** (`c460ed0`), le contenu local vérifié faisant foi :
 
 ```
-1f96424 feat(preview): pile de prévisualisation complète (API seedée + frontend statique + proxy)
-9cca559 docs: diagrammes Mermaid (commandes, cycle de vie, livrables, autorisation, notifications, rapports)
-6b87f62 feat(subscriptions): examen des commandes par la plateforme + extension de sièges
-5a521d7 feat(projects): limites WIP serveur + persistance wipLimit + sérialisation temps normalisée
-e429f81 feat(i18n): traductions FR/EN complètes (2936 clés en parité) + statuts dynamiques
-8734702 feat(projects): onglets Backlog, Temps, Livrables et Réunions + WIP par colonne
+c460ed0 merge: intégration de l'historique distant A4-work (le contenu local vérifié fait foi)
+af0f923 docs: rapport final de la session — livraisons, vérifications, commits, accès démo
+6eec99d feat(preview): pile de prévisualisation complète (API seedée + frontend statique + proxy)
+748701b docs: diagrammes Mermaid (commandes, cycle de vie, livrables, autorisation, notifications, rapports)
+a106366 feat(subscriptions): examen des commandes par la plateforme + extension de sièges
+d56d4d3 feat(projects): limites WIP serveur + persistance wipLimit + sérialisation temps normalisée
+3f8c86b feat(i18n): traductions FR/EN complètes (2936 clés en parité) + statuts dynamiques
+fa2ce1e feat(projects): onglets Backlog, Temps, Livrables et Réunions + WIP par colonne
 268cd7d test(projects): e2e enrichi — approbation plateforme, backlog, temps, livrables, événements, cycle de vie
 ```
 
-> **⚠️ Le push vers `origin/A4-work` est toujours bloqué** : le token Git fourni précédemment n'authentifie plus. Fournissez un nouveau token et je pousse immédiatement les 7 commits (aucune autre opération distante n'a été tentée).
+- **Push :** `1cea754..c460ed0 A4-work → A4-work` (fast-forward propre, aucun force-push).
+- **Vérifié :** `origin/A4-work == A4-work` (`c460ed0`), branche suivie (`--set-upstream-to`).
+- L'historique antérieur du distant (module Angular, portail abonnements,
+  notifications, dictionnaires i18n, QA, scripts de démo) reste intégralement
+  présent dans l'historique via le parent de merge.
 
 ---
 
@@ -96,8 +103,7 @@ La prévisualisation tourne actuellement : API seedée (`3000`) + frontend (`808
 
 ---
 
-## 5. Ce qui reste à faire (hors blocage)
+## 5. Ce qui reste à faire
 
-1. **Push** : fournir un token Git frais (voir §3).
-2. **Vérification navigateur** : un passage visuel final (console + navigation sur les 12 onglets) une fois la prévisualisation ouverte — les contrôles automatisés sont tous verts.
-3. Le rapport final doit confirmer que tout est sur `origin/A4-work` : ce sera le cas dès le push des 7 commits ci-dessus.
+1. **Vérification navigateur** : un passage visuel final (console + navigation sur les 12 onglets) une fois la prévisualisation ouverte — les contrôles automatisés sont tous verts.
+2. ✅ **Tout est confirmé sur `origin/A4-work`** (`c460ed0` = HEAD local = HEAD distant).
