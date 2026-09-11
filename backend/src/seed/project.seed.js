@@ -5,6 +5,7 @@ const {
   LicenseAssignment,
   RoleAssignment,
   Notification,
+  AuditLog,
   Order,
 } = require('../models/saas.models');
 const {
@@ -322,6 +323,54 @@ async function seedProjectManagement() {
     });
   }
 
+
+  // REJETÉE : demande de RH Center refusée par la plateforme (Carthage).
+  if (carthage && carthage._id) {
+    await ensureOrder({
+      tenantId: carthage._id,
+      userId: admin?._id || carthage._id,
+      productKey: 'hr_center',
+      planId: 'business',
+      seats: 6,
+      orderType: 'subscription',
+      status: 'rejected',
+      reviewedBy: platformAdmin?._id || null,
+      reviewNote: 'Module RH : prérequis non remplis (effectifs non renseignés). Nouvelle demande possible après mise à jour.',
+    });
+  }
+
+  // ---- Historique d'audit + notifications plateforme (activité du Super Admin)
+  const auditSeed = async (tenantId, userId, action, resource, productKey = '', metadata = {}) => {
+    const exists = await AuditLog.findOne({ tenantId, action, resource });
+    if (!exists) {
+      await AuditLog.create({ tenantId, userId, productKey, action, resource, metadata });
+    }
+  };
+  const notifyPlatform = async (type, params, link) => {
+    const admins = await Utilisateur.find({ role: 'PLATFORM_ADMIN' }).select('_id tenantId').lean();
+    for (const a of admins) {
+      const exists = await Notification.findOne({ userId: a._id, tenantId: a.tenantId, type });
+      if (!exists) {
+        await Notification.create({
+          tenantId: a.tenantId,
+          userId: a._id,
+          productKey: 'platform',
+          type,
+          titleKey: `projects.notify.${type}.title`,
+          bodyKey: `projects.notify.${type}.body`,
+          params,
+          link,
+        });
+      }
+    }
+  };
+  await auditSeed(nova._id, platformAdmin?._id || null, 'subscription.approved', 'order', 'project_management', { orderType: 'subscription', seats: 8 });
+  await auditSeed(nova._id, platformAdmin?._id || null, 'license.assigned', 'license', 'project_management', { seats: 8 });
+  await auditSeed(fluidity._id, platformAdmin?._id || null, 'tenant.created', 'tenant', '', {});
+  await auditSeed(carthage._id, platformAdmin?._id || null, 'order.created', 'order', 'hr_center', { orderType: 'subscription', seats: 6 });
+  await auditSeed(carthage._id, platformAdmin?._id || null, 'subscription.rejected', 'order', 'hr_center', {});
+  await notifyPlatform('subscription_requested', { productKey: 'project_management', seats: 4, tenantName: nova?.name || '' }, '/plateforme/demandes');
+  await notifyPlatform('subscription_requested', { productKey: 'project_management', seats: 5, tenantName: fluidity?.name || '' }, '/plateforme/demandes');
 
   const T = nova._id;
 

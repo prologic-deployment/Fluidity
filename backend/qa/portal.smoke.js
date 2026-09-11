@@ -73,7 +73,7 @@ const check = (name, ok, extra = '') => {
 
       // Commande : refus produit « bientôt », création produit disponible
       const comingSoon = await api('/api/platform/me/orders', { method: 'POST', token: nova, body: { productKey: 'fleet_management', planId: 'starter', billingPeriod: 'monthly', seats: 3, paymentMethod: 'invoice' } });
-      check('commande produit à venir → 400', comingSoon.status === 400, String(comingSoon.status));
+      check('commande produit à venir → 409 PRODUCT_NOT_AVAILABLE', comingSoon.status === 409, String(comingSoon.status));
       // Nova a déjà servicedesk (409 attendu) ; Karim (tenant sans souscription projet) peut commander project_management.
       const dup = await api('/api/platform/me/orders', { method: 'POST', token: nova, body: { productKey: 'servicedesk', planId: 'starter', billingPeriod: 'monthly', seats: 2, paymentMethod: 'invoice' } });
       check('commande doublon produit souscrit → 409', dup.status === 409 && dup.data.code === 'ALREADY_SUBSCRIBED', String(dup.status));

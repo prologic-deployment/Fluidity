@@ -32,7 +32,32 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
   };
 
   if (!tenantId) {
-    // Super Admin plateforme : accès hors tenant — pas de droits produit.
+    // Super Admin plateforme : accès GLOBAL — tous les produits disponibles
+    // avec permissions « * » (administre sans souscrire, sans licence).
+    // Ne JAMAIS le forcer à passer par un abonnement ou une licence.
+    if (internalRole === 'PLATFORM_ADMIN') {
+      for (const p of PRODUCTS) {
+        if (!p.available) continue;
+        result.products.push({
+          productKey: p.key,
+          nameKey: p.nameKey,
+          taglineKey: p.taglineKey,
+          descriptionKey: p.descriptionKey,
+          icon: p.icon,
+          emoji: p.emoji,
+          color: p.color,
+          status: p.status,
+          available: p.available,
+          route: p.route,
+          licensed: true,
+          licenseId: null,
+          roleKey: 'platform_admin',
+          permissions: ['*'],
+          subscription: null,
+        });
+        result.accessibleKeys.push(p.key);
+      }
+    }
     return result;
   }
 

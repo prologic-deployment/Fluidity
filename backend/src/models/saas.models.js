@@ -165,7 +165,9 @@ const AuditLog = mongoose.model('AuditLog', AuditLogSchema);
 /** Types de notification produits (extensibles). */
 const NotificationSchema = new Schema(
   {
-    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    // Nullable : les notifications PLATEFORME (Super Admin, hors tenant)
+    // n'ont pas de tenant — elles ne doivent jamais être perdues.
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
     productKey: { type: String, default: '' },
@@ -257,6 +259,25 @@ OrderSchema.index({ tenantId: 1, productKey: 1 });
 
 const Order = mongoose.model('Order', OrderSchema);
 
+/**
+ * Dérogation administrative de produit — le registre (code) reste la source
+ * de vérité ; le Super Admin peut ACTIVER/DÉSACTIVER un produit sans altérer
+ * ni le registre ni les données historiques (souscriptions, licences,
+ * commandes) : la dérogation s'applique par-dessus la synchro du registre.
+ */
+const ProductOverrideSchema = new Schema(
+  {
+    key: { type: String, required: true, unique: true, trim: true },
+    available: { type: Boolean, required: true },
+    /** Note administrative (motif) — affichée dans l'administration. */
+    note: { type: String, default: '' },
+    by: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+  },
+  { timestamps: true }
+);
+
+const ProductOverride = mongoose.model('ProductOverride', ProductOverrideSchema);
+
 module.exports = {
   normalizeOrderStatus,
   Product,
@@ -274,4 +295,6 @@ module.exports = {
   Order,
   OrderSchema,
   ORDER_STATUSES,
+  ProductOverride,
+  ProductOverrideSchema,
 };

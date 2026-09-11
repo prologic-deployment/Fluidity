@@ -79,4 +79,20 @@ app.use('/api/platform', platformRoutes);
 // Produit SaaS « Gestion de Projet » (project_management) — autorité serveur.
 app.use('/api/projects', projectRoutes);
 
+/** Gestionnaire d'erreurs global — dernière ligne de défense :
+ *  CastError ObjectId → 400, erreur de validation → 422, sinon 500.
+ *  Ne doit JAMAIS laisser une erreur asynchrone tuer le processus. */
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, _next) => {
+  if (err?.name === 'CastError') {
+    res.status(400).json({ message: 'Identifiant invalide.' });
+    return;
+  }
+  if (err?.name === 'ValidationError') {
+    res.status(422).json({ message: 'Données invalides.', error: err.message });
+    return;
+  }
+  res.status(500).json({ message: 'Erreur serveur', error: err?.message || '' });
+});
+
 module.exports = app;

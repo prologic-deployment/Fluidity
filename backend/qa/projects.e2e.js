@@ -197,7 +197,7 @@ const check = (name, ok, extra = '') => {
       const projSub = (mySubs.data.subscriptions || []).find((s) => s.productKey === 'project_management');
       check('souscription projet : 10 licences pour 8 sièges (saturation)', projSub && projSub.usage?.used >= 10 && projSub.usage?.available === 0, JSON.stringify(projSub?.usage));
       const orderComingSoon = await api('/api/platform/me/orders', { method: 'POST', token: novaToken, body: { productKey: 'fleet_management', planId: 'business', billingPeriod: 'monthly', seats: 3 } });
-      check('produit « bientôt » non commandable', orderComingSoon.status === 400, `status=${orderComingSoon.status}`);
+      check('produit « bientôt » non commandable (409 PRODUCT_NOT_AVAILABLE)', orderComingSoon.status === 409, `status=${orderComingSoon.status}`);
       const orderDup = await api('/api/platform/me/orders', { method: 'POST', token: novaToken, body: { productKey: 'servicedesk', planId: 'business', billingPeriod: 'monthly', seats: 2 } });
       check('produit déjà souscrit → 409', orderDup.status === 409, `status=${orderDup.status}`);
       // Tenant « Fluidity » : souscription projet EXPIRÉE → re-commande possible.

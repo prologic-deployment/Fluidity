@@ -10,6 +10,7 @@ const {
   Order,
   ORDER_STATUSES,
   normalizeOrderStatus,
+  ProductOverride,
 } = require('../models/saas.models');
 const { NotificationPreference } = require('../models/project.models');
 const { PRODUCTS, getProduct, getWorkflow } = require('../products/registry');
@@ -48,7 +49,8 @@ async function notifyPlatformAdmins({ event, params = {}, link = '' }) {
   }
 }
 
-/** Synchronise le miroir Product depuis le registre (idempotent). */
+/** Synchronise le miroir Product depuis le registre (idempotent) puis
+ *  applique les DÉROGATIONS administratives (ProductOverride) par-dessus. */
 async function syncProducts() {
   for (const p of PRODUCTS) {
     await Product.updateOne(
@@ -77,6 +79,18 @@ async function syncProducts() {
       { upsert: true }
     );
   }
+  const overrides = await ProductOverride.find({}).lean();
+  for (const ov of overrides) {
+    await Product.updateOne(
+      { key: ov.key },
+      { $set: { available: ov.available, status: ov.available ? 'available' : 'coming_soon' } }
+    );
+  }
+}
+
+/** Le principal est-il en scope GLOBAL (Super Admin hors impersonation) ? */
+function isGlobalPlatform(req) {
+  return req.userRole === 'PLATFORM_ADMIN' && !req.tenantId;
 }
 
 router.use(async (_req, _res, next) => {
@@ -88,9 +102,22 @@ router.use(async (_req, _res, next) => {
   next();
 });
 
+/** Disponibilité effective d'un produit : registre + dérogation administrative. */
+async function effectiveAvailability(productKey) {
+  const p = getProduct(productKey);
+  if (!p) return null;
+  const override = await ProductOverride.findOne({ key: productKey }).lean();
+  return override ? !!override.available : !!p.available;
+}
+
 /** Catalogue public (métadonnées marketing) — sans authentification. */
 router.get('/products', async (_req, res) => {
-  res.json({ products: publicCatalog() });
+  const overrides = await ProductOverride.find({}).lean();
+  const byKey = new Map(overrides.map((o) => [o.key, !!o.available]));
+  const products = publicCatalog().map((p) =>
+    byKey.has(p.key) ? { ...p, available: byKey.get(p.key), status: byKey.get(p.key) ? 'available' : 'coming_soon' } : p
+  );
+  res.json({ products });
 });
 
 /** Workflow d'un produit (définition générique). */
@@ -123,18 +150,28 @@ router.get('/me/entitlements', authMiddleware, async (req, res) => {
 // ---------------------------------------------------------------------------
 
 router.get('/subscriptions', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const subs = await Subscription.find({ tenantId: req.tenantId })
+  // Super Admin hors impersonation : TOUTES les souscriptions, TOUS les
+  // tenants (portée globale) ; sinon : uniquement le tenant courant.
+  const global = isGlobalPlatform(req);
+  const q = global ? {} : { tenantId: req.tenantId };
+  const subs = await Subscription.find(q)
     .populate('productId', 'key nameKey')
     .sort({ createdAt: -1 })
     .lean();
-  // Utilisation des licences (sièges consommés / disponibles) par produit.
-  const enriched = await Promise.all(
-    subs.map(async (s) => {
-      const used = await LicenseAssignment.countDocuments({ tenantId: req.tenantId, productKey: s.productKey, status: 'active' });
-      return { ...s, usage: { seats: s.seats, used, available: Math.max(0, s.seats - used) } };
-    })
-  );
-  res.json({ subscriptions: enriched });
+  const tenantIds = [...new Set(subs.map((x) => String(x.tenantId)))];
+  const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
+  const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
+  const usedAgg = await LicenseAssignment.aggregate([
+    { $match: { status: 'active' } },
+    { $group: { _id: '$subscriptionId', count: { $sum: 1 } } },
+  ]);
+  const usedBySub = new Map(usedAgg.map((u) => [String(u._id), u.count]));
+  res.json({
+    subscriptions: subs.map((s) => {
+      const used = usedBySub.get(String(s._id)) || 0;
+      return { ...s, tenantName: byId.get(String(s.tenantId)) || '', usage: { seats: s.seats, used, available: Math.max(0, s.seats - used) } };
+    }),
+  });
 });
 
 /** Provisionne une souscription (admin plateforme / seed). */
@@ -205,15 +242,24 @@ router.post('/subscriptions/:id/checkout', authMiddleware, async (req, res) => {
 // ---------------------------------------------------------------------------
 
 router.get('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const licenses = await LicenseAssignment.find({ tenantId: req.tenantId })
+  // Super Admin hors impersonation : TOUTES les licences, TOUS les tenants ;
+  // Tenant Admin : uniquement son tenant.
+  const q = isGlobalPlatform(req) ? {} : { tenantId: req.tenantId };
+  const licenses = await LicenseAssignment.find(q)
     .populate('userId', 'email firstName lastName status')
     .populate('productId', 'key nameKey')
+    .populate('subscriptionId', 'planId billingPeriod seats endDate')
     .sort({ createdAt: -1 })
+    .limit(isGlobalPlatform(req) ? 500 : 0)
     .lean();
-  res.json({ licenses });
+  const tenantIds = [...new Set(licenses.map((l) => String(l.tenantId)))];
+  const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
+  const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
+  res.json({ licenses: licenses.map((l) => ({ ...l, tenantName: byId.get(String(l.tenantId)) || '' })) });
 });
 
-/** Assigne une licence (siège) à un utilisateur DU MÊME tenant. */
+/** Assigne une licence (siège) à un utilisateur. Super Admin global :
+ *  le tenant EFFECTIF est celui de l'utilisateur cible (jamais croisé). */
 router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => {
   const { userId, productKey, subscriptionId } = req.body;
   if (!mongoose.isValidObjectId(userId)) {
@@ -221,7 +267,12 @@ router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) =>
     return;
   }
   const user = await Utilisateur.findById(userId).lean();
-  if (!user || user.tenantId?.toString() !== req.tenantId?.toString()) {
+  if (!user) {
+    res.status(404).json({ message: 'Utilisateur introuvable' });
+    return;
+  }
+  const effectiveTenantId = isGlobalPlatform(req) ? String(user.tenantId) : req.tenantId;
+  if (user.tenantId?.toString() !== String(effectiveTenantId)) {
     res.status(403).json({ code: 'CROSS_TENANT_LICENSE', message: 'Licence refusée : utilisateur hors du tenant.' });
     return;
   }
@@ -230,20 +281,20 @@ router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) =>
     res.status(404).json({ message: 'Produit introuvable' });
     return;
   }
-  let sub = subscriptionId ? await Subscription.findOne({ _id: subscriptionId, tenantId: req.tenantId, productKey }) : null;
+  let sub = subscriptionId ? await Subscription.findOne({ _id: subscriptionId, tenantId: effectiveTenantId, productKey }) : null;
   if (!sub) {
-    sub = await Subscription.findOne({ tenantId: req.tenantId, productKey, status: { $in: ['trial', 'active', 'past_due'] } });
+    sub = await Subscription.findOne({ tenantId: effectiveTenantId, productKey, status: { $in: ['trial', 'active', 'past_due'] } });
   }
   if (!sub) {
     res.status(409).json({ code: 'NO_SUBSCRIPTION', message: 'Aucune souscription active pour ce produit.' });
     return;
   }
-  const activeCount = await LicenseAssignment.countDocuments({ tenantId: req.tenantId, productKey, status: 'active' });
+  const activeCount = await LicenseAssignment.countDocuments({ tenantId: effectiveTenantId, productKey, status: 'active' });
   if (activeCount >= sub.seats) {
     // La limite est contrôlée CÔTÉ SERVEUR ; on avertit l'admin tenant
     // (in-app + e-mail) qu'une demande de sièges est nécessaire.
     await notifyUser({
-      tenantId: req.tenantId,
+      tenantId: effectiveTenantId,
       userId: req.userId,
       event: 'license_limit_reached',
       params: { productKey, seats: sub.seats, used: activeCount },
@@ -254,7 +305,7 @@ router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) =>
     return;
   }
   const license = await LicenseAssignment.findOneAndUpdate(
-    { tenantId: req.tenantId, userId, productKey },
+    { tenantId: effectiveTenantId, userId, productKey },
     {
       $set: {
         productId: product._id,
@@ -270,7 +321,7 @@ router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) =>
   await audit(req, { action: 'license.assigned', productKey, resource: 'license', resourceId: license._id, metadata: { userId } });
   // Notification + email d'accès activé (selon préférences).
   await notifyUser({
-    tenantId: req.tenantId,
+    tenantId: effectiveTenantId,
     userId,
     event: 'license_assigned',
     params: { productKey },
@@ -291,7 +342,7 @@ router.patch('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, re
     return;
   }
   const license = await LicenseAssignment.findOneAndUpdate(
-    { _id: req.params.id, tenantId: req.tenantId },
+    isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId },
     { $set: { status } },
     { new: true }
   );
@@ -314,7 +365,7 @@ router.patch('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, re
 });
 
 router.delete('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const license = await LicenseAssignment.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+  const license = await LicenseAssignment.findOneAndDelete(isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId });
   if (!license) {
     res.status(404).json({ message: 'Licence introuvable' });
     return;
@@ -349,18 +400,29 @@ router.get('/roles', authMiddleware, async (req, res) => {
 });
 
 router.get('/roles/assignments', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const assignments = await RoleAssignment.find({ tenantId: req.tenantId })
+  const q = isGlobalPlatform(req) ? {} : { tenantId: req.tenantId };
+  const assignments = await RoleAssignment.find(q)
     .populate('userId', 'email firstName lastName')
     .populate('productId', 'key nameKey')
+    .sort({ createdAt: -1 })
+    .limit(isGlobalPlatform(req) ? 1000 : 0)
     .lean();
-  res.json({ assignments });
+  const tenantIds = [...new Set(assignments.map((a) => String(a.tenantId)))];
+  const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
+  const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
+  res.json({ assignments: assignments.map((a) => ({ ...a, tenantName: byId.get(String(a.tenantId)) || '' })) });
 });
 
 router.post('/roles/assignments', authMiddleware, requireTenantAdmin, async (req, res) => {
   const { userId, productKey, roleKey } = req.body;
   const user = await Utilisateur.findById(userId).lean();
-  if (!user || user.tenantId?.toString() !== req.tenantId?.toString()) {
+  // Super Admin global : assignation inter-tenant autorisée (gestion plateforme).
+  if (!isGlobalPlatform(req) && (!user || user.tenantId?.toString() !== req.tenantId?.toString())) {
     res.status(403).json({ code: 'CROSS_TENANT_ROLE', message: 'Rôle refusé : utilisateur hors du tenant.' });
+    return;
+  }
+  if (!user) {
+    res.status(404).json({ message: 'Utilisateur introuvable' });
     return;
   }
   const product = getProduct(productKey);
@@ -370,8 +432,9 @@ router.post('/roles/assignments', authMiddleware, requireTenantAdmin, async (req
     return;
   }
   const productDoc = await Product.findOne({ key: productKey });
+  const assignmentTenantId = isGlobalPlatform(req) ? String(user.tenantId) : req.tenantId;
   const assignment = await RoleAssignment.findOneAndUpdate(
-    { tenantId: req.tenantId, userId, productKey },
+    { tenantId: assignmentTenantId, userId, productKey },
     { $set: { productId: productDoc?._id, roleKey, assignedBy: req.userId, custom: false } },
     { new: true, upsert: true }
   );
@@ -380,7 +443,7 @@ router.post('/roles/assignments', authMiddleware, requireTenantAdmin, async (req
 });
 
 router.delete('/roles/assignments/:id', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const assignment = await RoleAssignment.findOneAndDelete({ _id: req.params.id, tenantId: req.tenantId });
+  const assignment = await RoleAssignment.findOneAndDelete(isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId });
   if (!assignment) {
     res.status(404).json({ message: 'Assignation introuvable' });
     return;
@@ -445,6 +508,10 @@ function orderPricing(product, planId, billingPeriod, seats) {
 router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) => {
   const { productKey, planId, billingPeriod, seats, subscriptionId } = req.body;
   const product = getProduct(productKey);
+  if (!product || !(await effectiveAvailability(productKey))) {
+    res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Ce produit n’est pas disponible à la souscription.' });
+    return;
+  }
 
   // Commande de SIÈGES SUPPLÉMENTAIRES : référence une souscription existante.
   if (subscriptionId) {
@@ -488,8 +555,8 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
     return;
   }
 
-  if (!product || !product.available) {
-    res.status(400).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Produit indisponible.' });
+  if (!product || !(await effectiveAvailability(productKey))) {
+    res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Produit indisponible.' });
     return;
   }
   if (!product.plans.some((p) => p.id === planId)) {
@@ -618,8 +685,10 @@ router.post('/me/orders/:id/checkout', authMiddleware, requireTenantAdmin, async
 // ---------------------------------------------------------------------------
 
 router.get('/orders', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  // Scope : global (Super Admin hors impersonation) ou impersonation → tenant.
   const q = {};
-  if (req.query.tenantId) q.tenantId = req.query.tenantId;
+  if (!isGlobalPlatform(req)) q.tenantId = req.tenantId;
+  else if (req.query.tenantId) q.tenantId = req.query.tenantId;
   if (req.query.status) {
     q.status = req.query.status;
     // 'pending_approval' inclut l'ancien statut 'pending' (tolérance).
@@ -637,6 +706,28 @@ router.get('/orders', authMiddleware, requirePlatformAdmin, async (req, res) => 
   const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
   const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
   res.json({ orders: orders.map((o) => ({ ...o, tenantName: byId.get(String(o.tenantId)) || '', status: normalizeOrderStatus(o.status) })) });
+});
+
+/** Détail d'une commande pour l'examen (Super Admin) : tenant, produit,
+ *  plan, sièges, prix, statut de paiement, produits actuels du tenant. */
+router.get('/orders/:id', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  const order = await Order.findById(req.params.id)
+    .populate('userId', 'email firstName lastName')
+    .populate('reviewedBy', 'email firstName lastName')
+    .populate('productId', 'key nameKey')
+    .lean();
+  if (!order) {
+    res.status(404).json({ message: 'Commande introuvable' });
+    return;
+  }
+  const tenant = await Tenant.findById(order.tenantId).select('name status').lean();
+  const subs = await Subscription.find({ tenantId: order.tenantId }).lean();
+  const licenses = await LicenseAssignment.countDocuments({ tenantId: order.tenantId, status: 'active' });
+  res.json({
+    order: { ...order, tenantName: tenant?.name || '', tenantStatus: tenant?.status || '', status: normalizeOrderStatus(order.status) },
+    currentProducts: subs.map((x) => ({ productKey: x.productKey, planId: x.planId, seats: x.seats, status: x.status, endDate: x.endDate })),
+    activeLicenses: licenses,
+  });
 });
 
 /** Ajustement administratif restreint — l'APPROBATION passe par /approve. */
@@ -690,7 +781,7 @@ router.post('/orders/:id/approve', authMiddleware, requirePlatformAdmin, async (
     return;
   }
   const product = getProduct(order.productKey);
-  if (!product || !product.available) {
+  if (!product || !(await effectiveAvailability(order.productKey))) {
     res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Le produit n’est plus disponible.' });
     return;
   }
@@ -924,7 +1015,12 @@ router.get('/audit', authMiddleware, async (req, res) => {
   if (req.query.productKey) q.productKey = req.query.productKey;
   if (req.query.action) q.action = req.query.action;
   const total = await AuditLog.countDocuments(q);
-  const items = await AuditLog.find(q).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean();
+  const items = await AuditLog.find(q)
+    .sort({ createdAt: -1 })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .populate('userId', 'email firstName lastName')
+    .lean();
   res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
 });
 
@@ -942,4 +1038,203 @@ router.post('/notifications/:id/read', authMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
+
+// ---------------------------------------------------------------------------
+// TABLEAU DE BORD GLOBAL (Super Admin) + ADMINISTRATION DES PRODUITS
+// ---------------------------------------------------------------------------
+
+/** KPIs globaux, graphiques et activité récente — aucune dépendance à une
+ *  souscription du Super Admin : données plateforme pures. */
+router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  const now = new Date();
+  const [
+    tenantsTotal,
+    tenantsActive,
+    usersTotal,
+    usersActive,
+    productsTotal,
+    productsAvailable,
+    subStatusAgg,
+    licensesActive,
+    seatsTotalAgg,
+    ordersPending,
+    ordersApproved,
+    ordersRejected,
+    ordersCancelled,
+    orderValueAgg,
+    expiringSubs,
+    recentAudit,
+    recentTenants,
+    pendingOrders,
+  ] = await Promise.all([
+    Tenant.countDocuments({}),
+    Tenant.countDocuments({ status: 'active' }),
+    Utilisateur.countDocuments({}),
+    Utilisateur.countDocuments({ status: 'active' }),
+    Product.countDocuments({}),
+    Product.countDocuments({ available: true }),
+    Subscription.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    LicenseAssignment.countDocuments({ status: 'active' }),
+    Subscription.aggregate([
+      { $match: { status: { $in: ['trial', 'active', 'past_due'] } } },
+      { $group: { _id: null, seats: { $sum: '$seats' } } },
+    ]),
+    Order.countDocuments({ status: { $in: ['pending_approval', 'pending'] } }),
+    Order.countDocuments({ status: { $in: ['completed', 'approved'] } }),
+    Order.countDocuments({ status: 'rejected' }),
+    Order.countDocuments({ status: 'cancelled' }),
+    Order.aggregate([
+      { $match: { status: { $in: ['completed', 'approved'] } } },
+      { $group: { _id: null, total: { $sum: '$total' }, currency: { $first: '$currency' } } },
+    ]),
+    Subscription.find({ status: { $in: ['trial', 'active', 'past_due'] }, endDate: { $lte: new Date(now.getTime() + 45 * 24 * 3600 * 1000) } })
+      .sort({ endDate: 1 })
+      .limit(5)
+      .lean(),
+    AuditLog.find({}).sort({ createdAt: -1 }).limit(12).populate('userId', 'email firstName lastName').lean(),
+    Tenant.find({}).sort({ createdAt: -1 }).limit(4).select('name status createdAt').lean(),
+    Order.find({ status: { $in: ['pending_approval', 'pending'] } })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('productId', 'key nameKey')
+      .populate('userId', 'email firstName lastName')
+      .lean(),
+  ]);
+
+  const statusCounts = { trial: 0, active: 0, past_due: 0, suspended: 0, cancelled: 0, expired: 0, pending: 0 };
+  for (const row of subStatusAgg) statusCounts[row._id] = row.count;
+  const seatsTotal = seatsTotalAgg[0]?.seats || 0;
+  const orderValue = orderValueAgg[0] || { total: 0, currency: 'EUR' };
+
+  // Utilisation par produit : souscriptions actives + licences actives.
+  const licByProductAgg = await LicenseAssignment.aggregate([
+    { $match: { status: 'active' } },
+    { $group: { _id: '$productKey', count: { $sum: 1 } } },
+  ]);
+  const subByProductAgg = await Subscription.aggregate([
+    { $match: { status: { $in: ['trial', 'active', 'past_due'] } } },
+    { $group: { _id: '$productKey', count: { $sum: 1 } } },
+  ]);
+  const licByProduct = new Map(licByProductAgg.map((r) => [r._id, r.count]));
+  const subByProduct = new Map(subByProductAgg.map((r) => [r._id, r.count]));
+  const products = await Product.find({}).sort({ key: 1 }).lean();
+  const productsUsage = products.map((p) => ({
+    key: p.key,
+    nameKey: p.nameKey,
+    emoji: p.emoji,
+    status: p.status,
+    available: p.available,
+    activeSubscriptions: subByProduct.get(p.key) || 0,
+    licensedUsers: licByProduct.get(p.key) || 0,
+  }));
+
+  // Tableau des tenants : utilisateurs / produits / licences.
+  const tenants = await Tenant.find({}).sort({ createdAt: -1 }).lean();
+  const tenantRows = await Promise.all(
+    tenants.map(async (t) => {
+      const [users, prods, lics] = await Promise.all([
+        Utilisateur.countDocuments({ tenantId: t._id }),
+        Subscription.distinct('productKey', { tenantId: t._id }),
+        LicenseAssignment.countDocuments({ tenantId: t._id, status: 'active' }),
+      ]);
+      return { _id: t._id, name: t.name, status: t.status, type: t.type, users, products: prods.length, licenses: lics, createdAt: t.createdAt };
+    })
+  );
+
+  const tenantIds = [...new Set(pendingOrders.map((o) => String(o.tenantId)))];
+  const tenantNames = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
+  const tenantById = new Map(tenantNames.map((t) => [String(t._id), t.name]));
+
+  res.json({
+    kpis: {
+      tenantsTotal,
+      tenantsActive,
+      usersTotal,
+      usersActive,
+      productsTotal,
+      productsAvailable,
+      activeSubscriptions: statusCounts.trial + statusCounts.active + statusCounts.past_due,
+      expiredSubscriptions: statusCounts.expired,
+      pendingPurchaseRequests: ordersPending,
+      approvedOrders: ordersApproved,
+      rejectedOrders: ordersRejected,
+      cancelledOrders: ordersCancelled,
+      activeLicenses: licensesActive,
+      availableLicenses: Math.max(0, seatsTotal - licensesActive),
+      totalSeats: seatsTotal,
+      orderValue: orderValue.total,
+      orderCurrency: orderValue.currency,
+    },
+    charts: {
+      subscriptionStatus: statusCounts,
+      orderStatus: { pending: ordersPending, approved: ordersApproved, rejected: ordersRejected, cancelled: ordersCancelled },
+      productsUsage,
+      tenants: tenantRows,
+    },
+    recent: {
+      audit: recentAudit,
+      tenants: recentTenants,
+      pendingOrders: pendingOrders.map((o) => ({ ...o, tenantName: tenantById.get(String(o.tenantId)) || '', status: normalizeOrderStatus(o.status) })),
+      expiringSubscriptions: expiringSubs,
+    },
+  });
+});
+
+/** Produits (administration) : registre + dérogations + usage réel. */
+router.get('/products/admin', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  const [products, subsAgg, licAgg, overrides] = await Promise.all([
+    Product.find({}).sort({ key: 1 }).lean(),
+    Subscription.aggregate([{ $group: { _id: '$productKey', count: { $sum: 1 }, active: { $sum: { $cond: [{ $in: ['$status', ['trial', 'active', 'past_due']] }, 1, 0] } } } }]),
+    LicenseAssignment.aggregate([{ $match: { status: 'active' } }, { $group: { _id: '$productKey', count: { $sum: 1 } } }]),
+    ProductOverride.find({}).lean(),
+  ]);
+  const subsBy = new Map(subsAgg.map((r) => [r._id, r]));
+  const licBy = new Map(licAgg.map((r) => [r._id, r.count]));
+  const ovBy = new Map(overrides.map((o) => [o.key, o]));
+  res.json({
+    products: products.map((p) => {
+      const ov = ovBy.get(p.key);
+      const usage = subsBy.get(p.key) || { count: 0, active: 0 };
+      return {
+        ...p,
+        override: ov ? { available: ov.available, note: ov.note, by: ov.by, updatedAt: ov.updatedAt } : null,
+        effectiveAvailable: ov ? ov.available : p.available,
+        subscriptions: usage.count,
+        activeSubscriptions: usage.active,
+        licensedUsers: licBy.get(p.key) || 0,
+      };
+    }),
+  });
+});
+
+/** Active/désactive un produit (dérogation administrative réversible) —
+ *  ne touche NI au registre NI aux données historiques. */
+router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  const { available, note } = req.body || {};
+  const product = await Product.findOne({ key: req.params.key });
+  if (!product) {
+    res.status(404).json({ message: 'Produit introuvable' });
+    return;
+  }
+  if (typeof available !== 'boolean') {
+    res.status(400).json({ message: 'Le champ « available » (booléen) est requis.' });
+    return;
+  }
+  await ProductOverride.findOneAndUpdate(
+    { key: req.params.key },
+    { $set: { available, note: String(note || '').slice(0, 500), by: req.userId } },
+    { upsert: true }
+  );
+  await Product.updateOne({ key: req.params.key }, { $set: { available, status: available ? 'available' : 'coming_soon' } });
+  await audit(req, {
+    action: available ? 'product.activated' : 'product.deactivated',
+    productKey: req.params.key,
+    resource: 'product',
+    resourceId: product._id,
+    metadata: { note: String(note || '').slice(0, 500) },
+  });
+  res.json({ message: available ? 'Produit activé.' : 'Produit désactivé.', key: req.params.key, available });
+});
+
 module.exports = router;
+
