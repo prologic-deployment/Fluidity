@@ -2008,6 +2008,10 @@ export const FR: Record<string, unknown> = {
         title: 'Souscription expirante',
         body: 'Votre souscription {{productKey}} expire prochainement. Renouvelez-la pour conserver l’accès.',
       },
+      subscription_expired: {
+        title: 'Souscription expirée',
+        body: 'Votre souscription {{productKey}} a expiré. Renouvelez-la pour rétablir l’accès.',
+      },
       license_limit_reached: {
         title: 'Limite de licences atteinte',
         body: 'Votre souscription {{productKey}} a atteint sa limite de licences ({{used}}/{{seats}}).',
@@ -2065,6 +2069,7 @@ export const FR: Record<string, unknown> = {
   notifications: {
     title: 'Notifications',
     empty: 'Aucune notification pour le moment.',
+    markAll: 'Tout marquer comme lu',
   },
 
   subscriptions: {

@@ -377,6 +377,20 @@ const TEMPLATES = {
       cta: 'My subscriptions',
     },
   },
+  subscription_expired: {
+    fr: {
+      subject: 'Souscription expirée : {{productName}}',
+      heading: 'Votre souscription a expiré',
+      body: `Votre souscription <strong>{{productName}}</strong> a expiré le {{endDate}}. L'accès de vos équipes est suspendu — renouvelez-la pour le rétablir.`,
+      cta: 'Mes abonnements',
+    },
+    en: {
+      subject: 'Subscription expired: {{productName}}',
+      heading: 'Your subscription has expired',
+      body: `Your <strong>{{productName}}</strong> subscription expired on {{endDate}}. Your teams' access is suspended — renew it to restore access.`,
+      cta: 'My subscriptions',
+    },
+  },
   license_limit_reached: {
     fr: {
       subject: 'Limite de licences atteinte : {{productName}}',

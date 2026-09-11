@@ -37,9 +37,14 @@ async function runSaaSLifecycleJob() {
           await notifyUser({
             tenantId: sub.tenantId,
             userId: admin._id,
-            event: 'subscription_expiring',
+            event: 'subscription_expired',
             params: { productKey: sub.productKey, seats: sub.seats },
             link: '/abonnements',
+            emailParams: {
+              productName: sub.productKey,
+              endDate: end.toLocaleDateString('fr-FR'),
+              link: '/abonnements',
+            },
           });
         }
         continue;

@@ -39,6 +39,7 @@ const EVENT_I18N = {
   subscription_rejected: { titleKey: 'projects.notify.subscription_rejected.title', bodyKey: 'projects.notify.subscription_rejected.body' },
   subscription_renewal: { titleKey: 'projects.notify.subscription_renewal.title', bodyKey: 'projects.notify.subscription_renewal.body' },
   subscription_expiring: { titleKey: 'projects.notify.subscription_expiring.title', bodyKey: 'projects.notify.subscription_expiring.body' },
+  subscription_expired: { titleKey: 'projects.notify.subscription_expired.title', bodyKey: 'projects.notify.subscription_expired.body' },
   license_assigned: { titleKey: 'projects.notify.license_assigned.title', bodyKey: 'projects.notify.license_assigned.body' },
   license_removed: { titleKey: 'projects.notify.license_removed.title', bodyKey: 'projects.notify.license_removed.body' },
   license_limit_reached: { titleKey: 'projects.notify.license_limit_reached.title', bodyKey: 'projects.notify.license_limit_reached.body' },
