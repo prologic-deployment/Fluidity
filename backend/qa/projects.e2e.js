@@ -348,7 +348,7 @@ const check = (name, ok, extra = '') => {
 
       console.log('— Préférences de notification');
       const prefs = await api('/api/platform/me/notifications/preferences', { token: novaToken });
-      check('préférences par défaut (30 événements)', prefs.status === 200 && Object.keys(prefs.data.preferences || {}).length === 30, `count=${Object.keys(prefs.data.preferences || {}).length}`);
+      check('préférences par défaut (31 événements)', prefs.status === 200 && Object.keys(prefs.data.preferences || {}).length === 31, `count=${Object.keys(prefs.data.preferences || {}).length}`);
       const patchPrefs = await api('/api/platform/me/notifications/preferences', { method: 'PATCH', token: novaToken, body: { events: { task_assigned: { email: false, inapp: true } } } });
       check('préférence mise à jour', patchPrefs.status === 200 && patchPrefs.data.preferences?.task_assigned?.email === false);
 
