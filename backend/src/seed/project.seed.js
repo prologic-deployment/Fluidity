@@ -325,10 +325,13 @@ async function seedProjectManagement() {
 
 
   // REJETÉE : demande de RH Center refusée par la plateforme (Carthage).
+  // Le demandeur DOIT être l'admin du tenant Carthage (jamais celui de Nova) —
+  // l'isolation tenant s'applique aussi aux données de démonstration.
   if (carthage && carthage._id) {
+    const carthageAdmin = await Utilisateur.findOne({ tenantId: carthage._id, role: 'TENANT_ADMIN' }).lean();
     await ensureOrder({
       tenantId: carthage._id,
-      userId: admin?._id || carthage._id,
+      userId: carthageAdmin?._id || admin?._id || carthage._id,
       productKey: 'hr_center',
       planId: 'business',
       seats: 6,

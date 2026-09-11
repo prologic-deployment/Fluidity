@@ -30,6 +30,32 @@ const { connectDB } = require('../config/db.config');
       'ticketsequences',
       'tenants',
       'loginactivities',
+      // Plateforme SaaS (miroir produits, souscriptions, licences, rôles,
+      // commandes, notifications, audit) — un reset dev doit TOUT vider,
+      // sinon d'anciennes souscriptions/ordres survivent au reseed.
+      'products',
+      'productoverrides',
+      'subscriptions',
+      'licenseassignments',
+      'roleassignments',
+      'orders',
+      'notifications',
+      'notificationpreferences',
+      'auditlogs',
+      // Gestion de Projet
+      'projects',
+      'projectmembers',
+      'tasks',
+      'sprints',
+      'milestones',
+      'risks',
+      'issues',
+      'deliverables',
+      'timeentries',
+      'projectactivities',
+      'projectcomments',
+      'projectevents',
+      'projectfiles',
     ];
     for (const name of cols) {
       try {
