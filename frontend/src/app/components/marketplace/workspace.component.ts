@@ -32,6 +32,12 @@ export class WorkspaceComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Super Admin (hors impersonation) : son espace de travail EST le portail
+    // d'administration plateforme — jamais le hub « Mes produits » des tenants.
+    if (this.auth.isPlatformAdmin() && !this.auth.getImpersonation()) {
+      this.router.navigate(['/plateforme']);
+      return;
+    }
     this.platform.entitlements().subscribe({
       next: (e) => {
         this.entitlements = e;

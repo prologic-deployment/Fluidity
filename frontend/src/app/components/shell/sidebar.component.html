@@ -42,8 +42,10 @@
 
   <div class="mx-4 h-px bg-white/10"></div>
 
-  <!-- Sélecteur de produit : uniquement les produits auxquels on a accès -->
-  <div class="mx-4 mt-1" *ngIf="productEntitlements.length">
+  <!-- Sélecteur de produit : uniquement les produits auxquels on a accès.
+       JAMAIS pour le Super Admin hors impersonation : il administre la
+       plateforme, il ne consomme pas les produits des tenants. -->
+  <div class="mx-4 mt-1" *ngIf="productEntitlements.length && !isPlatformWorkspace">
     <p class="px-1 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{{ 'nav.myProducts' | t }}</p>
     <div class="space-y-0.5">
       <a
