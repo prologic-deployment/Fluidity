@@ -100,3 +100,29 @@ Scénarios seedés : demandes en attente (renouvellement Fluidity, extension
 Nova), demande rejetée (Carthage), souscription expirée (Fluidity — Gestion
 de Projet), suspendue (Carthage), licences inutilisées, utilisateur sans
 licence projet (test de refus).
+
+---
+
+## Round 2 — compléments d'ergonomie & supervision (2026-09-11)
+
+Passage d'amélioration après la livraison initiale, sans aucune régression
+sur l'existant (toutes les suites re-validées).
+
+| Ajout | Détail |
+|-------|--------|
+| **Réglages & Santé** (`GET /platform/system` + page `/plateforme/reglages`) | État API/base, SMTP configuré ou non (jamais de secret exposé), mode de paiement manuel, version/uptime, compteurs globaux. Lecture seule : les réglages sensibles restent côté serveur (.env). |
+| **Sidebar Super Admin §29** | Regroupement conforme : Plateforme / Gestion des tenants / Gestion SaaS / Communication (Notifications) / Supervision (Audit) / Configuration (Rôles & permissions, Réglages & santé). Icônes cloche & engrenage ajoutées. |
+| **Colonne Tenant (Super Admin)** | Sur la page Utilisateurs, le Super Admin voit désormais le tenant de chaque compte (noms résolus via l'API tenants) ; invisible côté Tenant Admin. |
+| **Filtre produit des abonnements** | Nouveau filtre « produit » + pré-filtre par query-param `?product=…` ; lien « Abonnements » ajouté sur chaque carte de la page Produits. |
+
+### Vérifications Round 2 (Playwright, `qa/a4-round2.js`)
+
+22/22 vérifications OK : présence et ordre des 6 groupes de la sidebar SA,
+contenu de la page Réglages & Santé, colonne Tenant côté SA (et absence côté
+Tenant Admin), pré-filtre `?product=project_management` (4/10 lignes, toutes
+Gestion de Projet), lien Abonnements sur Produits, zéro erreur JS.
+
+Suites complètes re-exécutées après le round : `platform.e2e.js` OK,
+`notifications.matrix.js` 17/17, `backend.e2e.js` OK, `projects.e2e.js` OK
+(31 événements de préférences), `a4-e2e-v2.js` 46/46, `a4-sidebars.js`
+conforme (3 rôles), i18n frontend 3233 clés en parité FR/EN.
