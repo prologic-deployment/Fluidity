@@ -1289,5 +1289,47 @@ router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req,
   res.json({ message: available ? 'Produit activé.' : 'Produit désactivé.', key: req.params.key, available });
 });
 
+// ---------------------------------------------------------------------------
+// SYSTÈME & RÉGLAGES (Super Admin) — santé, mailing, version
+// ---------------------------------------------------------------------------
+
+/**
+ * État de la plateforme pour la page « Réglages & Santé » du Super Admin :
+ * santé API/DB, configuration du mailing (SMTP configuré ou non — jamais de
+ * secret exposé), version et compteurs globaux. Lecture seule.
+ */
+router.get('/system', authMiddleware, requirePlatformAdmin, async (_req, res) => {
+  try {
+    const dbUp = mongoose.connection.readyState === 1;
+    const smtpConfigured = !!process.env.SMTP_HOST && process.env.SMTP_HOST !== 'smtp.example.com';
+    const [tenants, users, products, subs, licenses, orders] = await Promise.all([
+      Tenant.countDocuments({}),
+      Utilisateur.countDocuments({ role: { $ne: 'PLATFORM_ADMIN' } }),
+      Product.countDocuments({}),
+      Subscription.countDocuments({}),
+      LicenseAssignment.countDocuments({}),
+      Order.countDocuments({}),
+    ]);
+    res.json({
+      status: dbUp ? 'operational' : 'degraded',
+      api: { up: true, version: require('../../package.json').version, node: process.version },
+      database: { up: dbUp, name: mongoose.connection.name || '' },
+      mailing: {
+        smtpConfigured,
+        host: smtpConfigured ? process.env.SMTP_HOST : '',
+        from: process.env.MAIL_FROM || '',
+        note: smtpConfigured
+          ? 'Les emails transactionnels sont activés.'
+          : 'SMTP non configuré : les notifications in-app restent créées, les emails sont ignorés sans erreur.',
+      },
+      payment: { provider: 'manual_approval', note: 'Paiement en ligne désactivé (mode bêta) : activation par approbation du Super Admin.' },
+      counts: { tenants, users, products, subscriptions: subs, licenses, orders },
+      uptimeSeconds: Math.round(process.uptime()),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+  }
+});
+
 module.exports = router;
 
