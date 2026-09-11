@@ -4,6 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { TenantService } from '../../services/tenant.service';
+import { PlatformService } from '../../services/platform.service';
+import { UserService } from '../../services/user.service';
+import { Subscription as Sub } from '../../models/product.model';
+import { License } from '../../models/product.model';
+import { OrderItem } from '../../models/project.model';
+import { AppUser } from '../../models/user.model';
 import { Tenant, PlatformStats, TENANT_PLANS, TENANT_TYPES } from '../../models/tenant.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
@@ -40,6 +46,14 @@ export class PlatformTenantsComponent implements OnInit {
   readonly plans = TENANT_PLANS;
   readonly types = TENANT_TYPES;
 
+  // Détail d'un tenant (inspection administrative — sans devenir utilisateur)
+  detail: Tenant | null = null;
+  detailUsers: AppUser[] = [];
+  detailSubs: (Sub & { tenantName?: string })[] = [];
+  detailLicenses: (License & { tenantName?: string })[] = [];
+  detailOrders: OrderItem[] = [];
+  detailLoading = false;
+
   // Création / édition
   createForm!: FormGroup;
   editForm!: FormGroup;
@@ -50,6 +64,8 @@ export class PlatformTenantsComponent implements OnInit {
 
   constructor(
     private tenantService: TenantService,
+    private platform: PlatformService,
+    private usersApi: UserService,
     private auth: AuthService,
     private router: Router,
     private confirmDialog: ConfirmDialogService,
@@ -57,6 +73,33 @@ export class PlatformTenantsComponent implements OnInit {
   ,
     private i18n: I18nService
   ) {}
+
+  /** Ouvre l'inspection administrative d'un tenant (données réelles serveur). */
+  openDetail(t: Tenant): void {
+    this.detail = t;
+    this.detailUsers = [];
+    this.detailSubs = [];
+    this.detailLicenses = [];
+    this.detailOrders = [];
+    this.detailLoading = true;
+    const tid = String(t._id);
+    this.usersApi.getAll().subscribe({
+      next: (u) => {
+        this.detailUsers = u.filter((x) => String(x.tenantId) === tid);
+        this.platform.subscriptions().subscribe((subs) => {
+          this.detailSubs = subs.filter((x) => String(x.tenantId) === tid);
+        });
+        this.platform.licenses().subscribe((lics) => {
+          this.detailLicenses = (lics as (License & { tenantName?: string })[]).filter((x) => String(x.tenantId) === tid);
+        });
+        this.platform.platformOrders().subscribe((o) => {
+          this.detailOrders = (o.orders || []).filter((x) => String(x.tenantId) === tid);
+        });
+        this.detailLoading = false;
+      },
+      error: () => (this.detailLoading = false),
+    });
+  }
 
   ngOnInit(): void {
     this.createForm = this.fb.group({

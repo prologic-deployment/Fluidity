@@ -131,6 +131,14 @@
             </td>
             <td class="text-right">
               <div class="flex items-center justify-end gap-1">
+                <button (click)="openDetail(t)" [title]="'tenants.detail' | t"
+                  class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
                 <button (click)="consulter(t)" [title]="'tenants.impersonate' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -277,4 +285,55 @@
       </button>
     </div>
   </form>
+</app-modal>
+
+<!-- Inspection administrative d'un tenant -->
+<app-modal [open]="!!detail" [title]="detail?.name || ''" (closed)="detail = null">
+  <div class="p-4 space-y-3" *ngIf="detail">
+    <p *ngIf="detailLoading" class="text-sm text-muted-foreground">{{ 'common.loading' | t }}</p>
+    <ng-container *ngIf="!detailLoading">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="card"><div class="card-content py-2.5">
+          <p class="text-lg font-semibold tabular-nums">{{ detailUsers.length }}</p>
+          <p class="text-xs text-muted-foreground">{{ 'tenants.detailUsers' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-2.5">
+          <p class="text-lg font-semibold tabular-nums">{{ detailSubs.length }}</p>
+          <p class="text-xs text-muted-foreground">{{ 'tenants.detailProducts' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-2.5">
+          <p class="text-lg font-semibold tabular-nums">{{ detailLicenses.length }}</p>
+          <p class="text-xs text-muted-foreground">{{ 'tenants.detailLicenses' | t }}</p>
+        </div></div>
+        <div class="card"><div class="card-content py-2.5">
+          <p class="text-lg font-semibold tabular-nums">{{ detailOrders.length }}</p>
+          <p class="text-xs text-muted-foreground">{{ 'tenants.detailOrders' | t }}</p>
+        </div></div>
+      </div>
+
+      <p class="text-xs font-medium text-muted-foreground">{{ 'tenants.detailSubsTitle' | t }}</p>
+      <div class="space-y-1.5" *ngIf="detailSubs.length; else noSubs">
+        <div *ngFor="let s of detailSubs" class="flex items-center gap-2 text-sm">
+          <span class="truncate">{{ s.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + s.productKey + '.name' | t) }}</span>
+          <span class="badge ml-auto shrink-0" [ngClass]="['active','trial','past_due'].includes(s.status) ? 'badge-success' : 'badge-warning'">{{ 'subscriptions.meta.status.' + s.status | t }}</span>
+          <span class="tabular-nums text-xs text-muted-foreground">{{ s.usage?.used || 0 }}/{{ s.seats }}</span>
+        </div>
+      </div>
+      <ng-template #noSubs><p class="text-sm text-muted-foreground">{{ 'tenants.detailNoSubs' | t }}</p></ng-template>
+
+      <p class="text-xs font-medium text-muted-foreground">{{ 'tenants.detailUsersTitle' | t }}</p>
+      <div class="space-y-1 max-h-48 overflow-y-auto" *ngIf="detailUsers.length; else noUsers">
+        <div *ngFor="let u of detailUsers" class="flex items-center gap-2 text-sm">
+          <span class="truncate">{{ u.firstName }} {{ u.lastName }}</span>
+          <span class="text-xs text-muted-foreground truncate">{{ u.email }}</span>
+          <span class="badge badge-outline ml-auto shrink-0 text-[10px]">{{ 'roles.' + u.role | t }}</span>
+        </div>
+      </div>
+      <ng-template #noUsers><p class="text-sm text-muted-foreground">{{ 'tenants.detailNoUsers' | t }}</p></ng-template>
+    </ng-container>
+    <div class="flex justify-end gap-2 pt-2">
+      <button type="button" class="btn-ghost btn-sm" (click)="detail = null">{{ 'common.cancel' | t }}</button>
+      <button type="button" class="btn-outline btn-sm" (click)="consulter(detail); detail = null">{{ 'tenants.impersonate' | t }}</button>
+    </div>
+  </div>
 </app-modal>
