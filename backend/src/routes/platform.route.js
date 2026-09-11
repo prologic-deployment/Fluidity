@@ -13,7 +13,7 @@ const {
   ProductOverride,
 } = require('../models/saas.models');
 const { NotificationPreference } = require('../models/project.models');
-const { PRODUCTS, getProduct, getWorkflow } = require('../products/registry');
+const { PRODUCTS, getProduct, getWorkflow, rolePermissions } = require('../products/registry');
 const { authMiddleware, requireTenantAdmin, requirePlatformAdmin } = require('../middlewares/auth.middleware');
 const { loadEntitlements, publicCatalog, assertProductAccess } = require('../services/saas-entitlements.service');
 const { getPaymentProvider } = require('../services/payment');
@@ -387,14 +387,15 @@ router.delete('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, r
 // RÔLES PRODUIT & ASSIGNATIONS
 // ---------------------------------------------------------------------------
 
-/** Rôles par produit (registre) — utile au Tenant Admin pour assigner. */
+/** Rôles par produit (registre) + PERMISSIONS de chaque rôle — sert
+ *  l'assignation (Tenant Admin) et l'administration plateforme. */
 router.get('/roles', authMiddleware, async (req, res) => {
   const catalog = PRODUCTS.map((p) => ({
     productKey: p.key,
     nameKey: p.nameKey,
     status: p.status,
-    roles: p.roles,
-    permissions: [],
+    available: p.available,
+    roles: p.roles.map((r) => ({ key: r.key, nameKey: r.nameKey, permissions: rolePermissions(r.key) || [] })),
   }));
   res.json({ roles: catalog });
 });
