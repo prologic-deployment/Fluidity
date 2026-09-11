@@ -24,9 +24,13 @@
     class="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] origin-top-right animate-scale-in
       overflow-hidden rounded-xl border border-border bg-card shadow-xl shadow-slate-900/10 dark:shadow-black/40"
   >
-    <div class="flex items-center justify-between border-b border-border px-4 py-2.5">
+    <div class="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
       <p class="text-sm font-semibold">{{ 'notifications.title' | t }}</p>
-      <span *ngIf="unread" class="badge badge-outline tabular-nums">{{ unread }}</span>
+      <div class="flex items-center gap-2">
+        <button *ngIf="unread" type="button" (click)="markAllRead()"
+          class="text-[11px] font-medium text-primary hover:underline">{{ 'notifications.markAll' | t }}</button>
+        <span *ngIf="unread" class="badge badge-outline tabular-nums">{{ unread }}</span>
+      </div>
     </div>
     <ul class="max-h-96 overflow-y-auto divide-y divide-border">
       <li *ngFor="let n of items; trackBy: trackN">

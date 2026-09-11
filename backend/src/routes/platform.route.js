@@ -21,6 +21,40 @@ const { audit, notify } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
 const { Utilisateur } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
+const { Client } = require('../models/client.model');
+
+/**
+ * Hydrate les références userId dont le populate a échoué : les accès
+ * PORTAIL (collection Client) ne sont pas des Utilisateurs, donc
+ * `populate('userId')` renvoie null. Sans reprise, l'UI afficherait des
+ * lignes vides (« — ») voire planterait. On résout l'identité du client
+ * depuis les IDs bruts (requête parallèle) — jamais de valeur vide.
+ */
+async function hydrateClientUsers(docs, rawUserIds) {
+  const missing = new Set();
+  docs.forEach((d, i) => {
+    if (d.userId == null && rawUserIds[i]) missing.add(String(rawUserIds[i]));
+  });
+  if (!missing.size) return;
+  const clients = await Client.find({ _id: { $in: [...missing] } })
+    .select('email nom firstName lastName')
+    .lean();
+  const byId = new Map(clients.map((c) => [String(c._id), c]));
+  docs.forEach((d, i) => {
+    if (d.userId == null && rawUserIds[i]) {
+      const c = byId.get(String(rawUserIds[i]));
+      if (c) {
+        d.userId = {
+          _id: c._id,
+          email: c.email,
+          firstName: c.firstName || c.nom || '',
+          lastName: c.lastName || '',
+          principalType: 'CLIENT',
+        };
+      }
+    }
+  });
+}
 
 const router = express.Router();
 
@@ -245,13 +279,17 @@ router.get('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => 
   // Super Admin hors impersonation : TOUTES les licences, TOUS les tenants ;
   // Tenant Admin : uniquement son tenant.
   const q = isGlobalPlatform(req) ? {} : { tenantId: req.tenantId };
+  const lim = isGlobalPlatform(req) ? 500 : 0;
+  // IDs bruts (le populate « userId » renvoie null pour les clients portail).
+  const rawUserIds = (await LicenseAssignment.find(q).select('userId').sort({ createdAt: -1 }).limit(lim).lean()).map((r) => r.userId);
   const licenses = await LicenseAssignment.find(q)
     .populate('userId', 'email firstName lastName status')
     .populate('productId', 'key nameKey')
     .populate('subscriptionId', 'planId billingPeriod seats endDate')
     .sort({ createdAt: -1 })
-    .limit(isGlobalPlatform(req) ? 500 : 0)
+    .limit(lim)
     .lean();
+  await hydrateClientUsers(licenses, rawUserIds);
   const tenantIds = [...new Set(licenses.map((l) => String(l.tenantId)))];
   const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
   const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
@@ -402,12 +440,15 @@ router.get('/roles', authMiddleware, async (req, res) => {
 
 router.get('/roles/assignments', authMiddleware, requireTenantAdmin, async (req, res) => {
   const q = isGlobalPlatform(req) ? {} : { tenantId: req.tenantId };
+  const lim = isGlobalPlatform(req) ? 1000 : 0;
+  const rawUserIds = (await RoleAssignment.find(q).select('userId').sort({ createdAt: -1 }).limit(lim).lean()).map((r) => r.userId);
   const assignments = await RoleAssignment.find(q)
     .populate('userId', 'email firstName lastName')
     .populate('productId', 'key nameKey')
     .sort({ createdAt: -1 })
-    .limit(isGlobalPlatform(req) ? 1000 : 0)
+    .limit(lim)
     .lean();
+  await hydrateClientUsers(assignments, rawUserIds);
   const tenantIds = [...new Set(assignments.map((a) => String(a.tenantId)))];
   const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
   const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
@@ -957,6 +998,7 @@ const DEFAULT_PREFS = () => ({
   subscription_rejected: { email: true, inapp: true },
   subscription_renewal: { email: true, inapp: true },
   subscription_expiring: { email: true, inapp: true },
+  subscription_expired: { email: true, inapp: true },
   license_assigned: { email: true, inapp: true },
   license_removed: { email: true, inapp: true },
   license_limit_reached: { email: true, inapp: true },
@@ -1037,6 +1079,16 @@ router.get('/notifications', authMiddleware, async (req, res) => {
 router.post('/notifications/:id/read', authMiddleware, async (req, res) => {
   await Notification.updateOne({ _id: req.params.id, userId: req.userId }, { $set: { read: true } });
   res.json({ ok: true });
+});
+
+/** « Tout marquer comme lu » — une seule requête, périmètre strict du
+ *  principal (userId + tenant courant : jamais les notifications d'un autre). */
+router.post('/notifications/read-all', authMiddleware, async (req, res) => {
+  const r = await Notification.updateMany(
+    { userId: req.userId, tenantId: req.tenantId || null, read: false },
+    { $set: { read: true } }
+  );
+  res.json({ ok: true, updated: r.modifiedCount || 0 });
 });
 
 

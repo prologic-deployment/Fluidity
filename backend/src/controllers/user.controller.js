@@ -59,9 +59,29 @@ const getAllUsers = async (req, res) => {
   }
 };
 
-/** Bilan licences du tenant : achetées / consommées / restantes. */
+/** Bilan licences du tenant : achetées / consommées / restantes.
+ *  Super Admin GLOBAL (sans tenantId) : agrégat plateforme de tous les
+ *  tenants — jamais d'erreur 400 sur la page Utilisateurs plateforme. */
 const getLicenses = async (req, res) => {
   try {
+    if (req.userRole === 'PLATFORM_ADMIN') {
+      const explicitId = req.body?.tenantId || req.query.tenantId || req.tenantId;
+      if (!explicitId) {
+        const tenants = await Tenant.find({ status: { $ne: 'terminated' } }).lean();
+        let maxUsers = 0;
+        let activeUsers = 0;
+        for (const t of tenants) {
+          maxUsers += t.maxUsers || 0;
+          activeUsers += await Utilisateur.countDocuments({
+            tenantId: t._id,
+            status: { $ne: 'suspended' },
+            role: { $ne: 'PLATFORM_ADMIN' },
+          });
+        }
+        res.status(200).json({ maxUsers, activeUsers, remainingUsers: Math.max(0, maxUsers - activeUsers), global: true });
+        return;
+      }
+    }
     const tenant = await resolveTargetTenant(req, res);
     if (!tenant) return;
     res.status(200).json(await tenant.licenseInfo());

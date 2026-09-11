@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -39,10 +40,18 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     private platform: PlatformService,
     private confirm: ConfirmDialogService,
     private toast: ToastService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    // Pré-filtre depuis l'URL (?product=..., ?tenant=...) — lien « Voir les
+    // licences » de la page Produits / du tenant.
+    const qp = this.route.snapshot.queryParamMap;
+    const product = qp.get('product');
+    const tenant = qp.get('tenant');
+    if (product) this.productFilter = product;
+    if (tenant) this.tenantFilter = tenant;
     this.load();
   }
 

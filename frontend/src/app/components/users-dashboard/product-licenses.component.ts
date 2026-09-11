@@ -82,13 +82,15 @@ export class ProductLicensesComponent implements OnInit {
   }
 
   assignmentOf(productKey: string, userId: string): RoleAssignment | undefined {
-    return this.assignments.find((a) => a.productKey === productKey && a.userId === userId);
+    return this.assignments.find((a) => a.productKey === productKey && this.userIdOf(a) === userId);
   }
 
-  /** Identifiant ObjectId d'une licence (résout la référence peuplée). */
+  /** Identifiant ObjectId d'une licence (résout la référence peuplée).
+   *  Tolère une référence nulle (utilisateur supprimé / non résolu). */
   userIdOf(l: License | RoleAssignment): string {
     const ref = l.userId as any;
-    return typeof ref === 'string' ? ref : ref._id;
+    if (ref == null) return '';
+    return typeof ref === 'string' ? ref : ref._id || '';
   }
 
   /** Rôle produit courant d'un utilisateur licencié. */
@@ -98,13 +100,15 @@ export class ProductLicensesComponent implements OnInit {
 
   userName(u: License | RoleAssignment): string {
     const ref = u.userId as any;
+    if (ref == null) return '—';
     if (typeof ref === 'string') return ref;
-    return `${ref.firstName || ''} ${ref.lastName || ''}`.trim() || ref.email;
+    return `${ref.firstName || ''} ${ref.lastName || ''}`.trim() || ref.email || '—';
   }
 
   userEmail(u: License | RoleAssignment): string {
     const ref = u.userId as any;
-    return typeof ref === 'string' ? ref : ref.email;
+    if (ref == null) return '';
+    return typeof ref === 'string' ? ref : ref.email || '';
   }
 
   seatsUsed(productKey: string): number {

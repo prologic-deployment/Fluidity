@@ -101,6 +101,18 @@ export class NotificationsBellComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** « Tout marquer comme lu » — une seule requête serveur. */
+  markAllRead(): void {
+    this.platform.markAllNotificationsRead().subscribe({
+      next: () => {
+        this.items.forEach((n) => (n.read = true));
+        this.unread = 0;
+        this.cdr.markForCheck();
+      },
+      error: () => undefined,
+    });
+  }
+
   trackN(_i: number, n: NotificationItem): string {
     return n._id;
   }

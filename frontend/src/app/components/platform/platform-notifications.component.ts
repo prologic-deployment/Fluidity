@@ -71,7 +71,16 @@ export class PlatformNotificationsComponent implements OnInit, OnDestroy {
   }
 
   markAllRead(): void {
-    for (const n of this.items.filter((x) => !x.read)) this.markRead(n);
+    this.platform.markAllNotificationsRead().subscribe({
+      next: () => {
+        this.items.forEach((n) => (n.read = true));
+        this.unread = 0;
+      },
+      // Repli : marquage individuel si l'endpoint groupé est indisponible.
+      error: () => {
+        for (const n of this.items.filter((x) => !x.read)) this.markRead(n);
+      },
+    });
   }
 
   open(n: NotificationItem): void {

@@ -249,4 +249,9 @@ export class PlatformService {
   markNotificationRead(id: string): Observable<{ ok: boolean }> {
     return this.http.post<{ ok: boolean }>(`${this.base}/notifications/${id}/read`, {});
   }
+
+  /** Tout marquer comme lu (une seule requête serveur). */
+  markAllNotificationsRead(): Observable<{ ok: boolean; updated: number }> {
+    return this.http.post<{ ok: boolean; updated: number }>(`${this.base}/notifications/read-all`, {});
+  }
 }
