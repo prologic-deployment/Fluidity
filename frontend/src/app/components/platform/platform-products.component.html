@@ -45,6 +45,7 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-3">
+          <a class="btn-ghost btn-sm" [routerLink]="['/plateforme/abonnements']" [queryParams]="{ product: p.key }">{{ 'platform.products.viewSubscriptions' | t }}</a>
           <a class="btn-ghost btn-sm" [routerLink]="['/plateforme/licences']" [queryParams]="{ product: p.key }">{{ 'platform.products.viewLicenses' | t }}</a>
           <button type="button" class="btn-outline btn-sm" [disabled]="busyKey === p.key" (click)="toggle(p)">
             {{ p.effectiveAvailable ? ('platform.products.deactivate' | t) : ('platform.products.activate' | t) }}

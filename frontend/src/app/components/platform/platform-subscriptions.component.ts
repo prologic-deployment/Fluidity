@@ -1,8 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
+import { I18nService } from '../../i18n/i18n.service';
 import { Subscription } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
@@ -24,13 +26,22 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
   error = '';
   subscriptions: PlatformSubscription[] = [];
   statusFilter = 'all';
+  productFilter = 'all';
   search = '';
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private platform: PlatformService) {}
+  constructor(
+    private platform: PlatformService,
+    private route: ActivatedRoute,
+    private i18n: I18nService
+  ) {}
 
   ngOnInit(): void {
+    // Pré-filtre depuis l'URL (?product=...) — lien « Voir les abonnements »
+    // de la page Produits.
+    const product = this.route.snapshot.queryParamMap.get('product');
+    if (product) this.productFilter = product;
     this.load();
   }
 
@@ -57,12 +68,24 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Liste des clés produit distinctes (options du filtre produit). */
+  get productOptions(): string[] {
+    return [...new Set(this.subscriptions.map((s) => s.productKey))].sort();
+  }
+
   filtered(): PlatformSubscription[] {
+    const q = this.search.trim().toLowerCase();
     return this.subscriptions.filter((s) => {
       if (this.statusFilter !== 'all' && s.status !== this.statusFilter) return false;
-      if (this.search && !(s.tenantName || '').toLowerCase().includes(this.search.toLowerCase())) return false;
+      if (this.productFilter !== 'all' && s.productKey !== this.productFilter) return false;
+      if (q && !`${s.productKey} ${s.tenantName || ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
+  }
+
+  /** Libellé i18n du produit. */
+  productLabel(key: string): string {
+    return this.i18n.t(`products.${key}.name`);
   }
 
   statusBadge(status: string): string {

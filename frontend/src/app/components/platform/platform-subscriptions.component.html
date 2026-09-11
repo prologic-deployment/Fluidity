@@ -17,6 +17,10 @@
       <option value="cancelled">{{ 'subscriptions.meta.status.cancelled' | t }}</option>
       <option value="expired">{{ 'subscriptions.meta.status.expired' | t }}</option>
     </select>
+    <select [(ngModel)]="productFilter" class="filter-select">
+      <option value="all">{{ 'platform.subscriptions.productAll' | t }}</option>
+      <option *ngFor="let p of productOptions" [value]="p">{{ productLabel(p) }}</option>
+    </select>
     <input type="search" [(ngModel)]="search" class="input w-64" [placeholder]="'platform.subscriptions.searchTenant' | t" />
     <span class="text-xs text-muted-foreground tabular-nums ml-auto">{{ filtered().length }} / {{ subscriptions.length }}</span>
   </div>

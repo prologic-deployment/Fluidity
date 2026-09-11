@@ -101,6 +101,7 @@
         <thead>
           <tr>
             <th>{{ 'users.userCol' | t }}</th>
+            <th *ngIf="isPlatformAdmin">{{ 'users.tenantCol' | t }}</th>
             <th>{{ 'users.role' | t }}</th>
             <th>{{ 'users.department' | t }}</th>
             <th>{{ 'users.status' | t }}</th>
@@ -123,6 +124,7 @@
                 </div>
               </div>
             </td>
+            <td *ngIf="isPlatformAdmin" class="text-sm text-muted-foreground">{{ tenantName(u) }}</td>
             <td><span class="badge-secondary"><span class="badge-dot"></span>{{ roleLabel(u.role) }}</span></td>
             <td class="text-muted-foreground">{{ u.department || '—' }}</td>
             <td>

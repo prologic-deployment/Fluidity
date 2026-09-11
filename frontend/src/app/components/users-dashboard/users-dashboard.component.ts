@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../services/user.service';
+import { TenantService } from '../../services/tenant.service';
 import { AppUser, AppRole, LicenseInfo, APP_ROLES, ROLE_LABELS, USER_STATUS_LABELS } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
@@ -38,6 +39,9 @@ export class UsersDashboardComponent implements OnInit {
   readonly roles = APP_ROLES;
 
   currentUserId: string | null = null;
+  /** Super Admin : colonne tenant visible + nom résolu via la liste des tenants. */
+  isPlatformAdmin = false;
+  tenantNames = new Map<string, string>();
 
   // Création / édition
   createForm!: FormGroup;
@@ -49,6 +53,7 @@ export class UsersDashboardComponent implements OnInit {
 
   constructor(
     private userService: UserService,
+    private tenantService: TenantService,
     private auth: AuthService,
     private confirmDialog: ConfirmDialogService,
     private fb: FormBuilder
@@ -58,6 +63,16 @@ export class UsersDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUserId = this.auth.getUserId();
+    this.isPlatformAdmin = this.auth.isPlatformAdmin();
+    if (this.isPlatformAdmin) {
+      // Résolution des noms de tenant pour la colonne « Tenant ».
+      this.tenantService.getAll().subscribe({
+        next: (ts) => {
+          this.tenantNames = new Map(ts.map((t) => [String(t._id), t.name]));
+        },
+        error: () => (this.tenantNames = new Map()),
+      });
+    }
     this.createForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
@@ -103,6 +118,12 @@ export class UsersDashboardComponent implements OnInit {
 
   userInitial(u: AppUser): string {
     return (u.email || 'U').charAt(0).toUpperCase();
+  }
+
+  /** Nom du tenant (Super Admin uniquement). */
+  tenantName(u: AppUser): string {
+    if (!u.tenantId) return '—';
+    return this.tenantNames.get(String(u.tenantId)) || '—';
   }
 
   roleLabel(role?: string): string {
