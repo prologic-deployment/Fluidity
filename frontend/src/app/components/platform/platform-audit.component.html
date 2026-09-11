@@ -1,0 +1,46 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.audit.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.audit.subtitle' | t }}</p>
+    <div class="ml-auto flex items-center gap-2">
+      <select [(ngModel)]="productFilter" (change)="onFilterChange()" class="filter-select">
+        <option value="all">{{ 'platform.audit.filterAll' | t }}</option>
+        <option value="platform">{{ 'platform.audit.platformScope' | t }}</option>
+        <option value="project_management">{{ 'nav.projects' | t }}</option>
+        <option value="servicedesk">{{ 'platform.audit.servicedesk' | t }}</option>
+      </select>
+      <button type="button" class="btn-ghost btn-sm" (click)="load()">{{ 'common.refresh' | t }}</button>
+    </div>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <p class="text-xs text-muted-foreground mb-3" *ngIf="!loading">{{ total }} {{ 'platform.audit.entries' | t }}</p>
+
+  <div *ngIf="loading" class="space-y-2">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-14"></div>
+  </div>
+
+  <div *ngIf="!loading && items.length" class="space-y-2">
+    <div class="card" *ngFor="let a of items">
+      <div class="card-content p-3.5 flex items-center gap-3 flex-wrap">
+        <div class="min-w-0 grow">
+          <p class="text-sm font-medium">{{ auditLabel(a) | t }}</p>
+          <p class="text-xs text-muted-foreground">
+            {{ actor(a) }} · {{ a.resource || '—' }} · {{ a.createdAt | dateLocale:'short' }}
+          </p>
+        </div>
+        <span class="badge badge-outline text-[10px]">{{ a.productKey || 'platform' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !items.length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.audit.empty' | t }}</div>
+  </div>
+
+  <div class="flex items-center justify-center gap-3 mt-4" *ngIf="pages > 1">
+    <button type="button" class="btn-ghost btn-sm" [disabled]="page <= 1" (click)="prev()">{{ 'common.previous' | t }}</button>
+    <span class="text-sm tabular-nums">{{ page }} / {{ pages }}</span>
+    <button type="button" class="btn-ghost btn-sm" [disabled]="page >= pages" (click)="next()">{{ 'common.next' | t }}</button>
+  </div>
+</main>

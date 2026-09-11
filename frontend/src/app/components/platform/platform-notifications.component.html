@@ -1,0 +1,44 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.notifications.title' | t }}</h1>
+    <span class="badge badge-warning" *ngIf="unread">{{ unread }} {{ 'platform.notifications.unread' | t }}</span>
+    <div class="ml-auto flex items-center gap-2">
+      <select [(ngModel)]="filter" class="filter-select">
+        <option value="all">{{ 'platform.notifications.filterAll' | t }}</option>
+        <option value="unread">{{ 'platform.notifications.filterUnread' | t }}</option>
+        <option value="read">{{ 'platform.notifications.filterRead' | t }}</option>
+      </select>
+      <button type="button" class="btn-ghost btn-sm" (click)="markAllRead()">{{ 'platform.notifications.markAll' | t }}</button>
+      <button type="button" class="btn-ghost btn-sm" (click)="load()">{{ 'common.refresh' | t }}</button>
+    </div>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <div *ngIf="loading" class="space-y-2">
+    <div *ngFor="let _ of [1,2,3]" class="skeleton h-16"></div>
+  </div>
+
+  <div *ngIf="!loading && filtered().length" class="space-y-2">
+    <div
+      *ngFor="let n of filtered()"
+      class="card card-hover cursor-pointer"
+      [class.opacity-70]="n.read"
+      (click)="open(n)"
+    >
+      <div class="card-content p-3.5 flex items-start gap-3">
+        <span class="w-2 h-2 rounded-full mt-1.5 shrink-0" [class.bg-primary]="!n.read" [class.bg-transparent]="n.read"></span>
+        <div class="min-w-0 grow">
+          <p class="text-sm font-medium">{{ n.titleKey | t:n.params }}</p>
+          <p class="text-sm text-muted-foreground">{{ n.bodyKey | t:n.params }}</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ n.createdAt | dateLocale:'short' }}</p>
+        </div>
+        <span class="badge badge-outline text-[10px] shrink-0">{{ n.productKey }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && !filtered().length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.notifications.empty' | t }}</div>
+  </div>
+</main>

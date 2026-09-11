@@ -1,0 +1,58 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.products.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.products.subtitle' | t }}</p>
+    <span class="badge badge-outline">{{ activeCount }}/{{ products.length }} {{ 'platform.products.activeBadge' | t }}</span>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-40"></div>
+  </div>
+
+  <div *ngIf="!loading" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="card" *ngFor="let p of products">
+      <div class="card-header py-3 flex items-center gap-2">
+        <span class="text-lg">{{ p.emoji }}</span>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold truncate">{{ p.nameKey | t }}</p>
+          <p class="text-[11px] text-muted-foreground font-mono">{{ p.key }}</p>
+        </div>
+        <span class="badge ml-auto shrink-0" [ngClass]="p.effectiveAvailable ? 'badge-success' : 'badge-secondary'">
+          {{ p.effectiveAvailable ? ('platform.products.available' | t) : ('platform.products.unavailable' | t) }}
+        </span>
+      </div>
+      <div class="card-content p-4">
+        <p class="text-sm text-muted-foreground line-clamp-2">{{ p.descriptionKey | t }}</p>
+
+        <!-- Plans & tarifs (registre serveur) -->
+        <div class="mt-3 space-y-1.5" *ngIf="p.plans?.length">
+          <p class="text-xs font-medium text-muted-foreground">{{ 'platform.products.plans' | t }}</p>
+          <div *ngFor="let plan of p.plans" class="flex items-center gap-2 text-sm">
+            <span class="w-28 truncate">{{ plan.nameKey | t }}</span>
+            <span class="tabular-nums text-muted-foreground">{{ planPrice(plan.pricePerSeatMonthly, plan.currency || 'EUR') }}/{{ 'platform.products.perMonth' | t }}</span>
+            <span class="tabular-nums text-muted-foreground ml-auto hidden sm:inline">{{ planPrice(plan.pricePerSeatAnnual, plan.currency || 'EUR') }}/{{ 'platform.products.perYear' | t }}</span>
+          </div>
+        </div>
+
+        <!-- Usage réel -->
+        <div class="flex items-center gap-3 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          <span>{{ 'platform.products.activeSubs' | t }}: <b class="tabular-nums">{{ p.activeSubscriptions }}</b></span>
+          <span>{{ 'platform.products.licensedUsers' | t }}: <b class="tabular-nums">{{ p.licensedUsers }}</b></span>
+          <span *ngIf="p.override" class="badge badge-warning ml-auto" [title]="('platform.products.overrideNote' | t) + ': ' + p.override.note">{{ 'platform.products.override' | t }}</span>
+        </div>
+
+        <div class="flex justify-end gap-2 mt-3">
+          <a class="btn-ghost btn-sm" [routerLink]="['/plateforme/licences']" [queryParams]="{ product: p.key }">{{ 'platform.products.viewLicenses' | t }}</a>
+          <button type="button" class="btn-outline btn-sm" [disabled]="busyKey === p.key" (click)="toggle(p)">
+            {{ p.effectiveAvailable ? ('platform.products.deactivate' | t) : ('platform.products.activate' | t) }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p *ngIf="!loading" class="text-xs text-muted-foreground mt-4">{{ 'platform.products.registryNote' | t }}</p>
+</main>

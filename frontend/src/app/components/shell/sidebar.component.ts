@@ -142,13 +142,41 @@ export class SidebarComponent implements OnInit, OnDestroy {
     const groups: SidebarGroup[] = [];
 
     if (this.isPlatformAdmin) {
-      const plateforme: SidebarGroup = {
-        label: 'nav.platform',
+      // Sidebar DÉDIÉE à l'administration de la plateforme : jamais les
+      // espaces produits des tenants (le Super Admin administre, il ne
+      // consomme pas). En impersonation, il retrouve le workspace du tenant.
+      groups.push({
+        label: 'nav.platformGroup',
         icon: 'grid',
         open: true,
-        children: [{ label: 'nav.tenants', path: '/plateforme/tenants' }],
-      };
-      groups.push(plateforme);
+        children: [
+          { label: 'platform.dashboard.nav', path: '/plateforme' },
+          { label: 'nav.tenants', path: '/plateforme/tenants' },
+          { label: 'platform.users.nav', path: '/plateforme/utilisateurs' },
+        ],
+      });
+      groups.push({
+        label: 'nav.saasGroup',
+        icon: 'card',
+        open: true,
+        children: [
+          { label: 'platform.products.nav', path: '/plateforme/produits' },
+          { label: 'platform.orders.nav', path: '/plateforme/demandes' },
+          { label: 'platform.subscriptions.nav', path: '/plateforme/abonnements' },
+          { label: 'platform.licenses.nav', path: '/plateforme/licences' },
+          { label: 'platform.rolesMatrix.nav', path: '/plateforme/licences-roles' },
+        ],
+      });
+      groups.push({
+        label: 'nav.monitoringGroup',
+        icon: 'activity',
+        open: true,
+        children: [
+          { label: 'platform.notifications.nav', path: '/plateforme/notifications' },
+          { label: 'platform.audit.nav', path: '/plateforme/audit' },
+          { label: 'platform.roles.nav', path: '/plateforme/roles-permissions' },
+        ],
+      });
     }
 
     // Workspace tenant : visible pour tout rôle tenant, ou Super Admin en impersonation

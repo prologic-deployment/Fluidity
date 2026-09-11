@@ -12,6 +12,8 @@ export interface ProductPlan {
   featuresKey?: string[];
 }
 
+import { OrderItem } from './project.model';
+
 export interface ProductRole {
   key: string;
   nameKey: string;
@@ -138,4 +140,94 @@ export interface NotificationItem {
   link: string;
   read: boolean;
   createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Administration PLATEFORME (Super Admin)
+// ---------------------------------------------------------------------------
+
+/** KPIs du tableau de bord global de la plateforme. */
+export interface PlatformKpis {
+  tenantsTotal: number;
+  tenantsActive: number;
+  usersTotal: number;
+  usersActive: number;
+  productsTotal: number;
+  productsAvailable: number;
+  activeSubscriptions: number;
+  expiredSubscriptions: number;
+  pendingPurchaseRequests: number;
+  approvedOrders: number;
+  rejectedOrders: number;
+  cancelledOrders: number;
+  activeLicenses: number;
+  availableLicenses: number;
+  totalSeats: number;
+  orderValue: number;
+  orderCurrency: string;
+}
+
+export interface ProductUsageRow {
+  key: string;
+  nameKey: string;
+  emoji: string;
+  status: string;
+  available: boolean;
+  activeSubscriptions: number;
+  licensedUsers: number;
+}
+
+export interface TenantRow {
+  _id: string;
+  name: string;
+  status: string;
+  type: string;
+  users: number;
+  products: number;
+  licenses: number;
+  createdAt: string;
+}
+
+export interface PlatformCharts {
+  subscriptionStatus: Record<string, number>;
+  orderStatus: { pending: number; approved: number; rejected: number; cancelled: number };
+  productsUsage: ProductUsageRow[];
+  tenants: TenantRow[];
+}
+
+export interface RecentAuditItem {
+  _id: string;
+  userId: { _id: string; email: string; firstName?: string; lastName?: string } | null;
+  action: string;
+  productKey: string;
+  resource: string;
+  createdAt: string;
+}
+
+/** Tableau de bord global — réponse complète de GET /platform/dashboard. */
+export interface PlatformDashboard {
+  kpis: PlatformKpis;
+  charts: PlatformCharts;
+  recent: {
+    audit: RecentAuditItem[];
+    tenants: { _id: string; name: string; status: string; createdAt: string }[];
+    pendingOrders: (OrderItem & { tenantName?: string })[];
+    expiringSubscriptions: Subscription[];
+  };
+}
+
+/** Produit en mode administration (usage + dérogation). */
+export interface AdminProduct extends ProductInfo {
+  override: { available: boolean; note: string; updatedAt: string } | null;
+  effectiveAvailable: boolean;
+  subscriptions: number;
+  activeSubscriptions: number;
+  licensedUsers: number;
+}
+
+/** Détail d'une commande pour l'examen de la plateforme. */
+export interface OrderDetail {
+  order: OrderItem & { tenantName?: string; tenantStatus?: string };
+  currentProducts: { productKey: string; planId: string; seats: number; status: string; endDate?: string }[];
+  activeLicenses: number;
 }

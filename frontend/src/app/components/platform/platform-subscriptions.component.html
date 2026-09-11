@@ -1,0 +1,68 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.subscriptions.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.subscriptions.subtitle' | t }}</p>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <select [(ngModel)]="statusFilter" class="filter-select">
+      <option value="all">{{ 'platform.subscriptions.filterAll' | t }}</option>
+      <option value="active">{{ 'subscriptions.meta.status.active' | t }}</option>
+      <option value="trial">{{ 'subscriptions.meta.status.trial' | t }}</option>
+      <option value="past_due">{{ 'subscriptions.meta.status.past_due' | t }}</option>
+      <option value="suspended">{{ 'subscriptions.meta.status.suspended' | t }}</option>
+      <option value="cancelled">{{ 'subscriptions.meta.status.cancelled' | t }}</option>
+      <option value="expired">{{ 'subscriptions.meta.status.expired' | t }}</option>
+    </select>
+    <input type="search" [(ngModel)]="search" class="input w-64" [placeholder]="'platform.subscriptions.searchTenant' | t" />
+    <span class="text-xs text-muted-foreground tabular-nums ml-auto">{{ filtered().length }} / {{ subscriptions.length }}</span>
+  </div>
+
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+  </div>
+
+  <div *ngIf="!loading && filtered().length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'saas.orderTenant' | t }}</th>
+          <th>{{ 'saas.product' | t }}</th>
+          <th>{{ 'saas.plan' | t }}</th>
+          <th>{{ 'saas.status' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'platform.subscriptions.seatsUsed' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'saas.billing' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'platform.subscriptions.period' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'platform.subscriptions.autoRenew' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of filtered()">
+          <td class="font-medium">{{ s.tenantName || '—' }}</td>
+          <td class="text-sm">{{ s.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + s.productKey + '.name' | t) }}</td>
+          <td class="text-sm">{{ 'subscriptions.meta.plan.' + s.planId | t }}</td>
+          <td><span class="badge" [ngClass]="statusBadge(s.status)">{{ 'subscriptions.meta.status.' + s.status | t }}</span></td>
+          <td class="hidden md:table-cell tabular-nums">
+            {{ s.usage?.used || 0 }} / {{ s.usage?.seats || s.seats }}
+            <span *ngIf="(s.usage?.available ?? 0) === 0" class="badge badge-destructive ml-1 text-[10px]">{{ 'platform.subscriptions.saturated' | t }}</span>
+          </td>
+          <td class="hidden md:table-cell text-sm">{{ 'subscriptions.meta.cycle.' + s.billingPeriod | t }}</td>
+          <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">
+            <ng-container *ngIf="s.startDate && s.endDate">{{ s.startDate | dateLocale:'short' }} → {{ s.endDate | dateLocale:'short' }}</ng-container>
+            <ng-container *ngIf="!s.endDate">—</ng-container>
+          </td>
+          <td class="hidden lg:table-cell text-sm">
+            <span class="badge" [ngClass]="s.autoRenew ? 'badge-success' : 'badge-warning'">{{ (s.autoRenew ? 'subscriptions.overview.autoRenewOn' : 'subscriptions.overview.autoRenewOff') | t }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !filtered().length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.subscriptions.empty' | t }}</div>
+  </div>
+</main>

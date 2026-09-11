@@ -26,6 +26,15 @@ import { CreateContratComponent } from './components/create-contrat/create-contr
 import { DashboardClientsComponent } from './components/dashboard-clients/dashboard-clients.component';
 import { CreateClientComponent } from './components/create-client/create-client.component';
 import { PlatformTenantsComponent } from './components/platform-tenants/platform-tenants.component';
+import { PlatformDashboardComponent } from './components/platform/platform-dashboard.component';
+import { PlatformOrdersComponent } from './components/platform/platform-orders.component';
+import { PlatformSubscriptionsComponent } from './components/platform/platform-subscriptions.component';
+import { PlatformLicensesComponent } from './components/platform/platform-licenses.component';
+import { PlatformLicensesRolesComponent } from './components/platform/platform-licenses-roles.component';
+import { PlatformProductsComponent } from './components/platform/platform-products.component';
+import { PlatformNotificationsComponent } from './components/platform/platform-notifications.component';
+import { PlatformAuditComponent } from './components/platform/platform-audit.component';
+import { PlatformRolesComponent } from './components/platform/platform-roles.component';
 import { UsersDashboardComponent } from './components/users-dashboard/users-dashboard.component';
 import { ProfilComponent } from './components/profil/profil.component';
 import { SecurityPageComponent } from './components/security/security-page.component';
@@ -136,11 +145,22 @@ export const routes: Routes = [
       },
       {
         path: 'plateforme',
+        canActivate: [platformGuard],
         data: { breadcrumb: 'nav.platform' },
         children: [
-          { path: 'tenants', component: PlatformTenantsComponent, canActivate: [platformGuard], data: { breadcrumb: 'nav.tenants' } },
+          { path: '', component: PlatformDashboardComponent, data: { breadcrumb: 'platform.dashboard.nav' } },
+          { path: 'tenants', component: PlatformTenantsComponent, data: { breadcrumb: 'nav.tenants' } },
           // Administration SaaS (produits, souscriptions, licences, rôles, audit)
-          { path: 'saas', component: SaasAdminComponent, canActivate: [platformGuard], data: { breadcrumb: 'nav.saas' } },
+          { path: 'saas', component: SaasAdminComponent, data: { breadcrumb: 'nav.saas' } },
+          { path: 'utilisateurs', component: UsersDashboardComponent, data: { breadcrumb: 'platform.users.nav' } },
+          { path: 'produits', component: PlatformProductsComponent, data: { breadcrumb: 'platform.products.nav' } },
+          { path: 'demandes', component: PlatformOrdersComponent, data: { breadcrumb: 'platform.orders.nav' } },
+          { path: 'abonnements', component: PlatformSubscriptionsComponent, data: { breadcrumb: 'platform.subscriptions.nav' } },
+          { path: 'licences', component: PlatformLicensesComponent, data: { breadcrumb: 'platform.licenses.nav' } },
+          { path: 'licences-roles', component: PlatformLicensesRolesComponent, data: { breadcrumb: 'platform.rolesMatrix.nav' } },
+          { path: 'notifications', component: PlatformNotificationsComponent, data: { breadcrumb: 'platform.notifications.nav' } },
+          { path: 'audit', component: PlatformAuditComponent, data: { breadcrumb: 'platform.audit.nav' } },
+          { path: 'roles-permissions', component: PlatformRolesComponent, data: { breadcrumb: 'platform.roles.nav' } },
         ],
       },
       { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard], data: { breadcrumb: 'nav.users' } },

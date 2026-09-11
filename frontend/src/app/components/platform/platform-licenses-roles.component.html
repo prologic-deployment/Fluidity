@@ -1,0 +1,89 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.rolesMatrix.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.rolesMatrix.subtitle' | t }}</p>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <!-- Catalogue des rôles par produit -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+    <div class="card" *ngFor="let c of roleCatalog">
+      <div class="card-header py-2.5 flex items-center gap-2">
+        <span class="text-sm font-semibold">{{ c.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + c.productKey + '.name' | t) }}</span>
+        <span class="badge badge-outline text-[10px] ml-auto">{{ c.roles.length }} {{ 'platform.rolesMatrix.roles' | t }}</span>
+      </div>
+      <div class="card-content p-3 flex flex-wrap gap-1.5">
+        <span *ngFor="let r of c.roles" class="badge badge-default text-[11px]">{{ r.nameKey | t }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <select [(ngModel)]="productFilter" class="filter-select">
+      <option value="all">{{ 'platform.licenses.filterAllProducts' | t }}</option>
+      <option *ngFor="let p of products" [value]="p">{{ p === 'project_management' ? ('nav.projects' | t) : ('products.' + p + '.name' | t) }}</option>
+    </select>
+    <input type="search" [(ngModel)]="search" class="input w-64" [placeholder]="'platform.licenses.search' | t" />
+    <span class="text-xs text-muted-foreground tabular-nums ml-auto">{{ filtered().length }} / {{ rows.length }}</span>
+  </div>
+
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+  </div>
+
+  <div *ngIf="!loading && filtered().length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'saas.orderTenant' | t }}</th>
+          <th>{{ 'platform.licenses.user' | t }}</th>
+          <th>{{ 'saas.product' | t }}</th>
+          <th>{{ 'platform.rolesMatrix.productRole' | t }}</th>
+          <th>{{ 'platform.rolesMatrix.license' | t }}</th>
+          <th>{{ 'saas.action' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filtered()">
+          <td class="font-medium">{{ r.tenantName }}</td>
+          <td class="text-sm">
+            <p class="font-medium">{{ r.userName }}</p>
+            <p class="text-xs text-muted-foreground">{{ r.userEmail }}</p>
+          </td>
+          <td class="text-sm">{{ productLabel(r.productKey) }}</td>
+          <td><span class="badge" [ngClass]="r.roleKey ? 'badge-secondary' : 'badge-outline'">{{ roleLabel(r.productKey, r.roleKey) }}</span></td>
+          <td><span class="badge badge-success">{{ 'platform.rolesMatrix.licenseActive' | t }}</span></td>
+          <td class="whitespace-nowrap">
+            <button type="button" class="btn-ghost btn-sm" (click)="startEdit(r)">{{ 'platform.rolesMatrix.changeRole' | t }}</button>
+            <button *ngIf="r.assignmentId" type="button" class="btn-ghost btn-sm text-destructive" (click)="removeRole(r)">{{ 'platform.rolesMatrix.removeRole' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !filtered().length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.rolesMatrix.empty' | t }}</div>
+  </div>
+
+  <!-- Édition du rôle produit -->
+  <app-modal [open]="!!editing" [title]="'platform.rolesMatrix.changeRole' | t" (closed)="editing = null">
+    <div class="p-4 space-y-3" *ngIf="editing">
+      <p class="text-sm text-muted-foreground">
+        {{ editing.userName }} · {{ editing.userEmail }} — {{ productLabel(editing.productKey) }}
+      </p>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'platform.rolesMatrix.productRole' | t }}</span>
+        <select [(ngModel)]="editRoleKey" class="input mt-1">
+          <option *ngFor="let r of rolesFor(editing.productKey)" [value]="r.key">{{ r.nameKey | t }}</option>
+        </select>
+      </label>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="editBusy" (click)="saveEdit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+</main>

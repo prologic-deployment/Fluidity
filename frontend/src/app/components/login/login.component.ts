@@ -48,7 +48,7 @@ export class LoginComponent {
         // Mot de passe provisoire (accès client provisionné) : la garde de
         // route cantonne à la page Sécurité jusqu'au changement effectif.
         const destination = this.auth.isPlatformAdmin()
-          ? '/plateforme/tenants'
+          ? '/plateforme'
           : this.auth.mustChangePassword()
             ? '/profile/security'
             : '/workspace';

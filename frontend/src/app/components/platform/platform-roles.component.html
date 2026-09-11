@@ -1,0 +1,52 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.roles.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.roles.subtitle' | t }}</p>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-32"></div>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Rôles plateforme -->
+    <div class="card mb-5">
+      <div class="card-header py-3">{{ 'platform.roles.platformRoles' | t }}</div>
+      <div class="card-content p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <div *ngFor="let r of platformRoles" class="border border-border rounded-lg p-3">
+          <p class="text-sm font-semibold">{{ 'roles.' + r | t }}</p>
+          <p class="text-xs text-muted-foreground mt-1">{{ 'platform.roles.platformScope.' + r | t }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sélecteur de produit -->
+    <div class="flex items-center gap-2 mb-3 flex-wrap">
+      <span class="text-sm text-muted-foreground">{{ 'platform.roles.productLabel' | t }}</span>
+      <select [(ngModel)]="selectedProduct" class="filter-select">
+        <option *ngFor="let c of catalog" [value]="c.productKey">{{ c.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + c.productKey + '.name' | t) }}</option>
+      </select>
+      <span *ngIf="selected && !selected.available" class="badge badge-outline">{{ 'marketplace.comingSoonTag' | t }}</span>
+    </div>
+
+    <!-- Rôles produit + permissions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" *ngIf="selected">
+      <div class="card" *ngFor="let role of selected.roles">
+        <div class="card-header py-2.5">
+          <span class="text-sm font-semibold">{{ role.nameKey | t }}</span>
+        </div>
+        <div class="card-content p-3">
+          <ul class="space-y-1 text-xs">
+            <li *ngFor="let perm of role.permissions" class="flex items-center gap-1.5 text-muted-foreground">
+              <span class="text-emerald-600 dark:text-emerald-400">✓</span> {{ 'platform.roles.permission.' + perm | t }}
+            </li>
+            <li *ngIf="!role.permissions.length" class="text-muted-foreground">{{ 'platform.roles.noPermissions' | t }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-xs text-muted-foreground mt-4">{{ 'platform.roles.registryNote' | t }}</p>
+  </ng-container>
+</main>

@@ -1,0 +1,177 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.dashboard.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.dashboard.subtitle' | t }}</p>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="skeleton h-24"></div>
+  </div>
+
+  <ng-container *ngIf="!loading && data">
+    <!-- KPI ------------------------------------------------------------------>
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.tenantsTotal }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.tenants' | t }} · <span class="text-emerald-600 dark:text-emerald-400">{{ data.kpis.tenantsActive }} {{ 'platform.dashboard.kpi.active' | t }}</span></p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.usersTotal }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.users' | t }} · <span class="text-emerald-600 dark:text-emerald-400">{{ data.kpis.usersActive }} {{ 'platform.dashboard.kpi.active' | t }}</span></p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.productsAvailable }}/{{ data.kpis.productsTotal }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.products' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.activeSubscriptions }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.activeSubscriptions' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">{{ data.kpis.pendingPurchaseRequests }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.pendingRequests' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.activeLicenses }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.activeLicenses' | t }} · {{ data.kpis.availableLicenses }} {{ 'platform.dashboard.kpi.available' | t }}</p>
+      </div></div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{{ data.kpis.approvedOrders }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.approvedOrders' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums text-red-600 dark:text-red-400">{{ data.kpis.rejectedOrders }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.rejectedOrders' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.cancelledOrders }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.cancelledOrders' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.expiredSubscriptions }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.expiredSubscriptions' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.totalSeats }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.totalSeats' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-3">
+        <p class="text-xl font-semibold tabular-nums">{{ data.kpis.orderValue }} {{ data.kpis.orderCurrency }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.dashboard.kpi.orderValue' | t }}</p>
+      </div></div>
+    </div>
+
+    <!-- Graphiques ------------------------------------------------------------->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-3 mb-5">
+      <!-- Statuts de souscription -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.dashboard.chart.subscriptionStatus' | t }}</div>
+        <div class="card-content p-4 space-y-2">
+          <div *ngFor="let st of ['active', 'trial', 'past_due', 'suspended', 'expired', 'cancelled', 'pending']" class="flex items-center gap-2">
+            <span class="w-32 text-xs text-muted-foreground truncate">{{ 'subscriptions.meta.status.' + st | t }}</span>
+            <div class="grow h-4 bg-muted/50 rounded">
+              <div class="h-4 rounded bg-indigo-500/70" [style.width.%]="barHeight(data.charts.subscriptionStatus[st] || 0, maxSubStatus())"></div>
+            </div>
+            <span class="text-xs tabular-nums w-8 text-right">{{ data.charts.subscriptionStatus[st] || 0 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usage par produit -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.dashboard.chart.products' | t }}</div>
+        <div class="card-content p-4 space-y-2 max-h-72 overflow-y-auto">
+          <div *ngFor="let p of data.charts.productsUsage" class="flex items-center gap-2">
+            <span class="w-36 text-xs truncate" [title]="p.nameKey | t">{{ p.emoji }} {{ p.nameKey | t }}</span>
+            <div class="grow h-4 bg-muted/50 rounded flex">
+              <div class="h-4 rounded-l bg-indigo-500/70" [style.width.%]="barHeight(p.activeSubscriptions, maxProductUsage())" [title]="('platform.dashboard.chart.subs' | t) + ': ' + p.activeSubscriptions"></div>
+              <div class="h-4 rounded-r bg-emerald-500/70" [style.width.%]="barHeight(p.licensedUsers, maxProductUsage())" [title]="('platform.dashboard.chart.licensed' | t) + ': ' + p.licensedUsers"></div>
+            </div>
+            <span class="text-[10px] tabular-nums w-16 text-right text-muted-foreground">{{ p.activeSubscriptions }}/{{ p.licensedUsers }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commandes par statut -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.dashboard.chart.orders' | t }}</div>
+        <div class="card-content p-4 space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="w-24 text-xs text-muted-foreground">{{ 'platform.dashboard.chart.pending' | t }}</span>
+            <div class="grow h-4 bg-muted/50 rounded"><div class="h-4 rounded bg-amber-500/70" [style.width.%]="barHeight(data.charts.orderStatus.pending, 10 + data.charts.orderStatus.pending + data.charts.orderStatus.approved)"></div></div>
+            <span class="text-xs tabular-nums w-8 text-right">{{ data.charts.orderStatus.pending }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-24 text-xs text-muted-foreground">{{ 'platform.dashboard.chart.approved' | t }}</span>
+            <div class="grow h-4 bg-muted/50 rounded"><div class="h-4 rounded bg-emerald-500/70" [style.width.%]="barHeight(data.charts.orderStatus.approved, 10 + data.charts.orderStatus.pending + data.charts.orderStatus.approved)"></div></div>
+            <span class="text-xs tabular-nums w-8 text-right">{{ data.charts.orderStatus.approved }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-24 text-xs text-muted-foreground">{{ 'platform.dashboard.chart.rejected' | t }}</span>
+            <div class="grow h-4 bg-muted/50 rounded"><div class="h-4 rounded bg-red-500/70" [style.width.%]="barHeight(data.charts.orderStatus.rejected, 10 + data.charts.orderStatus.pending + data.charts.orderStatus.approved)"></div></div>
+            <span class="text-xs tabular-nums w-8 text-right">{{ data.charts.orderStatus.rejected }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-24 text-xs text-muted-foreground">{{ 'platform.dashboard.chart.cancelled' | t }}</span>
+            <div class="grow h-4 bg-muted/50 rounded"><div class="h-4 rounded bg-slate-500/70" [style.width.%]="barHeight(data.charts.orderStatus.cancelled, 10 + data.charts.orderStatus.pending + data.charts.orderStatus.approved)"></div></div>
+            <span class="text-xs tabular-nums w-8 text-right">{{ data.charts.orderStatus.cancelled }}</span>
+          </div>
+          <p class="text-xs text-muted-foreground pt-1">{{ 'platform.dashboard.manualApproval' | t }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-3">
+      <!-- Commandes en attente -->
+      <div class="card">
+        <div class="card-header py-3 flex items-center gap-2">
+          <span>{{ 'platform.dashboard.pendingTitle' | t }}</span>
+          <a class="text-xs text-primary ml-auto" routerLink="/plateforme/demandes">{{ 'platform.dashboard.viewAll' | t }}</a>
+        </div>
+        <div class="card-content divide-y divide-border" *ngIf="data.recent.pendingOrders.length; else noPending">
+          <a *ngFor="let o of data.recent.pendingOrders" class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/40" routerLink="/plateforme/demandes">
+            <span class="font-medium truncate">{{ o.tenantName || '—' }}</span>
+            <span class="text-muted-foreground truncate">{{ o.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + o.productKey + '.name' | t) }}</span>
+            <span class="badge badge-outline text-[10px] ml-auto shrink-0">{{ o.seats }} {{ 'saas.seats' | t }}</span>
+          </a>
+        </div>
+        <ng-template #noPending><div class="card-content p-4 text-sm text-muted-foreground">{{ 'platform.dashboard.noPending' | t }}</div></ng-template>
+      </div>
+
+      <!-- Activité récente -->
+      <div class="card">
+        <div class="card-header py-3 flex items-center gap-2">
+          <span>{{ 'platform.dashboard.activityTitle' | t }}</span>
+          <a class="text-xs text-primary ml-auto" routerLink="/plateforme/audit">{{ 'platform.dashboard.viewAll' | t }}</a>
+        </div>
+        <div class="card-content divide-y divide-border max-h-80 overflow-y-auto" *ngIf="data.recent.audit.length; else noActivity">
+          <div *ngFor="let a of data.recent.audit" class="px-4 py-2 text-sm">
+            <p class="font-medium">{{ auditLabel(a) | t }}</p>
+            <p class="text-xs text-muted-foreground">{{ actorName(a) }} · {{ a.createdAt | dateLocale:'short' }}</p>
+          </div>
+        </div>
+        <ng-template #noActivity><div class="card-content p-4 text-sm text-muted-foreground">{{ 'platform.dashboard.noActivity' | t }}</div></ng-template>
+      </div>
+
+      <!-- Tenants récents -->
+      <div class="card">
+        <div class="card-header py-3 flex items-center gap-2">
+          <span>{{ 'platform.dashboard.tenantsTitle' | t }}</span>
+          <a class="text-xs text-primary ml-auto" routerLink="/plateforme/tenants">{{ 'platform.dashboard.viewAll' | t }}</a>
+        </div>
+        <div class="card-content divide-y divide-border" *ngIf="data.recent.tenants.length; else noTenants">
+          <a *ngFor="let t of data.recent.tenants" class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/40" routerLink="/plateforme/tenants">
+            <span class="font-medium truncate">{{ t.name }}</span>
+            <span class="badge ml-auto shrink-0" [ngClass]="t.status === 'active' ? 'badge-success' : 'badge-warning'">{{ 'tenants.status.' + t.status | t }}</span>
+          </a>
+        </div>
+        <ng-template #noTenants><div class="card-content p-4 text-sm text-muted-foreground">{{ 'platform.dashboard.noTenants' | t }}</div></ng-template>
+      </div>
+    </div>
+  </ng-container>
+</main>

@@ -1,0 +1,121 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.orders.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.orders.subtitle' | t }}</p>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">{{ pending.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.orders.statPending' | t }}</p>
+    </div></div>
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{{ approved.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.orders.statApproved' | t }}</p>
+    </div></div>
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums text-red-600 dark:text-red-400">{{ rejected.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.orders.statRejected' | t }}</p>
+    </div></div>
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums">{{ cancelled.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.orders.statCancelled' | t }}</p>
+    </div></div>
+  </div>
+
+  <div class="flex items-center gap-2 mb-3">
+    <select [(ngModel)]="statusFilter" class="filter-select">
+      <option value="all">{{ 'platform.orders.filterAll' | t }}</option>
+      <option value="pending">{{ 'platform.orders.filterPending' | t }}</option>
+      <option value="approved">{{ 'platform.orders.filterApproved' | t }}</option>
+      <option value="rejected">{{ 'platform.orders.filterRejected' | t }}</option>
+      <option value="cancelled">{{ 'platform.orders.filterCancelled' | t }}</option>
+    </select>
+    <p class="text-xs text-muted-foreground">{{ 'saas.manualApproval' | t }}</p>
+  </div>
+
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+  </div>
+
+  <div *ngIf="!loading && filtered().length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'saas.orderTenant' | t }}</th>
+          <th>{{ 'platform.orders.requester' | t }}</th>
+          <th>{{ 'saas.orderProduct' | t }}</th>
+          <th>{{ 'saas.orderPlan' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'saas.orderSeats' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'saas.orderTotal' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'saas.orderDate' | t }}</th>
+          <th>{{ 'saas.orderStatus' | t }}</th>
+          <th class="hidden xl:table-cell">{{ 'platform.orders.reviewedBy' | t }}</th>
+          <th>{{ 'saas.action' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let o of filtered()">
+          <td class="font-medium">{{ tenantName(o) }}</td>
+          <td class="text-sm">{{ requesterName(o) }}</td>
+          <td class="text-sm">{{ productLabel(o) }}</td>
+          <td class="text-sm">{{ 'subscriptions.meta.plan.' + o.planId | t }}</td>
+          <td class="hidden md:table-cell tabular-nums">{{ o.seats }}</td>
+          <td class="hidden md:table-cell tabular-nums">{{ o.total }} {{ o.currency }}</td>
+          <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{{ o.createdAt | dateLocale:'short' }}</td>
+          <td><span class="badge" [ngClass]="statusBadge(o)">{{ 'subscriptions.meta.orderStatus.' + o.status | t }}</span></td>
+          <td class="hidden xl:table-cell text-sm text-muted-foreground">{{ reviewerName(o) }}</td>
+          <td class="whitespace-nowrap">
+            <button type="button" class="btn-ghost btn-sm" (click)="openDetail(o)">{{ 'platform.orders.view' | t }}</button>
+            <button *ngIf="canDecide(o)" type="button" class="btn-outline btn-sm ml-1" (click)="openDetail(o)">{{ 'platform.orders.review' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !filtered().length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.orders.empty' | t }}</div>
+  </div>
+
+  <!-- Détail / examen de la demande -->
+  <app-modal [open]="!!detail" [title]="'platform.orders.detailTitle' | t" (closed)="detail = null">
+    <div *ngIf="detailLoading" class="p-4"><div class="skeleton h-40"></div></div>
+    <div class="p-4 space-y-3" *ngIf="detail && !detailLoading">
+      <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderTenant' | t }}</dt><dd class="font-medium">{{ detail.order.tenantName || '—' }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'platform.orders.requester' | t }}</dt><dd>{{ requesterName(detail.order) }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderProduct' | t }}</dt><dd>{{ productLabel(detail.order) }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderPlan' | t }}</dt><dd>{{ 'subscriptions.meta.plan.' + detail.order.planId | t }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderSeats' | t }}</dt><dd class="tabular-nums">{{ detail.order.seats }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderTotal' | t }}</dt><dd class="tabular-nums font-medium">{{ detail.order.total }} {{ detail.order.currency }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.billing' | t }}</dt><dd>{{ 'subscriptions.meta.cycle.' + detail.order.billingPeriod | t }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderDate' | t }}</dt><dd>{{ detail.order.createdAt | dateLocale:'short' }}</dd></div>
+        <div class="flex justify-between gap-2 col-span-2"><dt class="text-muted-foreground">{{ 'platform.orders.payment' | t }}</dt><dd class="badge badge-outline">{{ 'platform.orders.manualApprovalBadge' | t }}</dd></div>
+        <div class="flex justify-between gap-2 col-span-2"><dt class="text-muted-foreground">{{ 'platform.orders.currentProducts' | t }}</dt>
+          <dd class="text-right text-sm">
+            <div *ngFor="let cp of detail.currentProducts" class="flex items-center gap-1 justify-end">
+              <span>{{ cp.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + cp.productKey + '.name' | t) }}</span>
+              <span class="badge" [ngClass]="['active','trial','past_due'].includes(cp.status) ? 'badge-success' : 'badge-warning'">{{ 'subscriptions.meta.status.' + cp.status | t }}</span>
+            </div>
+            <p class="text-xs text-muted-foreground mt-1">{{ 'platform.orders.currentSeats' | t }}: {{ detail.order.seats }} · {{ 'platform.orders.activeLicenses' | t }}: {{ detail.activeLicenses }}</p>
+          </dd>
+        </div>
+      </dl>
+      <label class="block text-sm" *ngIf="canDecide(detail.order)">
+        <span class="text-muted-foreground">{{ 'platform.orders.reviewNote' | t }}</span>
+        <textarea [(ngModel)]="reviewNote" rows="2" class="input mt-1"></textarea>
+      </label>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" class="btn-ghost btn-sm" (click)="detail = null">{{ 'common.cancel' | t }}</button>
+        <ng-container *ngIf="canDecide(detail.order)">
+          <button type="button" class="btn-danger btn-sm" [disabled]="busy" (click)="reject()">{{ 'saas.reject' | t }}</button>
+          <button type="button" class="btn-primary btn-sm" [disabled]="busy" (click)="approve()">{{ 'saas.approve' | t }}</button>
+        </ng-container>
+      </div>
+    </div>
+  </app-modal>
+</main>

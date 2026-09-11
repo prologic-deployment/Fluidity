@@ -4,10 +4,13 @@ import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { catchError, map, shareReplay, switchMap, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import {
+  AdminProduct,
   AuditEntry,
   Entitlements,
   License,
   NotificationItem,
+  OrderDetail,
+  PlatformDashboard,
   ProductInfo,
   RoleAssignment,
   Subscription,
@@ -166,12 +169,34 @@ export class PlatformService {
     return this.http.get<{ orders: OrderItem[] }>(`${this.base}/orders`);
   }
 
-  approveOrder(id: string, note?: string): Observable<{ order: OrderItem; subscription?: Subscription }> {
-    return this.http.post<{ order: OrderItem; subscription?: Subscription }>(`${this.base}/orders/${id}/approve`, { note });
+  approveOrder(id: string, reviewNote?: string): Observable<{ order: OrderItem; subscription?: Subscription }> {
+    return this.http.post<{ order: OrderItem; subscription?: Subscription }>(`${this.base}/orders/${id}/approve`, { reviewNote });
   }
 
-  rejectOrder(id: string, note?: string): Observable<{ order: OrderItem }> {
-    return this.http.post<{ order: OrderItem }>(`${this.base}/orders/${id}/reject`, { note });
+  rejectOrder(id: string, reviewNote?: string): Observable<{ order: OrderItem }> {
+    return this.http.post<{ order: OrderItem }>(`${this.base}/orders/${id}/reject`, { reviewNote });
+  }
+
+  // --- Administration plateforme (Super Admin) ------------------------------
+
+  /** Tableau de bord GLOBAL : KPIs, graphiques, activité récente. */
+  dashboard(): Observable<PlatformDashboard> {
+    return this.http.get<PlatformDashboard>(`${this.base}/dashboard`);
+  }
+
+  /** Produits en mode administration (usage réel + dérogations). */
+  productsAdmin(): Observable<AdminProduct[]> {
+    return this.http.get<{ products: AdminProduct[] }>(`${this.base}/products/admin`).pipe(map((r) => r.products));
+  }
+
+  /** Active/désactive un produit (dérogation administrative réversible). */
+  updateProduct(key: string, available: boolean, note = ''): Observable<{ message: string }> {
+    return this.http.patch<{ message: string }>(`${this.base}/products/${key}`, { available, note });
+  }
+
+  /** Détail d'une commande pour l'examen (tenant + produits actuels). */
+  orderDetail(id: string): Observable<OrderDetail> {
+    return this.http.get<OrderDetail>(`${this.base}/orders/${id}`);
   }
 
   /** Active/désactive le renouvellement automatique d'une souscription. */

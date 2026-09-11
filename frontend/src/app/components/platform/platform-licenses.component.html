@@ -1,0 +1,96 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.licenses.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.licenses.subtitle' | t }}</p>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums">{{ licenses.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.licenses.statTotal' | t }}</p>
+    </div></div>
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{{ assigned.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.licenses.statAssigned' | t }}</p>
+    </div></div>
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums">{{ available.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.licenses.statAvailable' | t }}</p>
+    </div></div>
+    <div class="card"><div class="card-content py-3">
+      <p class="text-xl font-semibold tabular-nums text-amber-600 dark:text-amber-400">{{ suspended.length + revoked.length }}</p>
+      <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.licenses.statSuspended' | t }} / {{ 'platform.licenses.statRevoked' | t }}</p>
+    </div></div>
+  </div>
+
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <select [(ngModel)]="tenantFilter" class="filter-select">
+      <option value="all">{{ 'platform.licenses.filterAllTenants' | t }}</option>
+      <option *ngFor="let t of tenants" [value]="t">{{ t }}</option>
+    </select>
+    <select [(ngModel)]="productFilter" class="filter-select">
+      <option value="all">{{ 'platform.licenses.filterAllProducts' | t }}</option>
+      <option *ngFor="let p of products" [value]="p">{{ p === 'project_management' ? ('nav.projects' | t) : ('products.' + p + '.name' | t) }}</option>
+    </select>
+    <select [(ngModel)]="statusFilter" class="filter-select">
+      <option value="all">{{ 'platform.licenses.filterAllStatus' | t }}</option>
+      <option value="active">{{ 'platform.licenses.statAssigned' | t }}</option>
+      <option value="suspended">{{ 'platform.licenses.statSuspended' | t }}</option>
+      <option value="revoked">{{ 'platform.licenses.statRevoked' | t }}</option>
+    </select>
+    <input type="search" [(ngModel)]="search" class="input w-64" [placeholder]="'platform.licenses.search' | t" />
+    <span class="text-xs text-muted-foreground tabular-nums ml-auto">{{ filtered().length }} / {{ licenses.length }}</span>
+  </div>
+
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+  </div>
+
+  <div *ngIf="!loading && filtered().length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'saas.orderTenant' | t }}</th>
+          <th>{{ 'platform.licenses.user' | t }}</th>
+          <th>{{ 'saas.product' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'platform.licenses.role' | t }}</th>
+          <th>{{ 'platform.licenses.licenseStatus' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'platform.licenses.assignedDate' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'platform.licenses.expiration' | t }}</th>
+          <th>{{ 'saas.action' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let l of filtered()">
+          <td class="font-medium">{{ l.tenantName || '—' }}</td>
+          <td class="text-sm">
+            <ng-container *ngIf="l.userId; else unassigned">
+              <p class="font-medium">{{ userName(l) }}</p>
+              <p class="text-xs text-muted-foreground">{{ userEmail(l) }}</p>
+            </ng-container>
+            <ng-template #unassigned><span class="badge badge-outline">{{ 'platform.licenses.unassigned' | t }}</span></ng-template>
+          </td>
+          <td class="text-sm">{{ productLabel(l.productKey) }}</td>
+          <td class="hidden md:table-cell text-sm">—</td>
+          <td><span class="badge" [ngClass]="statusBadge(l.status)">{{ 'platform.licenses.status.' + l.status | t }}</span></td>
+          <td class="hidden md:table-cell text-sm text-muted-foreground">{{ l.startDate | dateLocale:'short' }}</td>
+          <td class="hidden lg:table-cell text-sm text-muted-foreground">{{ l.endDate ? (l.endDate | dateLocale:'short') : '—' }}</td>
+          <td class="whitespace-nowrap">
+            <ng-container *ngIf="l.userId && l.status !== 'revoked'">
+              <button type="button" class="btn-ghost btn-sm" (click)="toggleStatus(l)">{{ l.status === 'suspended' ? ('platform.licenses.reactivate' | t) : ('platform.licenses.suspend' | t) }}</button>
+              <button type="button" class="btn-ghost btn-sm text-destructive" (click)="revoke(l)">{{ 'platform.licenses.revoke' | t }}</button>
+            </ng-container>
+            <span *ngIf="!l.userId || l.status === 'revoked'" class="text-xs text-muted-foreground">—</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="!loading && !filtered().length" class="card">
+    <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.licenses.empty' | t }}</div>
+  </div>
+</main>
