@@ -149,8 +149,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
         label: 'nav.platformGroup',
         icon: 'grid',
         open: true,
+        children: [{ label: 'platform.dashboard.nav', path: '/plateforme' }],
+      });
+      groups.push({
+        label: 'nav.tenantGroup',
+        icon: 'users',
+        open: true,
         children: [
-          { label: 'platform.dashboard.nav', path: '/plateforme' },
           { label: 'nav.tenants', path: '/plateforme/tenants' },
           { label: 'platform.users.nav', path: '/plateforme/utilisateurs' },
         ],
@@ -168,13 +173,24 @@ export class SidebarComponent implements OnInit, OnDestroy {
         ],
       });
       groups.push({
+        label: 'nav.communicationGroup',
+        icon: 'bell',
+        open: true,
+        children: [{ label: 'platform.notifications.nav', path: '/plateforme/notifications' }],
+      });
+      groups.push({
         label: 'nav.monitoringGroup',
         icon: 'activity',
         open: true,
+        children: [{ label: 'platform.audit.nav', path: '/plateforme/audit' }],
+      });
+      groups.push({
+        label: 'nav.configurationGroup',
+        icon: 'settings',
+        open: true,
         children: [
-          { label: 'platform.notifications.nav', path: '/plateforme/notifications' },
-          { label: 'platform.audit.nav', path: '/plateforme/audit' },
           { label: 'platform.roles.nav', path: '/plateforme/roles-permissions' },
+          { label: 'platform.settings.nav', path: '/plateforme/reglages' },
         ],
       });
     }
