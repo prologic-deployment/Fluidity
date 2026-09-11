@@ -35,6 +35,7 @@ import { PlatformProductsComponent } from './components/platform/platform-produc
 import { PlatformNotificationsComponent } from './components/platform/platform-notifications.component';
 import { PlatformAuditComponent } from './components/platform/platform-audit.component';
 import { PlatformRolesComponent } from './components/platform/platform-roles.component';
+import { PlatformSettingsComponent } from './components/platform/platform-settings.component';
 import { UsersDashboardComponent } from './components/users-dashboard/users-dashboard.component';
 import { ProfilComponent } from './components/profil/profil.component';
 import { SecurityPageComponent } from './components/security/security-page.component';
@@ -161,6 +162,7 @@ export const routes: Routes = [
           { path: 'notifications', component: PlatformNotificationsComponent, data: { breadcrumb: 'platform.notifications.nav' } },
           { path: 'audit', component: PlatformAuditComponent, data: { breadcrumb: 'platform.audit.nav' } },
           { path: 'roles-permissions', component: PlatformRolesComponent, data: { breadcrumb: 'platform.roles.nav' } },
+          { path: 'reglages', component: PlatformSettingsComponent, data: { breadcrumb: 'platform.settings.nav' } },
         ],
       },
       { path: 'utilisateurs', component: UsersDashboardComponent, canActivate: [tenantAdminGuard], data: { breadcrumb: 'nav.users' } },

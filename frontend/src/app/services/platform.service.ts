@@ -11,6 +11,7 @@ import {
   NotificationItem,
   OrderDetail,
   PlatformDashboard,
+  PlatformSystemInfo,
   ProductInfo,
   RoleAssignment,
   Subscription,
@@ -192,6 +193,11 @@ export class PlatformService {
   /** Active/désactive un produit (dérogation administrative réversible). */
   updateProduct(key: string, available: boolean, note = ''): Observable<{ message: string }> {
     return this.http.patch<{ message: string }>(`${this.base}/products/${key}`, { available, note });
+  }
+
+  /** État de la plateforme (Réglages & Santé) : santé, mailing, compteurs. */
+  system(): Observable<PlatformSystemInfo> {
+    return this.http.get<PlatformSystemInfo>(`${this.base}/system`);
   }
 
   /** Détail d'une commande pour l'examen (tenant + produits actuels). */

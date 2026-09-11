@@ -1,0 +1,94 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-3 mb-5 flex-wrap">
+    <h1 class="text-xl font-semibold">{{ 'platform.settings.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.settings.subtitle' | t }}</p>
+    <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+  <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-40"></div>
+  </div>
+
+  <ng-container *ngIf="!loading && info">
+    <!-- Bandeau d'état global -->
+    <div class="card mb-4">
+      <div class="card-content p-4 flex items-center gap-3 flex-wrap">
+        <span class="h-2.5 w-2.5 rounded-full" [class.bg-emerald-500]="info.status === 'operational'" [class.bg-red-500]="info.status !== 'operational'"></span>
+        <p class="text-sm font-semibold">{{ info.status === 'operational' ? ('platform.settings.operational' | t) : ('platform.settings.degraded' | t) }}</p>
+        <span class="badge badge-outline ml-auto">{{ 'platform.settings.uptime' | t }} : {{ uptime() }}</span>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Santé des services -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.settings.health' | t }}</div>
+        <div class="card-content p-4 space-y-2.5 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.api' | t }}</span>
+            <span class="badge" [ngClass]="info.api.up ? 'badge-success' : 'badge-destructive'">{{ info.api.up ? ('platform.settings.up' | t) : ('platform.settings.down' | t) }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.database' | t }}</span>
+            <span class="badge" [ngClass]="info.database.up ? 'badge-success' : 'badge-destructive'">{{ info.database.up ? ('platform.settings.up' | t) : ('platform.settings.down' | t) }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.version' | t }}</span>
+            <span class="font-mono text-xs">{{ info.api.version }} · Node {{ info.api.node }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mailing -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.settings.mailing' | t }}</div>
+        <div class="card-content p-4 space-y-2.5 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">SMTP</span>
+            <span class="badge" [ngClass]="info.mailing.smtpConfigured ? 'badge-success' : 'badge-secondary'">
+              {{ info.mailing.smtpConfigured ? ('platform.settings.configured' | t) : ('platform.settings.notConfigured' | t) }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between" *ngIf="info.mailing.smtpConfigured">
+            <span class="text-muted-foreground">{{ 'platform.settings.smtpHost' | t }}</span>
+            <span class="font-mono text-xs">{{ info.mailing.host }}</span>
+          </div>
+          <div class="flex items-center justify-between" *ngIf="info.mailing.from">
+            <span class="text-muted-foreground">{{ 'platform.settings.mailFrom' | t }}</span>
+            <span class="font-mono text-xs">{{ info.mailing.from }}</span>
+          </div>
+          <p class="text-xs text-muted-foreground border-t border-border pt-2">{{ info.mailing.note }}</p>
+        </div>
+      </div>
+
+      <!-- Paiement -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.settings.payment' | t }}</div>
+        <div class="card-content p-4 space-y-2.5 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.paymentMode' | t }}</span>
+            <span class="badge badge-outline">{{ 'platform.orders.manualApprovalBadge' | t }}</span>
+          </div>
+          <p class="text-xs text-muted-foreground border-t border-border pt-2">{{ info.payment.note }}</p>
+        </div>
+      </div>
+
+      <!-- Compteurs plateforme -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.settings.counts' | t }}</div>
+        <div class="card-content p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+          <div><p class="text-lg font-semibold tabular-nums">{{ info.counts.tenants }}</p><p class="text-xs text-muted-foreground">{{ 'platform.settings.cTenants' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ info.counts.users }}</p><p class="text-xs text-muted-foreground">{{ 'platform.settings.cUsers' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ info.counts.products }}</p><p class="text-xs text-muted-foreground">{{ 'platform.settings.cProducts' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ info.counts.subscriptions }}</p><p class="text-xs text-muted-foreground">{{ 'platform.settings.cSubscriptions' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ info.counts.licenses }}</p><p class="text-xs text-muted-foreground">{{ 'platform.settings.cLicenses' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ info.counts.orders }}</p><p class="text-xs text-muted-foreground">{{ 'platform.settings.cOrders' | t }}</p></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-xs text-muted-foreground mt-4">{{ 'platform.settings.readonlyNote' | t }}</p>
+  </ng-container>
+</main>

@@ -231,3 +231,14 @@ export interface OrderDetail {
   currentProducts: { productKey: string; planId: string; seats: number; status: string; endDate?: string }[];
   activeLicenses: number;
 }
+
+/** État de la plateforme (page Réglages & Santé du Super Admin). */
+export interface PlatformSystemInfo {
+  status: 'operational' | 'degraded';
+  api: { up: boolean; version: string; node: string };
+  database: { up: boolean; name: string };
+  mailing: { smtpConfigured: boolean; host: string; from: string; note: string };
+  payment: { provider: string; note: string };
+  counts: { tenants: number; users: number; products: number; subscriptions: number; licenses: number; orders: number };
+  uptimeSeconds: number;
+}
