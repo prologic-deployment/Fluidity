@@ -39,7 +39,7 @@ const mongoose = require('mongoose');
       console.log('tickets list (' + ticketsRaw.status + '):', count);
       // Demande creation quick check
       const demandes = await fetch(base + '/api/demandes', { headers: h }).then(r => r.json());
-      console.log('demandes:', Array.isArray(demandes) ? demandes.length : (demandes.demandes ? demandes.demandes.length : '?'));
+      console.log('demandes:', demandes?.items?.length ?? (Array.isArray(demandes) ? demandes.length : '?'));
       // 2FA user login (password only -> should ask OTP)
       const tfa = await fetch(base + '/api/auth/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },

@@ -83,11 +83,13 @@ const check = (name, ok, extra = '') => {
       const order = await api('/api/platform/me/orders', { method: 'POST', token: nova, body: { productKey: 'project_management', planId: 'starter', billingPeriod: 'annual', seats: 3, paymentMethod: 'bank_transfer' } });
       check('commande doublon (project_management déjà actif) → 409', order.status === 409 && order.data.code === 'ALREADY_SUBSCRIBED', String(order.status));
       // Renouvellement : Fluidity a une souscription EXPIRÉE → nouvelle commande acceptée.
+      // (7 sièges : la démo seede déjà une commande identique business/mensuel/5
+      // en attente — le garde-fou anti-doublon DB-003 la protège volontairement.)
       const fluidityToken = await login('admin@fluidity.dev');
       check('login admin Fluidity', !!fluidityToken);
-      const renewal = await api('/api/platform/me/orders', { method: 'POST', token: fluidityToken, body: { productKey: 'project_management', planId: 'business', billingPeriod: 'monthly', seats: 5, paymentMethod: 'invoice' } });
+      const renewal = await api('/api/platform/me/orders', { method: 'POST', token: fluidityToken, body: { productKey: 'project_management', planId: 'business', billingPeriod: 'monthly', seats: 7, paymentMethod: 'invoice' } });
       check('commande de renouvellement créée (pending_approval)', renewal.status === 201 && ['pending_approval', 'pending'].includes(renewal.data.order?.status), String(renewal.status));
-      check('total calculé (monthly business 15×5)', renewal.data.order?.total === 75, String(renewal.data.order?.total));
+      check('total calculé (monthly business 15×7)', renewal.data.order?.total === 105, String(renewal.data.order?.total));
       const orders = await api('/api/platform/me/orders', { token: fluidityToken });
       check('liste des commandes', orders.status === 200 && orders.data.orders?.length >= 1);
       const cancelled = await api(`/api/platform/me/orders/${renewal.data.order._id}/cancel`, { method: 'POST', token: fluidityToken });
@@ -95,7 +97,7 @@ const check = (name, ok, extra = '') => {
 
       // Préférences de notification (GET/PATCH)
       const prefs = await api('/api/platform/me/notifications/preferences', { token: nova });
-      check('préférences (30 événements)', prefs.status === 200 && Object.keys(prefs.data.preferences).length === 30, String(Object.keys(prefs.data.preferences || {}).length));
+      check('préférences (31 événements)', prefs.status === 200 && Object.keys(prefs.data.preferences).length === 31, String(Object.keys(prefs.data.preferences || {}).length));
       const patched = await api('/api/platform/me/notifications/preferences', { method: 'PATCH', token: nova, body: { events: { task_assigned: { email: false, inapp: true } } } });
       check('préférence mise à jour', patched.status === 200 && patched.data.preferences.task_assigned?.email === false);
 

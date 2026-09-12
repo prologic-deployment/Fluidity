@@ -1,7 +1,10 @@
 /** Round 2 : vérifications UI des nouveautés (sidebar SA §29, Réglages &
  *  Santé, colonne tenant SA, filtre produit des abonnements). */
 const { chromium } = require('playwright');
-const BASE = process.argv[2] || 'http://127.0.0.1:8080';
+if (process.argv[2]) process.env.QA_BASE_URL = process.argv[2];
+// INFO-003 : base QA obligatoirement locale (identifiants de démo).
+const { qaBaseUrl } = require('./qa-base.util');
+const BASE = qaBaseUrl('http://127.0.0.1:8080');
 
 let pass = 0;
 let fail = 0;

@@ -84,11 +84,23 @@ const check = (name, ok, extra = '') => {
       check('créateur = project_admin', true);
 
       console.log('— Membres');
-      const viewerId = (await (await fetch(base + '/api/users', { headers: { Authorization: 'Bearer ' + novaToken } })).json()).find?.((u) => u.email === 'viewer@nova-systems.dev')?._id;
+      const viewerId = ((await (await fetch(base + '/api/users', { headers: { Authorization: 'Bearer ' + novaToken } })).json())?.items || []).find?.((u) => u.email === 'viewer@nova-systems.dev')?._id;
       const addMember = await api(`/api/projects/${pId}/members`, { method: 'POST', token: novaToken, body: { userId: viewerId, roleKey: 'project_viewer' } });
       check('ajout membre viewer', addMember.status === 201);
       const addForeign = await api(`/api/projects/${pId}/members`, { method: 'POST', token: novaToken, body: { userId: 'aaaaaaaaaaaaaaaaaaaaaaaa', roleKey: 'project_member' } });
       check('utilisateur inconnu refusé', addForeign.status === 400 || addForeign.status === 403, `status=${addForeign.status}`);
+
+      console.log('— AUTHZ-003 : validation des membres initiaux à la création');
+      const { Utilisateur: UserModel } = require(path.join(__dirname, '..', 'src', 'models', 'user.model'));
+      const adminFluidityFiche = await UserModel.findOne({ email: 'admin@fluidity.dev' }).select('_id').lean();
+      const crossManager = await api('/api/projects', { method: 'POST', token: novaToken, body: { name: 'Projet manager hors tenant', methodology: 'kanban', managerId: String(adminFluidityFiche._id) } });
+      check('manager hors tenant → 403 CROSS_TENANT_MEMBER', crossManager.status === 403 && crossManager.data.code === 'CROSS_TENANT_MEMBER', `status=${crossManager.status} code=${crossManager.data.code}`);
+      const crossMember = await api('/api/projects', { method: 'POST', token: novaToken, body: { name: 'Projet membre hors tenant', methodology: 'kanban', teamMembers: [{ userId: String(adminFluidityFiche._id), roleKey: 'developer' }] } });
+      check('membre initial hors tenant → 403 CROSS_TENANT_MEMBER', crossMember.status === 403 && crossMember.data.code === 'CROSS_TENANT_MEMBER', `status=${crossMember.status} code=${crossMember.data.code}`);
+      const badRole = await api('/api/projects', { method: 'POST', token: novaToken, body: { name: 'Projet rôle invalide', methodology: 'kanban', teamMembers: [{ userId: viewerId, roleKey: 'super_admin' }] } });
+      check('rôle projet invalide → 400', badRole.status === 400, `status=${badRole.status}`);
+      const okTeam = await api('/api/projects', { method: 'POST', token: novaToken, body: { name: 'Projet équipe validée', methodology: 'kanban', teamMembers: [{ userId: viewerId, roleKey: 'developer' }] } });
+      check('création avec membres validés → 201', okTeam.status === 201, `status=${okTeam.status} ${JSON.stringify(okTeam.data).slice(0, 120)}`);
 
       console.log('— Tâches & workflow');
       const t1 = await api(`/api/projects/${pId}/tasks`, { method: 'POST', token: novaToken, body: { title: 'Tâche E2E 1', status: 'backlog', priority: 'medium' } });
@@ -190,6 +202,17 @@ const check = (name, ok, extra = '') => {
       const carthageProjects = await api('/api/projects', { token: carthageToken });
       check('souscription suspendue → accès coupé', carthageProjects.status === 403, `status=${carthageProjects.status}`);
 
+      console.log('— LEAK-003 : bornage du catalogue de rôles et du checkout');
+      const rolesViewer = await api('/api/platform/roles', { token: viewerToken });
+      check('/platform/roles refusé à un viewer (403)', rolesViewer.status === 403, `status=${rolesViewer.status}`);
+      const rolesAdmin = await api('/api/platform/roles', { token: novaToken });
+      check('/platform/roles accessible aux admins', rolesAdmin.status === 200 && Array.isArray(rolesAdmin.data.roles) && rolesAdmin.data.roles.length > 0, `status=${rolesAdmin.status}`);
+      const subProjId = (await api('/api/platform/subscriptions', { token: novaToken })).data.subscriptions?.find((s) => s.productKey === 'project_management')?._id;
+      const checkoutViewer = await api(`/api/platform/subscriptions/${subProjId}/checkout`, { method: 'POST', token: viewerToken });
+      check('checkout refusé à un viewer (403)', checkoutViewer.status === 403, `status=${checkoutViewer.status}`);
+      const checkoutCross = await api(`/api/platform/subscriptions/${subProjId}/checkout`, { method: 'POST', token: fluidityToken });
+      check('checkout sur souscription d’un autre tenant → 404', checkoutCross.status === 404, `status=${checkoutCross.status}`);
+
       console.log('— Portail abonnements (commande → annulation → checkout 501)');
       const portalOverview = await api('/api/platform/me/overview', { token: novaToken });
       check('overview portail', portalOverview.status === 200 && portalOverview.data.totalProducts >= 2);
@@ -239,7 +262,7 @@ const check = (name, ok, extra = '') => {
       check('rejet → produit non activé', !(soloEnt.data.accessibleKeys || []).includes('project_management'));
 
       console.log('— Cycle de vie licences (assignation → accès → révocation)');
-      const nabilId = (await (await fetch(base + '/api/users', { headers: { Authorization: 'Bearer ' + novaToken } })).json()).find?.((u) => u.email === 'nabil.user@nova-systems.dev')?._id;
+      const nabilId = ((await (await fetch(base + '/api/users', { headers: { Authorization: 'Bearer ' + novaToken } })).json())?.items || []).find?.((u) => u.email === 'nabil.user@nova-systems.dev')?._id;
       const assign = await api('/api/platform/licenses', { method: 'POST', token: novaToken, body: { userId: nabilId, productKey: 'project_management' } });
       check('licence assignée à un utilisateur sans licence', assign.status === 201, `status=${assign.status}`);
       const nabilEnt = await api('/api/platform/me/entitlements', { token: noLicToken });

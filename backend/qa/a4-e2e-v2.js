@@ -14,8 +14,11 @@
  */
 const { chromium } = require('playwright');
 
-const BASE = process.argv[2] || 'http://127.0.0.1:8080';
-const API = 'http://127.0.0.1:3000/api';
+if (process.argv[2]) process.env.QA_BASE_URL = process.argv[2];
+// INFO-003 : base QA obligatoirement locale (identifiants de démo).
+const { qaBaseUrl } = require('./qa-base.util');
+const BASE = qaBaseUrl('http://127.0.0.1:8080');
+const API = qaBaseUrl('http://127.0.0.1:3000') + '/api';
 const results = [];
 
 function check(name, ok, detail = '') {

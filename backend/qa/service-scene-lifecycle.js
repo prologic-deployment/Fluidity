@@ -1,6 +1,8 @@
 const { chromium, firefox } = require('playwright');
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+// INFO-003 : base QA obligatoirement locale (identifiants/démo uniquement).
+const { qaBaseUrl } = require('./qa-base.util');
+const BASE_URL = qaBaseUrl(process.env.BASE_URL || 'http://localhost:3000');
 const STEP_CENTERS = [0.052, 0.135, 0.225, 0.315, 0.405, 0.5, 0.6, 0.695, 0.785, 0.875, 0.952];
 
 const targets = [

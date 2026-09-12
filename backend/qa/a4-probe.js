@@ -3,7 +3,9 @@
  * (Licences & rôles produit, Licences, approbation d'achat, dashboard Super Admin).
  * Usage : node qa/a4-probe.js
  */
-const BASE = 'http://127.0.0.1:3000/api';
+// INFO-003 : base QA obligatoirement locale (identifiants de démo).
+const { qaBaseUrl } = require('./qa-base.util');
+const BASE = qaBaseUrl('http://127.0.0.1:3000') + '/api';
 
 async function login(email) {
   const r = await fetch(`${BASE}/auth/login`, {

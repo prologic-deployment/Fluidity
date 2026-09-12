@@ -1,6 +1,8 @@
 /** Vérification §30/§31 : sidebars Tenant Admin et utilisateur simple. */
 const { chromium } = require('playwright');
-const BASE = 'http://127.0.0.1:8080';
+// INFO-003 : base QA obligatoirement locale (identifiants de démo).
+const { qaBaseUrl } = require('./qa-base.util');
+const BASE = qaBaseUrl('http://127.0.0.1:8080');
 
 (async () => {
   const browser = await chromium.launch({ args: ['--no-sandbox'] });

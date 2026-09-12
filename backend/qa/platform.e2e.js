@@ -135,8 +135,8 @@ const check = (name, ok, extra = '') => {
 
       // ------------------------------------------------------------- 7. PLAFOND DE LICENCES
       const pmSub = (await api('/api/platform/subscriptions', { token: nova })).data.subscriptions.find((s) => s.productKey === 'project_management');
-      const freeUser = (await api('/api/users', { token: nova })).data.find((u) => u.status !== 'suspended' && u.role !== 'TENANT_ADMIN' && !pmSub);
-      const usersNova = (await api('/api/users', { token: nova })).data;
+      const freeUser = ((await api('/api/users', { token: nova })).data?.items || []).find((u) => u.status !== 'suspended' && u.role !== 'TENANT_ADMIN' && !pmSub);
+      const usersNova = (await api('/api/users', { token: nova })).data?.items || [];
       const licsNova = novaLics.data.licenses.filter((l) => l.productKey === 'project_management' && l.status === 'active');
       const candidate = usersNova.find((u) => !licsNova.some((l) => String(l.userId._id) === String(u._id)));
       if (pmSub && candidate) {

@@ -1,5 +1,7 @@
 /** Vérifie les correctifs : licences globales, /users/licenses global, requérant Carthage. */
-const BASE = 'http://127.0.0.1:3000/api';
+// INFO-003 : base QA obligatoirement locale (identifiants de démo).
+const { qaBaseUrl } = require('./qa-base.util');
+const BASE = qaBaseUrl('http://127.0.0.1:3000') + '/api';
 async function login(email) {
   const r = await fetch(`${BASE}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: 'Password123!' }) });
   const j = await r.json().catch(() => ({}));
