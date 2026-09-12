@@ -34,7 +34,7 @@ const DEMANDE_STATUTS_ANNULABLES = ['Ouverte', "En cours d'analyse", 'En attente
 
 const DEMANDE_TRANSITIONS = {
   Ouverte: [
-    // Étape 2 : Qualification et vérification d'éligibilité (Support N1)
+    // Étape 2 : Qualification et vérification d'éligibilité (AGENT)
     { to: "En cours d'analyse", roles: ['AGENT'] },
   ],
   "En cours d'analyse": [
@@ -52,7 +52,7 @@ const DEMANDE_TRANSITIONS = {
     { to: 'Rejetée', roles: ['MANAGER'] },
   ],
   "En cours de réalisation": [
-    // Étape 4 : Réalisation de la demande (Support N1/N2)
+    // Étape 4 : Réalisation de la demande (AGENT / MANAGER)
     { to: 'Réalisée', roles: ['AGENT'] },
     { to: 'En attente client', roles: ['AGENT'] },
   ],
@@ -64,7 +64,7 @@ const DEMANDE_TRANSITIONS = {
   ],
   Rejetée: [], // état final, motivé
   Réalisée: [
-    // Étape 5 : Confirmation et clôture (Client / Support N1)
+    // Étape 5 : Confirmation et clôture (CLIENT / AGENT)
     { to: 'Clôturée', roles: ['CLIENT', 'AGENT'] },
   ],
   Clôturée: [], // état final

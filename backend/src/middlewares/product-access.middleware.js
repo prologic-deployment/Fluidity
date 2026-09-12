@@ -1,4 +1,5 @@
 const { assertProductAccess } = require('../services/saas-entitlements.service');
+const logger = require('../utils/logger.util');
 
 /**
  * Middleware d'accès produit — L'AUTORITÉ CÔTÉ SERVEUR.
@@ -43,7 +44,8 @@ function requireProductAccess(productKey, permission) {
       req.entitlements = check.entitlements;
       next();
     } catch (err) {
-      res.status(500).json({ message: 'Erreur serveur', error: err.message });
+      logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+      res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
     }
   };
 }

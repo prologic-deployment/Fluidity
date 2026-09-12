@@ -22,127 +22,30 @@ const { notifyUser } = require('../services/project-notify.service');
 const { Utilisateur } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 const { Client } = require('../models/client.model');
+const logger = require('../utils/logger.util');
 
-/**
- * Hydrate les références userId dont le populate a échoué : les accès
- * PORTAIL (collection Client) ne sont pas des Utilisateurs, donc
- * `populate('userId')` renvoie null. Sans reprise, l'UI afficherait des
- * lignes vides (« — ») voire planterait. On résout l'identité du client
- * depuis les IDs bruts (requête parallèle) — jamais de valeur vide.
- */
-async function hydrateClientUsers(docs, rawUserIds) {
-  const missing = new Set();
-  docs.forEach((d, i) => {
-    if (d.userId == null && rawUserIds[i]) missing.add(String(rawUserIds[i]));
-  });
-  if (!missing.size) return;
-  const clients = await Client.find({ _id: { $in: [...missing] } })
-    .select('email nom firstName lastName')
-    .lean();
-  const byId = new Map(clients.map((c) => [String(c._id), c]));
-  docs.forEach((d, i) => {
-    if (d.userId == null && rawUserIds[i]) {
-      const c = byId.get(String(rawUserIds[i]));
-      if (c) {
-        d.userId = {
-          _id: c._id,
-          email: c.email,
-          firstName: c.firstName || c.nom || '',
-          lastName: c.lastName || '',
-          principalType: 'CLIENT',
-        };
-      }
-    }
-  });
-}
+// ARCH-001 (audit) : helpers partagés extraits (platform-helpers.service.js).
+const {
+  hydrateClientUsers,
+  notifyPlatformAdmins,
+  ensureProductsSynced,
+  resyncProducts,
+  isGlobalPlatform,
+  effectiveAvailability,
+} = require('../services/platform-helpers.service');
+// ARCH-001 : contrôleurs commandes extraits (platform.orders.controller.js).
+const platformOrders = require('../controllers/platform.orders.controller');
 
 const router = express.Router();
 
-/**
- * Notifie tous les administrateurs plateforme (in-app) d'un événement SaaS
- * (nouvelle demande d'achat, demande de sièges, demande d'annulation…).
- * Best-effort : la notification ne doit jamais casser le flux métier.
- */
-async function notifyPlatformAdmins({ event, params = {}, link = '' }) {
-  try {
-    const admins = await Utilisateur.find({ role: 'PLATFORM_ADMIN' }).select('_id tenantId').lean();
-    for (const admin of admins) {
-      await Notification.create({
-        tenantId: admin.tenantId,
-        userId: admin._id,
-        productKey: 'platform',
-        type: event,
-        titleKey: `projects.notify.${event}.title`,
-        bodyKey: `projects.notify.${event}.body`,
-        params,
-        link,
-      });
-    }
-  } catch {
-    /* best-effort */
-  }
-}
-
-/** Synchronise le miroir Product depuis le registre (idempotent) puis
- *  applique les DÉROGATIONS administratives (ProductOverride) par-dessus. */
-async function syncProducts() {
-  for (const p of PRODUCTS) {
-    await Product.updateOne(
-      { key: p.key },
-      {
-        $set: {
-          nameKey: p.nameKey,
-          taglineKey: p.taglineKey,
-          descriptionKey: p.descriptionKey,
-          icon: p.icon,
-          emoji: p.emoji,
-          color: p.color,
-          status: p.status,
-          category: p.category,
-          slug: p.slug || p.key,
-          route: p.route,
-          available: p.available,
-          featuresKey: p.featuresKey,
-          benefitsKey: p.benefitsKey || [],
-          useCasesKey: p.useCasesKey || [],
-          related: p.related || [],
-          plans: p.plans,
-          roles: p.roles,
-        },
-      },
-      { upsert: true }
-    );
-  }
-  const overrides = await ProductOverride.find({}).lean();
-  for (const ov of overrides) {
-    await Product.updateOne(
-      { key: ov.key },
-      { $set: { available: ov.available, status: ov.available ? 'available' : 'coming_soon' } }
-    );
-  }
-}
-
-/** Le principal est-il en scope GLOBAL (Super Admin hors impersonation) ? */
-function isGlobalPlatform(req) {
-  return req.userRole === 'PLATFORM_ADMIN' && !req.tenantId;
-}
-
 router.use(async (_req, _res, next) => {
   try {
-    await syncProducts();
+    await ensureProductsSynced();
   } catch {
-    /* best-effort */
+    /* best-effort : le miroir peut être légèrement en retard, jamais bloquant */
   }
   next();
 });
-
-/** Disponibilité effective d'un produit : registre + dérogation administrative. */
-async function effectiveAvailability(productKey) {
-  const p = getProduct(productKey);
-  if (!p) return null;
-  const override = await ProductOverride.findOne({ key: productKey }).lean();
-  return override ? !!override.available : !!p.available;
-}
 
 /** Catalogue public (métadonnées marketing) — sans authentification. */
 router.get('/products', async (_req, res) => {
@@ -175,7 +78,8 @@ router.get('/me/entitlements', authMiddleware, async (req, res) => {
     });
     res.json(entitlements);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 });
 
@@ -256,7 +160,22 @@ router.patch('/subscriptions/:id', authMiddleware, requirePlatformAdmin, async (
 });
 
 /** Point d'entrée de checkout — 501 tant qu'aucun PSP n'est configuré. */
-router.post('/subscriptions/:id/checkout', authMiddleware, async (req, res) => {
+router.post('/subscriptions/:id/checkout', authMiddleware, requireTenantAdmin, async (req, res) => {
+  // LEAK-003 (audit) : le checkout est réservé à l'admin du tenant
+  // propriétaire de la souscription (ou au Super Admin global).
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(400).json({ message: 'Identifiant de souscription invalide.' });
+    return;
+  }
+  const subscription = await Subscription.findById(req.params.id).lean();
+  if (!subscription) {
+    res.status(404).json({ message: 'Souscription introuvable.' });
+    return;
+  }
+  if (!isGlobalPlatform(req) && String(subscription.tenantId) !== String(req.tenantId)) {
+    res.status(404).json({ message: 'Souscription introuvable.' });
+    return;
+  }
   const provider = getPaymentProvider();
   try {
     const url = await provider.createCheckout({ subscriptionId: req.params.id });
@@ -279,7 +198,8 @@ router.get('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => 
   // Super Admin hors impersonation : TOUTES les licences, TOUS les tenants ;
   // Tenant Admin : uniquement son tenant.
   const q = isGlobalPlatform(req) ? {} : { tenantId: req.tenantId };
-  const lim = isGlobalPlatform(req) ? 500 : 0;
+  // PERF-002 : plafond 500 (vue admin bornée, jamais de lecture infinie).
+  const lim = 500;
   // IDs bruts (le populate « userId » renvoie null pour les clients portail).
   const rawUserIds = (await LicenseAssignment.find(q).select('userId').sort({ createdAt: -1 }).limit(lim).lean()).map((r) => r.userId);
   const licenses = await LicenseAssignment.find(q)
@@ -379,8 +299,39 @@ router.patch('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, re
     res.status(400).json({ message: 'Statut de licence invalide.' });
     return;
   }
+  const existing = await LicenseAssignment.findOne(
+    isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId }
+  );
+  if (!existing) {
+    res.status(404).json({ message: 'Licence introuvable' });
+    return;
+  }
+  // BIZ-004 (audit) : la RÉACTIVATION consomme un siège exactement comme une
+  // affectation — sinon suspension → affectation → réactivation dépasse le
+  // plafond de sièges de la souscription.
+  if (status === 'active' && existing.status !== 'active') {
+    const sub = await Subscription.findOne({
+      tenantId: existing.tenantId,
+      productKey: existing.productKey,
+      status: { $in: ['trial', 'active', 'past_due'] },
+    });
+    if (sub) {
+      const activeCount = await LicenseAssignment.countDocuments({
+        tenantId: existing.tenantId,
+        productKey: existing.productKey,
+        status: 'active',
+      });
+      if (activeCount >= sub.seats) {
+        res.status(409).json({
+          code: 'SEATS_EXCEEDED',
+          message: 'Limite de licences atteinte : impossible de réactiver cette licence sans sièges supplémentaires.',
+        });
+        return;
+      }
+    }
+  }
   const license = await LicenseAssignment.findOneAndUpdate(
-    isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId },
+    { _id: existing._id },
     { $set: { status } },
     { new: true }
   );
@@ -427,20 +378,23 @@ router.delete('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, r
 
 /** Rôles par produit (registre) + PERMISSIONS de chaque rôle — sert
  *  l'assignation (Tenant Admin) et l'administration plateforme. */
-router.get('/roles', authMiddleware, async (req, res) => {
+router.get('/roles', authMiddleware, requireTenantAdmin, async (req, res) => {
   const catalog = PRODUCTS.map((p) => ({
     productKey: p.key,
     nameKey: p.nameKey,
     status: p.status,
     available: p.available,
-    roles: p.roles.map((r) => ({ key: r.key, nameKey: r.nameKey, permissions: rolePermissions(r.key) || [] })),
+    // CT-002 (audit) : les permissions des rôles génériques (viewer/editor…)
+    // sont résolues PAR PRODUIT (le contexte p.key lève la collision).
+    roles: p.roles.map((r) => ({ key: r.key, nameKey: r.nameKey, permissions: rolePermissions(r.key, p.key) || [] })),
   }));
   res.json({ roles: catalog });
 });
 
 router.get('/roles/assignments', authMiddleware, requireTenantAdmin, async (req, res) => {
   const q = isGlobalPlatform(req) ? {} : { tenantId: req.tenantId };
-  const lim = isGlobalPlatform(req) ? 1000 : 0;
+  // PERF-002 : vue admin bornée (plafond 500, jamais de lecture infinie).
+  const lim = 500;
   const rawUserIds = (await RoleAssignment.find(q).select('userId').sort({ createdAt: -1 }).limit(lim).lean()).map((r) => r.userId);
   const assignments = await RoleAssignment.find(q)
     .populate('userId', 'email firstName lastName')
@@ -567,6 +521,19 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
       return;
     }
     const extra = Math.max(1, Math.min(1000, parseInt(seats, 10) || 1));
+    // DB-003 (audit) : idempotence — une demande de sièges IDENTIQUE déjà en
+    // attente n'est pas dupliquée (double-soumission / rafraîchissement réseau).
+    const doublonSieges = await Order.findOne({
+      tenantId: req.tenantId,
+      orderType: 'seat_expansion',
+      subscriptionId: sub._id,
+      seats: extra,
+      status: { $in: ['pending_approval', 'pending', 'draft'] },
+    });
+    if (doublonSieges) {
+      res.status(409).json({ code: 'DUPLICATE_PENDING_ORDER', message: 'Une demande de sièges identique est déjà en attente d’approbation.', order: doublonSieges });
+      return;
+    }
     const pricing = orderPricing(getProduct(sub.productKey), sub.planId, sub.billingPeriod, extra);
     const order = await Order.create({
       tenantId: req.tenantId,
@@ -615,6 +582,21 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
   const existing = await Subscription.findOne({ tenantId: req.tenantId, productKey, status: { $in: ['pending', 'trial', 'active', 'past_due', 'suspended'] } });
   if (existing) {
     res.status(409).json({ code: 'ALREADY_SUBSCRIBED', message: 'Ce produit est déjà souscrit pour votre espace.' });
+    return;
+  }
+  // DB-003 (audit) : idempotence — une souscription IDENTIQUE déjà en attente
+  // d'approbation n'est pas dupliquée (double-soumission côté client).
+  const doublon = await Order.findOne({
+    tenantId: req.tenantId,
+    productKey,
+    planId,
+    billingPeriod,
+    seats: seatCount,
+    orderType: 'subscription',
+    status: { $in: ['pending_approval', 'pending', 'draft'] },
+  });
+  if (doublon) {
+    res.status(409).json({ code: 'DUPLICATE_PENDING_ORDER', message: 'Une demande identique est déjà en attente d’approbation.', order: doublon });
     return;
   }
   const order = await Order.create({
@@ -666,6 +648,8 @@ router.get('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =>
     .populate('productId', 'key nameKey')
     .populate('reviewedBy', 'email firstName lastName')
     .sort({ createdAt: -1 })
+    // PERF-002 : historique admin borné (plafond 500).
+    .limit(500)
     .lean();
   res.json({ orders: orders.map((o) => ({ ...o, status: normalizeOrderStatus(o.status) })) });
 });
@@ -726,233 +710,17 @@ router.post('/me/orders/:id/checkout', authMiddleware, requireTenantAdmin, async
 // COMMANDES — côté Super Admin (réconciliation + activation réelle)
 // ---------------------------------------------------------------------------
 
-router.get('/orders', authMiddleware, requirePlatformAdmin, async (req, res) => {
-  // Scope : global (Super Admin hors impersonation) ou impersonation → tenant.
-  const q = {};
-  if (!isGlobalPlatform(req)) q.tenantId = req.tenantId;
-  else if (req.query.tenantId) q.tenantId = req.query.tenantId;
-  if (req.query.status) {
-    q.status = req.query.status;
-    // 'pending_approval' inclut l'ancien statut 'pending' (tolérance).
-    if (req.query.status === 'pending_approval') q.status = { $in: ['pending_approval', 'pending'] };
-  }
-  const orders = await Order.find(q)
-    .populate('productId', 'key nameKey')
-    .populate('userId', 'email firstName lastName')
-    .populate('reviewedBy', 'email firstName lastName')
-    .sort({ createdAt: -1 })
-    .limit(200)
-    .lean();
-  // Enrichissement : nom du tenant + statut normalisé.
-  const tenantIds = [...new Set(orders.map((o) => String(o.tenantId)))];
-  const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
-  const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
-  res.json({ orders: orders.map((o) => ({ ...o, tenantName: byId.get(String(o.tenantId)) || '', status: normalizeOrderStatus(o.status) })) });
-});
+router.get('/orders', authMiddleware, requirePlatformAdmin, platformOrders.getOrders);
 
-/** Détail d'une commande pour l'examen (Super Admin) : tenant, produit,
- *  plan, sièges, prix, statut de paiement, produits actuels du tenant. */
-router.get('/orders/:id', authMiddleware, requirePlatformAdmin, async (req, res) => {
-  const order = await Order.findById(req.params.id)
-    .populate('userId', 'email firstName lastName')
-    .populate('reviewedBy', 'email firstName lastName')
-    .populate('productId', 'key nameKey')
-    .lean();
-  if (!order) {
-    res.status(404).json({ message: 'Commande introuvable' });
-    return;
-  }
-  const tenant = await Tenant.findById(order.tenantId).select('name status').lean();
-  const subs = await Subscription.find({ tenantId: order.tenantId }).lean();
-  const licenses = await LicenseAssignment.countDocuments({ tenantId: order.tenantId, status: 'active' });
-  res.json({
-    order: { ...order, tenantName: tenant?.name || '', tenantStatus: tenant?.status || '', status: normalizeOrderStatus(order.status) },
-    currentProducts: subs.map((x) => ({ productKey: x.productKey, planId: x.planId, seats: x.seats, status: x.status, endDate: x.endDate })),
-    activeLicenses: licenses,
-  });
-});
+/** Détail d'une commande pour l'examen (Super Admin). */
+router.get('/orders/:id', authMiddleware, requirePlatformAdmin, platformOrders.getOrder);
 
 /** Ajustement administratif restreint — l'APPROBATION passe par /approve. */
-router.patch('/orders/:id', authMiddleware, requirePlatformAdmin, async (req, res) => {
-  const { status, notes } = req.body;
-  if (!['draft', 'pending_approval', 'cancelled', 'rejected'].includes(status)) {
-    res.status(400).json({ message: 'Ce statut ne peut pas être appliqué directement : utilisez l’approbation ou le rejet.' });
-    return;
-  }
-  const order = await Order.findOneAndUpdate({ _id: req.params.id }, { $set: { status, notes: notes || '' } }, { new: true });
-  if (!order) {
-    res.status(404).json({ message: 'Commande introuvable' });
-    return;
-  }
-  await audit(req, { action: `order.${status}`, productKey: order.productKey, resource: 'order', resourceId: order._id, metadata: { tenantId: order.tenantId } });
-  res.json({ order });
-});
+router.patch('/orders/:id', authMiddleware, requirePlatformAdmin, platformOrders.patchOrder);
 
-/**
- * APPROBATION d'une demande d'achat (Super Admin de la plateforme) — le seul
- * chemin d'activation, TRANSACTIONNEL :
- *   1. valide tenant / produit / plan / sièges ;
- *   2. crée ou réactive la souscription (renouvellement inclus) ;
- *   3. étend les sièges pour une commande « seat_expansion » ;
- *   4. marque la commande complétée (réviseur, date) ;
- *   5. audite + notifie le Tenant Admin (produit accessible ensuite).
- *
- * MODE BÊTA : paiement NON requis (paymentMode = manual_approval) — aucune
- * transaction financière n'est simulée ; un futur PSP passera par
- * l'abstraction PaymentProvider (services/payment).
- */
-router.post('/orders/:id/approve', authMiddleware, requirePlatformAdmin, async (req, res) => {
-  const { reviewNote } = req.body || {};
-  const order = await Order.findById(req.params.id);
-  if (!order) {
-    res.status(404).json({ message: 'Commande introuvable' });
-    return;
-  }
-  if (!['pending_approval', 'pending', 'draft'].includes(order.status)) {
-    res.status(409).json({ message: 'Seule une demande en attente d’approbation peut être approuvée.' });
-    return;
-  }
-  if (order.activatedSubscriptionId && order.orderType !== 'seat_expansion') {
-    res.status(409).json({ message: 'Cette commande a déjà été activée.' });
-    return;
-  }
-  // 1. Validation croisée : tenant réel, produit toujours disponible, plan valide.
-  const tenant = await Tenant.findById(order.tenantId);
-  if (!tenant) {
-    res.status(409).json({ message: 'Tenant introuvable : demande impossible à traiter.' });
-    return;
-  }
-  const product = getProduct(order.productKey);
-  if (!product || !(await effectiveAvailability(order.productKey))) {
-    res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Le produit n’est plus disponible.' });
-    return;
-  }
-  if (!product.plans.some((p) => p.id === order.planId)) {
-    res.status(409).json({ message: 'Plan invalide pour ce produit.' });
-    return;
-  }
-  if (!Number.isInteger(order.seats) || order.seats < 1) {
-    res.status(409).json({ message: 'Nombre de sièges invalide.' });
-    return;
-  }
+router.post('/orders/:id/approve', authMiddleware, requirePlatformAdmin, platformOrders.approveOrder);
 
-  let sub;
-  // 2. Sièges supplémentaires : extension d'une souscription existante.
-  if (order.orderType === 'seat_expansion') {
-    sub = await Subscription.findOne({ _id: order.subscriptionId, tenantId: order.tenantId });
-    if (!sub || sub.status === 'cancelled') {
-      res.status(409).json({ message: 'Souscription introuvable pour cette demande de sièges.' });
-      return;
-    }
-    sub.seats += order.seats;
-    await sub.save();
-  } else {
-    const start = new Date();
-    const end = new Date(start);
-    if (order.billingPeriod === 'annual') end.setFullYear(end.getFullYear() + 1);
-    else end.setMonth(end.getMonth() + 1);
-    sub = await Subscription.findOne({ tenantId: order.tenantId, productKey: order.productKey });
-    if (sub) {
-      // Renouvellement d'une souscription expirée : réactivation, données conservées.
-      if (!['expired', 'cancelled'].includes(sub.status)) {
-        res.status(409).json({ message: 'Une souscription active existe déjà pour ce produit.' });
-        return;
-      }
-      sub.planId = order.planId;
-      sub.billingPeriod = order.billingPeriod;
-      sub.seats = order.seats;
-      sub.pricePerSeat = order.unitPrice;
-      sub.currency = order.currency;
-      sub.status = 'active';
-      sub.startDate = start;
-      sub.endDate = end;
-      sub.autoRenew = true;
-      await sub.save();
-    } else {
-      sub = await Subscription.create({
-        tenantId: order.tenantId,
-        productId: order.productId,
-        productKey: order.productKey,
-        planId: order.planId,
-        billingPeriod: order.billingPeriod,
-        status: 'active',
-        seats: order.seats,
-        pricePerSeat: order.unitPrice,
-        currency: order.currency,
-        startDate: start,
-        endDate: end,
-        autoRenew: true,
-        provider: 'manual',
-        providerRef: String(order._id),
-      });
-    }
-  }
-
-  // 3. Commande complétée + révision.
-  order.status = 'completed';
-  order.activatedSubscriptionId = sub._id;
-  order.reviewedBy = req.userId;
-  order.reviewedAt = new Date();
-  if (reviewNote) order.reviewNote = String(reviewNote).slice(0, 1000);
-  await order.save();
-
-  await audit(req, {
-    action: 'subscription.approved',
-    productKey: order.productKey,
-    resource: 'order',
-    resourceId: order._id,
-    metadata: { tenantId: String(order.tenantId), orderType: order.orderType, seats: order.seats, subscriptionId: String(sub._id), paymentMode: 'manual_approval' },
-  });
-
-  // 4. Notification au Tenant Admin : produit activé, licences assignables.
-  await notifyUser({
-    tenantId: order.tenantId,
-    userId: order.userId,
-    event: 'subscription_approved',
-    params: { productKey: order.productKey, seats: sub.seats },
-    link: '/abonnements',
-    emailParams: {
-      productName: product.nameKey,
-      plan: order.planId,
-      seats: sub.seats,
-      link: '/abonnements',
-    },
-  });
-
-  res.json({ order: { ...order.toObject(), status: normalizeOrderStatus(order.status) }, subscription: sub });
-});
-
-/**
- * REJET d'une demande d'achat (Super Admin) — avec motif transmis au
- * Tenant Admin. Aucune activation, aucune licence créée.
- */
-router.post('/orders/:id/reject', authMiddleware, requirePlatformAdmin, async (req, res) => {
-  const { reviewNote } = req.body || {};
-  const order = await Order.findById(req.params.id);
-  if (!order) {
-    res.status(404).json({ message: 'Commande introuvable' });
-    return;
-  }
-  if (!['pending_approval', 'pending', 'draft'].includes(order.status)) {
-    res.status(409).json({ message: 'Cette demande ne peut plus être rejetée.' });
-    return;
-  }
-  order.status = 'rejected';
-  order.reviewedBy = req.userId;
-  order.reviewedAt = new Date();
-  order.reviewNote = String(reviewNote || '').slice(0, 1000);
-  await order.save();
-  await audit(req, { action: 'subscription.rejected', productKey: order.productKey, resource: 'order', resourceId: order._id, metadata: { tenantId: String(order.tenantId), note: order.reviewNote } });
-  await notifyUser({
-    tenantId: order.tenantId,
-    userId: order.userId,
-    event: 'subscription_rejected',
-    params: { productKey: order.productKey },
-    link: '/abonnements/demandes',
-    emailParams: { productName: getProduct(order.productKey)?.nameKey || order.productKey, note: order.reviewNote, link: '/abonnements/demandes' },
-  });
-  res.json({ order: { ...order.toObject(), status: 'rejected' } });
-});
+router.post('/orders/:id/reject', authMiddleware, requirePlatformAdmin, platformOrders.rejectOrder);
 
 /** Demande d'annulation de souscription (Tenant Admin → plateforme). */
 router.post('/subscriptions/:id/cancel-request', authMiddleware, requireTenantAdmin, async (req, res) => {
@@ -1181,18 +949,24 @@ router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) 
     licensedUsers: licByProduct.get(p.key) || 0,
   }));
 
-  // Tableau des tenants : utilisateurs / produits / licences.
-  const tenants = await Tenant.find({}).sort({ createdAt: -1 }).lean();
-  const tenantRows = await Promise.all(
-    tenants.map(async (t) => {
-      const [users, prods, lics] = await Promise.all([
-        Utilisateur.countDocuments({ tenantId: t._id }),
-        Subscription.distinct('productKey', { tenantId: t._id }),
-        LicenseAssignment.countDocuments({ tenantId: t._id, status: 'active' }),
-      ]);
-      return { _id: t._id, name: t.name, status: t.status, type: t.type, users, products: prods.length, licenses: lics, createdAt: t.createdAt };
-    })
-  );
+  // PERF-003 (audit) : tableau des tenants par AGRÉGATION (plus de N+1 :
+  // 3 comptes/distinct PAR tenant) et borné à 200 lignes côté dashboard.
+  const tenants = await Tenant.find({}).sort({ createdAt: -1 }).limit(200).lean();
+  const [usersByTenant, prodsByTenant, licsByTenant] = await Promise.all([
+    Utilisateur.aggregate([{ $match: { tenantId: { $ne: null } } }, { $group: { _id: '$tenantId', n: { $sum: 1 } } }]),
+    Subscription.aggregate([{ $match: { tenantId: { $ne: null } } }, { $group: { _id: '$tenantId', keys: { $addToSet: '$productKey' } } }]),
+    LicenseAssignment.aggregate([{ $match: { status: 'active', tenantId: { $ne: null } } }, { $group: { _id: '$tenantId', n: { $sum: 1 } } }]),
+  ]);
+  const usersParTenant = new Map(usersByTenant.map((r) => [String(r._id), r.n]));
+  const prodsParTenant = new Map(prodsByTenant.map((r) => [String(r._id), (r.keys || []).length]));
+  const licsParTenant = new Map(licsByTenant.map((r) => [String(r._id), r.n]));
+  const tenantRows = tenants.map((t) => ({
+    _id: t._id, name: t.name, status: t.status, type: t.type,
+    users: usersParTenant.get(String(t._id)) || 0,
+    products: prodsParTenant.get(String(t._id)) || 0,
+    licenses: licsParTenant.get(String(t._id)) || 0,
+    createdAt: t.createdAt,
+  }));
 
   const tenantIds = [...new Set(pendingOrders.map((o) => String(o.tenantId)))];
   const tenantNames = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
@@ -1279,6 +1053,9 @@ router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req,
     { upsert: true }
   );
   await Product.updateOne({ key: req.params.key }, { $set: { available, status: available ? 'available' : 'coming_soon' } });
+  // PERF-001 : la dérogation change l'état du catalogue → re-synchronisation
+  // explicite (le miroir n'est plus resynchronisé à chaque requête).
+  await resyncProducts().catch(() => {});
   await audit(req, {
     action: available ? 'product.activated' : 'product.deactivated',
     productKey: req.params.key,
@@ -1298,7 +1075,7 @@ router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req,
  * santé API/DB, configuration du mailing (SMTP configuré ou non — jamais de
  * secret exposé), version et compteurs globaux. Lecture seule.
  */
-router.get('/system', authMiddleware, requirePlatformAdmin, async (_req, res) => {
+router.get('/system', authMiddleware, requirePlatformAdmin, async (req, res) => {
   try {
     const dbUp = mongoose.connection.readyState === 1;
     const smtpConfigured = !!process.env.SMTP_HOST && process.env.SMTP_HOST !== 'smtp.example.com';
@@ -1327,9 +1104,15 @@ router.get('/system', authMiddleware, requirePlatformAdmin, async (_req, res) =>
       uptimeSeconds: Math.round(process.uptime()),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 });
+
+// PERF-001 (audit) : hook de synchronisation AU DÉMARRAGE (server.js) —
+// le miroir produit est prêt avant la première requête, puis n'est relu que
+// sur modification de dérogation (PATCH /products/:key).
+router.bootstrapCatalogueProduits = () => ensureProductsSynced().catch(() => {});
 
 module.exports = router;
 

@@ -10,12 +10,15 @@ async function audit(req, entry) {
       tenantId: entry.tenantId ?? req?.tenantId ?? null,
       userId: entry.userId ?? req?.userId ?? null,
       principalType: entry.principalType ?? req?.principalType ?? 'UTILISATEUR',
+      // LOG-001 : l'impersonation est tracée systématiquement (pose req.impersonated
+      // + req.userId = le Super Admin agissant ; on le reporte tel quel).
+      impersonatedBy: req?.impersonated ? req.userId : entry.impersonatedBy ?? null,
       productId: entry.productId ?? null,
       productKey: entry.productKey || '',
       action: entry.action,
       resource: entry.resource || '',
       resourceId: entry.resourceId ?? null,
-      metadata: entry.metadata || {},
+      metadata: { ...(entry.metadata || {}), ...(req?.impersonated ? { impersonated: true } : {}) },
       ip: req?.ip || '',
     });
   } catch {
