@@ -94,7 +94,8 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
     const assignment = await RoleAssignment.findOne({ tenantId, userId, productKey }).lean();
     if (assignment?.roleKey) roleKey = assignment.roleKey;
 
-    const rolePerms = rolePermissions(roleKey);
+    // CT-002 (audit) : résolution des permissions PAR PRODUIT (rôles génériques).
+    const rolePerms = rolePermissions(roleKey, productKey);
     const permissions = isTenantAdmin
       ? ['*'] // admin tenant : toutes permissions du produit
       : rolePerms;

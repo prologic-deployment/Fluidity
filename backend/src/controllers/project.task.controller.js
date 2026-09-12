@@ -3,11 +3,13 @@ const { Project, Task, ProjectComment } = require('../models/project.models');
 const { TASK_PRIORITIES, TASK_TYPES, DEPENDENCY_TYPES } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
+const { literalRegex } = require('../utils/regex.util');
 const { validateTransition, effectiveWorkflow } = require('../utils/project-workflow.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { auditWorkflow } = require('../utils/saas-log.util');
 const { notifyUser, notifyProjectEvent } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 const OPEN_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'review'];
@@ -116,10 +118,11 @@ const listTasks = async (req, res) => {
     if (tag) q.tags = tag;
     if (mine === '1') q.assigneeId = req.userId;
     if (text) {
+      // INJ-002 : recherche littérale (échappement des métacaractères regex).
       q.$or = [
-        { title: { $regex: text, $options: 'i' } },
-        { ref: { $regex: text, $options: 'i' } },
-        { description: { $regex: text, $options: 'i' } },
+        { title: literalRegex(text) },
+        { ref: literalRegex(text) },
+        { description: literalRegex(text) },
       ];
     }
     const sortKey = ['title', 'priority', 'dueDate', 'order', 'createdAt', 'status'].includes(req.query.sort) ? req.query.sort : 'order';
@@ -150,7 +153,8 @@ const listTasks = async (req, res) => {
       workflow: effectiveWorkflow(project),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -166,7 +170,9 @@ const listBoard = async (req, res) => {
       q.sprintId = mongoose.isValidObjectId(req.query.sprint) ? new mongoose.Types.ObjectId(req.query.sprint) : null;
     }
     const [tasks, commentAgg] = await Promise.all([
-      Task.find(q).sort({ order: 1 }).populate('assigneeId', USER_SELECT).lean(),
+      // PERF-002 : le tableau Kanban affiche toutes les colonnes ; il reste non
+      // paginé mais BORNE (plafond 500 tâches racine) contre la croissance infinie.
+      Task.find(q).sort({ order: 1 }).limit(500).populate('assigneeId', USER_SELECT).lean(),
       ProjectComment.aggregate([
         { $match: { tenantId: req.tenantId, projectId: project._id, targetType: 'task' } },
         { $group: { _id: '$targetId', count: { $sum: 1 } } },
@@ -179,7 +185,8 @@ const listBoard = async (req, res) => {
       workflow: effectiveWorkflow(project),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -223,7 +230,8 @@ const getTask = async (req, res) => {
       myRole: role,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -301,7 +309,8 @@ const createTask = async (req, res) => {
     }
     res.status(201).json({ task: serializeTask(task) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -402,7 +411,8 @@ const updateTask = async (req, res) => {
     }
     res.json({ task: serializeTask(task) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -454,7 +464,8 @@ const transitionTask = async (req, res) => {
     }
     res.json({ task: serializeTask(task) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -510,7 +521,8 @@ const moveTask = async (req, res) => {
     await task.save();
     res.json({ task: serializeTask(task) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -535,7 +547,8 @@ const deleteTask = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.task_deleted', targetType: 'task', targetId: task._id, metadata: { ref: task.ref, title: task.title } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -564,7 +577,8 @@ const updateChecklist = async (req, res) => {
     await task.save();
     res.json({ checklist: task.checklist });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -586,7 +600,8 @@ const toggleWatcher = async (req, res) => {
     await task.save();
     res.json({ watching: idx < 0, watchers: task.watchers.length });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -636,7 +651,8 @@ const listBacklog = async (req, res) => {
     const unassigned = items.filter((i) => !i.epicId).map((i) => serializeTask(i));
     res.json({ epics: epicsOut, unassigned });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

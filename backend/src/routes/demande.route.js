@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { requireProductAccess } = require('../middlewares/product-access.middleware');
-const { authMiddleware, requireRole, requirePasswordChanged } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireRole, requirePasswordChanged, refuseViewer } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createDemande,
@@ -31,11 +31,12 @@ router.use(requirePasswordChanged);
 router.post('/', requireRole('CLIENT'), validate(createDemandeSchema), createDemande);
 router.get('/', getAllDemandes);
 router.get('/:id', getDemandeById);
-router.patch('/:id/statut', validate(changerStatutDemandeSchema), changerStatutDemande);
+// AUTHZ-001 : VIEWER est en lecture seule (écritures refusées avant validation)
+router.patch('/:id/statut', refuseViewer, validate(changerStatutDemandeSchema), changerStatutDemande);
 // Annulation par le client propriétaire (remplace la suppression côté client)
 router.patch('/:id/annuler', requireRole('CLIENT'), annulerDemande);
 // Modification : un client ne peut toucher que ses propres demandes (vérif dans le contrôleur)
-router.patch('/:id', validate(updateDemandeSchema), updateDemande);
+router.patch('/:id', refuseViewer, validate(updateDemandeSchema), updateDemande);
 // Suppression : interdite aux clients, réservée à l'ADMIN (vérif dans le contrôleur)
 router.delete('/:id', deleteDemande);
 

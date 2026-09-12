@@ -5,6 +5,7 @@ const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -97,7 +98,8 @@ const listSprints = async (req, res) => {
     );
     res.json({ sprints: enriched, settings: project.settings || { sprintLengthDays: 14 } });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -131,7 +133,8 @@ const createSprint = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.sprint_created', targetType: 'sprint', targetId: sprint._id, metadata: { name: sprint.name } });
     res.status(201).json({ sprint: serializeSprint(sprint) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -196,7 +199,8 @@ const changeSprintStatus = async (req, res) => {
     }
     res.json({ sprint: serializeSprint(sprint), from: previous });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -236,7 +240,8 @@ const updateSprint = async (req, res) => {
     await sprint.save();
     res.json({ sprint: serializeSprint(sprint) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -260,7 +265,8 @@ const deleteSprint = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.sprint_deleted', targetType: 'sprint', targetId: sprint._id, metadata: { name: sprint.name } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -296,7 +302,8 @@ const assignTasksToSprint = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.sprint_tasks_planned', targetType: 'sprint', targetId: sprint._id, metadata: { name: sprint.name, count: tasks.length } });
     res.json({ ok: true, assigned: tasks.length });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

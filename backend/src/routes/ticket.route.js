@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const { requireProductAccess } = require('../middlewares/product-access.middleware');
-const { authMiddleware, requireRole, requirePasswordChanged } = require('../middlewares/auth.middleware');
+const { authMiddleware, requireRole, requirePasswordChanged, refuseViewer } = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
   createTicket,
@@ -38,10 +38,13 @@ router.get('/assignees', getAssignees);
 router.post('/', requireRole('CLIENT'), validate(createTicketSchema), createTicket);
 router.get('/', getAllTickets);
 router.get('/:id', getTicketById);
-router.patch('/:id', validate(updateTicketSchema), updateTicket);
-router.patch('/:id/assigner', validate(assignerTicketSchema), assignerTicket);
-router.patch('/:id/statut', validate(changerStatutTicketSchema), changerStatutTicket);
-router.post('/:id/commentaires', validate(commenterTicketSchema), commenterTicket);
+// AUTHZ-001 : le rôle interne VIEWER est en LECTURE SEULE — aucune écriture
+// (édition, affectation, transition, commentaire). Le contrôle propriétaire
+// des CLIENT est appliqué dans le contrôleur (filtreProprietaire).
+router.patch('/:id', refuseViewer, validate(updateTicketSchema), updateTicket);
+router.patch('/:id/assigner', refuseViewer, validate(assignerTicketSchema), assignerTicket);
+router.patch('/:id/statut', refuseViewer, validate(changerStatutTicketSchema), changerStatutTicket);
+router.post('/:id/commentaires', refuseViewer, validate(commenterTicketSchema), commenterTicket);
 router.get('/:id/commentaires', listerCommentaires);
 router.get('/:id/activites', listerActivites);
 

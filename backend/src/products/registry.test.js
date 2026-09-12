@@ -153,5 +153,23 @@ check('projet : VIEWER → project_viewer', () =>
   assert.strictEqual(defaultProductRole('project_management', 'VIEWER', 'UTILISATEUR'), 'project_viewer')
 );
 
+// --- CT-002 : rôle lecteur ServiceDesk déclaré + permissions par produit ----
+check('CT-002 : servicedesk VIEWER → servicedesk_viewer (rôle déclaré)', () => {
+  assert.strictEqual(defaultProductRole('servicedesk', 'VIEWER', 'UTILISATEUR'), 'servicedesk_viewer');
+  const role = getProduct('servicedesk').roles.find((r) => r.key === 'servicedesk_viewer');
+  assert.ok(role, 'servicedesk_viewer doit figurer dans les rôles déclarés du produit');
+});
+check('CT-002 : permissions viewer namespacées par produit', () => {
+  assert.deepStrictEqual(rolePermissions('viewer', 'knowledge_center'), ['knowledge.content.read']);
+  assert.deepStrictEqual(rolePermissions('viewer', 'monitoring'), ['monitoring.dashboard.read']);
+  assert.deepStrictEqual(rolePermissions('viewer', 'backup_management'), ['backup.view']);
+  assert.deepStrictEqual(rolePermissions('editor', 'document_management'), ['document.create', 'document.read', 'document.update']);
+});
+check('CT-002 : servicedesk_viewer en lecture seule', () => {
+  const perms = rolePermissions('servicedesk_viewer', 'servicedesk');
+  assert.ok(perms.includes('servicedesk.ticket.read'));
+  assert.ok(!perms.some((p) => p.includes('create') || p.includes('update') || p.includes('admin')));
+});
+
 console.log('\nRésultat : ' + (failures ? `${failures} échec(s)` : 'OK — registre SaaS valide'));
 process.exit(failures ? 1 : 0);

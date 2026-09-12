@@ -4,7 +4,8 @@ const { TicketActivity } = require('../models/ticket-activity.model');
 const { Contrat } = require('../models/contrat.model');
 const { Utilisateur } = require('../models/user.model');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, escapeHtml, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
+const { escapeRegex } = require('../utils/regex.util');
 const {
   TICKET_TRANSITIONS,
   TICKET_STATUTS_SLA_PAUSE,
@@ -12,9 +13,10 @@ const {
   availableTransitions,
 } = require('../utils/workflow');
 const { calculatePriority } = require('../utils/ticket-priority');
-const { initSla, applySlaOnTransition, slaEtat } = require('../utils/ticket-sla');
+const { initSla, reancrerSla, applySlaOnTransition, slaEtat } = require('../utils/ticket-sla');
 const { PRINCIPAL_CLIENT } = require('../utils/principals');
 const { auditWorkflow } = require('../utils/saas-log.util');
+const logger = require('../utils/logger.util');
 
 
 const estClient = (req) => req.userRole === 'CLIENT' || req.principalType === PRINCIPAL_CLIENT;
@@ -138,7 +140,8 @@ const createTicket = async (req, res) => {
 
     res.status(201).json(withSla(await populateTicket(Ticket.findById(ticket._id))));
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -157,7 +160,8 @@ const getAllTickets = async (req, res) => {
     if (req.query.assignedTo) filtre.assignedTo = req.query.assignedTo;
     if (req.query.contrat) filtre.contrat = req.query.contrat;
     if (req.query.q) {
-      const q = req.query.q.trim();
+      // INJ-002 : échappement des métacaractères — recherche littérale.
+      const q = escapeRegex(req.query.q.trim());
       filtre.$or = [
         { objet: new RegExp(q, 'i') },
         { reference: new RegExp(q, 'i') },
@@ -190,7 +194,8 @@ const getAllTickets = async (req, res) => {
       pages: Math.max(1, Math.ceil(total / limit)),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -213,7 +218,8 @@ const getTicketStats = async (req, res) => {
     ]);
     res.status(200).json({ ouverts, p1p2, attenteClient, attenteTiers, mesAssignes, resolus });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -232,7 +238,8 @@ const getAssignees = async (req, res) => {
       .sort({ lastName: 1, email: 1 });
     res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -249,7 +256,8 @@ const getTicketById = async (req, res) => {
     payload.transitionsAutorisees = availableTransitions(TICKET_TRANSITIONS, ticket.statut, req.userRole);
     res.status(200).json(payload);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -283,7 +291,13 @@ const updateTicket = async (req, res) => {
     if (req.body.specifications !== undefined) ticket.specifications = req.body.specifications;
     if (req.body.piecesJointes !== undefined) ticket.piecesJointes = req.body.piecesJointes;
 
-    ticket.priorite = calculatePriority(ticket.impact, ticket.urgence);
+    const nouvellePriorite = calculatePriority(ticket.impact, ticket.urgence);
+    const prioriteChangee = nouvellePriorite !== avant.priorite;
+    ticket.priorite = nouvellePriorite;
+    // INFO-004 (audit) : si la priorité change à la re-qualification, les
+    // cibles SLA sont réancrées sur la nouvelle priorité (avant, l'échéance
+    // restait celle de l'ancienne priorité).
+    if (prioriteChangee) reancrerSla(ticket);
     await ticket.save();
 
     const meta = {};
@@ -294,7 +308,8 @@ const updateTicket = async (req, res) => {
 
     res.status(200).json(withSla(await populateTicket(Ticket.findById(ticket._id))));
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -345,13 +360,14 @@ const assignerTicket = async (req, res) => {
       req.tenantId,
       `[Incident ${ticket.reference}] Affectation`,
       'Ticket affecté',
-      `<p>Le ticket <strong>${ticket.reference}</strong> a été affecté (${ticket.assignedTeam || 'équipe'}).</p>`,
+      `<p>Le ticket <strong>${escapeHtml(ticket.reference)}</strong> a été affecté (${escapeHtml(ticket.assignedTeam || 'équipe')}).</p>`,
       req.tenant?.name
     );
 
     res.status(200).json(withSla(await populateTicket(Ticket.findById(ticket._id))));
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -435,7 +451,7 @@ const changerStatutTicket = async (req, res) => {
       `[Incident ${ticket.reference}] ${statutActuel} → ${nouveauStatut}`,
       'Statut d’incident mis à jour',
       `<p>${renderBadge(statutActuel, COLORS.muted)} → ${renderBadge(nouveauStatut, COLORS.primary)}</p>
-       <p>${ticket.objet}</p>`,
+       <p>${escapeHtml(ticket.objet)}</p>`,
       req.tenant?.name
     );
 
@@ -443,7 +459,8 @@ const changerStatutTicket = async (req, res) => {
     populated.transitionsAutorisees = availableTransitions(TICKET_TRANSITIONS, ticket.statut, req.userRole);
     res.status(200).json(populated);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -491,7 +508,8 @@ const commenterTicket = async (req, res) => {
 
     res.status(201).json(comment);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -507,7 +525,8 @@ const listerCommentaires = async (req, res) => {
     const comments = await TicketComment.find(filtre).sort({ createdAt: 1 });
     res.status(200).json(comments);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -523,7 +542,8 @@ const listerActivites = async (req, res) => {
     const items = await TicketActivity.find(filtre).sort({ createdAt: 1 });
     res.status(200).json(items);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

@@ -1,9 +1,14 @@
 const { Demande } = require('../models/demande.model');
 const { Contrat } = require('../models/contrat.model');
+const { Client } = require('../models/client.model');
+const { Utilisateur } = require('../models/user.model');
+const { literalRegex } = require('../utils/regex.util');
+const { parametresPagination, envelopePagination } = require('../utils/pagination.util');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, escapeHtml, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { DEMANDE_TRANSITIONS, DEMANDE_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
-const { auditWorkflow } = require('../utils/saas-log.util');
+const { auditWorkflow, audit } = require('../utils/saas-log.util');
+const logger = require('../utils/logger.util');
 
 
 /** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres demandes. */
@@ -28,7 +33,7 @@ const populateRefs = (query) =>
  * - clientId toujours dérivé du compte authentifié (jamais fourni par le body)
  * - tenantId injecté depuis le JWT (req.tenantId)
  * - statut initialisé à "Ouverte"
- * - Email asynchrone au Support N1
+ * - Email asynchrone aux agents (AGENT)
  */
 const createDemande = async (req, res) => {
   try {
@@ -85,7 +90,8 @@ const createDemande = async (req, res) => {
     sendSupportEmail(req.tenantId, `[Demande] ${demande.objet}`, html).catch(console.error);
     res.status(201).json(await populateRefs(Demande.findById(demande._id)));
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -94,11 +100,48 @@ const createDemande = async (req, res) => {
  */
 const getAllDemandes = async (req, res) => {
   try {
+    // PERF-002 (audit) : liste paginée + filtres serveur (page/limit,
+    // défaut 50, plafond 100) — plus aucune requête non bornée.
+    const { page, limit, skip } = parametresPagination(req);
+    const portee = { tenantId: req.tenantId, ...filtreProprietaire(req) };
     // Un client ne liste que SES demandes ; les autres rôles gardent la vue tenant.
-    const demandes = await populateRefs(Demande.find({ tenantId: req.tenantId, ...filtreProprietaire(req) })).sort({ createdAt: -1 });
-    res.status(200).json(demandes);
+    const filtre = { ...portee };
+    if (typeof req.query.statut === 'string' && req.query.statut) filtre.statut = req.query.statut.slice(0, 60);
+    if (typeof req.query.priorite === 'string' && req.query.priorite) filtre.prioriteSouhaitee = req.query.priorite.slice(0, 30);
+    if (typeof req.query.recherche === 'string' && req.query.recherche.trim()) {
+      const r = literalRegex(req.query.recherche.trim().slice(0, 100));
+      filtre.$or = [{ objet: r }, { descriptionDetaillee: r }];
+    }
+    if (typeof req.query.client === 'string' && req.query.client.trim() && !filtre.requester) {
+      const r = literalRegex(req.query.client.trim().slice(0, 100));
+      const [fichesClients, fichesUsers] = await Promise.all([
+        Client.find({ tenantId: req.tenantId, nom: r }).select('_id').lean(),
+        Utilisateur.find({ tenantId: req.tenantId, $or: [{ firstName: r }, { lastName: r }, { email: r }] }).select('_id').lean(),
+      ]);
+      filtre.requester = { $in: [...fichesClients.map((c) => c._id), ...fichesUsers.map((u) => u._id)] };
+    }
+    const TRI_DEMANDES = {
+      objet: { objet: 1 }, date: { createdAt: 1 }, priorite: { prioriteSouhaitee: 1 },
+      statut: { statut: 1 }, categorie: { categorie: 1 },
+    };
+    const sens = String(req.query.dir) === 'asc' ? 1 : -1;
+    const cleTri = TRI_DEMANDES[req.query.tri] ? req.query.tri : 'date';
+    const tri = Object.fromEntries(Object.entries(TRI_DEMANDES[cleTri]).map(([k]) => [k, sens]));
+    // Synthèse par statut sur la portée (indépendante des filtres) — la frise
+    // UI compte toutes les demandes ; deletedAt exclu (suppression logique).
+    const parStatutAgg = await Demande.aggregate([
+      { $match: { ...portee, deletedAt: null } },
+      { $group: { _id: '$statut', n: { $sum: 1 } } },
+    ]);
+    const parStatut = Object.fromEntries(parStatutAgg.map((s) => [s._id, s.n]));
+    const [total, items] = await Promise.all([
+      Demande.countDocuments(filtre),
+      populateRefs(Demande.find(filtre)).sort(tri).skip(skip).limit(limit),
+    ]);
+    res.status(200).json({ ...envelopePagination({ items, total, page, limit }), stats: { parStatut } });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -114,7 +157,8 @@ const getDemandeById = async (req, res) => {
     }
     res.status(200).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -144,7 +188,8 @@ const updateDemande = async (req, res) => {
     );
     res.status(200).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -173,10 +218,19 @@ const deleteDemande = async (req, res) => {
       return;
     }
 
-    await demande.deleteOne();
+    // DB-002 : suppression LOGIQUE + audit (DB-002 « no audit ») : la fiche
+    // reste en base (deletedAt) mais sort de toutes les vues et des comptes
+    // d'intégrité référentielle.
+    demande.deletedAt = new Date();
+    await demande.save();
+    await audit(req, {
+      action: 'demande.deleted', resource: 'demande', resourceId: demande._id,
+      metadata: { objet: demande.objet, statut: demande.statut, softDelete: true },
+    });
     res.status(200).json({ message: 'Demande supprimée avec succès' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -219,7 +273,7 @@ const annulerDemande = async (req, res) => {
       icon: ICONS.exchange,
       heading: 'Demande annulée par le client',
       bodyHtml: `
-        <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a été annulée par le client ${req.userEmail}.</p>
+        <p style="margin: 0 0 12px;">La demande <strong>${escapeHtml(demande.objet)}</strong> a été annulée par le client ${escapeHtml(req.userEmail)}.</p>
         <p style="margin: 0;">
           ${renderBadge(statutPrecedent, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
@@ -232,18 +286,23 @@ const annulerDemande = async (req, res) => {
 
     res.status(200).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
 /**
  * Transition de statut contrôlée par le workflow (§2.2.2 / §2.2.3).
  * Seuls les rôles habilités pour la transition demandée (depuis le statut
- * courant) peuvent l'exécuter ; ADMIN peut toujours forcer.
+ * courant) peuvent l'exécuter ; TENANT_ADMIN / PLATFORM_ADMIN peuvent toujours forcer.
  */
 const changerStatutDemande = async (req, res) => {
   try {
-    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    // AUTHZ-002 (audit) : un CLIENT ne peut faire transiter QUE ses propres
+    // demandes — sinon le Client A pourrait clôturer/rouvrir le dossier du
+    // Client B (« sabotage inter-client »). Les rôles internes voient tout
+    // le périmètre du tenant (le filtre est neutre pour eux).
+    const demande = await Demande.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
     if (!demande) {
       res.status(404).json({ message: 'Demande introuvable' });
       return;
@@ -272,7 +331,7 @@ const changerStatutDemande = async (req, res) => {
       icon: ICONS.exchange,
       heading: 'Statut de demande mis à jour',
       bodyHtml: `
-        <p style="margin: 0 0 12px;">La demande <strong>${demande.objet}</strong> a changé de statut :</p>
+        <p style="margin: 0 0 12px;">La demande <strong>${escapeHtml(demande.objet)}</strong> a changé de statut :</p>
         <p style="margin: 0 0 12px;">
           ${renderBadge(statutActuel, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
@@ -286,7 +345,8 @@ const changerStatutDemande = async (req, res) => {
 
     res.status(200).json(demande);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

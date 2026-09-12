@@ -4,6 +4,7 @@ const { Utilisateur } = require('../models/user.model');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl';
 
@@ -67,7 +68,8 @@ const listTime = async (req, res) => {
       totalHours: Math.round((totalMinutes / 60) * 100) / 100,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -108,7 +110,8 @@ const createTimeEntry = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.time_logged', targetType: 'time', targetId: entry._id, metadata: { minutes: mins } });
     res.status(201).json({ entry });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -143,7 +146,8 @@ const updateTimeEntry = async (req, res) => {
     await refreshTaskLogged(req.tenantId, project._id, entry.taskId);
     res.json({ entry });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -167,7 +171,8 @@ const deleteTimeEntry = async (req, res) => {
     await refreshTaskLogged(req.tenantId, project._id, entry.taskId);
     res.json({ message: 'Saisie supprimée.' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

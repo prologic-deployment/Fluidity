@@ -4,6 +4,7 @@ const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/pro
 const { logActivity } = require('../utils/project-activity.util');
 const { notifyUser, notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl';
 
@@ -53,7 +54,8 @@ const listDeliverables = async (req, res) => {
       .lean();
     res.json({ deliverables: items.map((d) => serializeDeliverable(d)) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -94,7 +96,8 @@ const createDeliverable = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.deliverable_created', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title } });
     res.status(201).json({ deliverable: serializeDeliverable(deliverable) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -127,7 +130,8 @@ const updateDeliverable = async (req, res) => {
     await deliverable.save();
     res.json({ deliverable: serializeDeliverable(deliverable) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -197,7 +201,8 @@ const transitionDeliverable = async (req, res) => {
     }
     res.json({ deliverable: serializeDeliverable(deliverable) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -220,7 +225,8 @@ const deleteDeliverable = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.deliverable_deleted', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title } });
     res.json({ message: 'Livrable supprimé.' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

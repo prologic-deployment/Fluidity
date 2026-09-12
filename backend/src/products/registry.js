@@ -46,6 +46,8 @@ const DEFAULT_ROLES = {
     { key: 'support_n1', nameKey: 'products.roles.support_n1' },
     { key: 'support_n2', nameKey: 'products.roles.support_n2' },
     { key: 'requester', nameKey: 'products.roles.requester' },
+    // CT-002 (audit) : rôle lecteur DÉCLARÉ (avant : « viewer » non déclaré).
+    { key: 'servicedesk_viewer', nameKey: 'products.roles.servicedesk_viewer' },
   ],
   project_management: [
     { key: 'project_admin', nameKey: 'products.roles.project_admin' },
@@ -963,10 +965,39 @@ const PERMISSIONS_BY_PRODUCT = {
 };
 
 /** Rôles système par défaut → permissions (matrice simple et extensible). */
-function rolePermissions(roleKey) {
+/**
+ * CT-002 (audit) : permissions des rôles GÉNÉRIQUES (viewer/editor…) partagés
+ * par plusieurs produits — indexées PAR PRODUIT pour éviter la collision de la
+ * table plate (avant : le « viewer » de monitoring recevait les permissions
+ * knowledge). Le paramètre productKey est optionnel : sans lui, la table plate
+ * historique s'applique (compatibilité ascendante).
+ */
+const PERMISSIONS_ROLES_GENERIQUES = {
+  knowledge_center: {
+    editor: ['knowledge.content.create', 'knowledge.content.read', 'knowledge.content.update', 'knowledge.content.publish'],
+    contributor: ['knowledge.content.create', 'knowledge.content.read', 'knowledge.content.update'],
+    viewer: ['knowledge.content.read'],
+  },
+  monitoring: {
+    viewer: ['monitoring.dashboard.read'],
+  },
+  backup_management: {
+    viewer: ['backup.view'],
+  },
+  document_management: {
+    editor: ['document.create', 'document.read', 'document.update'],
+    viewer: ['document.read'],
+  },
+};
+
+function rolePermissions(roleKey, productKey) {
+  const generiques = productKey ? PERMISSIONS_ROLES_GENERIQUES[productKey] : null;
+  if (generiques && generiques[roleKey]) return generiques[roleKey];
   const map = {
     // ServiceDesk
     servicedesk_admin: ['servicedesk.admin', ...PERMISSIONS_BY_PRODUCT.servicedesk],
+    // CT-002 : lecteur ServiceDesk déclaré (lecture seule).
+    servicedesk_viewer: ['servicedesk.ticket.read', 'servicedesk.contract.read', 'servicedesk.client.read'],
     service_manager: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.update', 'servicedesk.ticket.assign', 'servicedesk.ticket.escalate', 'servicedesk.demande.manage', 'servicedesk.contract.read'],
     support_n1: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.update', 'servicedesk.ticket.resolve', 'servicedesk.ticket.close'],
     support_n2: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.update', 'servicedesk.ticket.assign', 'servicedesk.ticket.resolve', 'servicedesk.ticket.escalate', 'servicedesk.ticket.close'],
@@ -1059,7 +1090,8 @@ function defaultProductRole(productKey, internalRole, principalType) {
     case 'servicedesk':
       if (internalRole === 'PLATFORM_ADMIN' || internalRole === 'TENANT_ADMIN') return 'servicedesk_admin';
       if (internalRole === 'MANAGER') return 'service_manager';
-      return internalRole === 'AGENT' ? 'support_n1' : 'viewer';
+      // CT-002 (audit) : plus jamais le rôle générique non déclaré « viewer ».
+      return internalRole === 'AGENT' ? 'support_n1' : 'servicedesk_viewer';
     case 'project_management':
       if (internalRole === 'PLATFORM_ADMIN' || internalRole === 'TENANT_ADMIN') return 'project_admin';
       if (internalRole === 'MANAGER') return 'project_manager';

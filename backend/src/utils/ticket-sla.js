@@ -13,6 +13,25 @@ function initSla(ticket, now = new Date()) {
   ticket.sla.breached = false;
 }
 
+/**
+ * INFO-004 (audit) : lorsque la priorité change en cours de vie (re-qualification),
+ * les cibles SLA sont RÉANCRÉES sur la nouvelle priorité à partir de maintenant.
+ * Avant, la priorité était recalculée mais les échéances restaient celles de
+ * l'ancienne priorité (ex. P1 gardait l'échéance 72 h d'un ancien P4).
+ * L'état de pause, le temps déjà suspendu, la date de première réponse et le
+ * drapeau de dépassement sont préservés.
+ */
+function reancrerSla(ticket, now = new Date()) {
+  const def = slaDefautPour(ticket.priorite);
+  ticket.sla = ticket.sla || {};
+  ticket.sla.reponseHeures = def.reponse;
+  ticket.sla.resolutionHeures = def.resolution;
+  if (!ticket.sla.respondedAt) {
+    ticket.sla.reponseDueAt = new Date(now.getTime() + def.reponse * 3600 * 1000);
+  }
+  ticket.sla.resolutionDueAt = new Date(now.getTime() + def.resolution * 3600 * 1000);
+}
+
 function pauseSla(ticket, now = new Date()) {
   if (ticket.sla?.pausedAt) return;
   ticket.sla = ticket.sla || {};
@@ -71,4 +90,4 @@ function applySlaOnTransition(ticket, from, to, now = new Date()) {
   ticket.sla.breached = etat.code === 'breached';
 }
 
-module.exports = { initSla, pauseSla, resumeSla, markResponded, slaEtat, applySlaOnTransition };
+module.exports = { initSla, reancrerSla, pauseSla, resumeSla, markResponded, slaEtat, applySlaOnTransition };

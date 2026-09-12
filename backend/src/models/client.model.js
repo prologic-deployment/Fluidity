@@ -45,6 +45,12 @@ const ClientSchema = new Schema(
     // --- Accès portail (identité) -------------------------------------------
     password: { type: String, select: false }, // hash bcrypt — absent = pas d'accès
     mustChangePassword: { type: Boolean, default: false },
+    // AUTH-003 (audit) : révocation de session côté portail (régénération
+    // d'accès, changement de mot de passe…). Cf. user.model.js.
+    tokenVersion: { type: Number, default: 0 },
+    // AUTH-004 : verrouillage doux après échecs répétés (jamais exposé).
+    loginAttempts: { type: Number, default: 0, select: false },
+    lockedUntil: { type: Date, default: null, select: false },
     resetToken: { type: String, select: false },
     resetTokenExpiry: { type: Date, select: false },
 

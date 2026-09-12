@@ -295,6 +295,11 @@ ChangementSchema.post('save', function (doc) {
   normalizeStockageForResponse(doc);
 });
 
+// DB-002 (audit) : suppression LOGIQUE — la suppression admin pose deletedAt,
+// la fiche disparaît de toutes les lectures mais reste traçable en base.
+const { activerSuppressionLogique } = require('../utils/soft-delete.util');
+activerSuppressionLogique(ChangementSchema);
+
 const Changement = mongoose.model('Changement', ChangementSchema);
 
 module.exports = { Changement, StockageEntrySchema, normalizeStockageForResponse, normalizeStockageForWrite };

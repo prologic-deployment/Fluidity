@@ -12,14 +12,16 @@ const {
   ProjectEvent,
 } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
-const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS } = require('../models/project.models');
+const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROLES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
+const { literalRegex } = require('../utils/regex.util');
 const { effectiveWorkflow } = require('../utils/project-workflow.util');
 const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers, notifyProjectManager } = require('../services/project-notify.service');
 const { sprintStats } = require('./project.sprint.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -78,11 +80,12 @@ function buildListFilter(req) {
   if (manager) q.managerId = mongoose.isValidObjectId(manager) ? new mongoose.Types.ObjectId(manager) : manager;
   if (tag) q.tags = tag;
   if (text) {
+    // INJ-002 : recherche littérale (échappement des métacaractères regex).
     q.$and = [
       { $or: [
-        { name: { $regex: text, $options: 'i' } },
-        { code: { $regex: text, $options: 'i' } },
-        { description: { $regex: text, $options: 'i' } },
+        { name: literalRegex(text) },
+        { code: literalRegex(text) },
+        { description: literalRegex(text) },
       ] },
     ];
   }
@@ -166,7 +169,8 @@ const listProjects = async (req, res) => {
     );
     res.json({ projects: enriched, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -178,7 +182,8 @@ const searchProjects = async (req, res) => {
       res.json({ projects: [], tasks: [], milestones: [], issues: [] });
       return;
     }
-    const rx = { $regex: text, $options: 'i' };
+    // INJ-002 : recherche littérale (échappement des métacaractères regex).
+    const rx = literalRegex(text);
     const scope = await visibleProjects(req, {});
     const projects = await Project.find({ ...scope, $and: [{ $or: [{ name: rx }, { code: rx }] }] })
       .limit(5)
@@ -201,7 +206,8 @@ const searchProjects = async (req, res) => {
     ]);
     res.json({ projects, tasks, milestones, issues });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -223,6 +229,48 @@ const createProject = async (req, res) => {
       res.status(400).json({ message: 'Méthodologie invalide.' });
       return;
     }
+    // AUTHZ-003 (audit) : le responsable ET les membres initiaux doivent être
+    // des comptes du TENANT courant (pas d'identifiants hors-tenant injectés),
+    // et chaque rôle projet doit appartenir au vocabulaire autorisé.
+    if (managerId) {
+      if (!mongoose.isValidObjectId(managerId)) {
+        res.status(400).json({ message: 'Identifiant du responsable invalide.' });
+        return;
+      }
+      const responsable = await Utilisateur.findOne({ _id: managerId, tenantId: req.tenantId }).lean();
+      if (!responsable) {
+        res.status(403).json({ code: 'CROSS_TENANT_MEMBER', message: 'Le responsable indiqué est hors de cet espace de travail.' });
+        return;
+      }
+    }
+    const membresInitiaux = [];
+    if (Array.isArray(teamMembers)) {
+      if (teamMembers.length > 50) {
+        res.status(400).json({ message: 'Trop de membres initiaux (maximum 50).' });
+        return;
+      }
+      const idsMembres = [];
+      for (const m of teamMembers) {
+        if (!m || !mongoose.isValidObjectId(m.userId)) {
+          res.status(400).json({ message: 'Membre initial invalide (userId requis).' });
+          return;
+        }
+        if (m.roleKey && !PROJECT_MEMBER_ROLES.includes(m.roleKey)) {
+          res.status(400).json({ message: 'Rôle projet invalide pour un membre initial.' });
+          return;
+        }
+        idsMembres.push(m.userId);
+      }
+      if (idsMembres.length > 0) {
+        const presents = await Utilisateur.find({ _id: { $in: idsMembres }, tenantId: req.tenantId }).select('_id').lean();
+        const ensemble = new Set(presents.map((u) => String(u._id)));
+        if (!idsMembres.every((id) => ensemble.has(String(id)))) {
+          res.status(403).json({ code: 'CROSS_TENANT_MEMBER', message: 'Un ou plusieurs membres initiaux sont hors de cet espace de travail.' });
+          return;
+        }
+      }
+      for (const m of teamMembers) membresInitiaux.push({ userId: m.userId, roleKey: m.roleKey || 'project_member' });
+    }
     const code = await nextProjectCode(req.tenantId);
     const project = await Project.create({
       tenantId: req.tenantId,
@@ -241,17 +289,14 @@ const createProject = async (req, res) => {
       budget: budget && budget.enabled ? { enabled: true, amount: Number(budget.amount) || 0, currency: budget.currency || 'EUR' } : { enabled: false, amount: 0, currency: 'EUR' },
       settings: settings || { sprintLengthDays: 14, wipLimit: 0 },
     });
-    // Créateur = project_admin du projet ; membres initiaux optionnels.
+    // Créateur = project_admin du projet ; membres initiaux déjà validés
+    // (tenant + rôle) ci-dessus — AUTHZ-003.
     const members = [{ userId: req.userId, roleKey: 'project_admin', invitedBy: req.userId }];
-    if (managerId && String(managerId) !== String(req.userId) && mongoose.isValidObjectId(managerId)) {
+    if (managerId && String(managerId) !== String(req.userId)) {
       members.push({ userId: managerId, roleKey: 'project_manager', invitedBy: req.userId });
     }
-    if (Array.isArray(teamMembers)) {
-      for (const m of teamMembers.slice(0, 50)) {
-        if (mongoose.isValidObjectId(m.userId)) {
-          members.push({ userId: m.userId, roleKey: m.roleKey || 'project_member', invitedBy: req.userId });
-        }
-      }
+    for (const m of membresInitiaux) {
+      members.push({ userId: m.userId, roleKey: m.roleKey, invitedBy: req.userId });
     }
     await ProjectMember.insertMany(
       [...new Map(members.map((m) => [String(m.userId), m])).values()].map((m) => ({
@@ -263,7 +308,8 @@ const createProject = async (req, res) => {
     await audit(req, { action: 'project.created', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { code: project.code, methodology: project.methodology } });
     res.status(201).json({ project: serializeProject(project) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -291,7 +337,8 @@ const getProject = async (req, res) => {
       workflow: effectiveWorkflow(project),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -405,7 +452,8 @@ const updateProject = async (req, res) => {
     }
     res.json({ project: serializeProject(project) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -431,7 +479,8 @@ const archiveProject = async (req, res) => {
     await audit(req, { action: project.archived ? 'project.archived' : 'project.unarchived', productKey: 'project_management', resource: 'project', resourceId: project._id });
     res.json({ project: serializeProject(project) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -472,7 +521,8 @@ const projectDashboard = async (req, res) => {
       members: members.map((m) => ({ _id: m._id, userId: m.userId, roleKey: m.roleKey })),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -572,7 +622,8 @@ const globalDashboard = async (req, res) => {
       filters: { statuses: PROJECT_STATUSES, methodologies: METHODOLOGIES },
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -631,7 +682,8 @@ const personalDashboard = async (req, res) => {
       managed: managedWithHealth,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -736,7 +788,8 @@ const projectReports = async (req, res) => {
       timeSummary,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -766,7 +819,8 @@ const projectCalendar = async (req, res) => {
     ]);
     res.json({ tasks, milestones, sprints, events, project: { startDate: project.startDate, endDate: project.endDate } });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -782,7 +836,8 @@ const getWorkflowConfig = async (req, res) => {
     if (!role) return;
     res.json({ workflow: effectiveWorkflow(project), methodology: project.methodology });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -837,7 +892,8 @@ const updateWorkflowConfig = async (req, res) => {
     await audit(req, { action: 'project.workflow.updated', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { states: project.workflow.map((s) => s.key) } });
     res.json({ workflow: effectiveWorkflow(project) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

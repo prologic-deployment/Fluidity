@@ -35,7 +35,9 @@ const createTicketSchema = z.object({
   piecesJointes: z.array(z.string()).optional(),
   diagnostic: diagnosticSchema,
   specifications: z.record(z.any()).optional(),
-  priorite: z.string().optional(),
+  // CT-003 (audit) : champ mort « priorite » retiré de la création — la
+  // priorité est TOUJOURS dérivée de impact + urgence côté serveur
+  // (calculatePriority) ; l'accepter ici était un leurre.
 });
 
 const updateTicketSchema = z

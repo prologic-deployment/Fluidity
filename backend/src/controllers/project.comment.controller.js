@@ -5,6 +5,7 @@ const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/pro
 const { logActivity } = require('../utils/project-activity.util');
 const { notifyProjectEvent, notifyUser } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -53,6 +54,9 @@ const listComments = async (req, res) => {
       targetId,
     })
       .sort({ createdAt: 1 })
+      // PERF-002 : fil de commentaires borné (les réponses doivent rester avec
+      // leur parent, donc pas de pagination stricte — plafond 500 documents).
+      .limit(500)
       .populate('authorId', USER_SELECT)
       .lean();
     // Réponses rattachées au commentaire parent (1 niveau).
@@ -67,7 +71,8 @@ const listComments = async (req, res) => {
       total: comments.length,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -135,7 +140,8 @@ const createComment = async (req, res) => {
     }
     res.status(201).json({ comment: serializeComment(populated) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -165,7 +171,8 @@ const updateComment = async (req, res) => {
     await comment.save();
     res.json({ comment: serializeComment(comment) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -189,7 +196,8 @@ const deleteComment = async (req, res) => {
     await ProjectComment.deleteMany({ $or: [{ _id: comment._id }, { parentId: comment._id }], tenantId: req.tenantId, projectId: project._id });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

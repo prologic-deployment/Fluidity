@@ -3,6 +3,7 @@ const { ProjectFile } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 const FOLDERS = ['Documents', 'Tasks', 'Milestones', 'Attachments'];
@@ -19,7 +20,8 @@ const listFiles = async (req, res) => {
     const files = await ProjectFile.find(q).sort({ createdAt: -1 }).populate('uploadedBy', USER_SELECT).lean();
     res.json({ files, folders: FOLDERS });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -55,7 +57,8 @@ const createFile = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.file_uploaded', targetType: 'file', targetId: file._id, metadata: { name: file.name } });
     res.status(201).json({ file });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -79,7 +82,8 @@ const deleteFile = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.file_deleted', targetType: 'file', targetId: file._id, metadata: { name: file.name } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

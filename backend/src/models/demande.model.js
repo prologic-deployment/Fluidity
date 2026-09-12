@@ -47,6 +47,11 @@ const DemandeSchema = new Schema(
 DemandeSchema.index({ tenantId: 1, createdAt: -1 });
 DemandeSchema.index({ tenantId: 1, requester: 1 });
 
+// DB-002 (audit) : suppression LOGIQUE — la suppression admin pose deletedAt,
+// la fiche disparaît de toutes les lectures mais reste traçable en base.
+const { activerSuppressionLogique } = require('../utils/soft-delete.util');
+activerSuppressionLogique(DemandeSchema);
+
 const Demande = mongoose.model('Demande', DemandeSchema);
 
 module.exports = { Demande };

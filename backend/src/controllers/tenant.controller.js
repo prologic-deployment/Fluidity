@@ -4,6 +4,9 @@ const { Client } = require('../models/client.model');
 const { Contrat } = require('../models/contrat.model');
 const { Demande } = require('../models/demande.model');
 const { Changement } = require('../models/changement.model');
+const logger = require('../utils/logger.util');
+// AUTH-008 (audit) : refus des mots de passe compromis (k-anonymité HIBP).
+const { verifierFuite } = require('../utils/breach.util');
 
 /**
  * Administration de la PLATEFORME — réservée au Super Admin
@@ -43,6 +46,12 @@ const createTenant = async (req, res) => {
 
     let adminUser = null;
     if (admin) {
+      // AUTH-008 : le mot de passe du Tenant Admin ne doit pas être compromis.
+      const fuiteAdmin = await verifierFuite(admin.password);
+      if (fuiteAdmin.compromis) {
+        res.status(400).json({ message: 'Ce mot de passe figure dans des fuites connues — choisissez-en un autre.', code: 'PASSWORD_BREACHED' });
+        return;
+      }
       const emailTaken = await Utilisateur.findOne({ email: admin.email });
       if (emailTaken) {
         // Le tenant reste créé ; on signale simplement le conflit sur l'admin
@@ -65,25 +74,28 @@ const createTenant = async (req, res) => {
 
     res.status(201).json({ tenant, admin: adminUser ? { email: adminUser.email, role: adminUser.role } : null });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
 /** Liste de tous les tenants (hors résiliés) avec leurs statistiques. */
-const getAllTenants = async (_req, res) => {
+const getAllTenants = async (req, res) => {
   try {
-    const tenants = await Tenant.find({ status: { $ne: 'terminated' } }).sort({ createdAt: -1 });
+    // PERF-002 : vue admin bornée (plafond 200 tenants affichés).
+    const tenants = await Tenant.find({ status: { $ne: 'terminated' } }).sort({ createdAt: -1 }).limit(200);
     const withStats = await Promise.all(
       tenants.map(async (t) => ({ ...t.toObject(), stats: await tenantStats(t) }))
     );
     res.status(200).json(withStats);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
 /** Vue d'ensemble de la plateforme (cartes du tableau de bord Super Admin). */
-const getPlatformStats = async (_req, res) => {
+const getPlatformStats = async (req, res) => {
   try {
     const [tenantsActive, tenantsSuspended, usersTotal, clientsTotal, contratsTotal, demandesTotal, changementsTotal] =
       await Promise.all([
@@ -104,7 +116,8 @@ const getPlatformStats = async (_req, res) => {
       changements: changementsTotal,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -118,7 +131,8 @@ const getTenantById = async (req, res) => {
     }
     res.status(200).json({ ...tenant.toObject(), stats: await tenantStats(tenant) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -140,7 +154,8 @@ const updateTenant = async (req, res) => {
       res.status(409).json({ message: 'Un tenant portant ce nom existe déjà.' });
       return;
     }
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -158,7 +173,8 @@ const suspendTenant = async (req, res) => {
     }
     res.status(200).json(tenant);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -176,7 +192,8 @@ const activateTenant = async (req, res) => {
     }
     res.status(200).json(tenant);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -197,7 +214,8 @@ const deleteTenant = async (req, res) => {
     }
     res.status(200).json({ message: `Tenant « ${tenant.name} » supprimé (résilié) avec succès`, tenant });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

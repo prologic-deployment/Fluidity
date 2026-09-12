@@ -1,9 +1,14 @@
 const { Changement, normalizeStockageForResponse, normalizeStockageForWrite } = require('../models/changement.model');
 const { Contrat } = require('../models/contrat.model');
+const { Client } = require('../models/client.model');
+const { Utilisateur } = require('../models/user.model');
+const { literalRegex } = require('../utils/regex.util');
+const { parametresPagination, envelopePagination } = require('../utils/pagination.util');
 const { sendSupportEmail } = require('../services/email.service');
-const { renderEmailLayout, renderDetailsTable, renderBadge, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
+const { renderEmailLayout, renderDetailsTable, renderBadge, escapeHtml, FRONTEND_URL, COLORS, ICONS } = require('../services/email-template');
 const { CHANGEMENT_TRANSITIONS, CHANGEMENT_STATUTS_ANNULABLES, canTransition, availableTransitions } = require('../utils/workflow');
-const { auditWorkflow } = require('../utils/saas-log.util');
+const { auditWorkflow, audit } = require('../utils/saas-log.util');
+const logger = require('../utils/logger.util');
 
 
 /** Filtre d'appartenance : un CLIENT ne voit toujours que SES propres changements. */
@@ -92,7 +97,8 @@ const createChangement = async (req, res) => {
     if (created) normalizeStockageForResponse(created);
     res.status(201).json(created);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -101,13 +107,48 @@ const createChangement = async (req, res) => {
  */
 const getAllChangements = async (req, res) => {
   try {
+    // PERF-002 (audit) : liste paginée + filtres serveur (page/limit,
+    // défaut 50, plafond 100) — plus aucune requête non bornée.
+    const { page, limit, skip } = parametresPagination(req);
+    const portee = { tenantId: req.tenantId, ...filtreProprietaire(req) };
     // Un client ne liste que SES changements ; les autres rôles gardent la vue tenant.
-    const changements = await populateRefs(Changement.find({ tenantId: req.tenantId, ...filtreProprietaire(req) })).sort({ createdAt: -1 });
+    const filtre = { ...portee };
+    if (typeof req.query.statut === 'string' && req.query.statut) filtre.statut = req.query.statut.slice(0, 60);
+    if (typeof req.query.type === 'string' && req.query.type) filtre.typeChangement = req.query.type.slice(0, 30);
+    if (typeof req.query.recherche === 'string' && req.query.recherche.trim()) {
+      const r = literalRegex(req.query.recherche.trim().slice(0, 100));
+      filtre.$or = [{ objetChangement: r }, { descriptionDetaillee: r }];
+    }
+    if (typeof req.query.client === 'string' && req.query.client.trim() && !filtre.requester) {
+      const r = literalRegex(req.query.client.trim().slice(0, 100));
+      const [fichesClients, fichesUsers] = await Promise.all([
+        Client.find({ tenantId: req.tenantId, nom: r }).select('_id').lean(),
+        Utilisateur.find({ tenantId: req.tenantId, $or: [{ firstName: r }, { lastName: r }, { email: r }] }).select('_id').lean(),
+      ]);
+      filtre.requester = { $in: [...fichesClients.map((c) => c._id), ...fichesUsers.map((u) => u._id)] };
+    }
+    const TRI_CHANGEMENTS = {
+      objet: { objetChangement: 1 }, date: { createdAt: 1 }, statut: { statut: 1 },
+      type: { typeChangement: 1 }, categorie: { categorie: 1 },
+    };
+    const sens = String(req.query.dir) === 'asc' ? 1 : -1;
+    const cleTri = TRI_CHANGEMENTS[req.query.tri] ? req.query.tri : 'date';
+    const tri = Object.fromEntries(Object.entries(TRI_CHANGEMENTS[cleTri]).map(([k]) => [k, sens]));
+    const parStatutAgg = await Changement.aggregate([
+      { $match: { ...portee, deletedAt: null } },
+      { $group: { _id: '$statut', n: { $sum: 1 } } },
+    ]);
+    const parStatut = Object.fromEntries(parStatutAgg.map((s) => [s._id, s.n]));
+    const [total, items] = await Promise.all([
+      Changement.countDocuments(filtre),
+      populateRefs(Changement.find(filtre)).sort(tri).skip(skip).limit(limit),
+    ]);
     // Normalise chaque document pour compatibilité stockage legacy (objet → tableau)
-    changements.forEach((doc) => normalizeStockageForResponse(doc));
-    res.status(200).json(changements);
+    items.forEach((doc) => normalizeStockageForResponse(doc));
+    res.status(200).json({ ...envelopePagination({ items, total, page, limit }), stats: { parStatut } });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -124,7 +165,8 @@ const getChangementById = async (req, res) => {
     normalizeStockageForResponse(changement);
     res.status(200).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -165,7 +207,8 @@ const updateChangement = async (req, res) => {
     if (changement) normalizeStockageForResponse(changement);
     res.status(200).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -194,10 +237,18 @@ const deleteChangement = async (req, res) => {
       return;
     }
 
-    await changement.deleteOne();
+    // DB-002 : suppression LOGIQUE + audit : la fiche reste en base (deletedAt)
+    // mais sort de toutes les vues et des comptes d'intégrité référentielle.
+    changement.deletedAt = new Date();
+    await changement.save();
+    await audit(req, {
+      action: 'changement.deleted', resource: 'changement', resourceId: changement._id,
+      metadata: { objet: changement.objetChangement, statut: changement.statut, softDelete: true },
+    });
     res.status(200).json({ message: 'Changement supprimé avec succès' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -240,7 +291,7 @@ const annulerChangement = async (req, res) => {
       icon: ICONS.exchange,
       heading: 'Changement annulé par le client',
       bodyHtml: `
-        <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a été annulé par le client ${req.userEmail}.</p>
+        <p style="margin: 0 0 12px;">Le changement <strong>${escapeHtml(changement.objetChangement)}</strong> a été annulé par le client ${escapeHtml(req.userEmail)}.</p>
         <p style="margin: 0;">
           ${renderBadge(statutPrecedent, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
@@ -253,18 +304,22 @@ const annulerChangement = async (req, res) => {
 
     res.status(200).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
 /**
  * Transition de statut contrôlée par le workflow (§2.3.4 / §2.3.5).
  * Seuls les rôles habilités pour la transition demandée (depuis le statut
- * courant) peuvent l'exécuter ; ADMIN peut toujours forcer.
+ * courant) peuvent l'exécuter ; TENANT_ADMIN / PLATFORM_ADMIN peuvent toujours forcer.
  */
 const changerStatutChangement = async (req, res) => {
   try {
-    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    // AUTHZ-002 (audit) : borne d'appartenance pour les principaux CLIENT —
+    // aucune transition sur le dossier d'un autre client (défense en
+    // profondeur, la matrice de transitions n'inclut déjà pas le rôle CLIENT).
+    const changement = await Changement.findOne({ _id: req.params.id, tenantId: req.tenantId, ...filtreProprietaire(req) });
     if (!changement) {
       res.status(404).json({ message: 'Changement introuvable' });
       return;
@@ -292,7 +347,7 @@ const changerStatutChangement = async (req, res) => {
       icon: ICONS.exchange,
       heading: 'Statut de changement mis à jour',
       bodyHtml: `
-        <p style="margin: 0 0 12px;">Le changement <strong>${changement.objetChangement}</strong> a changé de statut :</p>
+        <p style="margin: 0 0 12px;">Le changement <strong>${escapeHtml(changement.objetChangement)}</strong> a changé de statut :</p>
         <p style="margin: 0 0 12px;">
           ${renderBadge(statutActuel, COLORS.muted)}
           <span style="color:#94a3b8; margin: 0 6px;">→</span>
@@ -306,7 +361,8 @@ const changerStatutChangement = async (req, res) => {
 
     res.status(200).json(changement);
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

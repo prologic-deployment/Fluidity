@@ -145,6 +145,10 @@ const AuditLogSchema = new Schema(
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', default: null },
     userId: { type: Schema.Types.ObjectId, default: null },
     principalType: { type: String, default: 'UTILISATEUR' },
+    // LOG-001 (audit) : Super Admin agissant par IMPERSONATION (X-Tenant-Override).
+    // userId reste l'acteur réel (SA) ; impersonatedBy = SA id, et le tenantId
+    // de l'entrée est le tenant ciblé. Permet de tracer « qui agit pour qui ».
+    impersonatedBy: { type: Schema.Types.ObjectId, default: null },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
     productKey: { type: String, default: '' },
     action: { type: String, required: true }, // ex. 'subscription.created', 'workflow.transition', 'license.assigned'

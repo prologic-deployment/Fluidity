@@ -4,6 +4,7 @@ const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/pro
 const { logActivity } = require('../utils/project-activity.util');
 const { notifyUser } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -28,7 +29,8 @@ const listIssues = async (req, res) => {
       .lean();
     res.json({ issues: items.map((i) => serializeIssue(i, { owner: i.ownerId })) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -69,7 +71,8 @@ const createIssue = async (req, res) => {
     }
     res.status(201).json({ issue: serializeIssue(issue) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -119,7 +122,8 @@ const updateIssue = async (req, res) => {
     await issue.save();
     res.json({ issue: serializeIssue(issue) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -141,7 +145,8 @@ const deleteIssue = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.issue_deleted', targetType: 'issue', targetId: issue._id, metadata: { title: issue.title } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

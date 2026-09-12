@@ -3,9 +3,11 @@ const { Project, ProjectMember } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { PROJECT_MEMBER_ROLES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
+const { literalRegex } = require('../utils/regex.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -40,7 +42,8 @@ const listMembers = async (req, res) => {
       roles: PROJECT_MEMBER_ROLES,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -94,7 +97,8 @@ const addMember = async (req, res) => {
     const populated = await ProjectMember.findById(member._id).populate('userId', USER_SELECT).lean();
     res.status(201).json({ member: { _id: populated._id, userId: populated.userId, roleKey: populated.roleKey, joinedAt: populated.joinedAt } });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -133,7 +137,8 @@ const updateMemberRole = async (req, res) => {
     });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -157,7 +162,8 @@ const removeMember = async (req, res) => {
     await audit(req, { action: 'project.member_removed', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { userId: member.userId } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -178,10 +184,11 @@ const availableUsers = async (req, res) => {
     const q = String(req.query.q || '').trim();
     const filter = { tenantId: req.tenantId, status: { $ne: 'suspended' } };
     if (q.length >= 2) {
+      // INJ-002 : recherche littérale (échappement des métacaractères regex).
       filter.$or = [
-        { email: { $regex: q, $options: 'i' } },
-        { firstName: { $regex: q, $options: 'i' } },
-        { lastName: { $regex: q, $options: 'i' } },
+        { email: literalRegex(q) },
+        { firstName: literalRegex(q) },
+        { lastName: literalRegex(q) },
       ];
     }
     const users = await Utilisateur.find(filter).select('email firstName lastName avatarUrl jobTitle status').limit(20).lean();
@@ -201,7 +208,8 @@ const availableUsers = async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

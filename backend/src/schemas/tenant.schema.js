@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { verifPolitique, LONGUEUR_MIN } = require('../utils/password.util');
 
 const hexColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -15,7 +16,14 @@ const tenantBrandingSchema = z
 /** Compte Tenant Admin éventuellement créé en même temps que le tenant. */
 const tenantAdminSchema = z.object({
   email: z.string().email('Email du Tenant Admin invalide'),
-  password: z.string().min(6, 'Mot de passe : 6 caractères minimum'),
+  // AUTH-005/008 (audit) : la politique renforcée s'applique aussi au Tenant
+  // Admin créé avec le tenant (avant : simple min(6)).
+  password: z
+    .string({ required_error: 'Mot de passe du Tenant Admin requis' })
+    .min(1, 'Mot de passe du Tenant Admin requis')
+    .refine((v) => verifPolitique(v) === null, {
+      message: `Le mot de passe doit contenir au moins ${LONGUEUR_MIN} caractères dont une majuscule, une minuscule, un chiffre et un caractère spécial.`,
+    }),
 });
 
 const createTenantSchema = z.object({

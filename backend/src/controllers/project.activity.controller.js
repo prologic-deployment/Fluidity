@@ -1,6 +1,8 @@
 const { ProjectActivity } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole } = require('../utils/project-access.util');
+const { escapeRegex } = require('../utils/regex.util');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -15,7 +17,8 @@ const listActivity = async (req, res) => {
     const limit = Math.min(100, parseInt(req.query.limit, 10) || 30);
     const q = { tenantId: req.tenantId, projectId: project._id };
     if (req.query.user) q.actorId = req.query.user;
-    if (req.query.kind) q.action = { $regex: `\\.${req.query.kind}$`, $options: 'i' };
+    // INJ-002 : échappement du filtre « kind » avant insertion dans le motif.
+    if (req.query.kind) q.action = { $regex: `\\.${escapeRegex(req.query.kind)}$`, $options: 'i' };
     if (req.query.targetType) q.targetType = req.query.targetType;
     if (req.query.from || req.query.to) {
       q.createdAt = {};
@@ -39,7 +42,8 @@ const listActivity = async (req, res) => {
       kinds: ['task', 'milestone', 'sprint', 'member', 'project', 'risk', 'issue', 'comment', 'file', 'workflow'],
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

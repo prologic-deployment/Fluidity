@@ -19,6 +19,19 @@ const { seedProjectManagement } = require('./project.seed');
  * (tests, scripts QA) — le module se comporte aussi en script CLI.
  */
 async function runSeed() {
+  // CFG-001 (audit) : les identifiants de démonstration (Password123!, secret
+  // TOTP connu, codes de secours connus) sont PUBLICS dans ce dépôt. Le seed ne
+  // doit JAMAIS s'exécuter contre une base de production sauf acte volontaire
+  // explicite (SEED_DEMO_IN_PROD=I_UNDERSTAND), par ex. pour une démo isolée.
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_DEMO_IN_PROD !== 'I_UNDERSTAND') {
+    console.error(
+      '[Seed] Refus : NODE_ENV=production. Les comptes seed utilisent des identifiants ' +
+        'de démonstration publics (voir docs). Pour forcer sur un environnement de ' +
+        "démonstration isolé : SEED_DEMO_IN_PROD=I_UNDERSTAND npm run seed — puis " +
+        'changez immédiatement les mots de passe et la 2FA des comptes créés.'
+    );
+    process.exit(1);
+  }
   await connectDB();
   try {
     const tenants = await seedTenants();

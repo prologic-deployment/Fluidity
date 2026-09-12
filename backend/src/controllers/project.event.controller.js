@@ -2,6 +2,7 @@ const { Project, ProjectEvent, EVENT_TYPES } = require('../models/project.models
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 /**
  * ÉVÉNEMENTS PROJET (calendrier) — réunions, décisions, événements et
@@ -34,7 +35,8 @@ const listEvents = async (req, res) => {
       .lean();
     res.json({ events: events.map((e) => serializeEvent(e)) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -69,7 +71,8 @@ const createEvent = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.event_created', targetType: 'event', targetId: event._id, metadata: { title: event.title, type: event.type } });
     res.status(201).json({ event: serializeEvent(event) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -102,7 +105,8 @@ const updateEvent = async (req, res) => {
     await event.save();
     res.json({ event: serializeEvent(event) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -125,7 +129,8 @@ const deleteEvent = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.event_deleted', targetType: 'event', targetId: event._id, metadata: { title: event.title } });
     res.json({ message: 'Événement supprimé.' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

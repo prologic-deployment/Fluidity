@@ -3,6 +3,7 @@ const { MILESTONE_KINDS, MILESTONE_STATUSES } = require('../models/project.model
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { loadProject } = require('./project.member.controller');
+const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
 
@@ -38,7 +39,8 @@ const listMilestones = async (req, res) => {
       .lean();
     res.json({ milestones: items.map((m) => serializeMilestone(m, { owner: m.ownerId })) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -73,7 +75,8 @@ const createMilestone = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: milestone.kind === 'phase' ? 'projects.activity.phase_created' : 'projects.activity.milestone_created', targetType: 'milestone', targetId: milestone._id, metadata: { name: milestone.name } });
     res.status(201).json({ milestone: serializeMilestone(milestone) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -115,7 +118,8 @@ const updateMilestone = async (req, res) => {
     await milestone.save();
     res.json({ milestone: serializeMilestone(milestone) });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -137,7 +141,8 @@ const deleteMilestone = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.milestone_deleted', targetType: 'milestone', targetId: milestone._id, metadata: { name: milestone.name } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
