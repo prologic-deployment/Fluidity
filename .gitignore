@@ -5,9 +5,11 @@ node_modules/
 dist/
 build/
 
-# Variables d'environnement
+# Variables d'environnement — CFG-003 (audit) : tous les variants .env* sont
+# ignorés SAUF .env.example (documenté, sans secrets réels).
 .env
-.env.local
+.env.*
+!.env.example
 
 # Logs
 *.log
