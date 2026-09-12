@@ -49,10 +49,14 @@ async function runTicketAutoClose() {
 }
 
 function startTicketAutoCloseJob(intervalMs = 15 * 60 * 1000) {
-  runTicketAutoClose().catch((err) => console.error('[tickets] auto-close', err));
-  return setInterval(() => {
-    runTicketAutoClose().catch((err) => console.error('[tickets] auto-close', err));
-  }, intervalMs);
+  // JOB-001 : verrou en base — une seule instance exécute le cycle.
+  const { avecVerrouJob } = require('../utils/job-lock.util');
+  const executer = () =>
+    avecVerrouJob('ticket-auto-close', intervalMs, runTicketAutoClose).catch((err) =>
+      console.error('[tickets] auto-close', err)
+    );
+  executer();
+  return setInterval(executer, intervalMs);
 }
 
 module.exports = { runTicketAutoClose, startTicketAutoCloseJob, CLIENT_WAIT_BUSINESS_DAYS };

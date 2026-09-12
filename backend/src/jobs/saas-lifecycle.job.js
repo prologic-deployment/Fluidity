@@ -105,10 +105,13 @@ async function runSaaSLifecycleJob() {
 
 /** Démarre le job en boucle (toutes les 6 heures) et une fois au démarrage. */
 function startSaaSLifecycleJob() {
-  runSaaSLifecycleJob().catch(() => {});
-  const timer = setInterval(() => {
-    runSaaSLifecycleJob().catch(() => {});
-  }, 6 * 3600 * 1000);
+  // JOB-001 : verrou en base — une seule instance exécute le cycle.
+  const { avecVerrouJob } = require('../utils/job-lock.util');
+  const INTERVALLE = 6 * 3600 * 1000;
+  const executer = () =>
+    avecVerrouJob('saas-lifecycle', INTERVALLE, runSaaSLifecycleJob).catch(() => {});
+  executer();
+  const timer = setInterval(executer, INTERVALLE);
   timer.unref?.();
   return timer;
 }

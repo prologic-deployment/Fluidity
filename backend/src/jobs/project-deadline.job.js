@@ -96,10 +96,14 @@ async function runProjectDeadlineJob() {
 }
 
 function startProjectDeadlineJob(intervalMs = 30 * 60 * 1000) {
-  runProjectDeadlineJob().catch((err) => console.error('[projects] deadline job', err));
-  return setInterval(() => {
-    runProjectDeadlineJob().catch((err) => console.error('[projects] deadline job', err));
-  }, intervalMs);
+  // JOB-001 : verrou en base — une seule instance exécute le cycle.
+  const { avecVerrouJob } = require('../utils/job-lock.util');
+  const executer = () =>
+    avecVerrouJob('project-deadline', intervalMs, runProjectDeadlineJob).catch((err) =>
+      console.error('[projects] deadline job', err)
+    );
+  executer();
+  return setInterval(executer, intervalMs);
 }
 
 module.exports = { runProjectDeadlineJob, startProjectDeadlineJob };
