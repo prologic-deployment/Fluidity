@@ -137,8 +137,9 @@ async function clearSession(context, page) {
 
   // ============================================================
   console.log('\n— §47 LICENCES : 5 sièges, 6e refusée, extension +2 —');
-  const users = await apiAdmin('admin@fluidity.dev', 'GET', '/users');
-  const candidates = (users.body || []).filter((u) => u.status !== 'suspended').slice(0, 6);
+  const users = await apiAdmin('admin@fluidity.dev', 'GET', '/users?limit=100');
+  // PERF-002 : /users renvoie une enveloppe paginée { items, total, … }.
+  const candidates = (users.body?.items || users.body || []).filter((u) => u.status !== 'suspended').slice(0, 6);
   let assigned = 0;
   for (const u of candidates.slice(0, 5)) {
     const r = await apiAdmin('admin@fluidity.dev', 'POST', '/platform/licenses', { userId: u._id, productKey: 'project_management' });
