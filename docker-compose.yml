@@ -1,0 +1,61 @@
+# ARCH-003 — pile de déploiement Fluidity (API + SPA + MongoDB).
+# Usage dev/preview ; en production voir docs/ARCH-003-runbook-production.md
+# (TLS, Mongo auth, sauvegardes, secrets).
+#
+# Les secrets ne sont JAMAIS écrits ici : ils viennent de l'environnement
+# ou d'un fichier .env NON versionné (voir backend/.env.example).
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?définir MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?définir MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: fluidity
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/fluidity?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?définir JWT_SECRET (32+ caractères aléatoires)}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      TWO_FACTOR_ENCRYPTION_KEY: ${TWO_FACTOR_ENCRYPTION_KEY:?définir (32 caractères hex)}
+      FRONTEND_URL: ${FRONTEND_URL:?définir l'URL publique du frontend}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      BREACH_CHECK: ${BREACH_CHECK:-1}
+    volumes:
+      - uploads-data:/app/uploads
+    expose:
+      - "3000"
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  mongo-data:
+  uploads-data:
