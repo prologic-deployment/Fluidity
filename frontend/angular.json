@@ -21,7 +21,9 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "css",
-            "assets": [],
+            "assets": [
+              "src/assets"
+            ],
             "styles": [
               "src/styles.css"
             ],
@@ -29,6 +31,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
