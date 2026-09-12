@@ -125,6 +125,17 @@ function renderEmailLayout({
   brandName = PLATFORM_NAME,
   brandTagline = PLATFORM_TAGLINE,
 }) {
+  // MAIL-001 (audit) : tous les champs « texte » du gabarit sont échappés
+  // centralement — les appelants n'ont PAS à s'en préoccuper. Seul `bodyHtml`
+  // reste du HTML volontaire ; les données utilisateur qu'il contient sont
+  // échappées par les contrôleurs au point d'usage.
+  preheader = escapeHtml(preheader);
+  heading = escapeHtml(heading);
+  brandName = escapeHtml(brandName);
+  brandTagline = escapeHtml(brandTagline);
+  if (ctaLabel) ctaLabel = escapeHtml(ctaLabel);
+  if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) ctaUrl = null; // pas de javascript:/data: CTA
+
   const heroIcon = renderHeroIcon(icon);
   const align = icon ? 'center' : 'left';
   const brandInitial = (brandName || 'P').trim().charAt(0).toUpperCase();
@@ -258,8 +269,10 @@ function renderEmailLayout({
 
 /** Petit badge coloré à point (statut, priorité, type...) pour usage dans un email. */
 function renderBadge(text, color = COLORS.primary) {
+  // MAIL-001 : le libellé du badge est échappé (statuts saisis côté client).
+  const safeText = escapeHtml(text);
   return `<span style="display:inline-block; padding: 4px 12px 4px 9px; border-radius:999px; font-family: Arial, Helvetica, sans-serif; font-size:12px; font-weight:700; color:${color}; background-color:${color}26; white-space:nowrap;">
-    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background-color:${color}; margin-right:6px; vertical-align:middle;">&nbsp;</span><span style="vertical-align:middle;">${text}</span>
+    <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background-color:${color}; margin-right:6px; vertical-align:middle;">&nbsp;</span><span style="vertical-align:middle;">${safeText}</span>
   </span>`;
 }
 
@@ -267,15 +280,33 @@ function renderBadge(text, color = COLORS.primary) {
  * Tableau clé/valeur dans un encart arrondi (façon carte de détail de
  * l'application) pour usage dans un email.
  */
+/**
+ * MAIL-001 (audit) : échappement HTML strict. Toute donnée d'origine
+ * utilisateur injectée dans un gabarit d'e-mail DOIT passer par ici, sinon un
+ * client malveillant peut forger du HTML (liens de phishing, fausses
+ * instructions « support ») rendu dans la boîte des destinataires.
+ */
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderDetailsTable(rows) {
   const filtered = rows.filter((r) => r && r.value !== undefined && r.value !== null && r.value !== '');
   const items = filtered
     .map((r, i) => {
       const borderTop = i > 0 ? `border-top: 1px solid ${COLORS.border};` : '';
+      // MAIL-001 (audit) : les libellés/valeurs proviennent de la saisie
+      // utilisateur — échappement systématique contre le HTML injecté
+      // (phishing / usurpation de l'équipe support via un e-mail forgé).
       return `
       <tr>
-        <td class="email-muted email-border email-detail-cell" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:12px; color:${COLORS.muted}; width: 42%; vertical-align:top;">${r.label}</td>
-        <td class="email-text email-border email-detail-cell" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:13px; color:${COLORS.text}; font-weight:700;">${r.value}</td>
+        <td class="email-muted email-border email-detail-cell" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:12px; color:${COLORS.muted}; width: 42%; vertical-align:top;">${escapeHtml(r.label)}</td>
+        <td class="email-text email-border email-detail-cell" style="padding: 10px 14px; ${borderTop} font-family: Arial, Helvetica, sans-serif; font-size:13px; color:${COLORS.text}; font-weight:700;">${escapeHtml(r.value)}</td>
       </tr>`;
     })
     .join('');
@@ -295,4 +326,4 @@ const ICONS = {
   board: 'P', // Gestion de Projet
 };
 
-module.exports = { renderEmailLayout, renderBadge, renderDetailsTable, FRONTEND_URL, COLORS, ICONS };
+module.exports = { renderEmailLayout, renderBadge, renderDetailsTable, escapeHtml, FRONTEND_URL, COLORS, ICONS };

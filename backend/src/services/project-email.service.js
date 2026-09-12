@@ -1,5 +1,5 @@
 const { Utilisateur } = require('../models/user.model');
-const { renderEmailLayout, FRONTEND_URL, ICONS } = require('./email-template');
+const { renderEmailLayout, escapeHtml, FRONTEND_URL, ICONS } = require('./email-template');
 const { sendEmail } = require('./email.service');
 const { PLATFORM_NAME } = require('../config/branding');
 
@@ -407,14 +407,16 @@ const TEMPLATES = {
   },
 };
 
-/** Interpolation simplifiée : {{key}} + sections conditionnelles {{#key}}…{{/key}}. */
+/** Interpolation simplifiée : {{key}} + sections conditionnelles {{#key}}…{{/key}}.
+ *  MAIL-001 (audit) : les VALEURS injectées sont échappées — la balise des
+ *  gabarits (<strong>…) reste du HTML de confiance, jamais la donnée. */
 function interpolate(tpl, params) {
   let out = String(tpl);
   out = out.replace(/\{\{#([a-zA-Z0-9_]+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_m, key, body) =>
     params[key] ? body : ''
   );
   out = out.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_m, key) =>
-    params[key] !== undefined && params[key] !== null ? String(params[key]) : ''
+    params[key] !== undefined && params[key] !== null ? escapeHtml(params[key]) : ''
   );
   return out;
 }
@@ -438,7 +440,7 @@ async function sendProjectEventEmail(userId, event, params = {}) {
     preheader: subject,
     icon: ICONS.board,
     heading: interpolate(copy.heading, params),
-    bodyHtml: `<p style="margin:0 0 12px;">${lang === 'fr' ? 'Bonjour' : 'Hello'} ${user.firstName || ''},</p>
+    bodyHtml: `<p style="margin:0 0 12px;">${lang === 'fr' ? 'Bonjour' : 'Hello'} ${escapeHtml(user.firstName || '')},</p>
       <p style="margin:0;">${body}</p>`,
     ctaLabel: copy.cta,
     ctaUrl,

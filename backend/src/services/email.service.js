@@ -18,14 +18,20 @@ const smtpConfigured = () =>
  */
 const getTransporter = () => {
   if (!transporter) {
+    const secure = process.env.SMTP_SECURE === 'true';
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
+      secure,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // MAIL-002 (audit) : en dehors du TLS implicite (port 465 / secure),
+      // EXIGER STARTTLS — jamais d'envoi en clair. La vérification du
+      // certificat serveur reste activée (rejet des certificats invalides).
+      requireTLS: !secure,
+      tls: { rejectUnauthorized: true },
     });
   }
   return transporter;
@@ -154,4 +160,26 @@ const sendTwoFactorDisabledEmail = async (email) => {
   await sendEmail(email, `Double authentification désactivée — ${PLATFORM_NAME}`, html);
 };
 
-module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail, sendTwoFactorEnabledEmail, sendTwoFactorDisabledEmail };
+/**
+ * MAIL-003 (audit) : confirmation de sécurité — le mot de passe vient d'être
+ * modifié (par l'utilisateur ou via réinitialisation). Permet de détecter une
+ * prise de contrôle de compte.
+ */
+const sendPasswordChangedEmail = async (email) => {
+  const html = renderEmailLayout({
+    preheader: `Le mot de passe de votre compte ${PLATFORM_NAME} a été modifié.`,
+    icon: ICONS.lock,
+    heading: 'Mot de passe modifié',
+    bodyHtml: `
+      <p style="margin: 0 0 10px;">Bonjour,</p>
+      <p style="margin: 0 0 10px;">Le mot de passe de votre compte a été <strong>modifié avec succès</strong>.
+      Toutes vos sessions actives ont été révoquées : une nouvelle connexion est nécessaire.</p>
+      <p style="margin: 0;">Si vous n'êtes pas à l'origine de cette action, contactez immédiatement votre
+      administrateur : votre compte a peut-être été compromis.</p>`,
+    ctaLabel: 'Accéder à mon espace',
+    ctaUrl: FRONTEND_URL(),
+  });
+  await sendEmail(email, `Mot de passe modifié — ${PLATFORM_NAME}`, html);
+};
+
+module.exports = { sendEmail, sendResetPasswordEmail, sendSupportEmail, sendTwoFactorEnabledEmail, sendTwoFactorDisabledEmail, sendPasswordChangedEmail };
