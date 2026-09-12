@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
@@ -17,17 +17,21 @@ export class LoginComponent {
   form: FormGroup;
   error: string | null = null;
   loading = false;
+  /** Session expirée/révoquée (redirection de l'intercepteur 401 — FE-002). */
+  sessionExpiree = false;
 
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     public i18n: I18nService
   ) {
     this.form = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required]],
     });
+    this.sessionExpiree = this.route.snapshot.queryParamMap.get('expired') === '1';
   }
 
   submit(): void {

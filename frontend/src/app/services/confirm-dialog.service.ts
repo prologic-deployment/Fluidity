@@ -29,6 +29,10 @@ export interface ConfirmState extends ConfirmOptions {
 export class ConfirmDialogService {
   private readonly stateSubject = new BehaviorSubject<ConfirmState | null>(null);
   readonly state$ = this.stateSubject.asObservable();
+  /** État synchrone (gestion du focus à l'ouverture/fermeture — UX-003). */
+  get state(): ConfirmState | null {
+    return this.stateSubject.value;
+  }
   private resolver: ((value: boolean) => void) | null = null;
 
   constructor(private i18n: I18nService) {}

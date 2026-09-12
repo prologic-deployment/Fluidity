@@ -44,6 +44,9 @@ export class SaasAdminComponent implements OnInit {
   loading = false;
   error: string | null = null;
   success: string | null = null;
+  /** UX-002 (audit) : anti double-soumission — ids des commandes dont
+   *  l'approbation/rejet est déjà en vol. */
+  actionEnCours = new Set<string>();
 
   readonly tabs = [
     { key: 'catalog' as const, label: 'saas.tabCatalog' },
@@ -99,6 +102,8 @@ export class SaasAdminComponent implements OnInit {
   }
 
   approve(o: OrderItem): void {
+    if (this.actionEnCours.has(o._id)) return; // UX-002 : double-clic ignoré
+    this.actionEnCours.add(o._id);
     this.platform.approveOrder(o._id, this.reviewNote[o._id] || '').subscribe({
       next: () => {
         this.success = 'Souscription activée.';
@@ -107,10 +112,12 @@ export class SaasAdminComponent implements OnInit {
         this.loadSubscriptions();
       },
       error: (err) => (this.error = err?.error?.message || 'Échec de l’approbation.'),
-    });
+    }).add(() => this.actionEnCours.delete(o._id));
   }
 
   reject(o: OrderItem): void {
+    if (this.actionEnCours.has(o._id)) return; // UX-002 : double-clic ignoré
+    this.actionEnCours.add(o._id);
     this.platform.rejectOrder(o._id, this.reviewNote[o._id] || '').subscribe({
       next: () => {
         this.success = 'Commande rejetée.';
@@ -118,7 +125,7 @@ export class SaasAdminComponent implements OnInit {
         this.loadOrders();
       },
       error: (err) => (this.error = err?.error?.message || 'Échec du rejet.'),
-    });
+    }).add(() => this.actionEnCours.delete(o._id));
   }
 
   orderStatusBadge(o: OrderItem): string {

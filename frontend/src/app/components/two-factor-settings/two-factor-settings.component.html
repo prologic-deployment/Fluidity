@@ -32,7 +32,7 @@
     <ng-container *ngIf="!loading && status">
 
       <!-- ============ ÉTAT : DÉSACTIVÉE ============ -->
-      <div *ngIf="!status.enabled && !setupView" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div *ngIf="!status.enabled && !setupView && !setupPasswordView" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div class="flex items-start gap-3">
           <span class="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
             <span class="h-1.5 w-1.5 rounded-full bg-current opacity-60"></span>
@@ -49,6 +49,26 @@
           {{ 'twofa.enableBtn' | t }}
         </button>
       </div>
+
+      <!-- ============ ACTIVATION : PREUVE DU MOT DE PASSE (AUTH-005) ============ -->
+      <form *ngIf="setupPasswordView" [formGroup]="setupPasswordForm" (ngSubmit)="confirmSetupPassword()"
+        class="rounded-xl border border-border bg-muted/30 p-4 space-y-3 max-w-lg">
+        <p class="text-sm font-medium">{{ 'twofa.setupPasswordTitle' | t }}</p>
+        <p class="text-xs text-muted-foreground">{{ 'twofa.setupPasswordHint' | t }}</p>
+        <div>
+          <label class="field-label" for="setup-2fa-password">{{ 'twofa.accountPassword' | t }}</label>
+          <input id="setup-2fa-password" type="password" formControlName="password" class="input" autocomplete="current-password" />
+          <p *ngIf="setupPasswordForm.get('password')?.invalid && setupPasswordForm.get('password')?.touched" class="field-error">
+            {{ 'users.formError' | t }}
+          </p>
+        </div>
+        <div class="flex gap-3">
+          <button type="submit" [disabled]="submittingSetupPassword" class="btn-primary">
+            {{ submittingSetupPassword ? ('common.saving' | t) : ('common.continue' | t) }}
+          </button>
+          <button type="button" (click)="cancelSetupPassword()" [disabled]="submittingSetupPassword" class="btn-outline">{{ 'common.cancel' | t }}</button>
+        </div>
+      </form>
 
       <!-- ============ ACTIVATION : QR + CLÉ + VÉRIFICATION ============ -->
       <div *ngIf="setupView" class="space-y-5">
@@ -162,11 +182,11 @@
           </p>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="field-label">{{ 'twofa.accountPassword' | t }}</label>
+              <label class="field-label">{{ 'twofa.accountPassword' | t }} <span class="text-destructive">*</span></label>
               <input type="password" formControlName="password" class="input" autocomplete="current-password" />
             </div>
             <div>
-              <label class="field-label">{{ 'twofa.orAuthCode' | t }}</label>
+              <label class="field-label">{{ 'twofa.andAuthCode' | t }} <span class="text-destructive">*</span></label>
               <input type="text" formControlName="code" class="input tracking-[0.2em] font-mono"
                 [attr.placeholder]="'twofa.codeOrBackup' | t" maxlength="9" />
             </div>

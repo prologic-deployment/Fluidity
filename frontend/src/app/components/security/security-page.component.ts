@@ -8,6 +8,7 @@ import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-se
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { motDePasseFortValidator } from '../../utils/password-policy.util';
 
 /**
  * Page Sécurité (/profile/security) :
@@ -77,7 +78,8 @@ export class SecurityPageComponent implements OnInit {
     this.passwordForm = this.fb.group(
       {
         currentPassword: ['', Validators.required],
-        newPassword: ['', [Validators.required, Validators.minLength(6)]],
+        // AUTH-005 : politique renforcée, identique au serveur (≥ 12 + 4 classes).
+        newPassword: ['', [Validators.required, motDePasseFortValidator()]],
         confirmPassword: ['', Validators.required],
       },
       { validators: [this.passwordsMatchValidator] }
@@ -122,6 +124,9 @@ export class SecurityPageComponent implements OnInit {
       COMPTE_SUSPENDU: 'security.reasonSuspended',
       COMPTE_INACTIF: 'security.reasonInactive',
       CODE_2FA_INVALIDE: 'security.reasonBad2fa',
+      // Audit : énumération LoginActivity complète côté front.
+      CODE_2FA_DEFI_EPUISE: 'security.reason2faExhausted',
+      COMPTE_NON_ACTIVE: 'security.reasonNotActivated',
       TENANT_INDISPONIBLE: 'security.reasonTenantUnavailable',
       DONNEES_HERITEES: 'security.reasonLegacyData',
     };

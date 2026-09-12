@@ -28,7 +28,7 @@
             <p class="detail-value whitespace-pre-line rounded-lg border border-border bg-muted/20 px-3.5 py-3">{{ t.descriptionDetaillee }}</p>
             <div *ngIf="t.piecesJointes?.length">
               <p class="detail-label mb-2">{{ 'tickets.attachmentsSection' | t }}</p>
-              <a *ngFor="let pj of t.piecesJointes" [href]="pj | urlUpload" target="_blank" class="btn-outline btn-sm mr-2 mb-2">{{ nomFichier(pj) }}</a>
+              <a *ngFor="let pj of t.piecesJointes" [href]="pj | urlUpload" target="_blank" rel="noopener" class="btn-outline btn-sm mr-2 mb-2">{{ nomFichier(pj) }}</a>
             </div>
           </div>
         </section>

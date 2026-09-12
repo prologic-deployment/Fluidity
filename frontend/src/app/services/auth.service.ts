@@ -146,8 +146,9 @@ export class AuthService {
     return this.http.get<TwoFactorStatus>(`${this.baseUrl}/2fa/status`);
   }
 
-  twoFactorSetup(): Observable<TwoFactorSetup> {
-    return this.http.post<TwoFactorSetup>(`${this.baseUrl}/2fa/setup`, {});
+  /** AUTH-005 : débuter l'enrôlement exige le mot de passe courant. */
+  twoFactorSetup(password: string): Observable<TwoFactorSetup> {
+    return this.http.post<TwoFactorSetup>(`${this.baseUrl}/2fa/setup`, { password });
   }
 
   /** Confirme le premier OTP : active la 2FA et renvoie les codes de secours (une fois). */
@@ -155,8 +156,8 @@ export class AuthService {
     return this.http.post<{ message: string; backupCodes: string[] }>(`${this.baseUrl}/2fa/verify-setup`, { code });
   }
 
-  /** Désactive la 2FA — preuve requise : mot de passe OU code d'authentification. */
-  twoFactorDisable(payload: { password?: string; code?: string }): Observable<{ message: string }> {
+  /** AUTH-007 : désactiver la 2FA exige le mot de passe ET un code valide. */
+  twoFactorDisable(payload: { password: string; code: string }): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/2fa/disable`, payload);
   }
 
@@ -249,6 +250,13 @@ export class AuthService {
   }
 
   logout(): void {
+    // AUTH-003 (audit) : déconnexion SERVEUR — le jeton de rafraîchissement du
+    // cookie httpOnly est révoqué (best-effort, ne bloque jamais la purge locale).
+    try {
+      this.http.post(`${this.baseUrl}/logout`, {}).subscribe({ error: () => undefined });
+    } catch {
+      /* hors-ligne : la purge locale suffit */
+    }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);

@@ -26,6 +26,9 @@ export class TwoFactorSettingsComponent implements OnInit {
   status: TwoFactorStatus | null = null;
 
   // --- Flux d'activation ---
+  setupPasswordView = false; // AUTH-005 : preuve du mot de passe avant le QR
+  setupPasswordForm: FormGroup;
+  submittingSetupPassword = false;
   setupView = false; // étape QR + clé manuelle + vérification
   qrCode: string | null = null;
   manualKey: string | null = null;
@@ -42,12 +45,15 @@ export class TwoFactorSettingsComponent implements OnInit {
   disabling = false;
 
   constructor(private fb: FormBuilder, private auth: AuthService, private i18n: I18nService) {
+    this.setupPasswordForm = this.fb.group({
+      password: ['', [Validators.required]],
+    });
     this.verifyForm = this.fb.group({
       code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
     });
     this.disableForm = this.fb.group({
-      password: [''],
-      code: [''],
+      password: ['', [Validators.required]],
+      code: ['', [Validators.required]],
     });
   }
 
@@ -72,10 +78,29 @@ export class TwoFactorSettingsComponent implements OnInit {
 
   // --- Activation ------------------------------------------------------------
 
+  /** AUTH-005 : l'activation commence par la preuve du mot de passe courant. */
   startSetup(): void {
     this.error = null;
-    this.auth.twoFactorSetup().subscribe({
+    this.setupPasswordForm.reset();
+    this.setupPasswordView = true;
+  }
+
+  cancelSetupPassword(): void {
+    this.setupPasswordView = false;
+    this.error = null;
+  }
+
+  confirmSetupPassword(): void {
+    if (this.setupPasswordForm.invalid) {
+      this.setupPasswordForm.markAllAsTouched();
+      return;
+    }
+    this.submittingSetupPassword = true;
+    this.error = null;
+    this.auth.twoFactorSetup(this.setupPasswordForm.value.password).subscribe({
       next: (res) => {
+        this.submittingSetupPassword = false;
+        this.setupPasswordView = false;
         this.qrCode = res.qrCode;
         this.manualKey = res.manualKey;
         this.manualKeyVisible = false;
@@ -84,6 +109,7 @@ export class TwoFactorSettingsComponent implements OnInit {
         this.setupView = true;
       },
       error: (err) => {
+        this.submittingSetupPassword = false;
         this.error = apiErrorMessage(this.i18n, err, 'security.generate2faError');
       },
     });
@@ -143,15 +169,17 @@ export class TwoFactorSettingsComponent implements OnInit {
     this.error = null;
   }
 
+  /** AUTH-007 : la désactivation exige le mot de passe ET un code valide. */
   confirmDisable(): void {
-    const { password, code } = this.disableForm.value;
-    if (!password && !code) {
+    if (this.disableForm.invalid) {
+      this.disableForm.markAllAsTouched();
       this.error = this.i18n.t('security.confirmDisableHint');
       return;
     }
+    const { password, code } = this.disableForm.value;
     this.disabling = true;
     this.error = null;
-    this.auth.twoFactorDisable({ password: password || undefined, code: code || undefined }).subscribe({
+    this.auth.twoFactorDisable({ password, code }).subscribe({
       next: () => {
         this.disabling = false;
         this.disableView = false;

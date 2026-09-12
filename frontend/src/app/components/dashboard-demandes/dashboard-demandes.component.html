@@ -88,23 +88,23 @@
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
           </svg>
-          <input type="text" [(ngModel)]="searchTerm" [attr.placeholder]="'demandes.searchPh' | t" class="search-input" />
-          <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" [title]="'common.clear' | t">
+          <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearchChanged()" [attr.placeholder]="'demandes.searchPh' | t" class="search-input" [attr.aria-label]="'demandes.searchPh' | t" />
+          <button *ngIf="searchTerm" (click)="searchTerm = ''; onFiltersChanged()" class="search-clear" [title]="'common.clear' | t">
             <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
           </button>
         </div>
 
-        <select [(ngModel)]="statutFiltre" class="filter-select">
+        <select [(ngModel)]="statutFiltre" (ngModelChange)="onFiltersChanged()" class="filter-select">
           <option value="">{{ 'demandes.allStatuses' | t }}</option>
           <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s | tl }}</option>
         </select>
 
-        <select [(ngModel)]="prioriteFiltre" class="filter-select">
+        <select [(ngModel)]="prioriteFiltre" (ngModelChange)="onFiltersChanged()" class="filter-select">
           <option value="">{{ 'demandes.allPriorities' | t }}</option>
           <option *ngFor="let p of prioritesFiltrables" [value]="p">{{ p | tl }}</option>
         </select>
 
-        <select *ngIf="clientsFiltres.length > 1" [(ngModel)]="clientFiltre" class="filter-select">
+        <select *ngIf="clientsFiltres.length > 1 || clientFiltre" [(ngModel)]="clientFiltre" (ngModelChange)="onFiltersChanged()" class="filter-select">
           <option value="">{{ 'demandes.allClients' | t }}</option>
           <option *ngFor="let cl of clientsFiltres" [value]="cl">{{ cl }}</option>
         </select>
@@ -114,8 +114,8 @@
           {{ 'common.resetFilters' | t }}
         </button>
 
-        <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading && demandes.length > 0">
-          {{ filteredDemandes().length }} / {{ demandes.length }}
+        <span class="filter-count-badge ml-auto tabular-nums" *ngIf="!loading">
+          {{ 'common.resultsTotal' | t: { total: total } }}
         </span>
       </div>
     </div>
@@ -137,7 +137,7 @@
       </div>
     </div>
 
-    <div *ngIf="!loading && demandes.length === 0" class="card animate-fade-in-up">
+    <div *ngIf="!loading && demandes.length === 0 && !hasActiveFilters()" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
         <div class="table-empty-icon">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -149,7 +149,7 @@
       </div>
     </div>
 
-    <div *ngIf="!loading && demandes.length > 0 && filteredDemandes().length === 0" class="card animate-fade-in-up">
+    <div *ngIf="!loading && demandes.length === 0 && hasActiveFilters()" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
         <div class="table-empty-icon">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -255,6 +255,12 @@
       </table>
     </div>
 
+        <!-- Pagination serveur (PERF-002) -->
+        <nav *ngIf="pages > 1" class="flex items-center justify-between pt-4" [attr.aria-label]="'common.pageOf' | t: { page: page, pages: pages }">
+          <button class="btn-ghost btn-sm" (click)="allerPage(page - 1)" [disabled]="page <= 1 || loading">&larr; {{ 'common.prevPage' | t }}</button>
+          <span class="text-sm text-muted-foreground tabular-nums">{{ 'common.pageOf' | t: { page: page, pages: pages } }}</span>
+          <button class="btn-ghost btn-sm" (click)="allerPage(page + 1)" [disabled]="page >= pages || loading">{{ 'common.nextPage' | t }} &rarr;</button>
+        </nav>
       </section>
 
       <!-- Panneau latéral : répartition par statut + actions rapides -->

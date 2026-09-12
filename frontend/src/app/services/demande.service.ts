@@ -1,8 +1,24 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Demande } from '../models/demande.model';
+import { PageResult } from '../models/pagination.model';
+
+/** Filtres serveur de la liste des demandes (PERF-002). */
+export interface FiltresDemandes {
+  page?: number;
+  limit?: number;
+  statut?: string;
+  priorite?: string;
+  recherche?: string;
+  client?: string;
+  tri?: string;
+  dir?: 'asc' | 'desc';
+}
+
+/** Liste paginée + synthèse par statut (portée complète, hors filtres). */
+export type ListeDemandes = PageResult<Demande> & { stats?: { parStatut: Record<string, number> } };
 
 @Injectable({ providedIn: 'root' })
 export class DemandeService {
@@ -10,8 +26,12 @@ export class DemandeService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(): Observable<Demande[]> {
-    return this.http.get<Demande[]>(this.baseUrl);
+  getAll(filtres: FiltresDemandes = {}): Observable<ListeDemandes> {
+    let params = new HttpParams();
+    for (const [cle, valeur] of Object.entries(filtres)) {
+      if (valeur !== undefined && valeur !== '') params = params.set(cle, String(valeur));
+    }
+    return this.http.get<ListeDemandes>(this.baseUrl, { params });
   }
 
   getById(id: string): Observable<Demande> {

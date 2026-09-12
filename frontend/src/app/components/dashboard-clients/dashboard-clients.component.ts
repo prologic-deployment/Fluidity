@@ -27,6 +27,13 @@ export class DashboardClientsComponent implements OnInit {
   identifiants: IdentifiantsPortail | null = null;
   regenerationEnCours = false;
 
+  // --- Pagination serveur (PERF-002) ------------------------------------------
+  page = 1;
+  pages = 1;
+  total = 0;
+  readonly limitePage = 50;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   searchTerm = '';
   statutFiltre = '';
   readonly statutsFiltrables = STATUTS_CLIENT;
@@ -46,26 +53,54 @@ export class DashboardClientsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.clientService.getAll().subscribe({
-      next: (data) => {
-        this.clients = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des clients.';
-        this.loading = false;
-      },
-    });
+    this.clientService
+      .getPage({
+        page: this.page,
+        limit: this.limitePage,
+        statut: this.statutFiltre || undefined,
+        recherche: this.searchTerm.trim() || undefined,
+        tri: 'nom',
+        dir: 'asc',
+      })
+      .subscribe({
+        next: (data) => {
+          this.clients = data.items;
+          this.total = data.total;
+          this.pages = data.pages;
+          this.page = data.page;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = err.error?.message || 'Erreur de chargement des clients.';
+          this.loading = false;
+        },
+      });
   }
 
+  /** Recherche avec anti-rebond (300 ms) — filtrage côté serveur (PERF-002). */
+  onSearchChanged(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.page = 1;
+      this.load();
+    }, 300);
+  }
+
+  onFiltersChanged(): void {
+    this.page = 1;
+    this.load();
+  }
+
+  allerPage(p: number): void {
+    if (p >= 1 && p <= this.pages && p !== this.page) {
+      this.page = p;
+      this.load();
+    }
+  }
+
+  /** Liste courante : filtrage + pagination appliqués CÔTÉ SERVEUR (PERF-002). */
   filteredClients(): Client[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.clients.filter((c) => {
-      const matchTerm =
-        !term || c.nom.toLowerCase().includes(term) || c.email.toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
-      return matchTerm && matchStatut;
-    });
+    return this.clients;
   }
 
   hasActiveFilters(): boolean {
@@ -75,6 +110,7 @@ export class DashboardClientsComponent implements OnInit {
   resetFilters(): void {
     this.searchTerm = '';
     this.statutFiltre = '';
+    this.onFiltersChanged();
   }
 
   viewDetails(client: Client): void {

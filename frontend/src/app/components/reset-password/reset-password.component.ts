@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { motDePasseFortValidator } from '../../utils/password-policy.util';
 
 @Component({
   selector: 'app-reset-password',
@@ -33,7 +34,8 @@ export class ResetPasswordComponent {
       email: ['', [Validators.required, Validators.email]],
     });
     this.resetForm = this.fb.group({
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      // AUTH-005 : politique renforcée, identique au serveur (≥ 12 + 4 classes).
+      password: ['', [Validators.required, motDePasseFortValidator()]],
     });
   }
 

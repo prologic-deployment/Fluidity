@@ -31,13 +31,13 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" [(ngModel)]="searchTerm" [attr.placeholder]="'contracts.searchPh' | t" class="search-input" />
-        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" [title]="'common.clear' | t">
+        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearchChanged()" [attr.placeholder]="'contracts.searchPh' | t" class="search-input" [attr.aria-label]="'contracts.searchPh' | t" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; onFiltersChanged()" class="search-clear" [title]="'common.clear' | t">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
       </div>
 
-      <select [(ngModel)]="statutFiltre" class="filter-select">
+      <select [(ngModel)]="statutFiltre" (ngModelChange)="onFiltersChanged()" class="filter-select">
         <option value="">{{ 'contracts.allStatuses' | t }}</option>
         <option *ngFor="let s of statutsFiltrables" [value]="s">{{ s | tl }}</option>
       </select>
@@ -65,7 +65,7 @@
       </div>
     </div>
 
-    <div *ngIf="!loading && contrats.length === 0" class="card animate-fade-in-up">
+    <div *ngIf="!loading && contrats.length === 0 && !hasActiveFilters()" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
         <div class="table-empty-icon">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -80,7 +80,7 @@
       </div>
     </div>
 
-    <div *ngIf="!loading && contrats.length > 0 && filteredContrats().length === 0" class="card animate-fade-in-up">
+    <div *ngIf="!loading && contrats.length === 0 && hasActiveFilters()" class="card animate-fade-in-up">
       <div class="card-content py-16 text-center text-sm text-muted-foreground">
         <div class="table-empty-icon">
           <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -151,9 +151,16 @@
       </div>
     </div>
 
-    <p *ngIf="!loading && contrats.length > 0" class="mt-4 text-xs text-muted-foreground">
-      {{ 'contracts.count' | t: { shown: filteredContrats().length, total: contrats.length } }}
+    <p *ngIf="!loading" class="mt-4 text-xs text-muted-foreground">
+      {{ 'contracts.count' | t: { shown: contrats.length, total: total } }}
     </p>
+
+    <!-- Pagination serveur (PERF-002) -->
+    <nav *ngIf="pages > 1" class="flex items-center justify-between pt-4" [attr.aria-label]="'common.pageOf' | t: { page: page, pages: pages }">
+      <button class="btn-ghost btn-sm" (click)="allerPage(page - 1)" [disabled]="page <= 1 || loading">&larr; {{ 'common.prevPage' | t }}</button>
+      <span class="text-sm text-muted-foreground tabular-nums">{{ 'common.pageOf' | t: { page: page, pages: pages } }}</span>
+      <button class="btn-ghost btn-sm" (click)="allerPage(page + 1)" [disabled]="page >= pages || loading">{{ 'common.nextPage' | t }} &rarr;</button>
+    </nav>
   </main>
 </div>
 

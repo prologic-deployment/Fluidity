@@ -60,16 +60,16 @@
           <circle cx="11" cy="11" r="8"></circle>
           <path d="m21 21-4.35-4.35"></path>
         </svg>
-        <input type="text" [(ngModel)]="searchTerm" [attr.placeholder]="'users.searchPh' | t" class="search-input" />
-        <button *ngIf="searchTerm" (click)="searchTerm = ''" class="search-clear" [title]="'common.clear' | t">
+        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="onSearchChanged()" [attr.placeholder]="'users.searchPh' | t" class="search-input" />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; onFiltersChanged()" class="search-clear" [title]="'common.clear' | t">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
         </button>
       </div>
-      <select [(ngModel)]="roleFiltre" class="filter-select">
+      <select [(ngModel)]="roleFiltre" (ngModelChange)="onFiltersChanged()" class="filter-select">
         <option value="">{{ 'users.allRoles' | t }}</option>
         <option *ngFor="let r of roles" [value]="r">{{ roleLabel(r) }}</option>
       </select>
-      <select [(ngModel)]="statutFiltre" class="filter-select">
+      <select [(ngModel)]="statutFiltre" (ngModelChange)="onFiltersChanged()" class="filter-select">
         <option value="">{{ 'users.allStatuses' | t }}</option>
         <option value="active">{{ 'users.active' | t }}</option>
         <option value="invited">{{ 'users.invited' | t }}</option>
@@ -133,13 +133,14 @@
             <td class="text-muted-foreground">{{ u.createdAt | dateLocale: 'short' }}</td>
             <td>
               <div class="flex items-center justify-end gap-1">
-                <button (click)="openEdit(u)" class="btn-icon-sm" [title]="'users.editTitle' | t">
+                <button (click)="openEdit(u)" class="btn-icon-sm" [title]="'users.editTitle' | t" [attr.aria-label]="'users.editTitle' | t">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                   </svg>
                 </button>
                 <button (click)="toggleStatus(u)" class="btn-icon-sm" [disabled]="isSelf(u)"
-                  [title]="u.status === 'suspended' ? ('users.reactivate' | t) : ('users.suspendAccount' | t)">
+                  [title]="u.status === 'suspended' ? ('users.reactivate' | t) : ('users.suspendAccount' | t)"
+                  [attr.aria-label]="u.status === 'suspended' ? ('users.reactivate' | t) : ('users.suspendAccount' | t)">
                   <svg *ngIf="u.status !== 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <path d="M10 15V9M14 15V9"></path>
@@ -148,12 +149,12 @@
                     <polygon points="6 3 20 12 6 21 6 3"></polygon>
                   </svg>
                 </button>
-                <button (click)="resetPassword(u)" class="btn-icon-sm" [title]="'users.sendReset' | t">
+                <button (click)="resetPassword(u)" class="btn-icon-sm" [title]="'users.sendReset' | t" [attr.aria-label]="'users.sendReset' | t">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
                   </svg>
                 </button>
-                <button (click)="supprimer(u)" class="btn-icon-sm text-destructive" [disabled]="isSelf(u)" [title]="'users.deleteAccount' | t">
+                <button (click)="supprimer(u)" class="btn-icon-sm text-destructive" [disabled]="isSelf(u)" [title]="'users.deleteAccount' | t" [attr.aria-label]="'users.deleteAccount' | t">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
                   </svg>
@@ -164,6 +165,13 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination serveur (PERF-002) -->
+    <nav *ngIf="pages > 1" class="flex items-center justify-between pt-4" [attr.aria-label]="'common.pageOf' | t: { page: page, pages: pages }">
+      <button class="btn-ghost btn-sm" (click)="allerPage(page - 1)" [disabled]="page <= 1 || loading">&larr; {{ 'common.prevPage' | t }}</button>
+      <span class="text-sm text-muted-foreground tabular-nums">{{ 'common.pageOf' | t: { page: page, pages: pages } }}</span>
+      <button class="btn-ghost btn-sm" (click)="allerPage(page + 1)" [disabled]="page >= pages || loading">{{ 'common.nextPage' | t }} &rarr;</button>
+    </nav>
   </main>
 </div>
 

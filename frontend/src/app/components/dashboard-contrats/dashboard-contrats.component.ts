@@ -23,6 +23,13 @@ export class DashboardContratsComponent implements OnInit {
   error: string | null = null;
   selected: Contrat | null = null;
 
+  // --- Pagination serveur (PERF-002) ------------------------------------------
+  page = 1;
+  pages = 1;
+  total = 0;
+  readonly limitePage = 50;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   searchTerm = '';
   statutFiltre = '';
   readonly statutsFiltrables = STATUTS_CONTRAT;
@@ -42,30 +49,54 @@ export class DashboardContratsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.contratService.getAll().subscribe({
-      next: (data) => {
-        this.contrats = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des contrats.';
-        this.loading = false;
-      },
-    });
+    this.contratService
+      .getPage({
+        page: this.page,
+        limit: this.limitePage,
+        statut: this.statutFiltre || undefined,
+        recherche: this.searchTerm.trim() || undefined,
+        tri: 'date',
+        dir: 'desc',
+      })
+      .subscribe({
+        next: (data) => {
+          this.contrats = data.items;
+          this.total = data.total;
+          this.pages = data.pages;
+          this.page = data.page;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = err.error?.message || 'Erreur de chargement des contrats.';
+          this.loading = false;
+        },
+      });
   }
 
+  /** Recherche avec anti-rebond (300 ms) — filtrage côté serveur (PERF-002). */
+  onSearchChanged(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.page = 1;
+      this.load();
+    }, 300);
+  }
+
+  onFiltersChanged(): void {
+    this.page = 1;
+    this.load();
+  }
+
+  allerPage(p: number): void {
+    if (p >= 1 && p <= this.pages && p !== this.page) {
+      this.page = p;
+      this.load();
+    }
+  }
+
+  /** Liste courante : filtrage + pagination appliqués CÔTÉ SERVEUR (PERF-002). */
   filteredContrats(): Contrat[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.contrats.filter((c) => {
-      const matchTerm =
-        !term ||
-        c.intitule.toLowerCase().includes(term) ||
-        c.reference.toLowerCase().includes(term) ||
-        this.clientNom(c).toLowerCase().includes(term) ||
-        this.clientEmail(c).toLowerCase().includes(term);
-      const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
-      return matchTerm && matchStatut;
-    });
+    return this.contrats;
   }
 
   hasActiveFilters(): boolean {
@@ -75,6 +106,7 @@ export class DashboardContratsComponent implements OnInit {
   resetFilters(): void {
     this.searchTerm = '';
     this.statutFiltre = '';
+    this.onFiltersChanged();
   }
 
   viewDetails(contrat: Contrat): void {

@@ -10,6 +10,7 @@ import { ModalComponent } from '../shared/modal.component';
 import { ProductLicensesComponent } from './product-licenses.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { I18nService } from '../../i18n/i18n.service';
+import { motDePasseFortValidator } from '../../utils/password-policy.util';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
 
@@ -32,6 +33,16 @@ export class UsersDashboardComponent implements OnInit {
   loading = false;
   error: string | null = null;
   info: string | null = null;
+  /** UX-002 (audit) : anti double-soumission des actions destructrices
+   *  (suspendre/réactiver, reset mdp, supprimer) — ids en vol. */
+  actionEnCours = new Set<string>();
+
+  // --- Pagination serveur (PERF-002) ------------------------------------------
+  page = 1;
+  pages = 1;
+  total = 0;
+  readonly limitePage = 50;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   searchTerm = '';
   roleFiltre = '';
@@ -75,7 +86,8 @@ export class UsersDashboardComponent implements OnInit {
     }
     this.createForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      // AUTH-005 : politique renforcée, identique au serveur (≥ 12 + 4 classes).
+      password: ['', [Validators.required, motDePasseFortValidator()]],
       role: ['AGENT', Validators.required],
       department: [''],
     });
@@ -89,31 +101,58 @@ export class UsersDashboardComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.userService.getAll().subscribe({
-      next: (data) => {
-        this.users = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des utilisateurs.';
-        this.loading = false;
-      },
-    });
+    // PERF-002 : liste paginée + filtres côté serveur.
+    this.userService
+      .getPage({
+        page: this.page,
+        limit: this.limitePage,
+        role: this.roleFiltre || undefined,
+        statut: this.statutFiltre || undefined,
+        recherche: this.searchTerm.trim() || undefined,
+      })
+      .subscribe({
+        next: (data) => {
+          this.users = data.items;
+          this.total = data.total;
+          this.pages = data.pages;
+          this.page = data.page;
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = err.error?.message || 'Erreur de chargement des utilisateurs.';
+          this.loading = false;
+        },
+      });
     this.userService.getLicenses().subscribe({
       next: (l) => (this.licence = l),
       error: () => (this.licence = null),
     });
   }
 
+  /** Recherche avec anti-rebond (300 ms) — filtrage côté serveur (PERF-002). */
+  onSearchChanged(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.page = 1;
+      this.load();
+    }, 300);
+  }
+
+  onFiltersChanged(): void {
+    this.page = 1;
+    this.load();
+  }
+
+  allerPage(p: number): void {
+    if (p >= 1 && p <= this.pages && p !== this.page) {
+      this.page = p;
+      this.load();
+    }
+  }
+
+  /** Liste courante : filtrage + pagination appliqués CÔTÉ SERVEUR (PERF-002). */
   filteredUsers(): AppUser[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.users.filter((u) => {
-      const matchTerm =
-        !term || u.email.toLowerCase().includes(term) || (u.department || '').toLowerCase().includes(term);
-      const matchRole = !this.roleFiltre || u.role === this.roleFiltre;
-      const matchStatut = !this.statutFiltre || u.status === this.statutFiltre;
-      return matchTerm && matchRole && matchStatut;
-    });
+    return this.users;
   }
 
   userInitial(u: AppUser): string {
@@ -225,6 +264,7 @@ export class UsersDashboardComponent implements OnInit {
   // --- Cycle de vie ----------------------------------------------------------
   async toggleStatus(u: AppUser): Promise<void> {
     if (!u._id || this.isSelf(u)) return;
+    const id = u._id;
     const suspendre = u.status !== 'suspended';
     const ok = await this.confirmDialog.confirm({
       title: suspendre ? `Suspendre « ${u.email} » ?` : `Réactiver « ${u.email} » ?`,
@@ -235,10 +275,12 @@ export class UsersDashboardComponent implements OnInit {
       variant: suspendre ? 'destructive' : 'default',
     });
     if (!ok) return;
-    this.userService.update(u._id, { status: suspendre ? 'suspended' : 'active' }).subscribe({
+    if (this.actionEnCours.has(id)) return; // UX-002
+    this.actionEnCours.add(id);
+    this.userService.update(id, { status: suspendre ? 'suspended' : 'active' }).subscribe({
       next: (res) => this.applyMutation(res),
       error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'users.opError')),
-    });
+    }).add(() => this.actionEnCours.delete(id));
   }
 
   async resetPassword(u: AppUser): Promise<void> {
@@ -260,6 +302,7 @@ export class UsersDashboardComponent implements OnInit {
 
   async supprimer(u: AppUser): Promise<void> {
     if (!u._id || this.isSelf(u)) return;
+    const id = u._id;
     const ok = await this.confirmDialog.confirm({
       title: `Supprimer le compte « ${u.email} » ?`,
       message: this.i18n.t('users.deleteMessage'),
@@ -267,9 +310,11 @@ export class UsersDashboardComponent implements OnInit {
       variant: 'destructive',
     });
     if (!ok) return;
-    this.userService.delete(u._id).subscribe({
+    if (this.actionEnCours.has(id)) return; // UX-002
+    this.actionEnCours.add(id);
+    this.userService.delete(id).subscribe({
       next: (res) => this.applyMutation(res),
       error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'users.deleteError')),
-    });
+    }).add(() => this.actionEnCours.delete(id));
   }
 }

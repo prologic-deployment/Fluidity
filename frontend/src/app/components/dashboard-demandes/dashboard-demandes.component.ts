@@ -29,6 +29,15 @@ export class DashboardDemandesComponent implements OnInit {
   transitionLoading = false;
   transitionError: string | null = null;
 
+  // --- Pagination serveur (PERF-002) ------------------------------------------
+  page = 1;
+  pages = 1;
+  total = 0;
+  readonly limitePage = 50;
+  /** Synthèse par statut sur la portée complète (fournie par l'API). */
+  parStatut: Record<string, number> = {};
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   searchTerm = '';
   statutFiltre = '';
   prioriteFiltre = '';
@@ -96,80 +105,74 @@ export class DashboardDemandesComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.demandeService.getAll().subscribe({
-      next: (data) => {
-        this.demandes = data;
-        this.clientsFiltres = [...new Set(data.map((d) => this.clientNom(d)).filter((n) => n && n !== '—'))].sort(
-          (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })
-        );
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = apiErrorMessage(this.i18n, err, 'demandes.loadError');
-        this.loading = false;
-      },
-    });
+    this.demandeService
+      .getAll({
+        page: this.page,
+        limit: this.limitePage,
+        statut: this.statutFiltre || undefined,
+        priorite: this.prioriteFiltre || undefined,
+        recherche: this.searchTerm.trim() || undefined,
+        client: this.clientFiltre || undefined,
+        tri: this.triColonne === 'client' ? 'date' : this.triColonne,
+        dir: this.triDirection === 1 ? 'asc' : 'desc',
+      })
+      .subscribe({
+        next: (data) => {
+          this.demandes = data.items;
+          this.total = data.total;
+          this.pages = data.pages;
+          this.page = data.page;
+          this.parStatut = data.stats?.parStatut || {};
+          // Sélecteur « Client » : noms présents sur la page (+ sélection courante).
+          const noms = new Set(this.demandes.map((d) => this.clientNom(d)).filter((n) => n && n !== '—'));
+          if (this.clientFiltre) noms.add(this.clientFiltre);
+          this.clientsFiltres = [...noms].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = apiErrorMessage(this.i18n, err, 'demandes.loadError');
+          this.loading = false;
+        },
+      });
   }
 
-  /** Liste filtrée (recherche texte + statut + priorité + client) puis triée
-   *  selon la colonne active (par défaut : date de création décroissante). */
+  /** Recherche avec anti-rebond (300 ms) — filtrage côté serveur. */
+  onSearchChanged(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.page = 1;
+      this.load();
+    }, 300);
+  }
+
+  /** Changement de filtre/tri : retour page 1 + rechargement serveur. */
+  onFiltersChanged(): void {
+    this.page = 1;
+    this.load();
+  }
+
+  allerPage(p: number): void {
+    if (p >= 1 && p <= this.pages && p !== this.page) {
+      this.page = p;
+      this.load();
+    }
+  }
+
+  /** Liste courante : filtrage + tri + pagination appliqués CÔTÉ SERVEUR (PERF-002). */
   filteredDemandes(): Demande[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.demandes
-      .filter((d) => {
-        const matchTerm =
-          !term ||
-          d.objet.toLowerCase().includes(term) ||
-          this.requesterEmail(d).toLowerCase().includes(term) ||
-          this.clientNom(d).toLowerCase().includes(term) ||
-          d.categorie.toLowerCase().includes(term);
-        const matchStatut = !this.statutFiltre || d.statut === this.statutFiltre;
-        const matchPriorite = !this.prioriteFiltre || d.prioriteSouhaitee === this.prioriteFiltre;
-        const matchClient = !this.clientFiltre || this.clientNom(d) === this.clientFiltre;
-        return matchTerm && matchStatut && matchPriorite && matchClient;
-      })
-      .sort((a, b) => this.comparer(a, b));
+    return this.demandes;
   }
 
   /** Clic sur un en-tête triable : nouvelle colonne -> sens naturel, sinon bascule. */
   trierPar(colonne: typeof this.triColonne): void {
     if (this.triColonne === colonne) {
       this.triDirection = this.triDirection === 1 ? -1 : 1;
-      return;
+    } else {
+      this.triColonne = colonne;
+      this.triDirection = colonne === 'date' ? -1 : 1;
     }
-    this.triColonne = colonne;
-    this.triDirection = colonne === 'date' ? -1 : 1;
+    this.onFiltersChanged();
   }
-
-  /** Comparateur multi-critères (insensible aux accents pour le texte). */
-  private comparer(a: Demande, b: Demande): number {
-    let v = 0;
-    switch (this.triColonne) {
-      case 'objet':
-        v = (a.objet || '').localeCompare(b.objet || '', 'fr', { sensitivity: 'base' });
-        break;
-      case 'client':
-        v = this.clientNom(a).localeCompare(this.clientNom(b), 'fr', { sensitivity: 'base' });
-        break;
-      case 'categorie':
-        v = (a.categorie || '').localeCompare(b.categorie || '', 'fr', { sensitivity: 'base' });
-        break;
-      case 'priorite':
-        v = (DashboardDemandesComponent.RANG_PRIORITE[a.prioriteSouhaitee] || 0)
-          - (DashboardDemandesComponent.RANG_PRIORITE[b.prioriteSouhaitee] || 0);
-        break;
-      case 'statut':
-        v = (a.statut || '').localeCompare(b.statut || '', 'fr', { sensitivity: 'base' });
-        break;
-      case 'date':
-        v = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-        break;
-    }
-    return v * this.triDirection;
-  }
-
-  /** Ordre métier des priorités pour le tri (Standard < Élevée < Urgente). */
-  private static readonly RANG_PRIORITE: Record<string, number> = { Standard: 1, Élevée: 2, Urgente: 3 };
 
   hasActiveFilters(): boolean {
     return !!(this.searchTerm || this.statutFiltre || this.prioriteFiltre || this.clientFiltre);
@@ -180,40 +183,42 @@ export class DashboardDemandesComponent implements OnInit {
     this.statutFiltre = '';
     this.prioriteFiltre = '';
     this.clientFiltre = '';
+    this.onFiltersChanged();
   }
 
-  // --- Cartes de synthèse -----------------------------------------------------
+  // --- Cartes de synthèse (basées sur la synthèse serveur, portée complète) ---
 
   get totalCount(): number {
-    return this.demandes.length;
+    return this.total;
+  }
+
+  private sommeStatuts(statuts: string[]): number {
+    return statuts.reduce((acc, s) => acc + (this.parStatut[s] || 0), 0);
   }
 
   /** Dossiers en vie dans le traitement (hors terminaux/hors piste). */
   get enCoursCount(): number {
-    return this.demandes.filter((d) => this.statutsEnCours.includes(d.statut || '')).length;
+    return this.sommeStatuts(this.statutsEnCours);
   }
 
   /** La balle est côté client : réponse/validation attendue. */
   get actionRequiseCount(): number {
-    return this.demandes.filter((d) => d.statut === 'En attente client' || d.statut === 'En attente de validation').length;
+    return this.sommeStatuts(['En attente client', 'En attente de validation']);
   }
 
   /** Réalisées + clôturées (sorties positives). */
   get terminesCount(): number {
-    return this.demandes.filter((d) => d.statut === 'Réalisée' || d.statut === 'Clôturée').length;
+    return this.sommeStatuts(['Réalisée', 'Clôturée']);
   }
 
   /** Répartition par statut (panneau latéral) — barres proportionnelles au max. */
   get distribution(): { label: string; count: number; pct: number }[] {
-    const compteurs = new Map<string, number>();
-    for (const d of this.demandes) {
-      if (!d.statut) continue;
-      compteurs.set(d.statut, (compteurs.get(d.statut) || 0) + 1);
-    }
+    const lignes: [string, number][] = this.statutsFiltrables
+      .map((s) => [s, this.parStatut[s] || 0] as [string, number])
+      .filter(([, n]) => n > 0);
+    const compteurs = new Map<string, number>(lignes);
     const max = Math.max(1, ...compteurs.values());
-    return this.statutsFiltrables
-      .filter((s) => compteurs.has(s))
-      .map((s) => ({ label: s, count: compteurs.get(s) || 0, pct: Math.round(((compteurs.get(s) || 0) / max) * 100) }));
+    return [...compteurs.entries()].map(([label, count]) => ({ label, count, pct: Math.round((count / max) * 100) }));
   }
 
   /** Étape de la frise correspondant au statut (null pour les sorties de parcours). */

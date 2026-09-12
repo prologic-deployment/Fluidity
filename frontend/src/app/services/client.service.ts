@@ -1,8 +1,20 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Client } from '../models/client.model';
+import { PageResult } from '../models/pagination.model';
+
+/** Filtres serveur de la liste des clients (PERF-002). */
+export interface FiltresClients {
+  page?: number;
+  limit?: number;
+  statut?: string;
+  recherche?: string;
+  tri?: string;
+  dir?: 'asc' | 'desc';
+}
 
 /** Identifiants portail émis à la création/régénération — affichés UNE SEULE FOIS. */
 export interface IdentifiantsPortail {
@@ -23,8 +35,18 @@ export class ClientService {
 
   constructor(private http: HttpClient) {}
 
+  /** Liste paginée (PERF-002) — enveloppe {items,total,page,pages}. */
+  getPage(filtres: FiltresClients = {}): Observable<PageResult<Client>> {
+    let params = new HttpParams();
+    for (const [cle, valeur] of Object.entries(filtres)) {
+      if (valeur !== undefined && valeur !== '') params = params.set(cle, String(valeur));
+    }
+    return this.http.get<PageResult<Client>>(this.baseUrl, { params });
+  }
+
+  /** Liste simple (sélecteurs) — premier bloc de 100 fiches. */
   getAll(): Observable<Client[]> {
-    return this.http.get<Client[]>(this.baseUrl);
+    return this.getPage({ limit: 100 }).pipe(map((r) => r.items));
   }
 
   getById(id: string): Observable<Client> {

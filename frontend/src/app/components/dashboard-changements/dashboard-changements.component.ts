@@ -30,6 +30,15 @@ export class DashboardChangementsComponent implements OnInit {
   transitionLoading = false;
   transitionError: string | null = null;
 
+  // --- Pagination serveur (PERF-002) ------------------------------------------
+  page = 1;
+  pages = 1;
+  total = 0;
+  readonly limitePage = 50;
+  /** Synthèse par statut sur la portée complète (fournie par l'API). */
+  parStatut: Record<string, number> = {};
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
   searchTerm = '';
   statutFiltre = '';
   typeFiltre = '';
@@ -100,80 +109,73 @@ export class DashboardChangementsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.error = null;
-    this.changementService.getAll().subscribe({
-      next: (data) => {
-        this.changements = data;
-        this.clientsFiltres = [...new Set(data.map((c) => this.clientNom(c)).filter((n) => n && n !== '—'))].sort(
-          (a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' })
-        );
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = apiErrorMessage(this.i18n, err, 'changements.loadError');
-        this.loading = false;
-      },
-    });
+    this.changementService
+      .getAll({
+        page: this.page,
+        limit: this.limitePage,
+        statut: this.statutFiltre || undefined,
+        type: this.typeFiltre || undefined,
+        recherche: this.searchTerm.trim() || undefined,
+        client: this.clientFiltre || undefined,
+        tri: this.triColonne === 'client' ? 'date' : this.triColonne,
+        dir: this.triDirection === 1 ? 'asc' : 'desc',
+      })
+      .subscribe({
+        next: (data) => {
+          this.changements = data.items;
+          this.total = data.total;
+          this.pages = data.pages;
+          this.page = data.page;
+          this.parStatut = data.stats?.parStatut || {};
+          const noms = new Set(this.changements.map((c) => this.clientNom(c)).filter((n) => n && n !== '—'));
+          if (this.clientFiltre) noms.add(this.clientFiltre);
+          this.clientsFiltres = [...noms].sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+          this.loading = false;
+        },
+        error: (err) => {
+          this.error = apiErrorMessage(this.i18n, err, 'changements.loadError');
+          this.loading = false;
+        },
+      });
   }
 
-  /** Liste filtrée (recherche texte + statut + type + client) puis triée
-   *  selon la colonne active (par défaut : date de création décroissante). */
+  /** Recherche avec anti-rebond (300 ms) — filtrage côté serveur. */
+  onSearchChanged(): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this.page = 1;
+      this.load();
+    }, 300);
+  }
+
+  /** Changement de filtre/tri : retour page 1 + rechargement serveur. */
+  onFiltersChanged(): void {
+    this.page = 1;
+    this.load();
+  }
+
+  allerPage(p: number): void {
+    if (p >= 1 && p <= this.pages && p !== this.page) {
+      this.page = p;
+      this.load();
+    }
+  }
+
+  /** Liste courante : filtrage + tri + pagination appliqués CÔTÉ SERVEUR (PERF-002). */
   filteredChangements(): Changement[] {
-    const term = this.searchTerm.trim().toLowerCase();
-    return this.changements
-      .filter((c) => {
-        const matchTerm =
-          !term ||
-          c.objetChangement.toLowerCase().includes(term) ||
-          this.requesterEmail(c).toLowerCase().includes(term) ||
-          this.clientNom(c).toLowerCase().includes(term) ||
-          c.categorie.toLowerCase().includes(term);
-        const matchStatut = !this.statutFiltre || c.statut === this.statutFiltre;
-        const matchType = !this.typeFiltre || c.typeChangement === this.typeFiltre;
-        const matchClient = !this.clientFiltre || this.clientNom(c) === this.clientFiltre;
-        return matchTerm && matchStatut && matchType && matchClient;
-      })
-      .sort((a, b) => this.comparer(a, b));
+    return this.changements;
   }
 
   /** Clic sur un en-tête triable : nouvelle colonne -> sens naturel, sinon bascule. */
   trierPar(colonne: typeof this.triColonne): void {
     if (this.triColonne === colonne) {
       this.triDirection = this.triDirection === 1 ? -1 : 1;
-      return;
+    } else {
+      this.triColonne = colonne;
+      this.triDirection = colonne === 'date' ? -1 : 1;
     }
-    this.triColonne = colonne;
-    this.triDirection = colonne === 'date' ? -1 : 1;
+    this.onFiltersChanged();
   }
-
-  /** Comparateur multi-critères (insensible aux accents pour le texte). */
-  private comparer(a: Changement, b: Changement): number {
-    let v = 0;
-    switch (this.triColonne) {
-      case 'objet':
-        v = (a.objetChangement || '').localeCompare(b.objetChangement || '', 'fr', { sensitivity: 'base' });
-        break;
-      case 'client':
-        v = this.clientNom(a).localeCompare(this.clientNom(b), 'fr', { sensitivity: 'base' });
-        break;
-      case 'type':
-        v = (DashboardChangementsComponent.RANG_TYPE[a.typeChangement] || 0)
-          - (DashboardChangementsComponent.RANG_TYPE[b.typeChangement] || 0);
-        break;
-      case 'categorie':
-        v = (a.categorie || '').localeCompare(b.categorie || '', 'fr', { sensitivity: 'base' });
-        break;
-      case 'statut':
-        v = (a.statut || '').localeCompare(b.statut || '', 'fr', { sensitivity: 'base' });
-        break;
-      case 'date':
-        v = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-        break;
-    }
-    return v * this.triDirection;
-  }
-
-  /** Ordre métier des types pour le tri (Standard < Majeur < Urgent). */
-  private static readonly RANG_TYPE: Record<string, number> = { Standard: 1, Majeur: 2, Urgent: 3 };
 
   hasActiveFilters(): boolean {
     return !!(this.searchTerm || this.statutFiltre || this.typeFiltre || this.clientFiltre);
@@ -183,42 +185,43 @@ export class DashboardChangementsComponent implements OnInit {
     this.searchTerm = '';
     this.statutFiltre = '';
     this.typeFiltre = '';
+    this.clientFiltre = '';
+    this.onFiltersChanged();
   }
 
-  // --- Cartes de synthèse -----------------------------------------------------
+  // --- Cartes de synthèse (basées sur la synthèse serveur, portée complète) ---
 
   get totalCount(): number {
-    return this.changements.length;
+    return this.total;
+  }
+
+  private sommeStatuts(statuts: string[]): number {
+    return statuts.reduce((acc, s) => acc + (this.parStatut[s] || 0), 0);
   }
 
   /** Changements en vie dans le traitement (jusqu'à l'implémentation). */
   get enCoursCount(): number {
-    return this.changements.filter((c) => this.statutsEnCours.includes(c.statut || '')).length;
+    return this.sommeStatuts(this.statutsEnCours);
   }
 
   /** À valider : Soumis ou en attente de validation (goulot d'étranglement). */
   get aValiderCount(): number {
-    return this.changements.filter((c) => c.statut === 'Soumis' || c.statut === 'En attente de validation').length;
+    return this.sommeStatuts(['Soumis', 'En attente de validation']);
   }
 
   /** Implémentés, en revue post-implémentation ou clôturés (sorties positives). */
   get terminesCount(): number {
-    return this.changements.filter(
-      (c) => c.statut === 'Implémenté' || c.statut === 'En revue post-implémentation' || c.statut === 'Clôturé'
-    ).length;
+    return this.sommeStatuts(['Implémenté', 'En revue post-implémentation', 'Clôturé']);
   }
 
   /** Répartition par statut (panneau latéral) — barres proportionnelles au max. */
   get distribution(): { label: string; count: number; pct: number }[] {
-    const compteurs = new Map<string, number>();
-    for (const c of this.changements) {
-      if (!c.statut) continue;
-      compteurs.set(c.statut, (compteurs.get(c.statut) || 0) + 1);
-    }
+    const lignes: [string, number][] = this.statutsFiltrables
+      .map((s) => [s, this.parStatut[s] || 0] as [string, number])
+      .filter(([, n]) => n > 0);
+    const compteurs = new Map<string, number>(lignes);
     const max = Math.max(1, ...compteurs.values());
-    return this.statutsFiltrables
-      .filter((s) => compteurs.has(s))
-      .map((s) => ({ label: s, count: compteurs.get(s) || 0, pct: Math.round(((compteurs.get(s) || 0) / max) * 100) }));
+    return [...compteurs.entries()].map(([label, count]) => ({ label, count, pct: Math.round((count / max) * 100) }));
   }
 
   /** Étape de la frise correspondant au statut (null pour les sorties de parcours). */

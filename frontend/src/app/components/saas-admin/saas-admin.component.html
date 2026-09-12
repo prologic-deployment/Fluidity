@@ -102,8 +102,8 @@
               <input type="text" class="input mt-2 max-w-md" [placeholder]="('saas.approveNote' | t)" [(ngModel)]="reviewNote[o._id]" />
             </div>
             <div class="flex items-center gap-2 shrink-0">
-              <button type="button" class="btn-primary btn-sm" (click)="approve(o)">{{ 'saas.approve' | t }}</button>
-              <button type="button" class="btn-destructive btn-sm" (click)="reject(o)">{{ 'saas.reject' | t }}</button>
+              <button type="button" class="btn-primary btn-sm" [disabled]="actionEnCours.has(o._id)" (click)="approve(o)">{{ actionEnCours.has(o._id) ? '…' : ('saas.approve' | t) }}</button>
+              <button type="button" class="btn-destructive btn-sm" [disabled]="actionEnCours.has(o._id)" (click)="reject(o)">{{ 'saas.reject' | t }}</button>
             </div>
           </div>
         </div>

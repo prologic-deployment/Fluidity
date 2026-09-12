@@ -1,8 +1,20 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AppUser, LicenseInfo } from '../models/user.model';
+import { PageResult } from '../models/pagination.model';
+
+/** Filtres serveur de la liste des utilisateurs (PERF-002). */
+export interface FiltresUtilisateurs {
+  page?: number;
+  limit?: number;
+  role?: string;
+  statut?: string;
+  recherche?: string;
+  tenantId?: string;
+}
 
 /** API Tenant Admin — gestion des utilisateurs et des licences du tenant. */
 @Injectable({ providedIn: 'root' })
@@ -11,10 +23,18 @@ export class UserService {
 
   constructor(private http: HttpClient) {}
 
-  getAll(tenantId?: string): Observable<AppUser[]> {
+  /** Liste paginée (PERF-002) — enveloppe {items,total,page,pages}. */
+  getPage(filtres: FiltresUtilisateurs = {}): Observable<PageResult<AppUser>> {
     let params = new HttpParams();
-    if (tenantId) params = params.set('tenantId', tenantId);
-    return this.http.get<AppUser[]>(this.baseUrl, { params });
+    for (const [cle, valeur] of Object.entries(filtres)) {
+      if (valeur !== undefined && valeur !== '') params = params.set(cle, String(valeur));
+    }
+    return this.http.get<PageResult<AppUser>>(this.baseUrl, { params });
+  }
+
+  /** Liste simple (sélecteurs, vues admin) — premier bloc de 100 comptes. */
+  getAll(tenantId?: string): Observable<AppUser[]> {
+    return this.getPage({ tenantId, limit: 100 }).pipe(map((r) => r.items));
   }
 
   getLicenses(tenantId?: string): Observable<LicenseInfo> {
