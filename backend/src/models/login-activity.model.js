@@ -41,6 +41,8 @@ const LoginActivitySchema = new Schema(
         'MOT_DE_PASSE_INVALIDE',
         'COMPTE_SUSPENDU',
         'COMPTE_INACTIF',
+        // CT-003 : compte créé « invited », pas encore activé par un admin.
+        'COMPTE_NON_ACTIVE',
         'CODE_2FA_INVALIDE',
         'TENANT_INDISPONIBLE',
         'DONNEES_HERITEES',

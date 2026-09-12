@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+const bcrypt = require('bcryptjs');
 const { PLATFORM_NAME } = require('../config/branding');
 const { hashValue } = require('./crypto.util');
 
@@ -64,9 +65,36 @@ function generateBackupCodes() {
   return codes;
 }
 
-/** Hash de stockage d'un code de secours (SHA-256 — jamais le code en clair en base). */
+/**
+ * AUTH-006 (audit) : les codes de secours (~40 bits d'entropie) sont stockés
+ * avec un hash LENT salé (bcrypt, coût 10) — un dump DB ne permet plus de les
+ * craquer par GPU. SHA-256 n'est conservé qu'en lecture pour les anciens
+ * enregistrements (migration transparente à la première vérification).
+ */
+const BCRYPT_ROUNDS = 10;
 function hashBackupCode(code) {
-  return hashValue(String(code).trim().toUpperCase());
+  return bcrypt.hashSync(String(code).trim().toUpperCase(), BCRYPT_ROUNDS);
+}
+
+const LEGACY_SHA256_HEX = /^[a-f0-9]{64}$/i;
+
+/**
+ * Vérifie un code de secours contre un hash stocké.
+ * Retourne { ok, upgraded } : `upgraded` signale qu'un ancien hash SHA-256 a
+ * été validé et doit être remplacé par le hash bcrypt fourni (recalculé ici).
+ */
+function verifyBackupCode(code, storedHash) {
+  const normalized = String(code).trim().toUpperCase();
+  if (!storedHash) return { ok: false, upgraded: null };
+  if (LEGACY_SHA256_HEX.test(storedHash)) {
+    const okLegacy = hashValue(normalized) === storedHash;
+    return { ok: okLegacy, upgraded: okLegacy ? bcrypt.hashSync(normalized, BCRYPT_ROUNDS) : null };
+  }
+  try {
+    return { ok: bcrypt.compareSync(normalized, storedHash), upgraded: null };
+  } catch {
+    return { ok: false, upgraded: null };
+  }
 }
 
 const isOtpCode = (code) => OTP_CODE_REGEX.test(String(code || ''));
@@ -78,6 +106,7 @@ module.exports = {
   verifyToken,
   generateBackupCodes,
   hashBackupCode,
+  verifyBackupCode,
   isOtpCode,
   isBackupCode,
 };

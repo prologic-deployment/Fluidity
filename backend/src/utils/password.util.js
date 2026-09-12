@@ -51,4 +51,29 @@ const genererMotDePasseProvisoire = () => {
   return melanger(complet.split('')).join('');
 };
 
-module.exports = { genererMotDePasseProvisoire };
+/**
+ * POLITIQUE DE MOT DE PASSE (AUTH-005, audit) — appliquée partout où un mot
+ * de passe est CHOISI (création de compte, changement, réinitialisation) :
+ *   - 12 caractères MINIMUM (128 maximum pour borner bcrypt),
+ *   - au moins 1 majuscule, 1 minuscule, 1 chiffre, 1 symbole.
+ * La vérification d'un mot de passe EXISTANT (login) n'y est jamais soumise.
+ */
+const LONGUEUR_MIN = 12;
+const LONGUEUR_MAX = 128;
+// AUTH-008 (audit) : bcrypt tronque SILENCIEUSEMENT au-delà de 72 OCTETS —
+ // deux mots de passe différents pouvaient produire le même hash. La limite
+ // est donc exprimée en octets UTF-8 et refusée explicitement.
+const OCTETS_MAX_BCRYPT = 72;
+const verifPolitique = (mdp) => {
+  const s = String(mdp || '');
+  if (s.length < LONGUEUR_MIN) return `Le mot de passe doit contenir au moins ${LONGUEUR_MIN} caractères.`;
+  if (s.length > LONGUEUR_MAX) return 'Le mot de passe est trop long.';
+  if (Buffer.byteLength(s, 'utf8') > OCTETS_MAX_BCRYPT) return 'Le mot de passe dépasse 72 octets (limite bcrypt) — raccourcissez-le.';
+  if (!/[A-Z]/.test(s)) return 'Le mot de passe doit contenir au moins une majuscule.';
+  if (!/[a-z]/.test(s)) return 'Le mot de passe doit contenir au moins une minuscule.';
+  if (!/[0-9]/.test(s)) return 'Le mot de passe doit contenir au moins un chiffre.';
+  if (!/[^A-Za-z0-9]/.test(s)) return 'Le mot de passe doit contenir au moins un caractère spécial.';
+  return null; // conforme
+};
+
+module.exports = { genererMotDePasseProvisoire, verifPolitique, LONGUEUR_MIN };

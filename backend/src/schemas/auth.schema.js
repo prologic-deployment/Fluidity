@@ -1,13 +1,21 @@
 const { z } = require('zod');
+const { verifPolitique, LONGUEUR_MIN } = require('../utils/password.util');
+
+/**
+ * Mot de passe choisi par un humain : politique renforcée (AUTH-005 audit) —
+ * ≥ 12 caractères + 4 classes. Le refus porte un message actionnable.
+ */
+const motDePasseFort = (champ = 'mot de passe') =>
+  z
+    .string({ required_error: 'Mot de passe requis' })
+    .min(1, 'Mot de passe requis')
+    .refine((v) => verifPolitique(v) === null, {
+      message: `Le ${champ} doit contenir au moins ${LONGUEUR_MIN} caractères dont une majuscule, une minuscule, un chiffre et un caractère spécial.`,
+    });
 const { AVATAR_RELATIF_REGEX, normaliserUrlUpload } = require('../utils/upload-file.util');
 
-const registerSchema = z.object({
-  // ObjectId du Tenant auquel rattacher l'utilisateur
-  tenantId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'tenantId invalide (ObjectId attendu)'),
-  email: z.string().email('Email invalide'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
-  role: z.enum(['TENANT_ADMIN', 'MANAGER', 'AGENT', 'VIEWER']).optional(),
-});
+// AUTH-001 (audit) : registerSchema supprimé avec la route /register —
+// l'inscription publique acceptait un rôle TENANT_ADMIN sans authentification.
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -52,17 +60,16 @@ const forgotPasswordSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, 'Token requis'),
-  password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
+  password: motDePasseFort('nouveau mot de passe'),
 });
 
-/** Changement de SON mot de passe : mot de passe actuel prouvé + nouveau (mêmes règles que l'inscription). */
+/** Changement de SON mot de passe : mot de passe actuel prouvé + nouveau (politique renforcée AUTH-005). */
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Mot de passe actuel requis'),
-  newPassword: z.string().min(6, 'Le nouveau mot de passe doit contenir au moins 6 caractères'),
+  newPassword: motDePasseFort('nouveau mot de passe'),
 });
 
 module.exports = {
-  registerSchema,
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,

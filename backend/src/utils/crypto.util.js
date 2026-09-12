@@ -28,6 +28,15 @@ function getKey() {
     cachedKey = crypto.createHash('sha256').update(String(dedicated)).digest();
     return cachedKey;
   }
+  // CFG-003 (audit) : plus AUCUNE clé codée en dur. En production l'absence de
+  // configuration est une erreur bloquante ; en développement on dérive la clé
+  // de JWT_SECRET (qui doit de toute façon être défini — sinon échec immédiat).
+  const base = process.env.JWT_SECRET;
+  if (!base) {
+    throw new Error(
+      'Configuration manquante : TWO_FACTOR_ENCRYPTION_KEY (≥ 32 caractères) ou JWT_SECRET est requis pour chiffrer les secrets 2FA.'
+    );
+  }
   if (!warnedFallback) {
     console.warn(
       '[ServiceDesk] TWO_FACTOR_ENCRYPTION_KEY non définie (≥ 32 caractères) — ' +
@@ -36,7 +45,6 @@ function getKey() {
     );
     warnedFallback = true;
   }
-  const base = process.env.JWT_SECRET || 'servicedesk_dev_jwt_secret';
   cachedKey = crypto.scryptSync(base, 'servicedesk-2fa-key-derivation', 32);
   return cachedKey;
 }

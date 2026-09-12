@@ -1,19 +1,76 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
-const { sendResetPasswordEmail } = require('../services/email.service');
+const { sendResetPasswordEmail, sendPasswordChangedEmail } = require('../services/email.service');
 const { supprimerFichierUpload } = require('../utils/upload-file.util');
 const { enregistrerActivite } = require('../utils/login-activity.util');
 const { Client } = require('../models/client.model');
 const { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL } = require('../utils/principals');
 const { apiError } = require('../utils/api-error');
+const logger = require('../utils/logger.util');
+// AUTH-008 (audit) : refus des mots de passe CHOISIS figurant dans des fuites
+// connues (k-anonymité HaveIBeenPwned ; fail-open si le service est injoignable).
+const { verifierFuite } = require('../utils/breach.util');
+const {
+  issueRefreshToken,
+  rotateRefreshToken,
+  resolveRefreshToken,
+  reuseDetected,
+  revokeCurrent,
+  revokeAllForPrincipal,
+  clearRefreshCookie,
+} = require('../services/session.service');
 
 /** Message d'aide quand le compte provient de données pré-multi-tenant. */
 const LEGACY_MESSAGE =
   'Ce compte provient d’une ancienne version des données (identifiants hérités, rôles obsolètes). ' +
   'Exécutez « npm run migrate » côté backend pour convertir les données, puis reconnectez-vous.';
+
+/** Empreinte SHA-256 (jetons de reset stockés hashés — CFG-002). */
+const sha256 = (value) => crypto.createHash('sha256').update(String(value)).digest('hex');
+
+// AUTH-004 (audit) : verrouillage DOUX par compte — 8 échecs ⇒ 15 minutes,
+// compteur remis à zéro à la première connexion réussie. Complémentaire au
+// rate-limit par IP (middleware) : un attaquant distribué reste bloqué ici.
+const LOCK_MAX_ATTEMPTS = 8;
+const LOCK_MINUTES = 15;
+
+/** Secondes restantes de verrouillage (0 = non verrouillé). */
+const lockSecondsLeft = (account) =>
+  account?.lockedUntil && account.lockedUntil > new Date()
+    ? Math.ceil((account.lockedUntil - Date.now()) / 1000)
+    : 0;
+
+/** Échec de connexion : incrémente le compteur, verrouille au seuil. */
+async function registerLoginFailure(account) {
+  if (!account) return;
+  account.loginAttempts = (account.loginAttempts || 0) + 1;
+  if (account.loginAttempts >= LOCK_MAX_ATTEMPTS) {
+    account.lockedUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
+    account.loginAttempts = 0;
+  }
+  await account.save();
+}
+
+/** Connexion réussie : purge compteur + verrou. */
+async function clearLoginFailures(account) {
+  if (!account || (!account.loginAttempts && !account.lockedUntil)) return;
+  account.loginAttempts = 0;
+  account.lockedUntil = null;
+  await account.save();
+}
+
+/** Réponse 429 standardisée pour compte verrouillé. */
+function respondLocked(res, seconds) {
+  res.setHeader('Retry-After', String(seconds));
+  res.status(429).json({
+    code: 'COMPTE_VERROUILLE',
+    message: 'Trop de tentatives : compte temporairement verrouillé. Réessayez dans quelques minutes.',
+  });
+}
 
 /** Marque renvoyée au frontend pour afficher le workspace (white-label). */
 const tenantBranding = (tenant) =>
@@ -32,47 +89,19 @@ const tenantBranding = (tenant) =>
       }
     : null;
 
-/**
- * Inscription d'un nouvel utilisateur (rattachement à un tenant existant).
- * Réservée aux flux d'intégration ; la création d'utilisateurs se fait
- * normalement via /api/users (Tenant Admin) ou /api/tenants (Super Admin).
- */
-const register = async (req, res) => {
-  try {
-    const { tenantId, email, password, role } = req.body;
-
-    const tenant = await Tenant.findOne({ _id: tenantId, status: 'active' });
-    if (!tenant) {
-      apiError(res, 400, 'TENANT_INVALID', 'Tenant invalide ou inactif');
-      return;
-    }
-
-    const existing = await Utilisateur.findOne({ email });
-    if (existing) {
-      apiError(res, 409, 'EMAIL_TAKEN', 'Cet email est déjà utilisé');
-      return;
-    }
-
-    const user = new Utilisateur({
-      tenantId,
-      email,
-      password,
-      role: role || 'CLIENT',
-    });
-    await user.save();
-
-    res.status(201).json({ message: 'Utilisateur créé avec succès', userId: user._id });
-  } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
-  }
-};
+// AUTH-001 (audit) : l'inscription publique « register » a été supprimée.
+// Elle acceptait un rôle TENANT_ADMIN sans authentification (escalade de
+// privilèges), contournait la limite de sièges et toute vérification
+// d'email. La création de comptes est réservée aux administrateurs :
+//   POST /api/tenants (Super Admin), POST /api/users (Tenant Admin),
+//   POST /api/clients (comptes portail). Voir docs/FLUIDITY_A4_REMEDIATION.md.
 
 /**
  * Émet la session complète (JWT + profil + marque tenant) — facteur commun de
  * la connexion classique et de la validation du second facteur (2FA), pour ne
  * pas dupliquer la logique d'émission.
  */
-const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
+const issueSession = async (res, user, tenant, extras = {}, contexte = {}) => {
   // Deux types de principals (utils/principals) : UTILISATEUR (compte interne,
   // rôle RBAC) ou CLIENT (accès portail de l'entité commerciale — rôle effectif
   // ROLE_PORTAIL dans le jeton, jamais un rôle Utilisateur).
@@ -80,7 +109,10 @@ const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
   const role = estClient ? ROLE_PORTAIL : user.role;
 
   const secret = process.env.JWT_SECRET;
-  const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+  // AUTH-003 (audit) : jeton d'accès COURTE DURÉE (15 min par défaut, était 7 j).
+  // La session longue est portée par le jeton de rafraîchissement rotatif en
+  // cookie httpOnly (session.service) ; JWT_EXPIRES_IN reste surchargeable.
+  const expiresIn = process.env.JWT_EXPIRES_IN || '15m';
   const token = jwt.sign(
     {
       tenantId: user.tenantId || null,
@@ -88,12 +120,27 @@ const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
       role,
       email: user.email,
       principal: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
+      // Version de session : toute révocation (mot de passe, rôle, 2FA…)
+      // incrémente le compteur DB et invalide les jetons antérieurs.
+      tv: user.tokenVersion || 0,
     },
     secret,
     { expiresIn }
   );
 
+  // Jeton de rafraîchissement rotatif (cookie httpOnly) — nouveau « family »
+  // à chaque login / validation 2FA.
   if (contexte.req) {
+    await issueRefreshToken(contexte.req, res, {
+      userId: user._id,
+      principalType: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
+      tenantId: user.tenantId || null,
+    });
+  }
+
+  // contexte.silent : pas de journalisation « connexion » (ex. réémission de
+  // session après changement de mot de passe — ce n'est pas un login).
+  if (contexte.req && !contexte.silent) {
     enregistrerActivite(contexte.req, {
       userId: user._id,
       tenantId: user.tenantId || null,
@@ -106,6 +153,8 @@ const issueSession = (res, user, tenant, extras = {}, contexte = {}) => {
 
   res.status(200).json({
     token,
+    // Expiration absolue du jeton d'accès (le frontend planifie le refresh).
+    expiresAt: new Date((jwt.decode(token)?.exp || 0) * 1000).toISOString(),
     userId: user._id,
     tenantId: user.tenantId || null,
     role,
@@ -151,8 +200,20 @@ const verifyTwoFactorToken = (token) => {
  *   attribuable à une fiche), false si aucune fiche ne porte cet email.
  */
 const loginClient = async (req, res, email, password) => {
-  const candidats = await Client.find({ email }).select('+password +twoFactorSecret +twoFactorBackupCodes');
+  const candidats = await Client.find({ email }).select(
+    '+password +twoFactorSecret +twoFactorBackupCodes +loginAttempts +lockedUntil'
+  );
   if (!candidats.length) return false;
+
+  // AUTH-004 : si l'une des fiches portant cet email est verrouillée, la
+  // tentative est refusée (l'ambiguïté multi-tenant interdit de deviner la cible).
+  for (const fiche of candidats) {
+    const left = lockSecondsLeft(fiche);
+    if (left > 0) {
+      respondLocked(res, left);
+      return true;
+    }
+  }
 
   const correspondances = [];
   for (const fiche of candidats) {
@@ -161,6 +222,8 @@ const loginClient = async (req, res, email, password) => {
   }
   if (correspondances.length === 0) {
     for (const fiche of candidats) {
+      // eslint-disable-next-line no-await-in-loop
+      await registerLoginFailure(fiche);
       enregistrerActivite(req, {
         userId: fiche._id, tenantId: fiche.tenantId, principalType: PRINCIPAL_CLIENT,
         succes: false, raisonEchec: 'MOT_DE_PASSE_INVALIDE',
@@ -169,6 +232,7 @@ const loginClient = async (req, res, email, password) => {
     apiError(res, 401, 'INVALID_CREDENTIALS', 'Identifiants invalides');
     return true;
   }
+  await clearLoginFailures(correspondances[0]);
   if (correspondances.length > 1) {
     // Quasi impossible (mots de passe aléatoires) — refus explicite plutôt
     // qu'une connexion sur le mauvais espace de travail.
@@ -219,7 +283,7 @@ const loginClient = async (req, res, email, password) => {
     return true;
   }
 
-  issueSession(res, client, tenant, {}, { req, principalType: PRINCIPAL_CLIENT });
+  await issueSession(res, client, tenant, {}, { req, principalType: PRINCIPAL_CLIENT });
   return true;
 };
 
@@ -233,7 +297,7 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await Utilisateur.findOne({ email });
+    const user = await Utilisateur.findOne({ email }).select('+loginAttempts +lockedUntil');
     if (!user) {
       // Aucun compte interne : la tentative peut viser un accès PORTAIL CLIENT
       // (l'entité commerciale porte sa propre identité depuis la refonte).
@@ -244,8 +308,20 @@ const login = async (req, res) => {
       return;
     }
 
+    // AUTH-004 : compte verrouillé après échecs répétés (soft lockout).
+    const lockLeft = lockSecondsLeft(user);
+    if (lockLeft > 0) {
+      enregistrerActivite(req, {
+        userId: user._id, tenantId: user.tenantId || null,
+        succes: false, raisonEchec: 'COMPTE_VERROUILLE',
+      });
+      respondLocked(res, lockLeft);
+      return;
+    }
+
     const valid = await user.comparePassword(password);
     if (!valid) {
+      await registerLoginFailure(user);
       enregistrerActivite(req, {
         userId: user._id, tenantId: user.tenantId || null,
         succes: false, raisonEchec: 'MOT_DE_PASSE_INVALIDE',
@@ -253,6 +329,7 @@ const login = async (req, res) => {
       res.status(401).json({ message: 'Identifiants invalides' });
       return;
     }
+    await clearLoginFailures(user);
 
     if (user.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
       enregistrerActivite(req, {
@@ -260,6 +337,17 @@ const login = async (req, res) => {
         succes: false, raisonEchec: 'COMPTE_SUSPENDU',
       });
       apiError(res, 403, 'ACCOUNT_SUSPENDED', 'Ce compte est suspendu. Contactez votre administrateur.');
+      return;
+    }
+
+    // CT-003 (audit) : un compte créé « invited » ne peut pas se connecter
+    // tant qu'un administrateur ne l'a pas activé (statut → active).
+    if (user.status === 'invited' && user.role !== 'PLATFORM_ADMIN') {
+      enregistrerActivite(req, {
+        userId: user._id, tenantId: user.tenantId || null,
+        succes: false, raisonEchec: 'COMPTE_NON_ACTIVE',
+      });
+      apiError(res, 403, 'ACCOUNT_NOT_ACTIVATED', 'Ce compte n\'a pas encore été activé. Contactez votre administrateur.');
       return;
     }
 
@@ -307,9 +395,10 @@ const login = async (req, res) => {
       return;
     }
 
-    issueSession(res, user, tenant, {}, { req });
+    await issueSession(res, user, tenant, {}, { req });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -330,8 +419,10 @@ const forgotPassword = async (req, res) => {
       return;
     }
 
+    // CFG-002 (audit) : le jeton envoyé par email n'est JAMAIS stocké en clair ;
+    // seule son empreinte SHA-256 est conservée (comparaison hashée au reset).
     const token = uuidv4();
-    user.resetToken = token;
+    user.resetToken = sha256(token);
     user.resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 heure
     await user.save();
 
@@ -342,7 +433,8 @@ const forgotPassword = async (req, res) => {
       message: "Si l'email existe, un lien de réinitialisation a été envoyé",
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -353,23 +445,38 @@ const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
 
+    // CFG-002 : comparaison sur l'empreinte SHA-256 (le clair n'est jamais stocké).
     const user = await Utilisateur.findOne({
-      resetToken: token,
+      resetToken: sha256(String(token || '')),
       resetTokenExpiry: { $gt: new Date() },
-    });
+    }).select('+resetToken +resetTokenExpiry');
     if (!user) {
       apiError(res, 400, 'RESET_TOKEN_INVALID', 'Token invalide ou expiré');
+      return;
+    }
+
+    // AUTH-008 : le mot de passe de réinitialisation ne doit pas être compromis.
+    const fuiteReset = await verifierFuite(password);
+    if (fuiteReset.compromis) {
+      apiError(res, 400, 'PASSWORD_BREACHED', 'Ce mot de passe figure dans des fuites connues — choisissez-en un autre.');
       return;
     }
 
     user.password = password; // hashé via le hook pre-save
     user.resetToken = undefined;
     user.resetTokenExpiry = undefined;
+    // AUTH-003 : le reset révoque TOUTES les sessions existantes (mot de passe
+    // compromis ⇒ les anciens jetons doivent mourir immédiatement).
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
+    await revokeAllForPrincipal(user._id, PRINCIPAL_UTILISATEUR);
+    // MAIL-003 : confirmation de sécurité (réinitialisation du mot de passe).
+    sendPasswordChangedEmail(user.email).catch(() => {});
 
     res.status(200).json({ message: 'Mot de passe réinitialisé avec succès' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -419,7 +526,8 @@ const me = async (req, res) => {
       tenant: tenantBranding(req.tenant || null),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -486,7 +594,8 @@ const updateProfile = async (req, res) => {
     );
     res.status(200).json({ message: 'Profil mis à jour', user: clean });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -497,6 +606,13 @@ const updateProfile = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+
+    // AUTH-008 : le nouveau mot de passe ne doit pas figurer dans des fuites.
+    const fuiteChangement = await verifierFuite(newPassword);
+    if (fuiteChangement.compromis) {
+      apiError(res, 400, 'PASSWORD_BREACHED', 'Ce mot de passe figure dans des fuites connues — choisissez-en un autre.');
+      return;
+    }
 
     // Principal CLIENT : même preuve du mot de passe actuel (le provisoire),
     // puis lève l'obligation de changement (accès complet débloqué).
@@ -517,8 +633,17 @@ const changePassword = async (req, res) => {
       }
       client.password = newPassword; // hashé via le hook pre-save
       client.mustChangePassword = false;
+      // AUTH-003 : le changement de mot de passe révoque toutes les sessions
+      // antérieures (tokenVersion++ ⇒ anciens JWT rejetés, refresh tokens révoqués).
+      // On réémet immédiatement une session fraîche pour la requête courante afin
+      // que l'utilisateur qui vient de changer SON mot de passe reste connecté.
+      client.tokenVersion = (client.tokenVersion || 0) + 1;
       await client.save();
-      res.status(200).json({ message: 'Mot de passe modifié avec succès', mustChangePassword: false });
+      await revokeAllForPrincipal(client._id, PRINCIPAL_CLIENT);
+      const tenantClient = await Tenant.findById(client.tenantId);
+      await issueSession(res, client, tenantClient, { mustChangePassword: false }, { req, principalType: PRINCIPAL_CLIENT, silent: true });
+      // MAIL-003 : confirmation de sécurité (changement de mot de passe).
+      sendPasswordChangedEmail(client.email).catch(() => {});
       return;
     }
 
@@ -539,11 +664,18 @@ const changePassword = async (req, res) => {
     }
 
     user.password = newPassword; // hashé via le hook pre-save
+    // AUTH-003 : révocation des sessions antérieures + session fraîche pour
+    // l'utilisateur courant (voir chemin CLIENT ci-dessus).
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
     await user.save();
-
-    res.status(200).json({ message: 'Mot de passe modifié avec succès' });
+    await revokeAllForPrincipal(user._id, PRINCIPAL_UTILISATEUR);
+    const tenantUser = user.tenantId ? await Tenant.findById(user.tenantId) : null;
+    await issueSession(res, user, tenantUser, {}, { req, silent: true });
+    // MAIL-003 : confirmation de sécurité (changement de mot de passe).
+    sendPasswordChangedEmail(user.email).catch(() => {});
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -577,12 +709,108 @@ const loginActivity = async (req, res) => {
       sessionIatActuel: req.tokenIat || null,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
+/**
+ * AUTH-003 (audit) : rafraîchissement de session par jeton rotatif (cookie
+ * httpOnly). Aucune donnée de session n'est acceptée hors cookie — la requête
+ * n'a pas d'en-tête Authorization.
+ *
+ * Rotation : chaque usage révoque le jeton présenté et en émet un nouveau.
+ * Réutilisation d'un jeton déjà remplacé ⇒ vol probable ⇒ révocation de toute
+ * la famille + 401.
+ */
+const refreshSession = async (req, res) => {
+  try {
+    const doc = await resolveRefreshToken(req);
+    if (!doc) {
+      clearRefreshCookie(res);
+      res.status(401).json({ code: 'SESSION_EXPIREE', message: 'Session expirée. Veuillez vous reconnecter.' });
+      return;
+    }
+    // Jeton déjà remplacé présenté à nouveau = réutilisation frauduleuse.
+    if (await reuseDetected(doc)) {
+      clearRefreshCookie(res);
+      res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Session révoquée par sécurité. Veuillez vous reconnecter.' });
+      return;
+    }
+    if (doc.revokedAt || doc.expiresAt < new Date()) {
+      clearRefreshCookie(res);
+      res.status(401).json({ code: 'SESSION_EXPIREE', message: 'Session expirée. Veuillez vous reconnecter.' });
+      return;
+    }
+
+    // Rotation AVANT de charger le principal (le jeton présenté est consommé
+    // quoi qu'il arrive ensuite).
+    await rotateRefreshToken(req, res, doc);
+
+    // Rechargement complet du principal : le nouveau JWT reflète l'état DB
+    // courant (rôle, statut, tokenVersion) — mêmes contrôles que authMiddleware.
+    const estClient = doc.principalType === PRINCIPAL_CLIENT;
+    const secret = process.env.JWT_SECRET;
+    const expiresIn = process.env.JWT_EXPIRES_IN || '15m';
+
+    if (estClient) {
+      // NB : toute révocation de sécurité passe par revokeAllForPrincipal() qui
+      // pose revokedAt sur les jetons — le test doc.revokedAt ci-dessus suffit.
+      const client = await Client.findById(doc.userId).select('email tenantId statut tokenVersion').lean();
+      if (!client || client.statut !== 'Actif') {
+        clearRefreshCookie(res);
+        res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Session révoquée. Veuillez vous reconnecter.' });
+        return;
+      }
+      const token = jwt.sign(
+        { tenantId: client.tenantId || null, userId: client._id, role: ROLE_PORTAIL, email: client.email, principal: PRINCIPAL_CLIENT, tv: client.tokenVersion || 0 },
+        secret,
+        { expiresIn }
+      );
+      res.status(200).json({ token, expiresAt: new Date((jwt.decode(token)?.exp || 0) * 1000).toISOString(), role: ROLE_PORTAIL, principalType: PRINCIPAL_CLIENT });
+      return;
+    }
+
+    const user = await Utilisateur.findById(doc.userId).select('role status tenantId email tokenVersion').lean();
+    if (!user || (user.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') || !ROLES.includes(user.role)) {
+      clearRefreshCookie(res);
+      res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Session révoquée. Veuillez vous reconnecter.' });
+      return;
+    }
+    if (user.tenantId && mongoose.isValidObjectId(user.tenantId)) {
+      const tenant = await Tenant.findById(user.tenantId).lean();
+      if (!tenant || (tenant.status !== 'active' && user.role !== 'PLATFORM_ADMIN')) {
+        clearRefreshCookie(res);
+        res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Espace de travail indisponible.' });
+        return;
+      }
+    }
+    const token = jwt.sign(
+      { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email, principal: PRINCIPAL_UTILISATEUR, tv: user.tokenVersion || 0 },
+      secret,
+      { expiresIn }
+    );
+    res.status(200).json({ token, expiresAt: new Date((jwt.decode(token)?.exp || 0) * 1000).toISOString(), role: user.role, principalType: PRINCIPAL_UTILISATEUR });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+/**
+ * Déconnexion serveur : révoque le jeton de rafraîchissement du cookie et
+ * efface le cookie. Idempotent (204 même sans cookie).
+ */
+const logout = async (req, res) => {
+  try {
+    await revokeCurrent(req, res);
+    res.status(204).send();
+  } catch (err) {
+    res.status(204).send();
   }
 };
 
 module.exports = {
-  register,
+  // AUTH-001 : « register » supprimé (inscription publique = escalade de privilèges).
   login,
   loginActivity,
   forgotPassword,
@@ -590,6 +818,8 @@ module.exports = {
   me,
   updateProfile,
   changePassword,
+  refreshSession,
+  logout,
   // Réutilisés par le contrôleur 2FA (pas de logique d'émission dupliquée)
   issueSession,
   signTwoFactorToken,

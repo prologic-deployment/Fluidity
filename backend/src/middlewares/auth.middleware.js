@@ -62,9 +62,14 @@ const authMiddleware = async (req, res, next) => {
 
     // --- Principal CLIENT (accès portail de l'entité commerciale) ---
     if (req.principalType === PRINCIPAL_CLIENT) {
-      const client = await Client.findById(req.userId).select('email tenantId statut mustChangePassword').lean();
+      const client = await Client.findById(req.userId).select('email tenantId statut mustChangePassword tokenVersion').lean();
       if (!client) {
         res.status(401).json({ message: 'Compte introuvable ou supprimé' });
+        return;
+      }
+      // AUTH-003 : révocation de session (jeton émis avant un événement de sécurité).
+      if (client.tokenVersion != null && decoded.tv != null && decoded.tv !== client.tokenVersion) {
+        res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Session révoquée. Veuillez vous reconnecter.' });
         return;
       }
       if (client.statut !== 'Actif') {
@@ -76,12 +81,20 @@ const authMiddleware = async (req, res, next) => {
       req.mustChangePassword = !!client.mustChangePassword;
     } else {
       // --- Vérification du compte interne (suspension temps réel) ---
-      const user = await Utilisateur.findById(req.userId).select('role status tenantId').lean();
+      const user = await Utilisateur.findById(req.userId).select('role status tenantId tokenVersion').lean();
       if (!user) {
         res.status(401).json({ message: 'Compte introuvable ou supprimé' });
         return;
       }
-      if (user.status === 'suspended' && req.userRole !== 'PLATFORM_ADMIN') {
+      // AUTH-003 (audit) : révocation de session par « tokenVersion ». Toute
+      // élévation d'événement de sécurité (mot de passe changé/réinitialisé,
+      // rôle modifié, suspension, 2FA réinitialisée) incrémente le compteur ;
+      // un jeton émis avant l'événement est rejeté immédiatement.
+      if (user.tokenVersion != null && decoded.tv != null && decoded.tv !== user.tokenVersion) {
+        res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Session révoquée. Veuillez vous reconnecter.' });
+        return;
+      }
+      if (user.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
         res.status(403).json({ message: 'Ce compte est suspendu. Contactez votre administrateur.' });
         return;
       }
@@ -89,6 +102,10 @@ const authMiddleware = async (req, res, next) => {
         res.status(403).json({ message: LEGACY_MESSAGE });
         return;
       }
+      // AUTH-002 (audit) : le rôle d'autorisation provient TOUJOURS de la DB,
+      // jamais du JWT (qui figeait le rôle jusqu'à expiration). Une rétrogradation
+      // est donc effective immédiatement, sans attendre la fin de validité du jeton.
+      req.userRole = user.role;
       req.userClientId = null;
     }
 
@@ -138,6 +155,24 @@ function requireUtilisateurInterne(req, res, next) {
   next();
 }
 
+/**
+ * AUTHZ-001 (audit) : le rôle interne VIEWER (« Consultation ») est en
+ * LECTURE SEULE — il ne peut produire AUCUNE écriture métier (édition de
+ * demandes / changements / tickets, assignation, commentaires, transitions).
+ * Les principaux CLIENT passent ici : leur droit d'écriture est ensuite borné
+ * à LEURS propres enregistrements par les contrôleurs (filtreProprietaire).
+ */
+function refuseViewer(req, res, next) {
+  if (req.userRole === 'VIEWER') {
+    res.status(403).json({
+      code: 'ROLE_LECTURE_SEULE',
+      message: 'Le rôle « Consultation » est en lecture seule : aucune modification n\'est autorisée.',
+    });
+    return;
+  }
+  next();
+}
+
 module.exports = {
   authMiddleware,
   requireRole,
@@ -145,6 +180,7 @@ module.exports = {
   requireTenantAdmin,
   requireUtilisateurInterne,
   requirePasswordChanged,
+  refuseViewer,
 };
 
 /**

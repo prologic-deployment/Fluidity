@@ -14,14 +14,13 @@ const twoFactorVerifySetupSchema = z.object({
     .regex(codeRegex, 'Code attendu : 6 chiffres (ou un code de secours « XXXX-XXXX »)'),
 });
 
-const twoFactorDisableSchema = z
-  .object({
-    password: z.string().min(1, 'Mot de passe requis').optional(),
-    code: z.string().regex(codeRegex, 'Code attendu : 6 chiffres (ou un code de secours « XXXX-XXXX »)').optional(),
-  })
-  .refine((data) => data.password || data.code, {
-    message: 'Fournissez votre mot de passe ou un code d’authentification pour désactiver la 2FA',
-  });
+// AUTH-007 (audit) : mot de passe ET code valide sont requis (pas l'un ou l'autre).
+const twoFactorDisableSchema = z.object({
+  password: z.string({ required_error: 'Mot de passe requis' }).min(1, 'Mot de passe requis'),
+  code: z
+    .string({ required_error: 'Code d’authentification requis' })
+    .regex(codeRegex, 'Code attendu : 6 chiffres (ou un code de secours « XXXX-XXXX »)'),
+});
 
 const twoFactorVerifyLoginSchema = z.object({
   twoFactorToken: z.string({ required_error: 'Jeton de vérification requis' }).min(1),

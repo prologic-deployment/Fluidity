@@ -23,12 +23,14 @@ async function loadSessionAccount(req, extraSelect = '') {
 const { enregistrerActivite } = require('../utils/login-activity.util');
 const { sendTwoFactorEnabledEmail, sendTwoFactorDisabledEmail } = require('../services/email.service');
 const { encryptSecret, decryptSecret } = require('../utils/crypto.util');
+const logger = require('../utils/logger.util');
 const {
   generateSecret,
   generateQrCodeDataUrl,
   verifyToken,
   generateBackupCodes,
   hashBackupCode,
+  verifyBackupCode,
   isOtpCode,
 } = require('../utils/two-factor.util');
 
@@ -52,20 +54,28 @@ const {
  * Vérifie un « code » fourni : OTP TOTP valide, ou code de secours correspondant
  * (hachage comparé, consommé si `consumeBackup === true`).
  * Retourne { ok, backupUsed }.
+ *
+ * AUTH-006 : les codes de secours sont hachés en bcrypt (coût 10) ; les anciens
+ * hash SHA-256 restent vérifiables et sont transvasés en bcrypt à la volée
+ * (l'appelant doit `user.save()` quand `upgradedAt >= 0`).
  */
 function checkCode(user, plainSecret, code, consumeBackup) {
   const trimmed = String(code || '').trim();
   if (isOtpCode(trimmed)) {
-    return { ok: verifyToken(plainSecret, trimmed), backupUsed: false };
+    return { ok: verifyToken(plainSecret, trimmed), backupUsed: false, upgradedAt: -1 };
   }
   // Code de secours ? (format XXXX-XXXX)
   const hashes = user.twoFactorBackupCodes || [];
-  const idx = hashes.indexOf(hashBackupCode(trimmed));
-  if (idx >= 0) {
-    if (consumeBackup) hashes.splice(idx, 1); // usage unique
-    return { ok: true, backupUsed: true };
+  for (let i = 0; i < hashes.length; i++) {
+    // eslint-disable-next-line no-await-in-loop
+    const { ok, upgraded } = verifyBackupCode(trimmed, hashes[i]);
+    if (ok) {
+      if (consumeBackup) hashes.splice(i, 1); // usage unique
+      else if (upgraded) hashes[i] = upgraded; // migration SHA-256 → bcrypt
+      return { ok: true, backupUsed: true, upgradedAt: consumeBackup ? -1 : i };
+    }
   }
-  return { ok: false, backupUsed: false };
+  return { ok: false, backupUsed: false, upgradedAt: -1 };
 }
 
 /** GET /api/auth/2fa/status — état courant (jamais de secret). */
@@ -83,7 +93,8 @@ const getStatus = async (req, res) => {
       backupCodesRemaining: user.twoFactorEnabled ? (user.twoFactorBackupCodes || []).length : 0,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -94,9 +105,16 @@ const getStatus = async (req, res) => {
  */
 const setup = async (req, res) => {
   try {
-    const { account: user } = await loadSessionAccount(req, '+twoFactorSecret');
+    const { account: user } = await loadSessionAccount(req, '+twoFactorSecret +password');
     if (!user) {
       res.status(404).json({ message: 'Compte introuvable' });
+      return;
+    }
+    // AUTH-005 (audit) : débuter l'enrôlement 2FA exige le mot de passe courant —
+    // une session volée ne peut pas inscrire le TOTP d'un attaquant.
+    const { password } = req.body || {};
+    if (!password || !(await user.comparePassword(password))) {
+      res.status(401).json({ code: 'MOT_DE_PASSE_INVALIDE', message: 'Mot de passe incorrect : configuration 2FA refusée.' });
       return;
     }
     if (user.twoFactorEnabled) {
@@ -121,7 +139,8 @@ const setup = async (req, res) => {
       manualKey: base32, // clé manuelle — affichée uniquement pendant le setup
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -167,7 +186,8 @@ const verifySetup = async (req, res) => {
       backupCodes,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -187,17 +207,17 @@ const disable = async (req, res) => {
       return;
     }
 
+    // AUTH-007 (audit) : désactiver la 2FA exige le mot de passe ET un code
+    // valide (OTP ou code de secours) — le mot de passe seul ne suffit plus.
     const { password, code } = req.body;
-    let preuveOk = false;
-    if (code) {
-      const plainSecret = decryptSecret(user.twoFactorSecret);
-      preuveOk = checkCode(user, plainSecret, code, false).ok;
+    if (!password || !(await user.comparePassword(password))) {
+      res.status(401).json({ code: 'MOT_DE_PASSE_INVALIDE', message: 'Mot de passe incorrect : désactivation refusée.' });
+      return;
     }
-    if (!preuveOk && password) {
-      preuveOk = await user.comparePassword(password);
-    }
-    if (!preuveOk) {
-      res.status(401).json({ message: 'Preuve d’identité invalide (mot de passe ou code incorrect).' });
+    const plainSecret = decryptSecret(user.twoFactorSecret);
+    const codeOk = code ? checkCode(user, plainSecret, code, false).ok : false;
+    if (!codeOk) {
+      res.status(401).json({ message: 'Code 2FA invalide : fournissez un code d’authentification valide.' });
       return;
     }
 
@@ -212,7 +232,8 @@ const disable = async (req, res) => {
 
     res.status(200).json({ message: 'Double authentification désactivée.' });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -221,6 +242,28 @@ const disable = async (req, res) => {
  * jeton temporaire (preuve du mot de passe, 5 min) + code OTP (ou code de
  * secours, consommé) => session JWT complète.
  */
+// AUTH-004 (audit) : compteur de tentatives OTP PAR DÉFI (jeton 5 min).
+// Au-delà de OTP_MAX_ATTEMPTS codes invalides, le défi est consommé : il faut
+// repasser par mot de passe. Compteur mémoire (instance unique ; le dispositif
+// est complété par le rate-limit IP+compte de la route).
+const OTP_MAX_ATTEMPTS = 8;
+const otpAttempts = new Map(); // sha256(jeton) → { count, exp }
+const sha256Jeton = (t) => require('crypto').createHash('sha256').update(String(t)).digest('hex');
+function otpTooManyAttempts(challengeToken) {
+  const now = Date.now();
+  for (const [k, v] of otpAttempts) if (v.exp < now) otpAttempts.delete(k); // purge
+  const key = sha256Jeton(challengeToken);
+  const entry = otpAttempts.get(key);
+  return !!entry && entry.count >= OTP_MAX_ATTEMPTS;
+}
+function otpRegisterFailure(challengeToken) {
+  const key = sha256Jeton(challengeToken);
+  const entry = otpAttempts.get(key) || { count: 0, exp: Date.now() + 5 * 60 * 1000 };
+  entry.count += 1;
+  otpAttempts.set(key, entry);
+  return entry.count >= OTP_MAX_ATTEMPTS;
+}
+
 const verifyLogin = async (req, res) => {
   try {
     let userId;
@@ -228,6 +271,11 @@ const verifyLogin = async (req, res) => {
       userId = verifyTwoFactorToken(req.body.twoFactorToken);
     } catch {
       res.status(401).json({ message: 'Session de vérification expirée. Recommencez la connexion.' });
+      return;
+    }
+    // Défi épuisé (trop de codes invalides) : mot de passe requis à nouveau.
+    if (otpTooManyAttempts(req.body.twoFactorToken)) {
+      res.status(401).json({ message: 'Trop de codes invalides. Recommencez la connexion.' });
       return;
     }
 
@@ -264,23 +312,31 @@ const verifyLogin = async (req, res) => {
     const plainSecret = decryptSecret(user.twoFactorSecret);
     const { ok, backupUsed } = checkCode(user, plainSecret, req.body.code, true);
     if (!ok) {
+      const epuise = otpRegisterFailure(req.body.twoFactorToken);
       enregistrerActivite(req, {
         userId: user._id, tenantId: user.tenantId || null,
         principalType: estClient ? PRINCIPAL_CLIENT : 'UTILISATEUR',
-        succes: false, mfaUtilise: true, raisonEchec: 'CODE_2FA_INVALIDE',
+        succes: false, mfaUtilise: true, raisonEchec: epuise ? 'CODE_2FA_DEFI_EPUISE' : 'CODE_2FA_INVALIDE',
       });
-      res.status(401).json({ message: 'Code invalide. Réessayez.' });
+      res.status(401).json({
+        message: epuise
+          ? 'Trop de codes invalides. Recommencez la connexion.'
+          : 'Code invalide. Réessayez.',
+      });
       return;
     }
     if (backupUsed) await user.save();
+    // Défi réussi : purge du compteur de tentatives associé.
+    otpAttempts.delete(sha256Jeton(req.body.twoFactorToken));
 
-    issueSession(res, user, tenant, { backupCodeUsed: backupUsed }, {
+    await issueSession(res, user, tenant, { backupCodeUsed: backupUsed }, {
       req,
       mfaUtilise: true,
       principalType: estClient ? PRINCIPAL_CLIENT : undefined,
     });
   } catch (err) {
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 

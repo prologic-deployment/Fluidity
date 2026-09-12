@@ -72,8 +72,18 @@ const UtilisateurSchema = new Schema(
     role: { type: String, enum: ROLES, default: 'VIEWER' },
     status: { type: String, enum: USER_STATUTS, default: 'active' },
     department: { type: String, default: '' },
-    resetToken: { type: String },
-    resetTokenExpiry: { type: Date },
+    // AUTH-003 (audit) : compteur de révocation de session. Incrémenté à chaque
+    // événement de sécurité (mot de passe changé/réinitialisé, rôle modifié,
+    // suspension/réactivation, 2FA réinitialisée). Le JWT porte « tv » ; tout
+    // décalage ⇒ jeton rejeté immédiatement par authMiddleware.
+    tokenVersion: { type: Number, default: 0 },
+    // AUTH-004 (audit) : verrouillage doux du compte après échecs répétés
+    // (8 échecs ⇒ 15 min). Jamais exposé par l'API (select: false).
+    loginAttempts: { type: Number, default: 0, select: false },
+    lockedUntil: { type: Date, default: null, select: false },
+    // CFG-002 (audit) : jeton de réinitialisation stocké HASHÉ (SHA-256), jamais en clair.
+    resetToken: { type: String, select: false },
+    resetTokenExpiry: { type: Date, select: false },
 
     // --- Informations de profil (éditables par l'utilisateur lui-même, § profil) ---
     firstName: { type: String, default: '', trim: true },
