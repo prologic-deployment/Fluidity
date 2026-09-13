@@ -29,12 +29,32 @@ const ProductSchema = new Schema(
       {
         id: String,
         nameKey: String,
+        /** Libellé brut (produits gérés par la plateforme, sans clé i18n). */
+        name: { type: String, default: '' },
         pricePerSeatMonthly: Number,
         pricePerSeatAnnual: Number,
         currency: { type: String, default: 'EUR' },
       },
     ],
-    roles: [{ key: String, nameKey: String }],
+    roles: [{ key: String, nameKey: String, name: { type: String, default: '' }, permissions: [{ type: String }] }],
+    // --- A5 : cycle de vie piloté par la plateforme -------------------------
+    /** Libellés bruts (produits créés via l'administration, affichés tels quels). */
+    name: { type: String, default: '' },
+    tagline: { type: String, default: '' },
+    description: { type: String, default: '' },
+    /** draft → published → (suspended) : la publication rend le produit
+     *  visible au marketplace ; la suspension bloque les NOUVELLES ventes
+     *  (les souscriptions existantes restent valides jusqu'à échéance). */
+    lifecycle: { type: String, enum: ['draft', 'published', 'suspended'], default: 'published' },
+    /** registry = défini par le code (source de vérité) ; platform = créé
+     *  et configuré par le Super Admin (plans, rôles, permissions). */
+    managedBy: { type: String, enum: ['registry', 'platform'], default: 'registry' },
+    /** Permissions granulaires déclarées (produits plateforme). */
+    permissions: [{ type: String }],
+    /** Réglages produit libres (fonctionnalités, quotas, options). */
+    settings: { type: Schema.Types.Mixed, default: {} },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    updatedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
   },
   { timestamps: true }
 );

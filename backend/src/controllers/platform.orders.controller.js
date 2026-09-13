@@ -8,7 +8,7 @@ const { Tenant } = require('../models/tenant.model');
 const { getProduct } = require('../products/registry');
 const { audit } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
-const { isGlobalPlatform, effectiveAvailability } = require('../services/platform-helpers.service');
+const { isGlobalPlatform, effectiveAvailability, resolveProductDefinition } = require('../services/platform-helpers.service');
 
 /** Liste des commandes (Super Admin) : scope global ou impersonation tenant. */
 const getOrders = async (req, res) => {
@@ -109,7 +109,8 @@ const approveOrder = async (req, res) => {
     res.status(409).json({ message: 'Tenant introuvable : demande impossible à traiter.' });
     return;
   }
-  const product = getProduct(order.productKey);
+  // A5 : définition registre OU plateforme (produits publiés par le Super Admin).
+  const product = await resolveProductDefinition(order.productKey);
   if (!product || !(await effectiveAvailability(order.productKey))) {
     res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Le produit n’est plus disponible.' });
     return;
@@ -226,10 +227,11 @@ const approveOrder = async (req, res) => {
     tenantId: order.tenantId,
     userId: order.userId,
     event: 'subscription_approved',
+    productKey: order.productKey,
     params: { productKey: order.productKey, seats: sub.seats },
     link: '/abonnements',
     emailParams: {
-      productName: product.nameKey,
+      productName: product.nameKey || product.name || order.productKey,
       plan: order.planId,
       seats: sub.seats,
       link: '/abonnements',

@@ -10,6 +10,16 @@ const {
 /** Statuts de souscription qui donnent accès au produit. */
 const GRANTING_STATUSES = ['trial', 'active', 'past_due'];
 
+/** Seuil « expiration proche » (jours) exposé aux portails. */
+const EXPIRING_SOON_DAYS = 30;
+
+/** Jours restants avant l'échéance (null si sans échéance). */
+function daysUntilExpiry(endDate) {
+  if (!endDate) return null;
+  const ms = new Date(endDate).getTime() - Date.now();
+  return Math.ceil(ms / 86400000);
+}
+
 /**
  * Charge les droits SaaS d'un principal : produits accessibles + rôles +
  * permissions, pour le tenant courant.
@@ -29,6 +39,10 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
     products: [],
     accessibleKeys: [],
     permissions: [],
+    // A5 — produits souscrits par le tenant mais SANS licence pour cet
+    // utilisateur : le frontend affiche un message actionnable (« contactez
+    // votre administrateur ») au lieu d'un refus opaque.
+    unlicensed: [],
   };
 
   if (!tenantId) {
@@ -73,7 +87,11 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
   const isPlatform = internalRole === 'PLATFORM_ADMIN';
 
   const build = async (productKey, sub) => {
-    const product = getProduct(productKey) || (await Product.findOne({ key: productKey }).lean());
+    // A5 : définition registre OU document plateforme (produits créés par le
+    // Super Admin — plans, rôles et permissions configurés, pas codés en dur).
+    const registryProduct = getProduct(productKey);
+    const doc = registryProduct ? null : await Product.findOne({ key: productKey }).lean();
+    const product = registryProduct || doc;
     if (!product) return null;
 
     // Licence individuelle requise pour les non-admins.
@@ -94,17 +112,27 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
     const assignment = await RoleAssignment.findOne({ tenantId, userId, productKey }).lean();
     if (assignment?.roleKey) roleKey = assignment.roleKey;
 
-    // CT-002 (audit) : résolution des permissions PAR PRODUIT (rôles génériques).
-    const rolePerms = rolePermissions(roleKey, productKey);
+    // Permissions : registre (rôles génériques résolus PAR PRODUIT — CT-002)
+    // ou rôles déclarés dans le document (produits plateforme).
+    let rolePerms;
+    if (registryProduct) {
+      rolePerms = rolePermissions(roleKey, productKey);
+    } else {
+      const declared = (doc.roles || []).find((r) => r.key === roleKey);
+      rolePerms = declared?.permissions || [];
+    }
     const permissions = isTenantAdmin
       ? ['*'] // admin tenant : toutes permissions du produit
       : rolePerms;
 
+    const daysLeft = sub ? daysUntilExpiry(sub.endDate) : null;
     return {
       productKey,
-      nameKey: product.nameKey,
-      taglineKey: product.taglineKey,
-      descriptionKey: product.descriptionKey,
+      // Libellés : clé i18n (registre) ou texte brut (produits plateforme —
+      // le frontend affiche la clé inconnue telle quelle).
+      nameKey: product.nameKey || product.name || productKey,
+      taglineKey: product.taglineKey || product.tagline || '',
+      descriptionKey: product.descriptionKey || product.description || '',
       icon: product.icon,
       emoji: product.emoji,
       color: product.color,
@@ -122,17 +150,21 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
             status: sub.status,
             seats: sub.seats,
             endDate: sub.endDate,
+            expiringSoon: daysLeft !== null && daysLeft <= EXPIRING_SOON_DAYS,
+            daysUntilExpiry: daysLeft,
           }
         : null,
     };
   };
 
   if (legacy) {
-    // Données pré-SaaS : tout le monde garde ServiceDesk.
+    // Données pré-SaaS : tout le monde garde ServiceDesk (compatibilité
+    // documentée — aucun contrôle de licence sur les tenants historiques).
     const product = getProduct('servicedesk');
     if (product) {
       const entry = await build('servicedesk', null);
       if (entry) {
+        entry.licensed = true;
         result.products.push(entry);
         result.accessibleKeys.push('servicedesk');
         result.permissions = [...new Set([...result.permissions, ...entry.permissions])];
@@ -143,10 +175,14 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
 
   for (const sub of subs) {
     const entry = await build(sub.productKey, sub);
-    if (entry && entry.licensed) {
+    if (!entry) continue;
+    if (entry.licensed) {
       result.products.push(entry);
       result.accessibleKeys.push(entry.productKey);
       result.permissions = [...new Set([...result.permissions, ...entry.permissions])];
+    } else {
+      // A5 : souscrit mais sans siège → le portail explique la marche à suivre.
+      result.unlicensed.push({ ...entry, reason: 'LICENSE_NOT_ASSIGNED' });
     }
   }
 
@@ -198,4 +234,47 @@ function publicCatalog() {
   }));
 }
 
-module.exports = { loadEntitlements, assertProductAccess, publicCatalog, GRANTING_STATUSES };
+/**
+ * A5 — catalogue public COMPLET : registre + produits créés par la plateforme
+ * (publiés, non suspendus — les brouillons restent invisibles du marketplace).
+ */
+async function publicCatalogWithCustom() {
+  const base = publicCatalog();
+  const registryKeys = new Set(base.map((p) => p.key));
+  const customs = await Product.find({ lifecycle: 'published' }).lean();
+  for (const doc of customs) {
+    if (registryKeys.has(doc.key)) continue;
+    base.push({
+      key: doc.key,
+      slug: doc.slug || doc.key,
+      nameKey: doc.nameKey || doc.name || doc.key,
+      taglineKey: doc.taglineKey || doc.tagline || '',
+      descriptionKey: doc.descriptionKey || doc.description || '',
+      icon: doc.icon,
+      emoji: doc.emoji,
+      color: doc.color,
+      status: doc.status,
+      category: doc.category,
+      available: !!doc.available,
+      route: doc.route,
+      featuresKey: doc.featuresKey || [],
+      benefitsKey: doc.benefitsKey || [],
+      useCasesKey: doc.useCasesKey || [],
+      related: doc.related || [],
+      plans: doc.plans || [],
+      roles: (doc.roles || []).map((r) => ({ key: r.key, nameKey: r.nameKey || r.name || r.key })),
+      workflow: null,
+    });
+  }
+  return base;
+}
+
+module.exports = {
+  loadEntitlements,
+  assertProductAccess,
+  publicCatalog,
+  publicCatalogWithCustom,
+  GRANTING_STATUSES,
+  EXPIRING_SOON_DAYS,
+  daysUntilExpiry,
+};

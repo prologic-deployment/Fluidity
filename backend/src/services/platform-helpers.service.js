@@ -137,9 +137,49 @@ function isGlobalPlatform(req) {
 /** Disponibilité effective d'un produit : registre + dérogation administrative. */
 async function effectiveAvailability(productKey) {
   const p = getProduct(productKey);
-  if (!p) return null;
-  const override = await ProductOverride.findOne({ key: productKey }).lean();
-  return override ? !!override.available : !!p.available;
+  if (p) {
+    const override = await ProductOverride.findOne({ key: productKey }).lean();
+    return override ? !!override.available : !!p.available;
+  }
+  // A5 — produit géré par la plateforme : publié ET disponible, jamais suspendu.
+  const doc = await Product.findOne({ key: productKey }).select('available lifecycle').lean();
+  if (!doc) return null;
+  return doc.lifecycle !== 'suspended' && !!doc.available;
+}
+
+/**
+ * A5 — définition effective d'un produit (registre OU document plateforme).
+ * Retourne { key, nameKey, name, route, plans, roles, permissions,
+ * managedBy, available } ou null si le produit est inconnu.
+ */
+async function resolveProductDefinition(productKey) {
+  const reg = getProduct(productKey);
+  if (reg) {
+    return {
+      key: reg.key,
+      nameKey: reg.nameKey,
+      name: '',
+      route: reg.route,
+      plans: reg.plans || [],
+      roles: (reg.roles || []).map((r) => ({ key: r.key, nameKey: r.nameKey, name: '', permissions: null })),
+      permissions: null, // résolues par le registre (rolePermissions)
+      managedBy: 'registry',
+      available: await effectiveAvailability(productKey),
+    };
+  }
+  const doc = await Product.findOne({ key: productKey }).lean();
+  if (!doc) return null;
+  return {
+    key: doc.key,
+    nameKey: doc.nameKey,
+    name: doc.name || '',
+    route: doc.route,
+    plans: doc.plans || [],
+    roles: doc.roles || [],
+    permissions: doc.permissions || [],
+    managedBy: 'platform',
+    available: doc.lifecycle !== 'suspended' && !!doc.available,
+  };
 }
 
 module.exports = {
@@ -150,4 +190,5 @@ module.exports = {
   resyncProducts,
   isGlobalPlatform,
   effectiveAvailability,
+  resolveProductDefinition,
 };

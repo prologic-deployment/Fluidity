@@ -13,9 +13,10 @@ const {
   ProductOverride,
 } = require('../models/saas.models');
 const { NotificationPreference } = require('../models/project.models');
-const { PRODUCTS, getProduct, getWorkflow, rolePermissions } = require('../products/registry');
+const { PRODUCTS, getProduct, getWorkflow, rolePermissions, getRoleMatrix } = require('../products/registry');
 const { authMiddleware, requireTenantAdmin, requirePlatformAdmin } = require('../middlewares/auth.middleware');
-const { loadEntitlements, publicCatalog, assertProductAccess } = require('../services/saas-entitlements.service');
+const { loadEntitlements, publicCatalogWithCustom, daysUntilExpiry } = require('../services/saas-entitlements.service');
+const { assignLicense: assignLicenseSeat, reactivateLicense } = require('../services/license.service');
 const { getPaymentProvider } = require('../services/payment');
 const { audit, notify } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
@@ -32,6 +33,7 @@ const {
   resyncProducts,
   isGlobalPlatform,
   effectiveAvailability,
+  resolveProductDefinition,
 } = require('../services/platform-helpers.service');
 // ARCH-001 : contrôleurs commandes extraits (platform.orders.controller.js).
 const platformOrders = require('../controllers/platform.orders.controller');
@@ -51,7 +53,8 @@ router.use(async (_req, _res, next) => {
 router.get('/products', async (_req, res) => {
   const overrides = await ProductOverride.find({}).lean();
   const byKey = new Map(overrides.map((o) => [o.key, !!o.available]));
-  const products = publicCatalog().map((p) =>
+  const catalog = await publicCatalogWithCustom();
+  const products = catalog.map((p) =>
     byKey.has(p.key) ? { ...p, available: byKey.get(p.key), status: byKey.get(p.key) ? 'available' : 'coming_soon' } : p
   );
   res.json({ products });
@@ -69,6 +72,27 @@ router.get('/products/:key/workflow', (req, res) => {
 
 /** Droits SaaS du principal connecté (produits accessibles, rôles, permissions). */
 router.get('/me/entitlements', authMiddleware, async (req, res) => {
+  try {
+    const entitlements = await loadEntitlements({
+      tenantId: req.tenantId,
+      userId: req.userId,
+      principalType: req.principalType,
+      internalRole: req.userRole,
+    });
+    res.json(entitlements);
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+});
+
+/**
+ * A5 — accès produit effectif centralisé (mécanisme unique consommé par le
+ * frontend : dashboard, sidebar, gardes). Alias sémantique de /me/entitlements
+ * incluant les produits souscrits SANS licence (unlicensed) pour des messages
+ * d'accès actionnables.
+ */
+router.get('/me/products', authMiddleware, async (req, res) => {
   try {
     const entitlements = await loadEntitlements({
       tenantId: req.tenantId,
@@ -107,7 +131,15 @@ router.get('/subscriptions', authMiddleware, requireTenantAdmin, async (req, res
   res.json({
     subscriptions: subs.map((s) => {
       const used = usedBySub.get(String(s._id)) || 0;
-      return { ...s, tenantName: byId.get(String(s.tenantId)) || '', usage: { seats: s.seats, used, available: Math.max(0, s.seats - used) } };
+      // A5 : expiration proche exposée aux portails (bandeau de renouvellement).
+      const daysLeft = daysUntilExpiry(s.endDate);
+      return {
+        ...s,
+        tenantName: byId.get(String(s.tenantId)) || '',
+        usage: { seats: s.seats, used, available: Math.max(0, s.seats - used) },
+        expiringSoon: daysLeft !== null && daysLeft <= 30 && ['trial', 'active', 'past_due'].includes(s.status),
+        daysUntilExpiry: daysLeft,
+      };
     }),
   });
 });
@@ -115,7 +147,7 @@ router.get('/subscriptions', authMiddleware, requireTenantAdmin, async (req, res
 /** Provisionne une souscription (admin plateforme / seed). */
 router.post('/subscriptions', authMiddleware, requirePlatformAdmin, async (req, res) => {
   const { tenantId, productKey, planId, billingPeriod, seats, status, startDate, endDate, pricePerSeat } = req.body;
-  if (!mongoose.isValidObjectId(tenantId) || !getProduct(productKey)) {
+  if (!mongoose.isValidObjectId(tenantId) || !(await resolveProductDefinition(productKey))) {
     res.status(400).json({ message: 'Paramètres invalides' });
     return;
   }
@@ -217,140 +249,87 @@ router.get('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => 
 });
 
 /** Assigne une licence (siège) à un utilisateur. Super Admin global :
- *  le tenant EFFECTIF est celui de l'utilisateur cible (jamais croisé). */
+ *  le tenant EFFECTIF est celui de l'utilisateur cible (jamais croisé).
+ *  A5 : via le service de licences (garde anti-surallocation sûre en
+ *  concurrence + notification au bénéficiaire). */
 router.post('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const { userId, productKey, subscriptionId } = req.body;
-  if (!mongoose.isValidObjectId(userId)) {
-    res.status(400).json({ message: 'Utilisateur invalide' });
-    return;
+  try {
+    const { userId, productKey, subscriptionId } = req.body;
+    if (!mongoose.isValidObjectId(userId)) {
+      res.status(400).json({ message: 'Utilisateur invalide' });
+      return;
+    }
+    const user = await Utilisateur.findById(userId).select('_id tenantId').lean();
+    if (!user) {
+      res.status(404).json({ message: 'Utilisateur introuvable' });
+      return;
+    }
+    const effectiveTenantId = isGlobalPlatform(req) ? String(user.tenantId) : req.tenantId;
+    if (String(user.tenantId) !== String(effectiveTenantId)) {
+      res.status(403).json({ code: 'CROSS_TENANT_LICENSE', message: 'Licence refusée : utilisateur hors du tenant.' });
+      return;
+    }
+    const { license } = await assignLicenseSeat(
+      { tenantId: effectiveTenantId, userId, productKey, subscriptionId, assignedBy: req.userId },
+      req
+    );
+    res.status(201).json({ license });
+  } catch (err) {
+    if (err.code === 'SEATS_EXCEEDED') {
+      // La limite est contrôlée CÔTÉ SERVEUR ; on avertit l'admin tenant
+      // (in-app + e-mail) qu'une demande de sièges est nécessaire.
+      const { productKey } = req.body;
+      const product = await Product.findOne({ key: productKey }).select('nameKey name').lean();
+      await notifyUser({
+        tenantId: req.tenantId,
+        userId: req.userId,
+        event: 'license_limit_reached',
+        productKey,
+        params: { productKey, seats: err.details?.seats ?? 0, used: err.details?.used ?? 0 },
+        link: '/abonnements/produits',
+        emailParams: { productName: product?.nameKey || product?.name || productKey, seats: err.details?.seats ?? 0, used: err.details?.used ?? 0, link: '/abonnements/produits' },
+      });
+    }
+    const status = err.status || 500;
+    res.status(status).json(err.code ? { code: err.code, message: err.message } : { message: 'Erreur serveur', requestId: req.requestId });
   }
-  const user = await Utilisateur.findById(userId).lean();
-  if (!user) {
-    res.status(404).json({ message: 'Utilisateur introuvable' });
-    return;
-  }
-  const effectiveTenantId = isGlobalPlatform(req) ? String(user.tenantId) : req.tenantId;
-  if (user.tenantId?.toString() !== String(effectiveTenantId)) {
-    res.status(403).json({ code: 'CROSS_TENANT_LICENSE', message: 'Licence refusée : utilisateur hors du tenant.' });
-    return;
-  }
-  const product = await Product.findOne({ key: productKey });
-  if (!product) {
-    res.status(404).json({ message: 'Produit introuvable' });
-    return;
-  }
-  let sub = subscriptionId ? await Subscription.findOne({ _id: subscriptionId, tenantId: effectiveTenantId, productKey }) : null;
-  if (!sub) {
-    sub = await Subscription.findOne({ tenantId: effectiveTenantId, productKey, status: { $in: ['trial', 'active', 'past_due'] } });
-  }
-  if (!sub) {
-    res.status(409).json({ code: 'NO_SUBSCRIPTION', message: 'Aucune souscription active pour ce produit.' });
-    return;
-  }
-  const activeCount = await LicenseAssignment.countDocuments({ tenantId: effectiveTenantId, productKey, status: 'active' });
-  if (activeCount >= sub.seats) {
-    // La limite est contrôlée CÔTÉ SERVEUR ; on avertit l'admin tenant
-    // (in-app + e-mail) qu'une demande de sièges est nécessaire.
-    await notifyUser({
-      tenantId: effectiveTenantId,
-      userId: req.userId,
-      event: 'license_limit_reached',
-      params: { productKey, seats: sub.seats, used: activeCount },
-      link: '/abonnements/produits',
-      emailParams: { productName: product.nameKey, seats: sub.seats, used: activeCount, link: '/abonnements/produits' },
-    });
-    res.status(409).json({ code: 'SEATS_EXCEEDED', message: 'Limite de licences atteinte : demandez des sièges supplémentaires.' });
-    return;
-  }
-  const license = await LicenseAssignment.findOneAndUpdate(
-    { tenantId: effectiveTenantId, userId, productKey },
-    {
-      $set: {
-        productId: product._id,
-        subscriptionId: sub._id,
-        status: 'active',
-        assignedBy: req.userId,
-        startDate: new Date(),
-        endDate: sub.endDate || null,
-      },
-    },
-    { new: true, upsert: true }
-  );
-  await audit(req, { action: 'license.assigned', productKey, resource: 'license', resourceId: license._id, metadata: { userId } });
-  // Notification + email d'accès activé (selon préférences).
-  await notifyUser({
-    tenantId: effectiveTenantId,
-    userId,
-    event: 'license_assigned',
-    params: { productKey },
-    link: getProduct(productKey)?.route || '/workspace',
-    emailParams: { productName: product.nameKey, link: getProduct(productKey)?.route || '/workspace' },
-  });
-  res.status(201).json({ license });
 });
 
 /**
  * Cycle de vie de licence : suspendre (accès coupé, données conservées) ou
  * réactiver. La révocation définitive reste le DELETE (licence libérée).
+ * A5 : la réactivation passe par le service de licences (garde sièges).
  */
 router.patch('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, res) => {
-  const { status } = req.body;
-  if (!['active', 'suspended'].includes(status)) {
-    res.status(400).json({ message: 'Statut de licence invalide.' });
-    return;
-  }
-  const existing = await LicenseAssignment.findOne(
-    isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId }
-  );
-  if (!existing) {
-    res.status(404).json({ message: 'Licence introuvable' });
-    return;
-  }
-  // BIZ-004 (audit) : la RÉACTIVATION consomme un siège exactement comme une
-  // affectation — sinon suspension → affectation → réactivation dépasse le
-  // plafond de sièges de la souscription.
-  if (status === 'active' && existing.status !== 'active') {
-    const sub = await Subscription.findOne({
-      tenantId: existing.tenantId,
-      productKey: existing.productKey,
-      status: { $in: ['trial', 'active', 'past_due'] },
-    });
-    if (sub) {
-      const activeCount = await LicenseAssignment.countDocuments({
-        tenantId: existing.tenantId,
-        productKey: existing.productKey,
-        status: 'active',
-      });
-      if (activeCount >= sub.seats) {
-        res.status(409).json({
-          code: 'SEATS_EXCEEDED',
-          message: 'Limite de licences atteinte : impossible de réactiver cette licence sans sièges supplémentaires.',
-        });
-        return;
-      }
+  try {
+    const { status } = req.body;
+    if (!['active', 'suspended'].includes(status)) {
+      res.status(400).json({ message: 'Statut de licence invalide.' });
+      return;
     }
+    const existing = await LicenseAssignment.findOne(
+      isGlobalPlatform(req) ? { _id: req.params.id } : { _id: req.params.id, tenantId: req.tenantId }
+    );
+    if (!existing) {
+      res.status(404).json({ message: 'Licence introuvable' });
+      return;
+    }
+    if (status === 'active') {
+      // BIZ-004 : la RÉACTIVATION consomme un siège exactement comme une
+      // affectation (garde sièges du service — jamais de dépassement).
+      const { license } = await reactivateLicense(existing._id, existing.tenantId, req);
+      res.json({ license });
+      return;
+    }
+    existing.status = 'suspended';
+    await existing.save();
+    await audit(req, { action: 'license.suspended', productKey: existing.productKey, resource: 'license', resourceId: existing._id, metadata: { userId: existing.userId } });
+    res.json({ license: existing });
+  } catch (err) {
+    const code = err.code || 'LICENSE_ERROR';
+    const status = err.status || 500;
+    res.status(status).json({ code, message: err.message || 'Erreur serveur' });
   }
-  const license = await LicenseAssignment.findOneAndUpdate(
-    { _id: existing._id },
-    { $set: { status } },
-    { new: true }
-  );
-  if (!license) {
-    res.status(404).json({ message: 'Licence introuvable' });
-    return;
-  }
-  await audit(req, { action: status === 'active' ? 'license.activated' : 'license.suspended', productKey: license.productKey, resource: 'license', resourceId: license._id, metadata: { userId: license.userId } });
-  if (status === 'active') {
-    await notifyUser({
-      tenantId: req.tenantId,
-      userId: license.userId,
-      event: 'license_assigned',
-      params: { productKey: license.productKey },
-      link: getProduct(license.productKey)?.route || '/workspace',
-      emailParams: { productName: getProduct(license.productKey)?.nameKey || license.productKey, link: getProduct(license.productKey)?.route || '/workspace' },
-    });
-  }
-  res.json({ license });
 });
 
 router.delete('/licenses/:id', authMiddleware, requireTenantAdmin, async (req, res) => {
@@ -388,7 +367,47 @@ router.get('/roles', authMiddleware, requireTenantAdmin, async (req, res) => {
     // sont résolues PAR PRODUIT (le contexte p.key lève la collision).
     roles: p.roles.map((r) => ({ key: r.key, nameKey: r.nameKey, permissions: rolePermissions(r.key, p.key) || [] })),
   }));
+  // A5 — produits gérés par la plateforme (rôles configurés, pas codés).
+  const customs = await Product.find({ managedBy: 'platform' }).select('key nameKey name status available roles').lean();
+  for (const doc of customs) {
+    if (catalog.some((c) => c.productKey === doc.key)) continue;
+    catalog.push({
+      productKey: doc.key,
+      nameKey: doc.nameKey || doc.name || doc.key,
+      status: doc.status,
+      available: !!doc.available,
+      roles: (doc.roles || []).map((r) => ({ key: r.key, nameKey: r.nameKey || r.name || r.key, permissions: r.permissions || [] })),
+    });
+  }
   res.json({ roles: catalog });
+});
+
+/**
+ * A5 — matrice des capacités : rôles × permissions effectives, par produit
+ * (registre ou plateforme). Sert la documentation vivante et les audits.
+ */
+router.get('/roles/matrix', authMiddleware, requireTenantAdmin, async (req, res) => {
+  const { productKey } = req.query;
+  if (productKey) {
+    const def = await resolveProductDefinition(productKey);
+    if (!def) {
+      res.status(404).json({ message: 'Produit introuvable' });
+      return;
+    }
+    if (def.managedBy === 'registry') {
+      res.json({ matrix: getRoleMatrix(productKey) });
+      return;
+    }
+    res.json({
+      matrix: {
+        productKey: def.key,
+        permissions: def.permissions,
+        roles: def.roles.map((r) => ({ key: r.key, nameKey: r.nameKey || r.name || r.key, permissions: r.permissions || [] })),
+      },
+    });
+    return;
+  }
+  res.json({ matrices: PRODUCTS.map((p) => getRoleMatrix(p.key)).filter(Boolean) });
 });
 
 router.get('/roles/assignments', authMiddleware, requireTenantAdmin, async (req, res) => {
@@ -421,20 +440,39 @@ router.post('/roles/assignments', authMiddleware, requireTenantAdmin, async (req
     res.status(404).json({ message: 'Utilisateur introuvable' });
     return;
   }
-  const product = getProduct(productKey);
-  const role = product?.roles?.find((r) => r.key === roleKey);
-  if (!product || !role) {
+  // A5 : le rôle doit appartenir AU PRODUIT (registre ou plateforme).
+  const def = await resolveProductDefinition(productKey);
+  const role = def?.roles?.find((r) => r.key === roleKey);
+  if (!def || !role) {
     res.status(400).json({ message: 'Produit ou rôle inconnu.' });
     return;
   }
   const productDoc = await Product.findOne({ key: productKey });
   const assignmentTenantId = isGlobalPlatform(req) ? String(user.tenantId) : req.tenantId;
+  const previous = await RoleAssignment.findOne({ tenantId: assignmentTenantId, userId, productKey }).lean();
   const assignment = await RoleAssignment.findOneAndUpdate(
     { tenantId: assignmentTenantId, userId, productKey },
     { $set: { productId: productDoc?._id, roleKey, assignedBy: req.userId, custom: false } },
     { new: true, upsert: true }
   );
-  await audit(req, { action: 'role.assigned', productKey, resource: 'role', resourceId: assignment._id, metadata: { userId, roleKey } });
+  await audit(req, {
+    action: previous ? 'role.changed' : 'role.assigned',
+    productKey,
+    resource: 'role',
+    resourceId: assignment._id,
+    metadata: { userId, roleKey, previousRoleKey: previous?.roleKey || null },
+  });
+  // A5 : l'utilisateur est informé (permissions, sidebar et dashboard suivent
+  // automatiquement via ses entitlements recalculés côté serveur).
+  await notifyUser({
+    tenantId: assignmentTenantId,
+    userId,
+    event: 'product_role_changed',
+    productKey,
+    params: { productKey, roleKey, previousRoleKey: previous?.roleKey || '' },
+    link: def.route || '/workspace',
+    emailParams: { productName: def.nameKey || def.name || productKey, role: roleKey, link: def.route || '/workspace' },
+  });
   res.status(201).json({ assignment });
 });
 
@@ -445,6 +483,17 @@ router.delete('/roles/assignments/:id', authMiddleware, requireTenantAdmin, asyn
     return;
   }
   await audit(req, { action: 'role.unassigned', productKey: assignment.productKey, resource: 'role', resourceId: assignment._id });
+  // A5 : l'utilisateur retombe sur le rôle par défaut — il en est informé.
+  const def = await resolveProductDefinition(assignment.productKey);
+  await notifyUser({
+    tenantId: assignment.tenantId,
+    userId: assignment.userId,
+    event: 'product_role_removed',
+    productKey: assignment.productKey,
+    params: { productKey: assignment.productKey, roleKey: assignment.roleKey },
+    link: def?.route || '/workspace',
+    emailParams: { productName: def?.nameKey || def?.name || assignment.productKey, role: assignment.roleKey, link: def?.route || '/workspace' },
+  });
   res.json({ message: 'Assignation supprimée.' });
 });
 
@@ -503,7 +552,8 @@ function orderPricing(product, planId, billingPeriod, seats) {
  */
 router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) => {
   const { productKey, planId, billingPeriod, seats, subscriptionId } = req.body;
-  const product = getProduct(productKey);
+  // A5 : définition registre OU plateforme (produits publiés).
+  const product = await resolveProductDefinition(productKey);
   if (!product || !(await effectiveAvailability(productKey))) {
     res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Ce produit n’est pas disponible à la souscription.' });
     return;
@@ -534,7 +584,7 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
       res.status(409).json({ code: 'DUPLICATE_PENDING_ORDER', message: 'Une demande de sièges identique est déjà en attente d’approbation.', order: doublonSieges });
       return;
     }
-    const pricing = orderPricing(getProduct(sub.productKey), sub.planId, sub.billingPeriod, extra);
+    const pricing = orderPricing(await resolveProductDefinition(sub.productKey), sub.planId, sub.billingPeriod, extra);
     const order = await Order.create({
       tenantId: req.tenantId,
       userId: req.userId,
@@ -626,7 +676,7 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
     params: { productKey, planId, seats: seatCount, total: pricing.total, period: billingPeriod },
     link: '/abonnements/demandes',
     emailParams: {
-      productName: product.nameKey,
+      productName: product.nameKey || product.name || productKey,
       plan: planId,
       seats: seatCount,
       total: `${pricing.total} ${pricing.currency}`,
@@ -836,7 +886,11 @@ router.get('/audit', authMiddleware, async (req, res) => {
 });
 
 router.get('/notifications', authMiddleware, async (req, res) => {
-  const items = await Notification.find({ userId: req.userId, tenantId: req.tenantId })
+  // A5 : filtrage par produit + non-lues seules (périmètre strict du principal).
+  const q = { userId: req.userId, tenantId: req.tenantId };
+  if (req.query.productKey) q.productKey = String(req.query.productKey);
+  if (req.query.unreadOnly === 'true') q.read = false;
+  const items = await Notification.find(q)
     .sort({ createdAt: -1 })
     .limit(50)
     .lean();
@@ -1064,6 +1118,283 @@ router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req,
     metadata: { note: String(note || '').slice(0, 500) },
   });
   res.json({ message: available ? 'Produit activé.' : 'Produit désactivé.', key: req.params.key, available });
+});
+
+// ---------------------------------------------------------------------------
+// A5 — CYCLE DE VIE PRODUIT (Super Admin) : création, configuration,
+// publication, suspension. Les produits du REGISTRE restent définis par le
+// code (plans, rôles, permissions) ; les produits PLATEFORME sont entièrement
+// configurés ici puis publiés au marketplace.
+// ---------------------------------------------------------------------------
+
+const PRODUCT_KEY_RX = /^[a-z][a-z0-9_]{2,40}$/;
+
+/** Normalise et valide les plans tarifaires d'un produit plateforme. */
+function sanitizePlans(plans) {
+  if (!Array.isArray(plans)) return null;
+  const out = [];
+  const seen = new Set();
+  for (const p of plans.slice(0, 10)) {
+    const id = String(p.id || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (!id || seen.has(id)) return null;
+    seen.add(id);
+    const monthly = Number(p.pricePerSeatMonthly);
+    const annual = Number(p.pricePerSeatAnnual);
+    if (!Number.isFinite(monthly) || monthly < 0 || !Number.isFinite(annual) || annual < 0) return null;
+    out.push({
+      id,
+      nameKey: String(p.nameKey || ''),
+      name: String(p.name || id),
+      pricePerSeatMonthly: monthly,
+      pricePerSeatAnnual: annual,
+      currency: String(p.currency || 'EUR').slice(0, 8),
+    });
+  }
+  return out;
+}
+
+/** Normalise et valide les rôles d'un produit plateforme. */
+function sanitizeRoles(roles, declaredPermissions) {
+  if (!Array.isArray(roles)) return null;
+  const out = [];
+  const seen = new Set();
+  const allowed = new Set(declaredPermissions || []);
+  for (const r of roles.slice(0, 30)) {
+    const key = String(r.key || '').trim();
+    if (!key || !PRODUCT_KEY_RX.test(key) || seen.has(key)) return null;
+    seen.add(key);
+    const perms = Array.isArray(r.permissions) ? [...new Set(r.permissions.map((x) => String(x).trim()).filter(Boolean))].slice(0, 100) : [];
+    // Toute permission de rôle doit être déclarée au niveau produit.
+    if (!perms.every((x) => allowed.has(x))) return null;
+    out.push({ key, nameKey: String(r.nameKey || ''), name: String(r.name || key), permissions: perms });
+  }
+  return out;
+}
+
+function sanitizePermissions(permissions) {
+  if (!Array.isArray(permissions)) return [];
+  return [...new Set(permissions.map((x) => String(x).trim()).filter(Boolean))].slice(0, 200);
+}
+
+/** Crée un produit (brouillon — invisible du marketplace avant publication). */
+router.post('/products', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  try {
+    const { key, name, tagline, description, icon, emoji, color, category, route, plans, roles, permissions, settings } = req.body || {};
+    if (!key || !PRODUCT_KEY_RX.test(String(key))) {
+      res.status(400).json({ message: 'Clé produit invalide (snake_case, 3-41 caractères).' });
+      return;
+    }
+    const existing = await Product.findOne({ key });
+    if (existing || getProduct(key)) {
+      res.status(409).json({ code: 'PRODUCT_KEY_TAKEN', message: 'Cette clé produit est déjà utilisée.' });
+      return;
+    }
+    if (!name || !String(name).trim()) {
+      res.status(400).json({ message: 'Le nom du produit est requis.' });
+      return;
+    }
+    const cleanPlans = plans !== undefined ? sanitizePlans(plans) : [];
+    if (plans !== undefined && cleanPlans === null) {
+      res.status(400).json({ message: 'Plans tarifaires invalides.' });
+      return;
+    }
+    const cleanPermissions = sanitizePermissions(permissions || []);
+    const cleanRoles = roles !== undefined ? sanitizeRoles(roles, cleanPermissions) : [];
+    if (roles !== undefined && cleanRoles === null) {
+      res.status(400).json({ message: 'Rôles invalides (clés uniques, permissions déclarées au niveau produit).' });
+      return;
+    }
+    const product = await Product.create({
+      key,
+      nameKey: '',
+      name: String(name).slice(0, 120),
+      tagline: String(tagline || '').slice(0, 200),
+      description: String(description || '').slice(0, 2000),
+      icon: String(icon || 'box').slice(0, 40),
+      emoji: String(emoji || '📦').slice(0, 16),
+      color: String(color || '#6366f1').slice(0, 20),
+      status: 'coming_soon',
+      category: String(category || 'operations').slice(0, 40),
+      slug: String(key).replace(/_/g, '-'),
+      route: String(route || `/apps/${key}`).slice(0, 120),
+      available: false,
+      plans: cleanPlans,
+      roles: cleanRoles,
+      permissions: cleanPermissions,
+      settings: settings && typeof settings === 'object' ? settings : {},
+      lifecycle: 'draft',
+      managedBy: 'platform',
+      createdBy: req.userId,
+      updatedBy: req.userId,
+    });
+    await audit(req, { action: 'product.created', productKey: key, resource: 'product', resourceId: product._id, metadata: { name: product.name } });
+    res.status(201).json({ product });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+});
+
+/** Configure un produit plateforme (plans, rôles, permissions, réglages). */
+router.patch('/products/:key/configure', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  try {
+    const product = await Product.findOne({ key: req.params.key });
+    if (!product) {
+      res.status(404).json({ message: 'Produit introuvable' });
+      return;
+    }
+    if (product.managedBy !== 'platform') {
+      res.status(400).json({
+        code: 'MANAGED_BY_REGISTRY',
+        message: 'Ce produit est défini par le registre applicatif : plans, rôles et permissions sont versionnés dans le code.',
+      });
+      return;
+    }
+    const { name, tagline, description, icon, emoji, color, category, route, plans, roles, permissions, settings } = req.body || {};
+    if (name !== undefined) product.name = String(name).slice(0, 120);
+    if (tagline !== undefined) product.tagline = String(tagline).slice(0, 200);
+    if (description !== undefined) product.description = String(description).slice(0, 2000);
+    if (icon !== undefined) product.icon = String(icon).slice(0, 40);
+    if (emoji !== undefined) product.emoji = String(emoji).slice(0, 16);
+    if (color !== undefined) product.color = String(color).slice(0, 20);
+    if (category !== undefined) product.category = String(category).slice(0, 40);
+    if (route !== undefined) product.route = String(route).slice(0, 120);
+    if (permissions !== undefined) product.permissions = sanitizePermissions(permissions);
+    if (plans !== undefined) {
+      const clean = sanitizePlans(plans);
+      if (clean === null) {
+        res.status(400).json({ message: 'Plans tarifaires invalides.' });
+        return;
+      }
+      product.plans = clean;
+    }
+    if (roles !== undefined) {
+      const clean = sanitizeRoles(roles, product.permissions || []);
+      if (clean === null) {
+        res.status(400).json({ message: 'Rôles invalides (clés uniques, permissions déclarées au niveau produit).' });
+        return;
+      }
+      product.roles = clean;
+    }
+    if (settings !== undefined && settings && typeof settings === 'object') product.settings = settings;
+    product.updatedBy = req.userId;
+    await product.save();
+    await audit(req, { action: 'product.configured', productKey: product.key, resource: 'product', resourceId: product._id });
+    res.json({ product });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+});
+
+/** Publie un produit au marketplace (visible + souscriptible). */
+router.post('/products/:key/publish', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  try {
+    const product = await Product.findOne({ key: req.params.key });
+    if (!product) {
+      res.status(404).json({ message: 'Produit introuvable' });
+      return;
+    }
+    const def = await resolveProductDefinition(product.key);
+    if (!def.plans.length) {
+      res.status(409).json({ code: 'PRODUCT_MISSING_PLANS', message: 'Publication impossible : configurez au moins un plan tarifaire.' });
+      return;
+    }
+    if (!def.roles.length) {
+      res.status(409).json({ code: 'PRODUCT_MISSING_ROLES', message: 'Publication impossible : configurez au moins un rôle produit.' });
+      return;
+    }
+    if (product.managedBy === 'platform') {
+      product.lifecycle = 'published';
+      product.status = 'available';
+      product.available = true;
+      product.updatedBy = req.userId;
+      await product.save();
+    } else {
+      // Produit registre : la publication passe par la dérogation d'activation.
+      await ProductOverride.findOneAndUpdate(
+        { key: product.key },
+        { $set: { available: true, note: 'Publication marketplace', by: req.userId } },
+        { upsert: true }
+      );
+      await Product.updateOne({ key: product.key }, { $set: { available: true, status: 'available' } });
+      await resyncProducts().catch(() => {});
+    }
+    await audit(req, { action: 'product.published', productKey: product.key, resource: 'product', resourceId: product._id });
+    res.json({ message: 'Produit publié au marketplace.', key: product.key });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+});
+
+/**
+ * Suspend un produit : les NOUVELLES ventes sont bloquées (commandes refusées),
+ * les souscriptions existantes restent valides jusqu'à leur échéance et les
+ * données sont préservées.
+ */
+router.post('/products/:key/suspend', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  try {
+    const product = await Product.findOne({ key: req.params.key });
+    if (!product) {
+      res.status(404).json({ message: 'Produit introuvable' });
+      return;
+    }
+    const note = String(req.body?.note || '').slice(0, 500);
+    if (product.managedBy === 'platform') {
+      product.lifecycle = 'suspended';
+      product.available = false;
+      product.status = 'coming_soon';
+      product.updatedBy = req.userId;
+      await product.save();
+    } else {
+      await ProductOverride.findOneAndUpdate(
+        { key: product.key },
+        { $set: { available: false, note: note || 'Suspension administrative', by: req.userId } },
+        { upsert: true }
+      );
+      await Product.updateOne({ key: product.key }, { $set: { available: false, status: 'coming_soon' } });
+      await resyncProducts().catch(() => {});
+    }
+    await audit(req, { action: 'product.suspended', productKey: product.key, resource: 'product', resourceId: product._id, metadata: { note } });
+    res.json({ message: 'Produit suspendu : les nouvelles ventes sont bloquées.', key: product.key });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+});
+
+/** Supprime un produit plateforme AU STADE BROUILLON (sans historique). */
+router.delete('/products/:key', authMiddleware, requirePlatformAdmin, async (req, res) => {
+  try {
+    const product = await Product.findOne({ key: req.params.key });
+    if (!product) {
+      res.status(404).json({ message: 'Produit introuvable' });
+      return;
+    }
+    if (product.managedBy !== 'platform' || getProduct(product.key)) {
+      res.status(400).json({ code: 'MANAGED_BY_REGISTRY', message: 'Seuls les brouillons créés par la plateforme peuvent être supprimés.' });
+      return;
+    }
+    if (product.lifecycle !== 'draft') {
+      res.status(409).json({ message: 'Seul un produit au stade brouillon peut être supprimé : suspendez-le puis archivez.' });
+      return;
+    }
+    const [subs, orders] = await Promise.all([
+      Subscription.countDocuments({ productKey: product.key }),
+      Order.countDocuments({ productKey: product.key }),
+    ]);
+    if (subs > 0 || orders > 0) {
+      res.status(409).json({ message: 'Suppression impossible : ce produit a un historique commercial.' });
+      return;
+    }
+    await Product.deleteOne({ _id: product._id });
+    await audit(req, { action: 'product.deleted', productKey: product.key, resource: 'product', resourceId: product._id });
+    res.json({ message: 'Produit supprimé.' });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
 });
 
 // ---------------------------------------------------------------------------
