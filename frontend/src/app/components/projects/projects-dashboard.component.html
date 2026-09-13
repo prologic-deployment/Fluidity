@@ -6,7 +6,8 @@
         <h1 class="text-lg font-semibold tracking-tight truncate">{{ 'projects.dashboard.title' | t }}</h1>
         <p class="text-sm text-muted-foreground truncate">{{ 'projects.dashboard.subtitle' | t }}</p>
       </div>
-      <a routerLink="/projets/nouveau" class="btn-primary btn-sm">{{ 'projects.new.cta' | t }}</a>
+      <a *ngIf="canCreateProject" routerLink="/projets/nouveau" class="btn-primary btn-sm">{{ 'projects.new.cta' | t }}</a>
+      <span *ngIf="!canCreateProject" class="text-xs text-muted-foreground max-w-[220px] text-right" [title]="'access.noCreateHint' | t">{{ 'access.noCreate' | t }}</span>
     </div>
   </header>
 

@@ -21,6 +21,7 @@
             <span class="text-muted-foreground text-xs">{{ u.email }}</span>
           </span>
           <span *ngIf="u.isMember" class="badge badge-outline text-[10px]">{{ 'projects.team.alreadyMember' | t }}</span>
+          <span *ngIf="!u.isMember && u.hasLicense === false" class="badge badge-warning text-[10px]" [title]="'projects.team.noLicenseHint' | t">{{ 'projects.team.noLicense' | t }}</span>
           <button *ngIf="!u.isMember" type="button" class="btn-secondary btn-sm" (click)="addUser(u)">+</button>
         </li>
       </ul>
@@ -56,6 +57,7 @@
               <div class="min-w-0">
                 <p class="text-sm font-medium truncate">{{ member(m)?.name }}</p>
                 <p class="text-xs text-muted-foreground truncate">{{ member(m)?.email }}</p>
+                <span *ngIf="m.hasLicense === false" class="badge badge-warning text-[10px] mt-1" [title]="'projects.team.noLicenseHint' | t">{{ 'projects.team.noLicense' | t }}</span>
               </div>
             </div>
           </td>

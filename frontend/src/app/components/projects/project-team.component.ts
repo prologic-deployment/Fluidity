@@ -20,6 +20,7 @@ interface AvailableUser {
   jobTitle?: string;
   status?: string;
   isMember?: boolean;
+  hasLicense?: boolean;
 }
 
 /**

@@ -10,7 +10,7 @@ export type DeliverableStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type ProjectEventType = 'meeting' | 'decision' | 'event' | 'deadline';
 export type ProjectStatus = 'draft' | 'planning' | 'active' | 'on_hold' | 'at_risk' | 'paused' | 'completed' | 'cancelled' | 'archived';
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
-export type ProjectRoleKey = 'project_admin' | 'project_manager' | 'project_lead' | 'scrum_master' | 'product_owner' | 'developer' | 'designer' | 'qa' | 'project_member' | 'project_viewer';
+export type ProjectRoleKey = 'project_admin' | 'project_manager' | 'project_lead' | 'scrum_master' | 'product_owner' | 'developer' | 'designer' | 'qa' | 'stakeholder' | 'project_member' | 'project_viewer';
 export type HealthStatus = 'on_track' | 'at_risk' | 'off_track';
 
 export interface HealthReason {
@@ -93,6 +93,8 @@ export interface ProjectMember {
   invitedBy?: string | null;
   /** Enrichissement équipe (charge). */
   workload?: { tasks: number; overdue: number; estimatedHours: number };
+  /** Licence produit active (sans licence, le membre ne voit pas le produit). */
+  hasLicense?: boolean;
 }
 
 export interface TaskDependency {

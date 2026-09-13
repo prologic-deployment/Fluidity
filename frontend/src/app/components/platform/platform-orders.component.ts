@@ -155,6 +155,8 @@ export class PlatformOrdersComponent implements OnInit, OnDestroy {
         this.busy = false;
         this.detail = null;
         this.toast.success(this.i18n.t('saas.approved'));
+        // A5 : l'approbation active le produit — droits recalculés aussitôt.
+        this.platform.refreshEntitlements().subscribe();
         this.load();
       },
       error: (err) => {

@@ -21,6 +21,7 @@ export const PROJECT_MEMBER_ROLES: ProjectRoleKey[] = [
   'developer',
   'designer',
   'qa',
+  'stakeholder',
   'project_member',
   'project_viewer',
 ];

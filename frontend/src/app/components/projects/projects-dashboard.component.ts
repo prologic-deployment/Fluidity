@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Subject, finalize, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { AuthService } from '../../services/auth.service';
+import { PlatformService } from '../../services/platform.service';
 import { ActivityEntry, GlobalDashboard, Project } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ProjectActivityPipe } from './project.pipes';
@@ -76,8 +77,14 @@ export class ProjectsDashboardComponent implements OnInit, OnDestroy {
   constructor(
     private projectsApi: ProjectService,
     public auth: AuthService,
+    public platform: PlatformService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  /** A5 : la création de projet exige la permission produit (le serveur tranche). */
+  get canCreateProject(): boolean {
+    return this.platform.canAccess('project_management', 'project.project.create');
+  }
 
   ngOnInit(): void {
     this.loadAll();

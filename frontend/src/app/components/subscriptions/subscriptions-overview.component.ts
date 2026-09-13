@@ -21,7 +21,7 @@ const PROJECT_EVENTS = [
   'subscription_purchase', 'subscription_requested', 'subscription_approved', 'subscription_rejected',
   'subscription_renewal', 'subscription_expiring', 'license_assigned', 'license_removed',
   'license_limit_reached', 'deliverable_submitted', 'deliverable_approved', 'deliverable_rejected',
-  'time_logged',
+  'time_logged', 'milestone_completed', 'product_role_changed', 'product_role_removed',
 ] as const;
 
 /**

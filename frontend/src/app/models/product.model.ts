@@ -5,6 +5,8 @@ export type ProductStatus = 'available' | 'coming_soon';
 export interface ProductPlan {
   id: string;
   nameKey: string;
+  /** Libellé brut (produits plateforme, affiché tel quel). */
+  name?: string;
   pricePerSeatMonthly: number;
   pricePerSeatAnnual: number;
   currency: string;
@@ -74,6 +76,8 @@ export interface ProductEntitlement {
     status: string;
     seats: number;
     endDate?: string;
+    expiringSoon?: boolean;
+    daysUntilExpiry?: number | null;
   } | null;
 }
 
@@ -82,6 +86,8 @@ export interface Entitlements {
   products: ProductEntitlement[];
   accessibleKeys: string[];
   permissions: string[];
+  /** Produits souscrits par le tenant mais sans licence pour cet utilisateur. */
+  unlicensed?: (ProductEntitlement & { reason: string })[];
 }
 
 export interface Subscription {
@@ -223,6 +229,16 @@ export interface AdminProduct extends ProductInfo {
   subscriptions: number;
   activeSubscriptions: number;
   licensedUsers: number;
+  /** Cycle de vie plateforme (A5) : brouillon → publié → suspendu. */
+  lifecycle?: 'draft' | 'published' | 'suspended';
+  /** Source de vérité : registre (code) ou plateforme (configuré). */
+  managedBy?: 'registry' | 'platform';
+  /** Permissions déclarées (produits plateforme). */
+  permissions?: string[];
+  /** Libellés bruts (produits plateforme, affichés tels quels). */
+  name?: string;
+  tagline?: string;
+  description?: string;
 }
 
 /** Détail d'une commande pour l'examen de la plateforme. */

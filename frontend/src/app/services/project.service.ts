@@ -125,7 +125,7 @@ export class ProjectService {
     return this.http.delete<{ ok: boolean }>(`${this.base}/${id}/members/${userId}`);
   }
 
-  availableUsers(id: string, q: string): Observable<{ users: { _id: string; email: string; firstName?: string; lastName?: string; avatarUrl?: string | null; jobTitle?: string; status?: string; isMember?: boolean }[] }> {
+  availableUsers(id: string, q: string): Observable<{ users: { _id: string; email: string; firstName?: string; lastName?: string; avatarUrl?: string | null; jobTitle?: string; status?: string; isMember?: boolean; hasLicense?: boolean }[] }> {
     return this.http.get<{ users: { _id: string; email: string; firstName?: string; lastName?: string; avatarUrl?: string | null; jobTitle?: string; status?: string; isMember?: boolean }[] }>(
       `${this.base}/${id}/members/available`,
       { params: { q } }

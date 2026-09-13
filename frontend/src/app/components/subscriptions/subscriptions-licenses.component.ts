@@ -207,6 +207,8 @@ export class SubscriptionsLicensesComponent implements OnInit, OnDestroy {
         this.buildRows(licenses, assignments);
         this.cdr.markForCheck();
       });
+    // A5 : toute mutation licence/rôle recalcule les droits (sidebar, gardes).
+    this.platform.refreshEntitlements().subscribe();
   }
 
   usedSeats(s: Subscription): number {

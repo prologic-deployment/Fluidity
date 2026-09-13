@@ -69,6 +69,20 @@ export class PlatformService {
     return this.fetchEntitlements().pipe(catchError(() => of(null)));
   }
 
+  /**
+   * A5 — rafraîchit les droits depuis le serveur (après assignation de
+   * licence/rôle, approbation de commande, changement de session…).
+   * La sidebar, les gardes et les tableaux de bord réagissent à l'émission.
+   */
+  refreshEntitlements(): Observable<Entitlements | null> {
+    return this.fetchEntitlements().pipe(catchError(() => of(this.entitlementsSubject.value)));
+  }
+
+  /** Accès produit effectif centralisé (dashboard, sidebar, gardes). */
+  meProducts(): Observable<Entitlements> {
+    return this.http.get<Entitlements>(`${this.base}/me/products`).pipe(tap((e) => this.entitlementsSubject.next(e)));
+  }
+
   /** Entitlements déjà chargés (lecture synchrone pour les vues). */
   entitlementsValue(): Entitlements | null {
     return this.entitlementsSubject.value;
@@ -195,6 +209,36 @@ export class PlatformService {
     return this.http.patch<{ message: string }>(`${this.base}/products/${key}`, { available, note });
   }
 
+  /** A5 — crée un produit plateforme (brouillon, invisible avant publication). */
+  createProduct(payload: Record<string, unknown>): Observable<{ product: AdminProduct }> {
+    return this.http.post<{ product: AdminProduct }>(`${this.base}/products`, payload);
+  }
+
+  /** A5 — configure un produit plateforme (plans, rôles, permissions, réglages). */
+  configureProduct(key: string, payload: Record<string, unknown>): Observable<{ product: AdminProduct }> {
+    return this.http.patch<{ product: AdminProduct }>(`${this.base}/products/${key}/configure`, payload);
+  }
+
+  /** A5 — publie un produit au marketplace (visible + souscriptible). */
+  publishProduct(key: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.base}/products/${key}/publish`, {});
+  }
+
+  /** A5 — suspend un produit (nouvelles ventes bloquées, existants préservés). */
+  suspendProduct(key: string, note = ''): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.base}/products/${key}/suspend`, { note });
+  }
+
+  /** A5 — supprime un brouillon plateforme sans historique commercial. */
+  deleteProduct(key: string): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.base}/products/${key}`);
+  }
+
+  /** A5 — matrice des capacités (rôles × permissions) d'un produit. */
+  roleMatrix(productKey?: string): Observable<unknown> {
+    return this.http.get(`${this.base}/roles/matrix`, { params: (productKey ? { productKey } : {}) as never });
+  }
+
   /** État de la plateforme (Réglages & Santé) : santé, mailing, compteurs. */
   system(): Observable<PlatformSystemInfo> {
     return this.http.get<PlatformSystemInfo>(`${this.base}/system`);
@@ -248,8 +292,11 @@ export class PlatformService {
     });
   }
 
-  notifications(): Observable<{ items: NotificationItem[]; unread: number }> {
-    return this.http.get<{ items: NotificationItem[]; unread: number }>(`${this.base}/notifications`);
+  notifications(productKey?: string, unreadOnly?: boolean): Observable<{ items: NotificationItem[]; unread: number }> {
+    const params: Record<string, string> = {};
+    if (productKey) params['productKey'] = productKey;
+    if (unreadOnly) params['unreadOnly'] = 'true';
+    return this.http.get<{ items: NotificationItem[]; unread: number }>(`${this.base}/notifications`, { params: params as never });
   }
 
   markNotificationRead(id: string): Observable<{ ok: boolean }> {

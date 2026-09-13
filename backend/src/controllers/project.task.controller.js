@@ -86,7 +86,7 @@ async function resolveAssignee(req, project, assigneeId) {
   if (!mongoose.isValidObjectId(assigneeId)) {
     return { error: { status: 400, code: 'INVALID_ASSIGNEE', message: 'Assigné invalide.' } };
   }
-  const user = await Utilisateur.findOne({ _id: assigneeId, tenantId: req.tenantId }).select('_id role status').lean();
+  const user = await Utilisateur.findOne({ _id: assigneeId, tenantId: req.tenantId }).select('_id role status firstName lastName').lean();
   if (!user) {
     return { error: { status: 403, code: 'CROSS_TENANT_MEMBER', message: 'Assigné hors de cet espace de travail.' } };
   }
@@ -395,6 +395,7 @@ const updateTask = async (req, res) => {
     // + permission produit) ; le nouvel assigné doit être membre du projet.
     let assigneeChanged = false;
     let licenseWarning = null;
+    let assigneeName = '';
     if (assigneeId !== undefined) {
       const next = assigneeId && mongoose.isValidObjectId(assigneeId) ? String(assigneeId) : null;
       const prev = task.assigneeId ? String(task.assigneeId) : null;
@@ -409,6 +410,7 @@ const updateTask = async (req, res) => {
             res.status(assigneeError.status).json({ code: assigneeError.code, message: assigneeError.message });
             return;
           }
+          assigneeName = `${assigneeUser.firstName || ''} ${assigneeUser.lastName || ''}`.trim();
           if (!['TENANT_ADMIN', 'PLATFORM_ADMIN'].includes(assigneeUser.role)) {
             try {
               await ensureLicense({ tenantId: req.tenantId, userId: next, productKey: 'project_management', assignedBy: req.userId }, req);
@@ -478,7 +480,7 @@ const updateTask = async (req, res) => {
         tenantId: req.tenantId, projectId: project._id, actorId: req.userId,
         action: wasAssigned ? 'projects.activity.task_reassigned' : 'projects.activity.task_assigned',
         targetType: 'task', targetId: task._id,
-        metadata: { ref: task.ref, from: String(previousAssignee || ''), to: String(task.assigneeId || '') },
+        metadata: { ref: task.ref, member: assigneeName, from: String(previousAssignee || ''), to: String(task.assigneeId || '') },
       });
       await audit(req, {
         action: wasAssigned ? 'task.reassigned' : 'task.assigned',

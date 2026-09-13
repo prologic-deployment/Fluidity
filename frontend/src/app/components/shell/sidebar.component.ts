@@ -74,8 +74,22 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // BehaviorSubject → émission immédiate : construction initiale du modèle,
     // puis reconstruction uniquement à chaque mutation de session.
+    // A5 : chaque mutation de session recalcule AUSSI les droits serveur —
+    // une licence ou un rôle nouvellement accordé apparaît sans reconnexion.
     this.auth.sessionChanged$.pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.refreshModel();
+      if (this.auth.getToken()) {
+        this.platform.refreshEntitlements().subscribe({
+          next: (e) => {
+            this.productEntitlements = e?.products.filter((p) => p.licensed) || [];
+            this.refreshModel();
+            this.cdr.markForCheck();
+          },
+          error: () => undefined,
+        });
+      } else {
+        this.productEntitlements = [];
+      }
       this.cdr.markForCheck();
     });
     this.i18n.lang$.pipe(takeUntil(this.destroy$)).subscribe(() => this.cdr.markForCheck());

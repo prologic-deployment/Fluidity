@@ -23,8 +23,9 @@ export const productAccessGuard: CanActivateFn = (route) => {
     map((e) => {
       if (!e) return router.createUrlTree(['/login']);
       if (e.accessibleKeys.includes(productKey)) return true;
-      // Produit non souscrit / non licencié → page produit publique.
-      return router.createUrlTree(['/services', productKey]);
+      // A5 — produit non souscrit / non licencié : page d'accès avec le motif
+      // (souscription manquante, licence manquante, expiration…).
+      return router.createUrlTree(['/forbidden'], { queryParams: { product: productKey, reason: 'PRODUCT_NOT_ACCESSIBLE' } });
     })
   );
 };
@@ -46,7 +47,7 @@ export const productPermissionGuard: CanActivateFn = (route) => {
       if (!e) return router.createUrlTree(['/login']);
       return e.permissions.includes('*') || e.permissions.includes(permission)
         ? true
-        : router.createUrlTree(['/forbidden']);
+        : router.createUrlTree(['/forbidden'], { queryParams: { product: productKey, permission, reason: 'PERMISSION_DENIED' } });
     })
   );
 };
