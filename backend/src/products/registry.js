@@ -58,6 +58,8 @@ const DEFAULT_ROLES = {
     { key: 'developer', nameKey: 'products.roles.developer' },
     { key: 'designer', nameKey: 'products.roles.designer' },
     { key: 'qa', nameKey: 'products.roles.qa' },
+    // A5 : partie prenante / client — suivi externe (lecture + commentaires).
+    { key: 'stakeholder', nameKey: 'products.roles.stakeholder' },
     { key: 'project_member', nameKey: 'products.roles.project_member' },
     { key: 'project_viewer', nameKey: 'products.roles.project_viewer' },
   ],
@@ -1011,6 +1013,7 @@ function rolePermissions(roleKey, productKey) {
     developer: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log', 'project.activity.read'],
     designer: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log', 'project.activity.read'],
     qa: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.issue.manage', 'project.file.manage', 'project.time.log', 'project.activity.read'],
+    stakeholder: ['project.project.read', 'project.task.read', 'project.task.comment', 'project.milestone.read', 'project.activity.read', 'project.report.read'],
     project_member: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log'],
     project_viewer: ['project.project.read', 'project.task.read', 'project.activity.read', 'project.report.read'],
     // Fleet
@@ -1123,6 +1126,25 @@ function getRole(productKey, roleKey) {
 
 function getPermissions(productKey) {
   return PERMISSIONS_BY_PRODUCT[productKey] || [];
+}
+
+/**
+ * A5 — matrice des capacités d'un produit : chaque rôle déclaré et ses
+ * permissions effectives. Sert l'API (GET /platform/roles/matrix), la
+ * documentation et les tests de non-régression des rôles.
+ */
+function getRoleMatrix(productKey) {
+  const product = getProduct(productKey);
+  if (!product) return null;
+  return {
+    productKey,
+    permissions: getPermissions(productKey),
+    roles: (product.roles || []).map((r) => ({
+      key: r.key,
+      nameKey: r.nameKey,
+      permissions: rolePermissions(r.key, productKey),
+    })),
+  };
 }
 
 

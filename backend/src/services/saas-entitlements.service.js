@@ -156,27 +156,11 @@ async function loadEntitlements({ tenantId, userId, principalType = 'UTILISATEUR
 /**
  * Vérifie l'accès à un produit pour le principal courant.
  * Retourne { ok, code, entitlements } — le middleware transforme en 403.
+ * Délégué au service d'autorisation centralisé (A5) — import différé pour
+ * éviter tout cycle de dépendance au chargement des modules.
  */
-async function assertProductAccess({ tenantId, userId, principalType, internalRole, productKey, permission }) {
-  const entitlements = await loadEntitlements({ tenantId, userId, principalType, internalRole });
-
-  if (!entitlements.accessibleKeys.includes(productKey)) {
-    if (entitlements.legacy && productKey === 'servicedesk') {
-      // couvert par legacy ci-dessus — ne devrait pas arriver
-    }
-    return { ok: false, code: 'PRODUCT_NOT_ACCESSIBLE', entitlements };
-  }
-
-  const entry = entitlements.products.find((p) => p.productKey === productKey);
-  if (!entry || !entry.licensed) {
-    return { ok: false, code: 'LICENSE_NOT_ASSIGNED', entitlements };
-  }
-
-  if (permission && !(entry.permissions.includes('*') || entry.permissions.includes(permission))) {
-    return { ok: false, code: 'PERMISSION_DENIED', entitlements };
-  }
-
-  return { ok: true, entitlements, entry };
+async function assertProductAccess(args) {
+  return require('./authorization.service').resolveProductAccess(args);
 }
 
 /** Catalogue public (métadonnées seulement, sans config sensible). */

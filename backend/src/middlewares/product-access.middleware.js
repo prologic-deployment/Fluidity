@@ -1,10 +1,11 @@
-const { assertProductAccess } = require('../services/saas-entitlements.service');
+const { resolveProductAccess } = require('../services/authorization.service');
 const logger = require('../utils/logger.util');
 
 /**
  * Middleware d'accès produit — L'AUTORITÉ CÔTÉ SERVEUR.
  *
- * Vérifie, pour chaque requête protégée :
+ * Vérifie, pour chaque requête protégée (via le service d'autorisation
+ * centralisé — backend/src/services/authorization.service.js) :
  *   authentifié (authMiddleware) ET
  *   membre du tenant (req.tenantId) ET
  *   souscription produit active ET
@@ -24,7 +25,7 @@ function requireProductAccess(productKey, permission) {
         res.status(401).json({ message: 'Authentification requise' });
         return;
       }
-      const check = await assertProductAccess({
+      const check = await resolveProductAccess({
         tenantId: req.tenantId,
         userId: req.userId,
         principalType: req.principalType,

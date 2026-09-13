@@ -47,6 +47,10 @@ const EVENT_I18N = {
   deliverable_approved: { titleKey: 'projects.notify.deliverable_approved.title', bodyKey: 'projects.notify.deliverable_approved.body' },
   deliverable_rejected: { titleKey: 'projects.notify.deliverable_rejected.title', bodyKey: 'projects.notify.deliverable_rejected.body' },
   time_logged: { titleKey: 'projects.notify.time_logged.title', bodyKey: 'projects.notify.time_logged.body' },
+  // A5 — cycle de vie produit & jalons (plateforme + projets).
+  milestone_completed: { titleKey: 'projects.notify.milestone_completed.title', bodyKey: 'projects.notify.milestone_completed.body' },
+  product_role_changed: { titleKey: 'projects.notify.product_role_changed.title', bodyKey: 'projects.notify.product_role_changed.body' },
+  product_role_removed: { titleKey: 'projects.notify.product_role_removed.title', bodyKey: 'projects.notify.product_role_removed.body' },
 };
 
 const PRODUCT_KEY = 'project_management';
@@ -80,7 +84,7 @@ async function notifyProjectEvent({ tenantId, projectId, users = [], event, para
         await Notification.create({
           tenantId,
           userId,
-          productKey: PRODUCT_KEY,
+          productKey: productKey || PRODUCT_KEY,
           type: event,
           titleKey: i18n.titleKey,
           bodyKey: i18n.bodyKey,

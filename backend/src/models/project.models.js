@@ -139,7 +139,7 @@ const Project = mongoose.model('Project', ProjectSchema);
 /** Rôles projet (membres) — alignés sur les rôles produit du registre. */
 const PROJECT_MEMBER_ROLES = [
   'project_admin', 'project_manager', 'product_owner', 'scrum_master',
-  'project_lead', 'developer', 'designer', 'qa', 'project_member', 'project_viewer',
+  'project_lead', 'developer', 'designer', 'qa', 'stakeholder', 'project_member', 'project_viewer',
 ];
 
 const ProjectMemberSchema = new Schema(
