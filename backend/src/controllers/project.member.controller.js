@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { Project, ProjectMember } = require('../models/project.models');
+const { LicenseAssignment } = require('../models/saas.models');
 const { Utilisateur } = require('../models/user.model');
 const { PROJECT_MEMBER_ROLES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
@@ -7,6 +8,7 @@ const { literalRegex } = require('../utils/regex.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
+const { ensureLicense } = require('../services/license.service');
 const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
@@ -31,14 +33,26 @@ const listMembers = async (req, res) => {
       .populate('userId', USER_SELECT)
       .sort({ joinedAt: 1 })
       .lean();
+    // A5 — état de licence par membre (un membre sans licence ne voit pas le produit).
+    const memberUserIds = members.map((m) => (m.userId && m.userId._id ? m.userId._id : m.userId));
+    const [licensedIds, adminIds] = await Promise.all([
+      LicenseAssignment.find({ tenantId: req.tenantId, productKey: 'project_management', status: 'active' }).distinct('userId'),
+      Utilisateur.find({ _id: { $in: memberUserIds }, role: { $in: ['TENANT_ADMIN', 'PLATFORM_ADMIN'] } }).distinct('_id'),
+    ]);
+    const licensed = new Set(licensedIds.map(String));
+    const admins = new Set(adminIds.map(String));
     res.json({
-      members: members.map((m) => ({
-        _id: m._id,
-        userId: m.userId,
-        roleKey: m.roleKey,
-        joinedAt: m.joinedAt,
-        invitedBy: m.invitedBy,
-      })),
+      members: members.map((m) => {
+        const id = String(m.userId && m.userId._id ? m.userId._id : m.userId);
+        return {
+          _id: m._id,
+          userId: m.userId,
+          roleKey: m.roleKey,
+          joinedAt: m.joinedAt,
+          invitedBy: m.invitedBy,
+          hasLicense: admins.has(id) || licensed.has(id),
+        };
+      }),
       roles: PROJECT_MEMBER_ROLES,
     });
   } catch (err) {
@@ -71,6 +85,25 @@ const addMember = async (req, res) => {
       res.status(403).json({ code: 'CROSS_TENANT_MEMBER', message: 'Utilisateur hors du tenant.' });
       return;
     }
+    // A5 — licence produit requise : un membre sans licence ne verrait ni le
+    // produit ni le projet. Provisionnement automatique si un siège est libre
+    // (les admins n'en consomment pas — accès inhérent), sinon refus explicite.
+    if (!['TENANT_ADMIN', 'PLATFORM_ADMIN'].includes(user.role)) {
+      try {
+        await ensureLicense(
+          { tenantId: req.tenantId, userId, productKey: 'project_management', assignedBy: req.userId },
+          req
+        );
+      } catch (err) {
+        res.status(409).json({
+          code: 'LICENSE_REQUIRED',
+          message:
+            'Impossible d’ajouter ce membre : aucun siège Gestion de Projet n’est disponible. ' +
+            'Demandez des sièges supplémentaires puis réessayez.',
+        });
+        return;
+      }
+    }
     const existing = await ProjectMember.findOne({ projectId: project._id, userId });
     let member;
     if (existing) {
@@ -89,7 +122,7 @@ const addMember = async (req, res) => {
         projectId: project._id,
         userId,
         event: 'project_invitation',
-        params: { projectName: project.name, projectCode: project.code },
+        params: { projectName: project.name, projectCode: project.code, role: roleKey },
         link: `/projets/${project._id}`,
         emailParams: { projectName: project.name, projectCode: project.code, role: roleKey, link: `/projets/${project._id}` },
       });
@@ -191,9 +224,13 @@ const availableUsers = async (req, res) => {
         { lastName: literalRegex(q) },
       ];
     }
-    const users = await Utilisateur.find(filter).select('email firstName lastName avatarUrl jobTitle status').limit(20).lean();
+    const users = await Utilisateur.find(filter).select('email firstName lastName avatarUrl jobTitle status role').limit(20).lean();
     const memberIds = new Set(
       (await ProjectMember.find({ projectId: project._id }).distinct('userId')).map(String)
+    );
+    // A5 — état de licence (l'ajout provisionne automatiquement si un siège est libre).
+    const licensedIds = new Set(
+      (await LicenseAssignment.find({ tenantId: req.tenantId, productKey: 'project_management', status: 'active' }).distinct('userId')).map(String)
     );
     res.json({
       users: users.map((u) => ({
@@ -205,6 +242,7 @@ const availableUsers = async (req, res) => {
         jobTitle: u.jobTitle,
         status: u.status,
         isMember: memberIds.has(String(u._id)),
+        hasLicense: ['TENANT_ADMIN', 'PLATFORM_ADMIN'].includes(u.role) || licensedIds.has(String(u._id)),
       })),
     });
   } catch (err) {

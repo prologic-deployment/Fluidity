@@ -19,7 +19,8 @@ const { effectiveWorkflow } = require('../utils/project-workflow.util');
 const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
-const { notifyProjectMembers, notifyProjectManager } = require('../services/project-notify.service');
+const { notifyProjectMembers, notifyProjectManager, notifyUser } = require('../services/project-notify.service');
+const { ensureLicense } = require('../services/license.service');
 const { sprintStats } = require('./project.sprint.controller');
 const logger = require('../utils/logger.util');
 
@@ -298,15 +299,53 @@ const createProject = async (req, res) => {
     for (const m of membresInitiaux) {
       members.push({ userId: m.userId, roleKey: m.roleKey, invitedBy: req.userId });
     }
+    const dedupedMembers = [...new Map(members.map((m) => [String(m.userId), m])).values()];
     await ProjectMember.insertMany(
-      [...new Map(members.map((m) => [String(m.userId), m])).values()].map((m) => ({
+      dedupedMembers.map((m) => ({
         tenantId: req.tenantId, projectId: project._id, ...m, joinedAt: new Date(),
       })),
       { ordered: false }
     ).catch(() => {});
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.project_created', targetType: 'project', targetId: project._id, metadata: { name: project.name, code: project.code } });
     await audit(req, { action: 'project.created', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { code: project.code, methodology: project.methodology } });
-    res.status(201).json({ project: serializeProject(project) });
+    // A5 — invitation de l'équipe initiale : chaque membre (responsable +
+    // équipe, hors créateur) reçoit sa licence si un siège est libre, une
+    // notification d'invitation (in-app + email) et une entrée d'audit.
+    // Jamais d'affectation silencieuse : le créateur reçoit un récapitulatif.
+    const teamReport = { notified: 0, licensesProvisioned: [], licensesSkipped: [] };
+    for (const m of dedupedMembers) {
+      if (String(m.userId) === String(req.userId)) continue;
+      try {
+        const { provisioned } = await ensureLicense(
+          { tenantId: req.tenantId, userId: m.userId, productKey: 'project_management', assignedBy: req.userId },
+          req
+        );
+        if (provisioned) teamReport.licensesProvisioned.push(String(m.userId));
+      } catch (err) {
+        // Sièges épuisés (ou souscription inactive — ne devrait pas arriver,
+        // le créateur étant habilité) : le membre rejoint le projet mais ne
+        // verra le produit qu'après assignation d'une licence.
+        teamReport.licensesSkipped.push({ userId: String(m.userId), code: err.code || 'LICENSE_ERROR' });
+      }
+      await audit(req, {
+        action: 'project.member_added',
+        productKey: 'project_management',
+        resource: 'project',
+        resourceId: project._id,
+        metadata: { userId: String(m.userId), roleKey: m.roleKey, via: 'project_creation' },
+      });
+      await notifyUser({
+        tenantId: req.tenantId,
+        projectId: project._id,
+        userId: m.userId,
+        event: 'project_invitation',
+        params: { projectName: project.name, projectCode: project.code, role: m.roleKey },
+        link: `/projets/${project._id}`,
+        emailParams: { projectName: project.name, projectCode: project.code, role: m.roleKey, link: `/projets/${project._id}` },
+      });
+      teamReport.notified += 1;
+    }
+    res.status(201).json({ project: serializeProject(project), team: teamReport });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
