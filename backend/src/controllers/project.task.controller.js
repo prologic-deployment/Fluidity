@@ -1,12 +1,14 @@
 const mongoose = require('mongoose');
-const { Project, Task, ProjectComment } = require('../models/project.models');
+const { Project, Task, ProjectComment, ProjectMember } = require('../models/project.models');
 const { TASK_PRIORITIES, TASK_TYPES, DEPENDENCY_TYPES } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
+const { hasProductPermission } = require('../services/authorization.service');
+const { ensureLicense } = require('../services/license.service');
 const { literalRegex } = require('../utils/regex.util');
 const { validateTransition, effectiveWorkflow } = require('../utils/project-workflow.util');
 const { logActivity } = require('../utils/project-activity.util');
-const { auditWorkflow } = require('../utils/saas-log.util');
+const { audit, auditWorkflow } = require('../utils/saas-log.util');
 const { notifyUser, notifyProjectEvent } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
 const logger = require('../utils/logger.util');
@@ -74,6 +76,25 @@ function serializeTask(t, extra = {}) {
     updatedAt: t.updatedAt,
     ...extra,
   };
+}
+
+/**
+ * A5 — valide un assigné de tâche : identifiant valide, compte du tenant
+ * courant, MEMBRE du projet. Retourne { user } ou { error }.
+ */
+async function resolveAssignee(req, project, assigneeId) {
+  if (!mongoose.isValidObjectId(assigneeId)) {
+    return { error: { status: 400, code: 'INVALID_ASSIGNEE', message: 'Assigné invalide.' } };
+  }
+  const user = await Utilisateur.findOne({ _id: assigneeId, tenantId: req.tenantId }).select('_id role status').lean();
+  if (!user) {
+    return { error: { status: 403, code: 'CROSS_TENANT_MEMBER', message: 'Assigné hors de cet espace de travail.' } };
+  }
+  const member = await ProjectMember.findOne({ projectId: project._id, userId: assigneeId }).select('_id').lean();
+  if (!member) {
+    return { error: { status: 409, code: 'ASSIGNEE_NOT_MEMBER', message: 'L’assigné doit être membre du projet.' } };
+  }
+  return { user };
 }
 
 /** Détection de cycle de dépendances (DFS) avant écriture. */
@@ -270,6 +291,26 @@ const createTask = async (req, res) => {
         return;
       }
     }
+    // A5 — affectation à la création : permission d'affectation + assigné membre.
+    let licenseWarning = null;
+    if (assigneeId) {
+      if (!hasProductPermission(req.productEntry, 'project.task.assign')) {
+        res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour affecter des tâches.' });
+        return;
+      }
+      const { user: assigneeUser, error: assigneeError } = await resolveAssignee(req, project, assigneeId);
+      if (assigneeError) {
+        res.status(assigneeError.status).json({ code: assigneeError.code, message: assigneeError.message });
+        return;
+      }
+      if (!['TENANT_ADMIN', 'PLATFORM_ADMIN'].includes(assigneeUser.role)) {
+        try {
+          await ensureLicense({ tenantId: req.tenantId, userId: assigneeId, productKey: 'project_management', assignedBy: req.userId }, req);
+        } catch {
+          licenseWarning = 'ASSIGNEE_WITHOUT_LICENSE';
+        }
+      }
+    }
     const taskType = type && TASK_TYPES.includes(type) ? type : parentTaskId ? 'subtask' : 'task';
     const ref = await nextTaskRef(req.tenantId, project._id);
     const task = await Task.create({
@@ -299,6 +340,10 @@ const createTask = async (req, res) => {
       watchers: [req.userId],
     });
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: parentTaskId ? 'projects.activity.subtask_created' : 'projects.activity.task_created', targetType: 'task', targetId: task._id, metadata: { ref: task.ref, title: task.title } });
+    await audit(req, { action: 'task.created', productKey: 'project_management', resource: 'task', resourceId: task._id, metadata: { projectId: String(project._id), ref: task.ref } });
+    if (task.assigneeId) {
+      await audit(req, { action: 'task.assigned', productKey: 'project_management', resource: 'task', resourceId: task._id, metadata: { projectId: String(project._id), ref: task.ref, assigneeId: String(task.assigneeId) } });
+    }
     if (task.assigneeId && String(task.assigneeId) !== String(req.userId)) {
       await notifyUser({
         tenantId: req.tenantId, projectId: project._id, userId: task.assigneeId, event: 'task_assigned',
@@ -307,7 +352,7 @@ const createTask = async (req, res) => {
         emailParams: { actor: '', ref: task.ref, taskTitle: task.title, projectName: project.name, dueDate: task.dueDate ? new Date(task.dueDate).toLocaleDateString('fr-FR') : '', link: `/projets/${project._id}/taches/${task._id}` },
       });
     }
-    res.status(201).json({ task: serializeTask(task) });
+    res.status(201).json({ task: serializeTask(task), warnings: licenseWarning ? [licenseWarning] : [] });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
@@ -346,8 +391,35 @@ const updateTask = async (req, res) => {
       }
       task.priority = priority;
     }
+    // A5 — changer l'assigné exige le droit d'affectation (rang lead minimum
+    // + permission produit) ; le nouvel assigné doit être membre du projet.
+    let assigneeChanged = false;
+    let licenseWarning = null;
     if (assigneeId !== undefined) {
-      task.assigneeId = assigneeId && mongoose.isValidObjectId(assigneeId) ? assigneeId : null;
+      const next = assigneeId && mongoose.isValidObjectId(assigneeId) ? String(assigneeId) : null;
+      const prev = task.assigneeId ? String(task.assigneeId) : null;
+      if (next !== prev) {
+        if (!can(role, CAN.manageTasks) || !hasProductPermission(req.productEntry, 'project.task.assign')) {
+          res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour affecter des tâches.' });
+          return;
+        }
+        if (next) {
+          const { user: assigneeUser, error: assigneeError } = await resolveAssignee(req, project, next);
+          if (assigneeError) {
+            res.status(assigneeError.status).json({ code: assigneeError.code, message: assigneeError.message });
+            return;
+          }
+          if (!['TENANT_ADMIN', 'PLATFORM_ADMIN'].includes(assigneeUser.role)) {
+            try {
+              await ensureLicense({ tenantId: req.tenantId, userId: next, productKey: 'project_management', assignedBy: req.userId }, req);
+            } catch {
+              licenseWarning = 'ASSIGNEE_WITHOUT_LICENSE';
+            }
+          }
+        }
+        task.assigneeId = next;
+        assigneeChanged = true;
+      }
     }
     if (sprintId !== undefined) task.sprintId = sprintId && mongoose.isValidObjectId(sprintId) ? sprintId : null;
     if (milestoneId !== undefined) task.milestoneId = milestoneId && mongoose.isValidObjectId(milestoneId) ? milestoneId : null;
@@ -398,18 +470,32 @@ const updateTask = async (req, res) => {
       task.dependencies = dependencies;
     }
     await task.save();
-    if (previousAssignee && String(previousAssignee) !== String(task.assigneeId || '')) {
-      await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.task_reassigned', targetType: 'task', targetId: task._id, metadata: { ref: task.ref, from: String(previousAssignee), to: String(task.assigneeId || '') } });
+    // A5 — première affectation comme réaffectation : activité + audit +
+    // notification au nouvel assigné (jamais d'affectation silencieuse).
+    if (assigneeChanged) {
+      const wasAssigned = !!previousAssignee;
+      await logActivity({
+        tenantId: req.tenantId, projectId: project._id, actorId: req.userId,
+        action: wasAssigned ? 'projects.activity.task_reassigned' : 'projects.activity.task_assigned',
+        targetType: 'task', targetId: task._id,
+        metadata: { ref: task.ref, from: String(previousAssignee || ''), to: String(task.assigneeId || '') },
+      });
+      await audit(req, {
+        action: wasAssigned ? 'task.reassigned' : 'task.assigned',
+        productKey: 'project_management', resource: 'task', resourceId: task._id,
+        metadata: { projectId: String(project._id), ref: task.ref, from: String(previousAssignee || ''), to: String(task.assigneeId || '') },
+      });
       if (task.assigneeId && String(task.assigneeId) !== String(req.userId)) {
+        const event = wasAssigned ? 'task_reassigned' : 'task_assigned';
         await notifyUser({
-          tenantId: req.tenantId, projectId: project._id, userId: task.assigneeId, event: 'task_reassigned',
+          tenantId: req.tenantId, projectId: project._id, userId: task.assigneeId, event,
           params: { ref: task.ref, taskTitle: task.title, projectName: project.name },
           link: `/projets/${project._id}/taches/${task._id}`,
           emailParams: { ref: task.ref, taskTitle: task.title, projectName: project.name, newAssignee: '', link: `/projets/${project._id}/taches/${task._id}` },
         });
       }
     }
-    res.json({ task: serializeTask(task) });
+    res.json({ task: serializeTask(task), warnings: licenseWarning ? [licenseWarning] : [] });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });

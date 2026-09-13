@@ -1,4 +1,4 @@
-const { Subscription } = require('../models/saas.models');
+const { Subscription, LicenseAssignment } = require('../models/saas.models');
 const { Sprint, Project } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { notifyUser, notifyProjectMembers } = require('../services/project-notify.service');
@@ -38,12 +38,38 @@ async function runSaaSLifecycleJob() {
             tenantId: sub.tenantId,
             userId: admin._id,
             event: 'subscription_expired',
+            productKey: sub.productKey,
             params: { productKey: sub.productKey, seats: sub.seats },
             link: '/abonnements',
             emailParams: {
               productName: sub.productKey,
               endDate: end.toLocaleDateString('fr-FR'),
               link: '/abonnements',
+            },
+          });
+        }
+        // A5 — tous les utilisateurs licenciés sont informés (accès coupé,
+        // projets et données préservés, renouvellement via l'admin tenant).
+        const licensed = await LicenseAssignment.find({
+          tenantId: sub.tenantId,
+          productKey: sub.productKey,
+          status: 'active',
+        })
+          .select('userId')
+          .lean();
+        for (const lic of licensed) {
+          if (admin && String(lic.userId) === String(admin._id)) continue;
+          await notifyUser({
+            tenantId: sub.tenantId,
+            userId: lic.userId,
+            event: 'subscription_expired',
+            productKey: sub.productKey,
+            params: { productKey: sub.productKey, seats: sub.seats },
+            link: '/workspace',
+            emailParams: {
+              productName: sub.productKey,
+              endDate: end.toLocaleDateString('fr-FR'),
+              link: '/workspace',
             },
           });
         }

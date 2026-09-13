@@ -1,7 +1,9 @@
-const { Milestone } = require('../models/project.models');
+const { Milestone, ProjectMember } = require('../models/project.models');
 const { MILESTONE_KINDS, MILESTONE_STATUSES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
+const { audit } = require('../utils/saas-log.util');
+const { notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
 const logger = require('../utils/logger.util');
 
@@ -107,6 +109,7 @@ const updateMilestone = async (req, res) => {
     if (startDate !== undefined) milestone.startDate = startDate ? new Date(startDate) : null;
     if (dueDate !== undefined) milestone.dueDate = dueDate ? new Date(dueDate) : null;
     if (order !== undefined) milestone.order = Number(order) || 0;
+    const previousMilestoneStatus = milestone.status;
     if (status !== undefined && MILESTONE_STATUSES.includes(status)) {
       milestone.status = status;
       if (status === 'completed') milestone.progress = 100;
@@ -116,6 +119,26 @@ const updateMilestone = async (req, res) => {
     if (ownerId !== undefined) milestone.ownerId = ownerId || null;
     if (dependsOnId !== undefined) milestone.dependsOnId = dependsOnId || null;
     await milestone.save();
+    // A5 — jalon atteint : audit + notification à toute l'équipe projet.
+    if (milestone.status === 'completed' && previousMilestoneStatus !== 'completed') {
+      await audit(req, {
+        action: 'project.milestone_completed',
+        productKey: 'project_management',
+        resource: 'milestone',
+        resourceId: milestone._id,
+        metadata: { projectId: String(project._id), name: milestone.name },
+      });
+      const members = await ProjectMember.find({ tenantId: req.tenantId, projectId: project._id }).select('userId').lean();
+      await notifyProjectMembers({
+        tenantId: req.tenantId,
+        projectId: project._id,
+        members: members.map((m) => m.userId),
+        event: 'milestone_completed',
+        params: { milestoneName: milestone.name, projectName: project.name },
+        link: `/projets/${project._id}/jalons`,
+        except: [req.userId],
+      });
+    }
     res.json({ milestone: serializeMilestone(milestone) });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });

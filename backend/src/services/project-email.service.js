@@ -405,6 +405,49 @@ const TEMPLATES = {
       cta: 'Request seats',
     },
   },
+  // A5 — nouveaux événements du cycle de vie.
+  milestone_completed: {
+    fr: {
+      subject: 'Jalon atteint : {{milestoneName}}',
+      heading: 'Un jalon vient d’être atteint',
+      body: `Le jalon <strong>{{milestoneName}}</strong> du projet {{projectName}} est terminé. Félicitations à l’équipe !`,
+      cta: 'Voir le projet',
+    },
+    en: {
+      subject: 'Milestone reached: {{milestoneName}}',
+      heading: 'A milestone has just been reached',
+      body: `Milestone <strong>{{milestoneName}}</strong> of project {{projectName}} is complete. Congratulations to the team!`,
+      cta: 'View project',
+    },
+  },
+  product_role_changed: {
+    fr: {
+      subject: 'Votre rôle {{productName}} a changé',
+      heading: 'Votre rôle produit a été mis à jour',
+      body: `Votre rôle pour <strong>{{productName}}</strong> est désormais <strong>{{role}}</strong>. Vos permissions, votre tableau de bord et votre navigation ont été mis à jour.`,
+      cta: 'Ouvrir le produit',
+    },
+    en: {
+      subject: 'Your {{productName}} role has changed',
+      heading: 'Your product role has been updated',
+      body: `Your role for <strong>{{productName}}</strong> is now <strong>{{role}}</strong>. Your permissions, dashboard and navigation have been updated.`,
+      cta: 'Open the product',
+    },
+  },
+  product_role_removed: {
+    fr: {
+      subject: 'Rôle {{productName}} retiré',
+      heading: 'Votre rôle produit a été retiré',
+      body: `Votre rôle <strong>{{role}}</strong> pour <strong>{{productName}}</strong> a été retiré. Vous conservez le rôle par défaut de votre profil — contactez votre administrateur si besoin.`,
+      cta: 'Mon espace',
+    },
+    en: {
+      subject: '{{productName}} role removed',
+      heading: 'Your product role has been removed',
+      body: `Your <strong>{{role}}</strong> role for <strong>{{productName}}</strong> has been removed. You keep your profile default role — contact your administrator if needed.`,
+      cta: 'My space',
+    },
+  },
 };
 
 /** Interpolation simplifiée : {{key}} + sections conditionnelles {{#key}}…{{/key}}.
