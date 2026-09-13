@@ -6,7 +6,8 @@ const { ProjectMember } = require('../models/project.models');
 
 /**
  * Job de cycle de vie SaaS + Scrum — notifications in-app + emails :
- *   - souscription expirant sous 7 jours (subscription_expiring, admin tenant) ;
+ *   - souscription expirant sous 7 jours (subscription_expiring, admin tenant
+ *     + tous les utilisateurs licenciés) ;
  *   - souscription expirée : statut basculé automatiquement à 'expired'
  *     (l'accès est alors coupé par le moteur d'entitlements — les données
  *     et les licences restent intactes) ;
@@ -93,8 +94,33 @@ async function runSaaSLifecycleJob() {
               link: '/abonnements',
             },
           });
-          await Subscription.updateOne({ _id: sub._id }, { $set: { lastExpiryNotifiedAt: now } });
         }
+        // A5 — les utilisateurs licenciés sont prévenus eux aussi (leur accès
+        // sera coupé à l'échéance ; renouvellement via l'admin tenant).
+        const licensed = await LicenseAssignment.find({
+          tenantId: sub.tenantId,
+          productKey: sub.productKey,
+          status: 'active',
+        })
+          .select('userId')
+          .lean();
+        for (const lic of licensed) {
+          if (admin && String(lic.userId) === String(admin._id)) continue;
+          await notifyUser({
+            tenantId: sub.tenantId,
+            userId: lic.userId,
+            event: 'subscription_expiring',
+            productKey: sub.productKey,
+            params: { productKey: sub.productKey, seats: sub.seats },
+            link: '/workspace',
+            emailParams: {
+              productName: sub.productKey,
+              endDate: end.toLocaleDateString('fr-FR'),
+              link: '/workspace',
+            },
+          });
+        }
+        await Subscription.updateOne({ _id: sub._id }, { $set: { lastExpiryNotifiedAt: now } });
       }
     } catch {
       /* best-effort */

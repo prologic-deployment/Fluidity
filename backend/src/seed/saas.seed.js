@@ -122,7 +122,7 @@ async function seedSaas() {
     for (const u of users) {
       await ensureLicense({ tenantId: fluidity._id, productKey: 'servicedesk', userId: u._id });
       const roleKey =
-        u.role === 'TENANT_ADMIN' ? 'servicedesk_admin' : u.role === 'MANAGER' ? 'service_manager' : u.role === 'VIEWER' ? 'viewer' : 'support_n1';
+        u.role === 'TENANT_ADMIN' ? 'servicedesk_admin' : u.role === 'MANAGER' ? 'service_manager' : u.role === 'VIEWER' ? 'servicedesk_viewer' : 'support_n1';
       await ensureRole({ tenantId: fluidity._id, productKey: 'servicedesk', userId: u._id, roleKey });
     }
     // Clients (portail) → rôle requester + licence
@@ -135,7 +135,7 @@ async function seedSaas() {
 
   // ---- 3. Entreprise ServiceDesk + Gestion de Projet (Nova) ----
   if (nova) {
-    await provisionSubscription({ tenantId: nova._id, productKey: 'servicedesk', planId: 'professional', seats: 15, status: 'active' });
+    await provisionSubscription({ tenantId: nova._id, productKey: 'servicedesk', planId: 'business', seats: 15, status: 'active' });
     // Gestion de Projet souscrite (module à venir) — test d'entitlement multi-produits.
     await provisionSubscription({ tenantId: nova._id, productKey: 'project_management', planId: 'business', seats: 8, status: 'active' });
     // 9. Souscription EXPIRÉE (BI) → produit indisponible malgré l'historique.

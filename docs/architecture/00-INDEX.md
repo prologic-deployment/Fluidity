@@ -25,3 +25,4 @@ multi-produits Fluidity. Ils sont dérivés du code réel (`backend/src`,
 | 17 | `17-jobs-planifies.md` | Verrouillage/idempotence des jobs |
 | 18 | `18-cycle-requete-api.md` | Chaîne middleware d'une requête API |
 | 19 | `19-modele-donnees.md` | Vue d'ensemble du modèle de données |
+| 20 | `20-scenario-bout-en-bout.md` | Scénario SaaS de bout en bout (A5) |
