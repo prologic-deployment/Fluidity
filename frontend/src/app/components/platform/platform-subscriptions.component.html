@@ -7,6 +7,12 @@
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
+  <div *ngIf="productFilter !== 'all'" class="flex items-center gap-2 mb-4 flex-wrap">
+    <span class="text-sm text-muted-foreground">{{ 'saas.product' | t }} :</span>
+    <span class="badge badge-secondary">{{ productLabel(productFilter) }}</span>
+    <button type="button" class="btn-ghost btn-sm" (click)="clearProduct()">× {{ 'platform.subscriptions.productAll' | t }}</button>
+  </div>
+
   <div class="flex items-center gap-2 mb-3 flex-wrap">
     <select [(ngModel)]="statusFilter" class="filter-select">
       <option value="all">{{ 'platform.subscriptions.filterAll' | t }}</option>

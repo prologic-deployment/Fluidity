@@ -152,6 +152,12 @@ router.post('/subscriptions', authMiddleware, requirePlatformAdmin, async (req, 
     res.status(400).json({ message: 'Paramètres invalides' });
     return;
   }
+  // A5.2 Fix 7 : un produit NON disponible ne peut recevoir NI souscription
+  // vivante NI licence (même en provisionnement direct Super Admin).
+  if (!['cancelled', 'expired'].includes(status || 'active') && !(await effectiveAvailability(productKey))) {
+    res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Ce produit n’est pas disponible : souscription impossible.' });
+    return;
+  }
   const product = await Product.findOne({ key: productKey });
   const existing = await Subscription.findOne({ tenantId, productKey });
   if (existing) {

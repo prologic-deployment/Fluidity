@@ -9,7 +9,10 @@ const { Tenant } = require('../models/tenant.model');
  *  1. Particulier avec ServiceDesk (1 licence).
  *  2. Entreprise avec ServiceDesk (Fluidity).
  *  3. Entreprise ServiceDesk + Gestion de Projet (Nova).
- *  4. Entreprise ServiceDesk + RH Center (Carthage).
+ *  4. Entreprise ServiceDesk + Gestion de Projet (Carthage).
+ *     (A5.2 Fix 7 : un produit NON disponible — ex. hr_center — ne doit
+ *     avoir NI souscription active NI licence ; le seed ne provisionne
+ *     que des produits disponibles.)
  *  5. Multi-produits (Nova + Carthage).
  *  6-7. Utilisateurs avec licences et rôles produits différents.
  *  8. Utilisateur sans permission (VIEWER).
@@ -160,18 +163,18 @@ async function seedSaas() {
     }
   }
 
-  // ---- 4. Entreprise ServiceDesk + RH Center (Carthage) ----
+  // ---- 4. Entreprise ServiceDesk + Gestion de Projet (Carthage) ----
   if (carthage) {
     await provisionSubscription({ tenantId: carthage._id, productKey: 'servicedesk', planId: 'starter', seats: 10, status: 'active' });
-    await provisionSubscription({ tenantId: carthage._id, productKey: 'hr_center', planId: 'business', seats: 6, status: 'active' });
+    await provisionSubscription({ tenantId: carthage._id, productKey: 'project_management', planId: 'business', seats: 6, status: 'active' });
     const users = await Utilisateur.find({ tenantId: carthage._id, status: { $ne: 'suspended' } }).lean();
     for (const u of users) {
       await ensureLicense({ tenantId: carthage._id, productKey: 'servicedesk', userId: u._id });
       await ensureRole({ tenantId: carthage._id, productKey: 'servicedesk', userId: u._id, roleKey: u.role === 'TENANT_ADMIN' ? 'servicedesk_admin' : 'support_n1' });
-      // RH : licences pour tous sauf un VIEWER (test refus).
+      // Projets : licences pour tous sauf un VIEWER (test refus).
       if (u.role !== 'VIEWER') {
-        await ensureLicense({ tenantId: carthage._id, productKey: 'hr_center', userId: u._id });
-        await ensureRole({ tenantId: carthage._id, productKey: 'hr_center', userId: u._id, roleKey: u.role === 'TENANT_ADMIN' ? 'hr_admin' : 'hr_specialist' });
+        await ensureLicense({ tenantId: carthage._id, productKey: 'project_management', userId: u._id });
+        await ensureRole({ tenantId: carthage._id, productKey: 'project_management', userId: u._id, roleKey: u.role === 'TENANT_ADMIN' ? 'project_admin' : 'project_manager' });
       }
     }
   }

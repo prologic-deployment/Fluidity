@@ -3425,6 +3425,8 @@ export const FR: Record<string, unknown> = {
     activeBadge: 'actifs',
     available: 'Disponible',
     unavailable: 'Indisponible',
+    availableSection: 'Disponibles',
+    unavailableSection: 'Non disponibles',
     plans: 'Plans & tarifs (registre)',
     perMonth: 'mois',
     perYear: 'an',

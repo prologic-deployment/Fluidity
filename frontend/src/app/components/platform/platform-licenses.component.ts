@@ -83,23 +83,32 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
   }
 
   get products(): string[] {
-    return [...new Set(this.licenses.map((l) => l.productKey))].sort();
+    // A5.2 Fix 7 : le produit demandé (?product=) reste sélectionnable même
+    // sans aucune licence (sinon le select paraît vide / « tous tenants »).
+    const keys = new Set(this.licenses.map((l) => l.productKey));
+    if (this.productFilter !== 'all') keys.add(this.productFilter);
+    return [...keys].sort();
   }
 
+  /** Stats calculées sur la vue FILTRÉE (cohérentes avec la liste affichée). */
   get assigned(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.userId !== null && l.status === 'active');
+    return this.filtered().filter((l) => l.userId !== null && l.status === 'active');
   }
 
   get available(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.userId === null && l.status === 'active');
+    return this.filtered().filter((l) => l.userId === null && l.status === 'active');
   }
 
   get suspended(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.status === 'suspended');
+    return this.filtered().filter((l) => l.status === 'suspended');
   }
 
   get revoked(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.status === 'revoked');
+    return this.filtered().filter((l) => l.status === 'revoked');
+  }
+
+  clearProduct(): void {
+    this.productFilter = 'all';
   }
 
   filtered(): PlatformLicense[] {

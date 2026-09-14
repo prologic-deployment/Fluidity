@@ -101,6 +101,19 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     return this.products.filter((p) => p.effectiveAvailable).length;
   }
 
+  /** A5.2 Fix 7 : sections Disponibles puis Non disponibles. */
+  get availableProducts(): AdminProduct[] {
+    return this.products.filter((p) => p.effectiveAvailable);
+  }
+
+  get unavailableProducts(): AdminProduct[] {
+    return this.products.filter((p) => !p.effectiveAvailable);
+  }
+
+  trackProduct(_i: number, p: AdminProduct): string {
+    return p.key;
+  }
+
   isPlatformManaged(p: AdminProduct): boolean {
     return p.managedBy === 'platform';
   }

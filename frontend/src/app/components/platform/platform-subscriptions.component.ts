@@ -70,7 +70,15 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
 
   /** Liste des clés produit distinctes (options du filtre produit). */
   get productOptions(): string[] {
-    return [...new Set(this.subscriptions.map((s) => s.productKey))].sort();
+    // A5.2 Fix 7 : le produit demandé (?product=) reste sélectionnable même
+    // sans aucune souscription.
+    const keys = new Set(this.subscriptions.map((s) => s.productKey));
+    if (this.productFilter !== 'all') keys.add(this.productFilter);
+    return [...keys].sort();
+  }
+
+  clearProduct(): void {
+    this.productFilter = 'all';
   }
 
   filtered(): PlatformSubscription[] {
