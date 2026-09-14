@@ -1,0 +1,5 @@
+flowchart TD
+  R[service_manager<br/>servicedesk — NOT ENFORCED]
+  R --> A[Assigned by Tenant Admin]
+  R --> N[Notified on change]
+  A -.-> X[No effect on APIs — GAP-02]

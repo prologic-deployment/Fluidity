@@ -1,0 +1,24 @@
+flowchart LR
+  PA[Platform Admin] --> T[Manage tenants]
+  PA --> O[Approve/reject orders]
+  PA --> PR[Create/publish products]
+  PA --> AU[Global audit]
+  TA[Tenant Admin] --> BUY[Purchase products]
+  TA --> LIC[Assign licenses & roles]
+  TA --> USR[Manage users/clients/contracts]
+  TA --> PJ[Full project powers]
+  MGR[Manager] --> TR[Validate changes & demandes]
+  MGR --> TI[Work tickets]
+  AGT[Agent] --> TI
+  AGT --> EX[Execute demandes/changes]
+  VWR[Viewer] --> RD[Read-only views]
+  CLI[Client] --> CR[Create requests]
+  CLI --> OW[Track own requests]
+  PM[project_admin/manager] --> PC[Create & manage projects]
+  PM --> TM[Manage team & sprints]
+  LD[lead/PO/scrum/dev...] --> TK[Work tasks]
+  LD --> CM[Comment, log time, files]
+  BUY --> O
+  O --> LIC
+  LIC --> PJ
+  LIC --> TK

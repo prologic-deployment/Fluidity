@@ -1,0 +1,6 @@
+flowchart TD
+  R[VIEWER]
+  R --> V[View tickets/demandes/changements]
+  V-note[READ ONLY — all mutations 403]
+
+  R --> P[Project powers as project_viewer]

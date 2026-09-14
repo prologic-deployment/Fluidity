@@ -1,0 +1,10 @@
+# Permissions: procurement_admin
+
+ALL permissions below are defined with NO enforcement surface (no procurement module — GAP-03).
+
+| Permission | Backend | Frontend | Verdict |
+|---|---|---|---|
+| procurement.request.create | no module; never referenced | never referenced | NOT_IMPLEMENTED |
+| procurement.request.read | no module; never referenced | never referenced | NOT_IMPLEMENTED |
+| procurement.request.approve | no module; never referenced | never referenced | NOT_IMPLEMENTED |
+| procurement.request.update | no module; never referenced | never referenced | NOT_IMPLEMENTED |

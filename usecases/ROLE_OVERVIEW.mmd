@@ -1,0 +1,19 @@
+flowchart TD
+  PA[PLATFORM_ADMIN<br/>global, [*], no license]
+  TA[TENANT_ADMIN<br/>own tenant, [*], auto-licensed]
+  M[MANAGER] --> PM1[project_manager<br/>default]
+  M --> SM[service_manager<br/>unenforced]
+  A[AGENT] --> DEV[developer<br/>default]
+  A --> N1[support_n1<br/>unenforced]
+  V[VIEWER] --> PV[project_viewer<br/>default]
+  V --> SV[servicedesk_viewer<br/>unenforced]
+  C[CLIENT portal] --> RQ[requester<br/>unenforced]
+  PA --> TA
+  TA --> M & A & V
+  subgraph PMR[project ranks — membership]
+    direction LR
+    P0[viewer 0] --> P1[member/stakeholder 1] --> P2[dev/designer/qa 2] --> P3[lead 3] --> P4[PO/scrum 4] --> P5[manager 5] --> P6[admin 6]
+  end
+  PM1 & DEV & PV -.-> PMR
+  TA -.->|forced| P6
+  PA -.->|forced| P6
