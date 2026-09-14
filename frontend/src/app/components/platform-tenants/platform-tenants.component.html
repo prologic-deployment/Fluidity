@@ -152,11 +152,23 @@
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                   </svg>
                 </button>
-                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? ('tenants.suspend' | t) : ('tenants.reactivate' | t)"
-                  class="btn-icon-sm text-muted-foreground hover:bg-warning/10 hover:text-amber-600">
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button (click)="toggleStatus(t)" [disabled]="t.status !== 'active' && t.status !== 'suspended'"
+                  [title]="t.status === 'active' ? ('tenants.suspend' | t) : ('tenants.reactivate' | t)"
+                  class="btn-icon-sm"
+                  [class.text-muted-foreground]="t.status === 'active'"
+                  [class.hover:bg-warning/10]="t.status === 'active'"
+                  [class.hover:text-amber-600]="t.status === 'active'"
+                  [class.text-amber-600]="t.status === 'suspended'"
+                  [class.hover:bg-success/10]="t.status === 'suspended'"
+                  [class.hover:text-emerald-600]="t.status === 'suspended'"
+                  [class.opacity-30]="t.status !== 'active' && t.status !== 'suspended'"
+                  [class.cursor-not-allowed]="t.status !== 'active' && t.status !== 'suspended'">
+                  <svg *ngIf="t.status !== 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="6" y="4" width="4" height="16" rx="1"></rect>
                     <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                  </svg>
+                  <svg *ngIf="t.status === 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="6 3 20 12 6 21 6 3"></polygon>
                   </svg>
                 </button>
                 <button (click)="supprimer(t)" [title]="'tenants.delete' | t"
