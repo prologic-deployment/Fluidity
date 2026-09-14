@@ -28,6 +28,7 @@ const logger = require('../utils/logger.util');
 // ARCH-001 (audit) : helpers partagés extraits (platform-helpers.service.js).
 const {
   hydrateClientUsers,
+  hydrateAuditActors,
   notifyPlatformAdmins,
   ensureProductsSynced,
   resyncProducts,
@@ -886,8 +887,9 @@ router.get('/audit', authMiddleware, async (req, res) => {
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('userId', 'email firstName lastName')
     .lean();
+  // A5.2 Fix 6 : populate('userId') inopérant (pas de ref) → hydratation manuelle.
+  await hydrateAuditActors(items);
   res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
 });
 
@@ -972,7 +974,7 @@ router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) 
       .sort({ endDate: 1 })
       .limit(5)
       .lean(),
-    AuditLog.find({}).sort({ createdAt: -1 }).limit(12).populate('userId', 'email firstName lastName').lean(),
+    AuditLog.find({}).sort({ createdAt: -1 }).limit(12).lean(),
     Tenant.find({}).sort({ createdAt: -1 }).limit(4).select('name status createdAt').lean(),
     Order.find({ status: { $in: ['pending_approval', 'pending'] } })
       .sort({ createdAt: -1 })
@@ -1027,6 +1029,9 @@ router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) 
     licenses: licsParTenant.get(String(t._id)) || 0,
     createdAt: t.createdAt,
   }));
+
+  // A5.2 Fix 6 : acteur réel des entrées d'activité (jamais « — » par défaut technique).
+  await hydrateAuditActors(recentAudit);
 
   const tenantIds = [...new Set(pendingOrders.map((o) => String(o.tenantId)))];
   const tenantNames = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();

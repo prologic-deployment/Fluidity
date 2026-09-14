@@ -151,7 +151,7 @@
         </div>
         <div class="card-content divide-y divide-border max-h-80 overflow-y-auto" *ngIf="data.recent.audit.length; else noActivity">
           <div *ngFor="let a of data.recent.audit" class="px-4 py-2 text-sm">
-            <p class="font-medium">{{ auditLabel(a) | t }}</p>
+            <p class="font-medium">{{ auditLabel(a) }}</p>
             <p class="text-xs text-muted-foreground">{{ actorName(a) }} · {{ a.createdAt | dateLocale:'short' }}</p>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
+import { I18nService } from '../../i18n/i18n.service';
 import { PlatformDashboard } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 
@@ -25,7 +26,7 @@ export class PlatformDashboardComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private platform: PlatformService) {}
+  constructor(private platform: PlatformService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.load();
@@ -72,11 +73,16 @@ export class PlatformDashboardComponent implements OnInit, OnDestroy {
 
   actorName(a: { userId: { email?: string; firstName?: string; lastName?: string } | null }): string {
     const u = a.userId;
-    if (!u) return '—';
-    return `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || '—';
+    // A5.2 Fix 6 : userId null = action système/seed → libellé explicite.
+    if (!u) return this.i18n.t('platform.audit.system');
+    return `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || this.i18n.t('platform.audit.system');
   }
 
   auditLabel(a: { productKey: string; action: string }): string {
-    return `platform.audit.action.${a.action}`;
+    const key = `platform.audit.action.${a.action}`;
+    const label = this.i18n.t(key);
+    // Action sans traduction dédiée → forme lisible (« tenant.archived » →
+    // « tenant archived ») plutôt que la clé brute.
+    return label === key ? String(a.action || '').replace(/[._]+/g, ' ').trim() || '—' : label;
   }
 }

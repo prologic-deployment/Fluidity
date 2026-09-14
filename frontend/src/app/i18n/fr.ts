@@ -3495,6 +3495,7 @@ export const FR: Record<string, unknown> = {
     entries: 'événement(s)',
     empty: 'Aucun événement d’audit.',
     loadError: 'Impossible de charger le journal d’audit.',
+    system: 'Système',
     action: {
       order: {
         created: 'Demande d’achat créée',
@@ -3505,6 +3506,8 @@ export const FR: Record<string, unknown> = {
         updated: 'Souscription modifiée',
         approved: 'Achat approuvé — souscription activée',
         rejected: 'Achat rejeté',
+        autorenew: 'Renouvellement automatique modifié',
+        cancel_requested: 'Résiliation demandée',
       },
       license: {
         assigned: 'Licence assignée',
@@ -3519,11 +3522,18 @@ export const FR: Record<string, unknown> = {
       product: {
         activated: 'Produit activé',
         deactivated: 'Produit désactivé',
+        created: 'Produit créé',
+        published: 'Produit publié',
+        suspended: 'Produit suspendu',
+        deleted: 'Produit supprimé',
+        configured: 'Produit configuré',
       },
       tenant: {
         created: 'Tenant créé',
         suspended: 'Tenant suspendu',
         activated: 'Tenant réactivé',
+        reactivated: 'Tenant réactivé',
+        archived: 'Tenant archivé',
       },
       workflow: {
         transition: 'Transition de workflow',
@@ -3539,7 +3549,32 @@ export const FR: Record<string, unknown> = {
         member_role_changed: 'Rôle projet modifié',
         methodology_changed: 'Méthodologie modifiée',
         sprint_completed: 'Sprint terminé',
+        milestone_completed: 'Jalon atteint',
         health_overridden: 'Santé du projet forcée',
+      },
+      user: {
+        created: 'Utilisateur créé',
+        updated: 'Utilisateur modifié',
+        deleted: 'Utilisateur supprimé',
+        password_reset_requested: 'Réinitialisation du mot de passe demandée',
+      },
+      client: {
+        created: 'Client créé',
+        updated: 'Client modifié',
+        deleted: 'Client supprimé',
+        access_regenerated: 'Accès client régénéré',
+      },
+      contrat: {
+        created: 'Contrat créé',
+        updated: 'Contrat modifié',
+        deleted: 'Contrat supprimé',
+      },
+      task: {
+        created: 'Tâche créée',
+        assigned: 'Tâche assignée',
+      },
+      upload: {
+        created: 'Fichier téléversé',
       },
     },
   },

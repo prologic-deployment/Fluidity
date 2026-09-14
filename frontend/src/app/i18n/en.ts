@@ -3495,6 +3495,7 @@ export const EN: Record<string, unknown> = {
     entries: 'event(s)',
     empty: 'No audit events.',
     loadError: 'Unable to load the audit log.',
+    system: 'System',
     action: {
       order: {
         created: 'Purchase request created',
@@ -3505,6 +3506,8 @@ export const EN: Record<string, unknown> = {
         updated: 'Subscription updated',
         approved: 'Purchase approved — subscription activated',
         rejected: 'Purchase rejected',
+        autorenew: 'Auto-renewal changed',
+        cancel_requested: 'Cancellation requested',
       },
       license: {
         assigned: 'License assigned',
@@ -3519,11 +3522,18 @@ export const EN: Record<string, unknown> = {
       product: {
         activated: 'Product activated',
         deactivated: 'Product deactivated',
+        created: 'Product created',
+        published: 'Product published',
+        suspended: 'Product suspended',
+        deleted: 'Product deleted',
+        configured: 'Product configured',
       },
       tenant: {
         created: 'Tenant created',
         suspended: 'Tenant suspended',
         activated: 'Tenant reactivated',
+        reactivated: 'Tenant reactivated',
+        archived: 'Tenant archived',
       },
       workflow: {
         transition: 'Workflow transition',
@@ -3539,7 +3549,32 @@ export const EN: Record<string, unknown> = {
         member_role_changed: 'Project role changed',
         methodology_changed: 'Methodology changed',
         sprint_completed: 'Sprint completed',
+        milestone_completed: 'Milestone reached',
         health_overridden: 'Project health overridden',
+      },
+      user: {
+        created: 'User created',
+        updated: 'User updated',
+        deleted: 'User deleted',
+        password_reset_requested: 'Password reset requested',
+      },
+      client: {
+        created: 'Client created',
+        updated: 'Client updated',
+        deleted: 'Client deleted',
+        access_regenerated: 'Client access regenerated',
+      },
+      contrat: {
+        created: 'Contract created',
+        updated: 'Contract updated',
+        deleted: 'Contract deleted',
+      },
+      task: {
+        created: 'Task created',
+        assigned: 'Task assigned',
+      },
+      upload: {
+        created: 'File uploaded',
       },
     },
   },
