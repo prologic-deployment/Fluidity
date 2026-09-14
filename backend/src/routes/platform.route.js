@@ -1145,6 +1145,8 @@ router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req,
 // ---------------------------------------------------------------------------
 
 const PRODUCT_KEY_RX = /^[a-z][a-z0-9_]{2,40}$/;
+// A5.2 Fix 8 : catégories prédéfinies (+ « other » en dernier).
+const PRODUCT_CATEGORIES = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
 
 /** Normalise et valide les plans tarifaires d'un produit plateforme. */
 function sanitizePlans(plans) {
@@ -1221,6 +1223,11 @@ router.post('/products', authMiddleware, requirePlatformAdmin, async (req, res) 
       res.status(400).json({ message: 'Rôles invalides (clés uniques, permissions déclarées au niveau produit).' });
       return;
     }
+    // A5.2 Fix 8 : catégorie fermée (registre + « other ») — jamais de texte libre.
+    if (category !== undefined && !PRODUCT_CATEGORIES.includes(String(category))) {
+      res.status(400).json({ message: 'Catégorie invalide.' });
+      return;
+    }
     const product = await Product.create({
       key,
       nameKey: '',
@@ -1274,7 +1281,13 @@ router.patch('/products/:key/configure', authMiddleware, requirePlatformAdmin, a
     if (icon !== undefined) product.icon = String(icon).slice(0, 40);
     if (emoji !== undefined) product.emoji = String(emoji).slice(0, 16);
     if (color !== undefined) product.color = String(color).slice(0, 20);
-    if (category !== undefined) product.category = String(category).slice(0, 40);
+    if (category !== undefined) {
+      if (!PRODUCT_CATEGORIES.includes(String(category))) {
+        res.status(400).json({ message: 'Catégorie invalide.' });
+        return;
+      }
+      product.category = String(category).slice(0, 40);
+    }
     if (route !== undefined) product.route = String(route).slice(0, 120);
     if (permissions !== undefined) product.permissions = sanitizePermissions(permissions);
     if (plans !== undefined) {

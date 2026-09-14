@@ -40,7 +40,9 @@
       </label>
       <label class="block">
         <span class="text-xs font-medium">{{ 'platform.products.category' | t }}</span>
-        <input class="input mt-1" [(ngModel)]="form.category" />
+        <select class="input mt-1" [(ngModel)]="form.category">
+          <option *ngFor="let c of categories" [value]="c">{{ 'marketplace.categories.' + c | t }}</option>
+        </select>
       </label>
       <div class="md:col-span-2">
         <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}</p>

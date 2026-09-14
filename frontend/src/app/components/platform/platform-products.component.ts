@@ -36,6 +36,9 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   products: AdminProduct[] = [];
   busyKey = '';
 
+  /** A5.2 Fix 8 : catégories prédéfinies (+ « Autre » en dernier). */
+  readonly categories = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
+
   // --- Création (brouillon plateforme) --------------------------------------
   creating = false;
   createBusy = false;
