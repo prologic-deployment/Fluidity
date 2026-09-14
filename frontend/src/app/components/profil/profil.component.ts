@@ -95,6 +95,11 @@ export class ProfilComponent implements OnInit {
     return this.auth.isClient();
   }
 
+  /** A5.2 Fix 12 : le Super Admin n'a ni téléphone, poste, département, adresse ni bio. */
+  get isPlatformAdmin(): boolean {
+    return this.auth.isPlatformAdmin();
+  }
+
   get avatarUrl(): string | null {
     return (this.profile?.['avatarUrl'] as string) || null;
   }
