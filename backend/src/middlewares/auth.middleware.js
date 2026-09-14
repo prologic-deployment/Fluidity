@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { Utilisateur, ROLES } = require('../models/user.model');
 const { Tenant } = require('../models/tenant.model');
 const { Client } = require('../models/client.model');
+const { RefreshToken } = require('../models/refresh-token.model');
 const { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL } = require('../utils/principals');
 
 /** Message d'aide quand la session/le compte provient de données pré-multi-tenant. */
@@ -57,6 +58,23 @@ const authMiddleware = async (req, res, next) => {
     // « iat » du jeton : identifiant d'émission de la session courante
     // (mise en évidence dans le journal d'activité de connexion).
     req.tokenIat = decoded.iat || null;
+    // A5.2 Fix 14 : le jeton d'accès est lié à sa famille de rafraîchissement.
+    // Une famille révoquée (ou purgée) coupe TOUT accès immédiatement, même si
+    // le JWT n'est pas expiré — quel que soit l'appareil à l'origine du revoke.
+    // Les jetons sans « fid » (émis avant le déploiement) restent acceptés
+    // jusqu'à leur courte expiration, par compatibilité de transition.
+    req.tokenFid = decoded.fid || null;
+    if (decoded.fid) {
+      const familyLive = await RefreshToken.exists({
+        familyId: decoded.fid,
+        revokedAt: null,
+        expiresAt: { $gt: new Date() },
+      });
+      if (!familyLive) {
+        res.status(401).json({ code: 'SESSION_REVOQUEE', message: 'Session révoquée. Veuillez vous reconnecter.' });
+        return;
+      }
+    }
 
     req.principalType = decoded.principal === PRINCIPAL_CLIENT ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR;
 

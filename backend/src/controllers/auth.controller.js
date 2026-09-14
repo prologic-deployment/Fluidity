@@ -8,6 +8,7 @@ const { sendResetPasswordEmail, sendPasswordChangedEmail } = require('../service
 const { supprimerFichierUpload } = require('../utils/upload-file.util');
 const { enregistrerActivite } = require('../utils/login-activity.util');
 const { Client } = require('../models/client.model');
+const { RefreshToken } = require('../models/refresh-token.model');
 const { PRINCIPAL_UTILISATEUR, PRINCIPAL_CLIENT, ROLE_PORTAIL } = require('../utils/principals');
 const { apiError } = require('../utils/api-error');
 const logger = require('../utils/logger.util');
@@ -113,6 +114,18 @@ const issueSession = async (res, user, tenant, extras = {}, contexte = {}) => {
   // La session longue est portée par le jeton de rafraîchissement rotatif en
   // cookie httpOnly (session.service) ; JWT_EXPIRES_IN reste surchargeable.
   const expiresIn = process.env.JWT_EXPIRES_IN || '15m';
+
+  // Jeton de rafraîchissement rotatif (cookie httpOnly) — nouveau « family »
+  // à chaque login / validation 2FA. Émis AVANT le JWT : la famille lie le
+  // jeton d'accès à la session serveur (A5.2 Fix 14 — révocation immédiate).
+  let familyId = null;
+  if (contexte.req) {
+    familyId = await issueRefreshToken(contexte.req, res, {
+      userId: user._id,
+      principalType: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
+      tenantId: user.tenantId || null,
+    });
+  }
   const token = jwt.sign(
     {
       tenantId: user.tenantId || null,
@@ -123,20 +136,13 @@ const issueSession = async (res, user, tenant, extras = {}, contexte = {}) => {
       // Version de session : toute révocation (mot de passe, rôle, 2FA…)
       // incrémente le compteur DB et invalide les jetons antérieurs.
       tv: user.tokenVersion || 0,
+      // Famille de rafraîchissement : le middleware rejette tout accès dont
+      // la famille est révoquée — effet immédiat, quel que soit l'appareil.
+      fid: familyId,
     },
     secret,
     { expiresIn }
   );
-
-  // Jeton de rafraîchissement rotatif (cookie httpOnly) — nouveau « family »
-  // à chaque login / validation 2FA.
-  if (contexte.req) {
-    await issueRefreshToken(contexte.req, res, {
-      userId: user._id,
-      principalType: estClient ? PRINCIPAL_CLIENT : PRINCIPAL_UTILISATEUR,
-      tenantId: user.tenantId || null,
-    });
-  }
 
   // contexte.silent : pas de journalisation « connexion » (ex. réémission de
   // session après changement de mot de passe — ce n'est pas un login).
@@ -763,7 +769,7 @@ const refreshSession = async (req, res) => {
         return;
       }
       const token = jwt.sign(
-        { tenantId: client.tenantId || null, userId: client._id, role: ROLE_PORTAIL, email: client.email, principal: PRINCIPAL_CLIENT, tv: client.tokenVersion || 0 },
+        { tenantId: client.tenantId || null, userId: client._id, role: ROLE_PORTAIL, email: client.email, principal: PRINCIPAL_CLIENT, tv: client.tokenVersion || 0, fid: doc.familyId },
         secret,
         { expiresIn }
       );
@@ -786,13 +792,94 @@ const refreshSession = async (req, res) => {
       }
     }
     const token = jwt.sign(
-      { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email, principal: PRINCIPAL_UTILISATEUR, tv: user.tokenVersion || 0 },
+      { tenantId: user.tenantId || null, userId: user._id, role: user.role, email: user.email, principal: PRINCIPAL_UTILISATEUR, tv: user.tokenVersion || 0, fid: doc.familyId },
       secret,
       { expiresIn }
     );
     res.status(200).json({ token, expiresAt: new Date((jwt.decode(token)?.exp || 0) * 1000).toISOString(), role: user.role, principalType: PRINCIPAL_UTILISATEUR });
   } catch (err) {
     res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+/**
+ * A5.2 Fix 14 — « Appareils connectés » : liste les familles de session ACTIVES
+ * du principal courant (une famille = un appareil/navigateur), la courante
+ * marquée via le « fid » du JWT d'accès. Jamais d'empreinte exposée.
+ */
+const listSessions = async (req, res) => {
+  try {
+    const now = new Date();
+    const rows = await RefreshToken.aggregate([
+      {
+        $match: {
+          userId: String(req.userId),
+          principalType: req.principalType,
+          revokedAt: null,
+          expiresAt: { $gt: now },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$familyId',
+          userAgent: { $first: '$userAgent' },
+          ip: { $first: '$ip' },
+          createdAt: { $min: '$createdAt' },
+          lastSeenAt: { $max: '$createdAt' },
+        },
+      },
+      { $sort: { lastSeenAt: -1 } },
+    ]);
+    res.status(200).json({
+      sessions: rows.map((r) => ({
+        familyId: r._id,
+        userAgent: r.userAgent || '',
+        ip: r.ip || '',
+        createdAt: r.createdAt,
+        lastSeenAt: r.lastSeenAt,
+        current: req.tokenFid ? r._id === req.tokenFid : false,
+      })),
+    });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
+/**
+ * A5.2 Fix 14 — révoque une famille de session du principal courant.
+ * Effet IMMÉDIAT : le middleware rejette les JWT liés à la famille révoquée
+ * (contrôle « fid »), quel que soit l'appareil révoqué ou demandeur.
+ * Révoquer sa propre session courante efface aussi le cookie (le frontend
+ * redirige vers le login).
+ */
+const revokeSession = async (req, res) => {
+  try {
+    const familyId = String(req.params.familyId || '');
+    if (!familyId) {
+      res.status(400).json({ message: 'Famille de session manquante.' });
+      return;
+    }
+    const owned = await RefreshToken.exists({
+      familyId,
+      userId: String(req.userId),
+      principalType: req.principalType,
+    });
+    if (!owned) {
+      res.status(404).json({ message: 'Session introuvable.' });
+      return;
+    }
+    await RefreshToken.updateMany(
+      { familyId, revokedAt: null },
+      { $set: { revokedAt: new Date() } }
+    );
+    const current = !!req.tokenFid && req.tokenFid === familyId;
+    if (current) clearRefreshCookie(res);
+    res.status(200).json({ revoked: true, current });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
   }
 };
 
@@ -820,6 +907,8 @@ module.exports = {
   changePassword,
   refreshSession,
   logout,
+  listSessions,
+  revokeSession,
   // Réutilisés par le contrôleur 2FA (pas de logique d'émission dupliquée)
   issueSession,
   signTwoFactorToken,

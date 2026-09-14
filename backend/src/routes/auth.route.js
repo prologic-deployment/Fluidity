@@ -9,6 +9,8 @@ const {
   changePassword,
   refreshSession,
   logout,
+  listSessions,
+  revokeSession,
 } = require('../controllers/auth.controller');
 const {
   getStatus,
@@ -55,6 +57,8 @@ router.post('/reset-password', resetPasswordLimiter, validate(resetPasswordSchem
 // AUTH-003 : rafraîchissement (cookie httpOnly rotatif) et déconnexion serveur.
 router.post('/refresh', refreshSession);
 router.post('/logout', logout);
+router.get('/sessions', authMiddleware, listSessions);
+router.delete('/sessions/:familyId', authMiddleware, revokeSession);
 router.get('/me', authMiddleware, me);
 // Audit : journal de connexion du compte courant (soi-même uniquement)
 router.get('/me/login-activity', authMiddleware, loginActivity);

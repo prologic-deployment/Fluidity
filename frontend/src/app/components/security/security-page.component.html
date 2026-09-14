@@ -306,14 +306,31 @@
               </div>
               <h3 class="text-sm font-semibold">{{ 'security.devices' | t }}</h3>
             </div>
-            <div class="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success">
-                <span class="h-1.5 w-1.5 rounded-full bg-current"></span>{{ 'security.thisSession' | t }}
-              </span>
-              <p class="truncate text-sm text-muted-foreground">{{ currentDevice }}</p>
+            <!-- A5.2 Fix 14 : liste des sessions + révocation à distance (effet immédiat) -->
+            <div *ngIf="sessionsChargement" class="space-y-2 animate-pulse">
+              <div *ngFor="let _ of [1, 2]" class="h-14 rounded-lg bg-muted"></div>
             </div>
-            <p class="text-xs text-muted-foreground">
-              La gestion multi-appareils (révocation à distance) suivra avec le service de sessions.
+            <p *ngIf="sessionsErreur" class="alert-destructive text-xs">{{ sessionsErreur }}</p>
+            <div *ngIf="!sessionsChargement && !sessionsErreur" class="space-y-2">
+              <div *ngFor="let s of sessions" class="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium">{{ deviceLabel(s) }}</p>
+                  <p class="truncate text-xs text-muted-foreground">{{ s.ip || '—' }} · {{ 'security.lastSeen' | t }} {{ s.lastSeenAt | dateLocale:'short' }}</p>
+                </div>
+                <span *ngIf="s.current" class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-semibold text-success shrink-0">
+                  <span class="h-1.5 w-1.5 rounded-full bg-current"></span>{{ 'security.thisSession' | t }}
+                </span>
+                <button *ngIf="!s.current" type="button" (click)="revoquerSession(s)" [disabled]="revokingFamily === s.familyId"
+                  [title]="'security.revokeSession' | t" class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle><path d="m4.9 4.9 14.2 14.2"></path>
+                  </svg>
+                </button>
+              </div>
+              <p *ngIf="!sessions.length" class="text-xs text-muted-foreground">{{ 'security.noSessions' | t }}</p>
+            </div>
+            <p *ngIf="!sessionsChargement && !sessionsErreur && sessions.length" class="text-xs text-muted-foreground">
+              {{ 'security.revokeHint' | t }}
             </p>
           </div>
         </section>

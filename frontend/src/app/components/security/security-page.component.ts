@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService, TwoFactorStatus, LoginActivityItem } from '../../services/auth.service';
+import { AuthService, TwoFactorStatus, LoginActivityItem, SessionInfo } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-settings.component';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -47,8 +47,11 @@ export class SecurityPageComponent implements OnInit {
   sessionIatActuel: number | null = null;
   readonly activiteParPage = 6;
 
-  /** Navigateur/appareil courant, dérivé localement du user-agent (sans API). */
-  readonly currentDevice: string;
+  // --- Appareils connectés (A5.2 Fix 14 : révocation à distance) ------------
+  sessions: SessionInfo[] = [];
+  sessionsChargement = true;
+  sessionsErreur: string | null = null;
+  revokingFamily: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -56,12 +59,7 @@ export class SecurityPageComponent implements OnInit {
     private toast: ToastService,
     private router: Router,
     private i18n: I18nService
-  ) {
-    const ua = navigator.userAgent;
-    const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
-    const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
-    this.currentDevice = `${browser}${os ? ' · ' + os : ''}`;
-  }
+  ) {}
 
   /** Principal CLIENT (accès portail) : pas de 2FA interne — seuls le mot
    *  de passe et le journal d'activité s'appliquent à son compte. */
@@ -89,6 +87,54 @@ export class SecurityPageComponent implements OnInit {
       error: () => (this.twoFactorStatus = null),
     });
     this.chargerActivite(1);
+    this.chargerSessions();
+  }
+
+  /** Sessions actives du compte (la courante est marquée côté serveur). */
+  chargerSessions(): void {
+    this.sessionsChargement = true;
+    this.sessionsErreur = null;
+    this.auth.listSessions().subscribe({
+      next: (res) => {
+        this.sessions = res.sessions || [];
+        this.sessionsChargement = false;
+      },
+      error: (err) => {
+        this.sessionsErreur = apiErrorMessage(this.i18n, err, 'security.sessionsError');
+        this.sessionsChargement = false;
+      },
+    });
+  }
+
+  /** Libellé lisible d'une session à partir de son user-agent. */
+  deviceLabel(s: SessionInfo): string {
+    const ua = s.userAgent || '';
+    const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
+    const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
+    return `${browser}${os ? ' · ' + os : ''}`;
+  }
+
+  /** Révoque une session : effet serveur immédiat (le JWT lié est rejeté). */
+  revoquerSession(s: SessionInfo): void {
+    if (this.revokingFamily) return;
+    this.revokingFamily = s.familyId;
+    this.auth.revokeSession(s.familyId).subscribe({
+      next: (res) => {
+        this.revokingFamily = null;
+        if (res.current) {
+          // Session courante révoquée : purge locale + retour au login.
+          this.auth.logout();
+          this.router.navigate(['/login']);
+          return;
+        }
+        this.toast.success(this.i18n.t('security.sessionRevoked'));
+        this.chargerSessions();
+      },
+      error: (err) => {
+        this.revokingFamily = null;
+        this.toast.error(apiErrorMessage(this.i18n, err, 'security.sessionRevokeError'));
+      },
+    });
   }
 
   /** Charge une page du journal d'activité (soi-même uniquement côté serveur). */
