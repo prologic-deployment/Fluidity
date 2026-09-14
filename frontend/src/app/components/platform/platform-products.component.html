@@ -20,7 +20,7 @@
     <div class="card-content p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
       <label class="block">
         <span class="text-xs font-medium">{{ 'platform.products.key' | t }}</span>
-        <input class="input mt-1 font-mono" [(ngModel)]="form.key" placeholder="my_product" />
+        <input class="input mt-1 font-mono" [(ngModel)]="form.key" placeholder="{{ 'platform.products.keyPh' | t }}" />
       </label>
       <label class="block">
         <span class="text-xs font-medium">{{ 'platform.products.name' | t }}</span>
@@ -63,17 +63,17 @@
       </div>
       <label class="block">
         <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}</span>
-        <textarea class="textarea mt-1 font-mono text-xs" rows="4" [(ngModel)]="form.permissions" placeholder="my_product.read&#10;my_product.write&#10;my_product.admin"></textarea>
+        <textarea class="textarea mt-1 font-mono text-xs" rows="4" [(ngModel)]="form.permissions" placeholder="{{ 'platform.products.permissionsPh' | t }}"></textarea>
       </label>
       <div>
         <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}</p>
         <div *ngFor="let r of form.roles; let i = index" class="flex gap-1 mb-1">
-          <input class="input font-mono text-xs" [(ngModel)]="r.key" placeholder="my_admin" />
-          <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleName' | t }}" />
+          <input class="input font-mono text-xs" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
+          <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleNamePh' | t }}" />
           <button type="button" class="btn-ghost btn-sm" (click)="removeFormRole(i)">×</button>
         </div>
         <div *ngFor="let r of form.roles; let i = index" class="mb-1">
-          <input class="input font-mono text-xs w-full" [(ngModel)]="r.permissions" placeholder="my_product.read, my_product.admin" />
+          <input class="input font-mono text-xs w-full" [(ngModel)]="r.permissions" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}" />
         </div>
         <button type="button" class="btn-ghost btn-sm mt-1" (click)="addFormRole()">+ {{ 'platform.products.addRole' | t }}</button>
       </div>
@@ -141,8 +141,8 @@
             <div>
               <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}</p>
               <div *ngFor="let plan of configPlans; let i = index" class="grid grid-cols-2 sm:grid-cols-5 gap-1 mb-1">
-                <input class="input font-mono text-xs" [(ngModel)]="plan.id" placeholder="starter" />
-                <input class="input text-xs" [(ngModel)]="plan.name" placeholder="{{ 'platform.products.name' | t }}" />
+                <input class="input font-mono text-xs" [(ngModel)]="plan.id" placeholder="{{ 'platform.products.planIdPh' | t }}" />
+                <input class="input text-xs" [(ngModel)]="plan.name" placeholder="{{ 'platform.products.planNamePh' | t }}" />
                 <input type="number" min="0" class="input text-xs" [(ngModel)]="plan.pricePerSeatMonthly" />
                 <input type="number" min="0" class="input text-xs" [(ngModel)]="plan.pricePerSeatAnnual" />
                 <button type="button" class="btn-ghost btn-sm" (click)="removeConfigPlan(i)">×</button>

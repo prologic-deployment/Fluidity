@@ -118,7 +118,7 @@
             <button type="button" class="btn-ghost btn-sm text-muted-foreground" (click)="moveWf(i, -1)" [disabled]="!canManage || i === 0">↑</button>
             <button type="button" class="btn-ghost btn-sm text-muted-foreground" (click)="moveWf(i, 1)" [disabled]="!canManage || i === wfStates.length - 1">↓</button>
             <input *ngIf="canManage" type="text" [(ngModel)]="s.label" class="input !py-1 text-sm flex-1" placeholder="{{ 'projects.settings.wfLabelPh' | t }}" />
-            <input *ngIf="canManage" type="text" [(ngModel)]="s.key" class="input !py-1 text-sm w-28 font-mono" placeholder="key" />
+            <input *ngIf="canManage" type="text" [(ngModel)]="s.key" class="input !py-1 text-sm w-28 font-mono" placeholder="{{ 'projects.settings.wfKeyPh' | t }}" />
             <span *ngIf="!canManage" class="text-sm flex-1">{{ s.label || s.key }}</span>
             <label class="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
               <input type="checkbox" [(ngModel)]="s.terminal" [disabled]="!canManage" class="checkbox" />
