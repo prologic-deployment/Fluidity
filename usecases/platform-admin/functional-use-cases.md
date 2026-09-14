@@ -4,13 +4,8 @@
 |---|---|---|---|
 | UC-PA-001 | View platform dashboard (KPIs, pending, activity) | GET /api/platform/dashboard | IMPLEMENTED |
 | UC-PA-002 | List / view / create / update tenants | GET\|POST /api/tenants*, PATCH /api/tenants/:id | IMPLEMENTED |
-<<<<<<< HEAD
-| UC-PA-003 | Suspend / activate tenant (cuts all tenant access) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
-| UC-PA-004 | Archive / restore tenant (no hard delete) | PATCH /api/tenants/:id (status=archived/active) | IMPLEMENTED |
-=======
 | UC-PA-003 | Suspend / activate tenant (reversible cascade archive + session kill) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
 | UC-PA-004 | Archive tenant + all content (no hard delete, Super Admin keeps visibility) | DELETE /api/tenants/:id | IMPLEMENTED |
->>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
 | UC-PA-005 | Impersonate tenant (x-tenant-override; audit+support) | header on any API; UI switcher in sidebar | IMPLEMENTED |
 | UC-PA-006 | Create platform product (draft) | POST /api/platform/products | IMPLEMENTED |
 | UC-PA-007 | Configure product (plans/roles/permissions) | PATCH /api/platform/products/:key/configure | IMPLEMENTED |
@@ -200,11 +195,7 @@ IMPLEMENTED
 
 ---
 
-<<<<<<< HEAD
-## UC-PA-004 — Archive / restore tenant (hard delete removed, A5.1)
-=======
 ## UC-PA-004 — Delete tenant (= long-term archive, A5.2 Fix 3)
->>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
 
 ### Actor
 PLATFORM_ADMIN

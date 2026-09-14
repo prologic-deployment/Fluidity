@@ -198,34 +198,6 @@
           </button>
         </div>
 
-<<<<<<< HEAD
-        <!-- Désactivation : preuve requise -->
-        <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()"
-          class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-          <p class="text-sm font-medium">{{ 'twofa.confirmDisableTitle' | t }}</p>
-          <p class="text-xs text-muted-foreground">
-            {{ 'twofa.confirmDisableHint' | t }}
-          </p>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="field-label">{{ 'twofa.accountPassword' | t }} <span class="text-destructive">*</span></label>
-              <input type="password" formControlName="password" class="input" autocomplete="current-password" [attr.placeholder]="'twofa.passwordPh' | t" />
-            </div>
-            <div>
-              <label class="field-label">{{ 'twofa.andAuthCode' | t }} <span class="text-destructive">*</span></label>
-              <input type="text" formControlName="code" class="input tracking-[0.2em] font-mono"
-                [attr.placeholder]="'twofa.codeOrBackup' | t" maxlength="9" />
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <button type="submit" [disabled]="disabling" class="btn-primary">
-              {{ disabling ? ('twofa.disabling' | t) : ('twofa.confirmDisableBtn' | t) }}
-            </button>
-            <button type="button" (click)="cancelDisable()" [disabled]="disabling" class="btn-outline">{{ 'common.cancel' | t }}</button>
-          </div>
-        </form>
-=======
->>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
       </div>
 
     </ng-container>

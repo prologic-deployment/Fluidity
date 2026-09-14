@@ -26,16 +26,9 @@
           </li>
         </ul>
         <div class="flex items-center gap-2 mt-4">
-<<<<<<< HEAD
-          <a *ngIf="isAvailable(p) && isSubscribed(p)" [routerLink]="['/abonnements']" class="btn-outline btn-sm">{{ 'subscriptions.catalog.activeManage' | t }}</a>
-          <a *ngIf="isAvailable(p) && !isSubscribed(p) && isPending(p)" [routerLink]="['/abonnements/commandes']" class="btn-outline btn-sm">{{ 'subscriptions.catalog.pendingLabel' | t }}</a>
-          <a *ngIf="isAvailable(p) && !isSubscribed(p) && !isPending(p)" [routerLink]="['/abonnements/produits', p.key]" class="btn-primary btn-sm">{{ 'subscriptions.catalog.subscribe' | t }}</a>
-          <button *ngIf="!isAvailable(p)" type="button" class="btn-ghost btn-sm" disabled>{{ 'subscriptions.meta.comingSoon' | t }}</button>
-=======
           <a *ngIf="!isOwned(p) && isAvailable(p)" [routerLink]="['/abonnements/produits', p.key]" class="btn-primary btn-sm">{{ 'subscriptions.catalog.subscribe' | t }}</a>
           <a *ngIf="isOwned(p)" routerLink="/abonnements" class="btn-outline btn-sm">{{ 'subscriptions.catalog.manage' | t }}</a>
           <button *ngIf="!isOwned(p) && !isAvailable(p)" type="button" class="btn-ghost btn-sm" disabled>{{ 'subscriptions.meta.comingSoon' | t }}</button>
->>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
           <span class="text-sm text-muted-foreground ml-auto tabular-nums">{{ 'subscriptions.catalog.from' | t }} {{ p.plans[0].pricePerSeatMonthly }} €/{{ 'subscriptions.meta.month' | t }}</span>
         </div>
       </div>

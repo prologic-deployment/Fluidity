@@ -60,7 +60,6 @@
         </tr>
       </thead>
       <tbody>
-<<<<<<< HEAD
         <ng-container *ngFor="let g of grouped()">
         <tr class="bg-muted/40">
           <td colspan="8" class="!py-2">
@@ -74,12 +73,6 @@
           <td class="font-medium">{{ s.tenantName || '—' }}</td>
           <td class="text-sm"><span class="mr-1">{{ s.productEmoji }}</span>{{ rowProductLabel(s.productNameKey, s.productName, s.productKey) }}</td>
           <td class="text-sm">{{ planLabel(s.planId) }}</td>
-=======
-        <tr *ngFor="let s of filtered()">
-          <td class="font-medium"><a class="text-primary hover:underline" [routerLink]="['/plateforme/licences-roles/tenant', s.tenantId]">{{ s.tenantName || '—' }}</a></td>
-          <td class="text-sm">{{ s.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + s.productKey + '.name' | t) }}</td>
-          <td class="text-sm">{{ 'subscriptions.meta.plan.' + s.planId | t }}</td>
->>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
           <td><span class="badge" [ngClass]="statusBadge(s.status)">{{ 'subscriptions.meta.status.' + s.status | t }}</span></td>
           <td class="hidden md:table-cell tabular-nums">
             {{ s.usage?.used || 0 }} / {{ s.usage?.seats || s.seats }}
