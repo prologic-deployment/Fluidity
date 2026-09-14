@@ -78,6 +78,8 @@ const BILLING_PERIODS = ['monthly', 'annual'];
 const SubscriptionSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     productKey: { type: String, required: true, trim: true },
     planId: { type: String, required: true, trim: true },
@@ -115,6 +117,8 @@ const LICENSE_STATUSES = ['active', 'revoked', 'suspended'];
 const LicenseAssignmentSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     productKey: { type: String, required: true, trim: true },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
@@ -141,6 +145,8 @@ const LicenseAssignment = mongoose.model('LicenseAssignment', LicenseAssignmentS
 const RoleAssignmentSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
     productKey: { type: String, default: '' },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
@@ -192,6 +198,8 @@ const NotificationSchema = new Schema(
     // Nullable : les notifications PLATEFORME (Super Admin, hors tenant)
     // n'ont pas de tenant — elles ne doivent jamais être perdues.
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', default: null },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null },
     productKey: { type: String, default: '' },
@@ -243,6 +251,8 @@ function normalizeOrderStatus(status) {
 const OrderSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     productKey: { type: String, required: true, trim: true },

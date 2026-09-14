@@ -43,6 +43,8 @@ const TenantSchema = new Schema(
     renouvellementLe: { type: Date },
 
     status: { type: String, enum: TENANT_STATUTS, default: 'active' },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     timezone: { type: String, default: 'Africa/Tunis' },
     language: { type: String, default: 'fr' },
 

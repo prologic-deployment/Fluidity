@@ -4,6 +4,8 @@ const { Schema } = mongoose;
 const TicketCommentSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     ticketId: { type: Schema.Types.ObjectId, ref: 'Ticket', required: true },
     visibilite: { type: String, enum: ['public', 'interne'], required: true },
     corps: { type: String, required: true, trim: true, maxlength: 8000 },

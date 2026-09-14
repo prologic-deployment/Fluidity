@@ -294,6 +294,9 @@
   .alert-success {
     @apply rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success;
   }
+  .alert-warning {
+    @apply rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning;
+  }
 
   /* ---------- Badges ---------- */
   .badge {

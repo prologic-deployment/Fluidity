@@ -28,6 +28,8 @@ const DiagnosticSchema = new Schema(
 const TicketSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     contrat: { type: Schema.Types.ObjectId, ref: 'Contrat', required: true },
     createdBy: { type: Schema.Types.ObjectId, refPath: 'createdByModel', required: true },

@@ -4,8 +4,8 @@
 |---|---|---|---|
 | UC-PA-001 | View platform dashboard (KPIs, pending, activity) | GET /api/platform/dashboard | IMPLEMENTED |
 | UC-PA-002 | List / view / create / update tenants | GET\|POST /api/tenants*, PATCH /api/tenants/:id | IMPLEMENTED |
-| UC-PA-003 | Suspend / activate tenant (cuts all tenant access) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
-| UC-PA-004 | Delete tenant | DELETE /api/tenants/:id | IMPLEMENTED |
+| UC-PA-003 | Suspend / activate tenant (reversible cascade archive + session kill) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
+| UC-PA-004 | Archive tenant + all content (no hard delete, Super Admin keeps visibility) | DELETE /api/tenants/:id | IMPLEMENTED |
 | UC-PA-005 | Impersonate tenant (x-tenant-override; audit+support) | header on any API; UI switcher in sidebar | IMPLEMENTED |
 | UC-PA-006 | Create platform product (draft) | POST /api/platform/products | IMPLEMENTED |
 | UC-PA-007 | Configure product (plans/roles/permissions) | PATCH /api/platform/products/:key/configure | IMPLEMENTED |
@@ -138,7 +138,7 @@ IMPLEMENTED
 
 ---
 
-## UC-PA-003 — Suspend / activate tenant (cuts all tenant access)
+## UC-PA-003 — Suspend / activate tenant (reversible cascade archive)
 
 ### Actor
 PLATFORM_ADMIN
@@ -157,11 +157,11 @@ Platform
 1. User opens /plateforme/tenants
 2. Frontend calls PATCH /api/tenants/:id/suspend|activate
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
-4. Controller executes with global scope; tenant checks bypassed by design
-5. Audit written; affected tenant admin/user notified where applicable
+4. Suspend : tenant → `suspended` + `archivedAt` en cascade sur tout le contenu (utilisateurs, clients, souscriptions, licences, documents, projets…), sessions révoquées (tokenVersion++ + refresh tokens supprimés). Activate : `archivedAt` levé (statuts individuels intacts).
+5. Audit written (`tenant.suspended` / `tenant.reactivated`); Super Admin keeps full visibility of archived content (lists + inspection).
 
 ### Postconditions
-- Platform state changed, audited.
+- Suspended tenant archived (reversible), audited.
 
 ### Permissions
 - requirePlatformAdmin (backend) + platformGuard (frontend)
@@ -195,7 +195,7 @@ IMPLEMENTED
 
 ---
 
-## UC-PA-004 — Delete tenant
+## UC-PA-004 — Delete tenant (= long-term archive, A5.2 Fix 3)
 
 ### Actor
 PLATFORM_ADMIN
@@ -214,11 +214,11 @@ Platform
 1. User opens /plateforme/tenants
 2. Frontend calls DELETE /api/tenants/:id
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
-4. Controller executes with global scope; tenant checks bypassed by design
-5. Audit written; affected tenant admin/user notified where applicable
+4. Controller archives (NO hard delete) : tenant → `terminated` + `archivedAt` en cascade sur tout le contenu, sessions révoquées.
+5. Audit written (`tenant.archived`); archived tenant + content remain viewable by Super Admin (not reversible from the UI).
 
 ### Postconditions
-- Platform state changed, audited.
+- Tenant archived with all content preserved and viewable, audited.
 
 ### Permissions
 - requirePlatformAdmin (backend) + platformGuard (frontend)

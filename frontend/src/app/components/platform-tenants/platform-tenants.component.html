@@ -30,6 +30,10 @@
         <p class="text-xs text-muted-foreground">{{ 'tenants.suspendedCount' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.tenants?.terminated ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.archivedCount' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.users ?? '—' }}</p>
         <p class="text-xs text-muted-foreground">{{ 'tenants.users' | t }}</p>
       </div></div>
@@ -60,6 +64,7 @@
         <option value="">{{ 'tenants.allStatuses' | t }}</option>
         <option value="active">{{ 'tenants.active' | t }}</option>
         <option value="suspended">{{ 'tenants.suspended' | t }}</option>
+        <option value="terminated">{{ 'tenants.archived' | t }}</option>
       </select>
       <select [(ngModel)]="planFiltre" class="filter-select">
         <option value="">{{ 'tenants.allPlans' | t }}</option>
@@ -302,6 +307,9 @@
 <!-- Inspection administrative d'un tenant -->
 <app-modal [open]="!!detail" [title]="detail?.name || ''" (closed)="detail = null">
   <div class="p-4 space-y-3" *ngIf="detail">
+    <p *ngIf="detail.status !== 'active'" class="alert-warning text-sm">{{ 'tenants.archivedBanner' | t }}
+      <span *ngIf="detail.archivedAt">({{ 'tenants.archivedOn' | t }} {{ detail.archivedAt | dateLocale:'short' }})</span>
+    </p>
     <p *ngIf="detailLoading" class="text-sm text-muted-foreground">{{ 'common.loading' | t }}</p>
     <ng-container *ngIf="!detailLoading">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">

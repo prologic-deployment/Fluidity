@@ -287,15 +287,25 @@ export class PlatformTenantsComponent implements OnInit {
   async supprimer(t: Tenant): Promise<void> {
     if (!t._id) return;
     const ok = await this.confirmDialog.confirm({
-      title: `Supprimer le tenant « ${t.name} » ?`,
+      title: this.i18n.t('tenants.deleteTitle', { name: t.name }),
       message: this.i18n.t('tenants.deleteMessage'),
-      confirmLabel: 'Supprimer',
+      confirmLabel: this.i18n.t('tenants.delete'),
       variant: 'destructive',
     });
     if (!ok) return;
     this.tenantService.delete(t._id).subscribe({
-      next: () => this.load(),
-      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.deleteError')),
+      next: (r) => {
+        // A5.2 Fix 3 : la suppression est un archivage — le tenant reste
+        // visible avec son contenu (appliquer la réponse, comme Fix 2).
+        const fresh = (r as { tenant?: Tenant })?.tenant || null;
+        if (fresh && fresh._id) {
+          const idx = this.tenants.findIndex((x) => String(x._id) === String(fresh._id));
+          if (idx >= 0) this.tenants[idx] = { ...this.tenants[idx], ...fresh };
+        }
+        this.toast.success(this.i18n.t('tenants.deletedOk', { name: t.name }));
+        this.tenantService.getPlatformStats().subscribe({ next: (s) => (this.stats = s), error: () => {} });
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'tenants.deleteError')),
     });
   }
 
@@ -312,6 +322,8 @@ export class PlatformTenantsComponent implements OnInit {
         return 'badge-success';
       case 'suspended':
         return 'badge-warning';
+      case 'terminated':
+        return 'badge-secondary';
       default:
         return 'badge-destructive';
     }
@@ -320,11 +332,13 @@ export class PlatformTenantsComponent implements OnInit {
   statutLabel(statut?: string): string {
     switch (statut) {
       case 'active':
-        return 'Actif';
+        return this.i18n.t('tenants.active');
       case 'suspended':
-        return 'Suspendu';
+        return this.i18n.t('tenants.suspended');
+      case 'terminated':
+        return this.i18n.t('tenants.archived');
       default:
-        return 'Résilié';
+        return String(statut || '');
     }
   }
 }

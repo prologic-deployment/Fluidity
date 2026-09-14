@@ -129,6 +129,8 @@ const SpecificationsSchema = new Schema(
 const ChangementSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     // Compte utilisateur (CLIENT) qui a soumis le changement — normalisation ObjectId
     // Principal demandeur — Client (accès portail) ; 'Utilisateur' pour les
     // enregistrements historiques (populate dynamique via requesterModel).
