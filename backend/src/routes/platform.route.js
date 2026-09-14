@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const os = require('os');
 const {
   Product,
   Subscription,
@@ -21,6 +22,11 @@ const { getPaymentProvider } = require('../services/payment');
 const { audit, notify } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
 const { Utilisateur } = require('../models/user.model');
+const { RefreshToken } = require('../models/refresh-token.model');
+// A5.2 Fix 11 : constantes réelles affichées dans Réglages & santé (pas de doublons magiques).
+const { TTL_DAYS: REFRESH_TTL_DAYS } = require('../services/session.service');
+const { LONGUEUR_MIN: PASSWORD_MIN_LENGTH } = require('../utils/password.util');
+const { LOCK_MAX_ATTEMPTS, LOCK_MINUTES } = require('../controllers/auth.controller');
 const { Tenant } = require('../models/tenant.model');
 const { Client } = require('../models/client.model');
 const logger = require('../utils/logger.util');
@@ -28,6 +34,7 @@ const logger = require('../utils/logger.util');
 // ARCH-001 (audit) : helpers partagés extraits (platform-helpers.service.js).
 const {
   hydrateClientUsers,
+  hydrateAuditActors,
   notifyPlatformAdmins,
   ensureProductsSynced,
   resyncProducts,
@@ -179,6 +186,12 @@ router.post('/subscriptions', authMiddleware, requirePlatformAdmin, async (req, 
   const { tenantId, productKey, planId, billingPeriod, seats, status, startDate, endDate, pricePerSeat } = req.body;
   if (!mongoose.isValidObjectId(tenantId) || !(await resolveProductDefinition(productKey))) {
     res.status(400).json({ message: 'Paramètres invalides' });
+    return;
+  }
+  // A5.2 Fix 7 : un produit NON disponible ne peut recevoir NI souscription
+  // vivante NI licence (même en provisionnement direct Super Admin).
+  if (!['cancelled', 'expired'].includes(status || 'active') && !(await effectiveAvailability(productKey))) {
+    res.status(409).json({ code: 'PRODUCT_NOT_AVAILABLE', message: 'Ce produit n’est pas disponible : souscription impossible.' });
     return;
   }
   const product = await Product.findOne({ key: productKey });
@@ -636,10 +649,10 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
       res.status(404).json({ message: 'Souscription introuvable pour cet espace.' });
       return;
     }
-    // A5.1 : des sièges ne s'ajoutent qu'à une souscription EN COURS
-    // (une souscription expirée se renouvelle, elle ne s'étend pas).
-    if (!['trial', 'active', 'past_due'].includes(sub.status)) {
-      res.status(409).json({ message: 'Des sièges ne peuvent être ajoutés qu’à une souscription en cours.' });
+    // A5.2 Fix 1 : pas d'extension de sièges sur une souscription expirée —
+    // le tenant doit d'abord la renouveler (nouvelle demande de souscription).
+    if (sub.status === 'expired') {
+      res.status(409).json({ code: 'SUBSCRIPTION_EXPIRED', message: 'Cette souscription est expirée : renouvelez-la avant de demander des sièges supplémentaires.' });
       return;
     }
     const extra = Math.max(1, Math.min(1000, parseInt(seats, 10) || 1));
@@ -952,20 +965,10 @@ router.get('/audit', authMiddleware, async (req, res) => {
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(limit)
-    .populate('userId', 'email firstName lastName')
     .lean();
-  // A5.1 : nom du tenant concerné (le journal reste lisible en portée globale).
-  const auditTenantIds = [...new Set(items.map((a) => String(a.tenantId || '')).filter(Boolean))];
-  const auditTenants = auditTenantIds.length
-    ? await Tenant.find({ _id: { $in: auditTenantIds } }).select('name').lean()
-    : [];
-  const auditTenantById = new Map(auditTenants.map((t) => [String(t._id), t.name]));
-  res.json({
-    items: items.map((a) => ({ ...a, tenantName: auditTenantById.get(String(a.tenantId || '')) || '' })),
-    total,
-    page,
-    pages: Math.max(1, Math.ceil(total / limit)),
-  });
+  // A5.2 Fix 6 : populate('userId') inopérant (pas de ref) → hydratation manuelle.
+  await hydrateAuditActors(items);
+  res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
 });
 
 router.get('/notifications', authMiddleware, async (req, res) => {
@@ -1049,9 +1052,8 @@ router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) 
       .sort({ endDate: 1 })
       .limit(5)
       .lean(),
-    AuditLog.find({}).sort({ createdAt: -1 }).limit(12).populate('userId', 'email firstName lastName').lean(),
-    // A5.1 : « mis à jour récemment » — tri sur updatedAt (pas createdAt).
-    Tenant.find({}).sort({ updatedAt: -1 }).limit(4).select('name status createdAt updatedAt').lean(),
+    AuditLog.find({}).sort({ createdAt: -1 }).limit(12).lean(),
+    Tenant.find({}).sort({ createdAt: -1 }).limit(4).select('name status createdAt').lean(),
     Order.find({ status: { $in: ['pending_approval', 'pending'] } })
       .sort({ createdAt: -1 })
       .limit(5)
@@ -1105,6 +1107,9 @@ router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) 
     licenses: licsParTenant.get(String(t._id)) || 0,
     createdAt: t.createdAt,
   }));
+
+  // A5.2 Fix 6 : acteur réel des entrées d'activité (jamais « — » par défaut technique).
+  await hydrateAuditActors(recentAudit);
 
   const tenantIds = [...new Set(pendingOrders.map((o) => String(o.tenantId)))];
   const tenantNames = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
@@ -1212,6 +1217,8 @@ router.patch('/products/:key', authMiddleware, requirePlatformAdmin, async (req,
 // ---------------------------------------------------------------------------
 
 const PRODUCT_KEY_RX = /^[a-z][a-z0-9_]{2,40}$/;
+// A5.2 Fix 8 : catégories prédéfinies (+ « other » en dernier).
+const PRODUCT_CATEGORIES = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
 
 /** Normalise et valide les plans tarifaires d'un produit plateforme. */
 function sanitizePlans(plans) {
@@ -1288,6 +1295,11 @@ router.post('/products', authMiddleware, requirePlatformAdmin, async (req, res) 
       res.status(400).json({ message: 'Rôles invalides (clés uniques, permissions déclarées au niveau produit).' });
       return;
     }
+    // A5.2 Fix 8 : catégorie fermée (registre + « other ») — jamais de texte libre.
+    if (category !== undefined && !PRODUCT_CATEGORIES.includes(String(category))) {
+      res.status(400).json({ message: 'Catégorie invalide.' });
+      return;
+    }
     const product = await Product.create({
       key,
       nameKey: '',
@@ -1341,7 +1353,13 @@ router.patch('/products/:key/configure', authMiddleware, requirePlatformAdmin, a
     if (icon !== undefined) product.icon = String(icon).slice(0, 40);
     if (emoji !== undefined) product.emoji = String(emoji).slice(0, 16);
     if (color !== undefined) product.color = String(color).slice(0, 20);
-    if (category !== undefined) product.category = String(category).slice(0, 40);
+    if (category !== undefined) {
+      if (!PRODUCT_CATEGORIES.includes(String(category))) {
+        res.status(400).json({ message: 'Catégorie invalide.' });
+        return;
+      }
+      product.category = String(category).slice(0, 40);
+    }
     if (route !== undefined) product.route = String(route).slice(0, 120);
     if (permissions !== undefined) product.permissions = sanitizePermissions(permissions);
     if (plans !== undefined) {
@@ -1494,18 +1512,56 @@ router.get('/system', authMiddleware, requirePlatformAdmin, async (req, res) => 
   try {
     const dbUp = mongoose.connection.readyState === 1;
     const smtpConfigured = !!process.env.SMTP_HOST && process.env.SMTP_HOST !== 'smtp.example.com';
-    const [tenants, users, products, subs, licenses, orders] = await Promise.all([
+    const [tenants, users, products, subs, licenses, orders, activeSessions, twoFactorUsers] = await Promise.all([
       Tenant.countDocuments({}),
       Utilisateur.countDocuments({ role: { $ne: 'PLATFORM_ADMIN' } }),
       Product.countDocuments({}),
       Subscription.countDocuments({}),
       LicenseAssignment.countDocuments({}),
       Order.countDocuments({}),
+      RefreshToken.countDocuments({ revokedAt: null, expiresAt: { $gt: new Date() } }),
+      Utilisateur.countDocuments({ twoFactorEnabled: true }),
     ]);
+    // A5.2 Fix 11 : volumétrie Mongo (zéros si indisponible — jamais bloquant).
+    let dbStats = { collections: 0, objects: 0, dataSizeMb: 0, storageSizeMb: 0 };
+    if (dbUp && mongoose.connection.db) {
+      try {
+        const st = await mongoose.connection.db.stats();
+        const toMb = (b) => Math.round((Number(b) || 0) / 1024 / 1024 * 10) / 10;
+        dbStats = {
+          collections: Number(st.collections) || 0,
+          objects: Math.round(Number(st.objects) || 0),
+          dataSizeMb: toMb(st.dataSize),
+          storageSizeMb: toMb(st.storageSize),
+        };
+      } catch { /* stats indisponibles : zéros */ }
+    }
+    const mem = process.memoryUsage();
+    const toMb1 = (b) => Math.round(b / 1024 / 1024 * 10) / 10;
     res.json({
       status: dbUp ? 'operational' : 'degraded',
       api: { up: true, version: require('../../package.json').version, node: process.version },
-      database: { up: dbUp, name: mongoose.connection.name || '' },
+      database: { up: dbUp, name: mongoose.connection.name || '', ...dbStats },
+      runtime: {
+        pid: process.pid,
+        startedAt: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+        heapUsedMb: toMb1(mem.heapUsed),
+        heapTotalMb: toMb1(mem.heapTotal),
+        rssMb: toMb1(mem.rss),
+        cpuCount: os.cpus().length,
+        load1: Math.round(os.loadavg()[0] * 100) / 100,
+      },
+      security: {
+        accessTokenTtl: process.env.JWT_EXPIRES_IN || '15m',
+        refreshTtlDays: REFRESH_TTL_DAYS,
+        lockoutAttempts: LOCK_MAX_ATTEMPTS,
+        lockoutMinutes: LOCK_MINUTES,
+        passwordMinLength: PASSWORD_MIN_LENGTH,
+        breachCheck: true,
+        twoFactorAvailable: true,
+        twoFactorUsers,
+        activeSessions,
+      },
       mailing: {
         smtpConfigured,
         host: smtpConfigured ? process.env.SMTP_HOST : '',

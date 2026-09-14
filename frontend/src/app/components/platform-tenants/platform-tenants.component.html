@@ -17,7 +17,7 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-6 py-8">
-    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
     <!-- Statistiques plateforme -->
     <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
@@ -30,7 +30,7 @@
         <p class="text-xs text-muted-foreground">{{ 'tenants.suspendedCount' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
-        <p class="text-2xl font-semibold">{{ stats?.tenants?.archived ?? '—' }}</p>
+        <p class="text-2xl font-semibold">{{ stats?.tenants?.terminated ?? '—' }}</p>
         <p class="text-xs text-muted-foreground">{{ 'tenants.archivedCount' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
@@ -64,7 +64,7 @@
         <option value="">{{ 'tenants.allStatuses' | t }}</option>
         <option value="active">{{ 'tenants.active' | t }}</option>
         <option value="suspended">{{ 'tenants.suspended' | t }}</option>
-        <option value="archived">{{ 'tenants.archived' | t }}</option>
+        <option value="terminated">{{ 'tenants.archived' | t }}</option>
       </select>
       <select [(ngModel)]="planFiltre" class="filter-select">
         <option value="">{{ 'tenants.allPlans' | t }}</option>
@@ -157,11 +157,20 @@
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                   </svg>
                 </button>
-                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? ('tenants.suspend' | t) : isArchived(t) ? ('tenants.restore' | t) : ('tenants.reactivate' | t)"
-                  class="btn-icon-sm text-muted-foreground hover:bg-warning/10 hover:text-amber-600">
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button (click)="toggleStatus(t)" [disabled]="t.status !== 'active' && t.status !== 'suspended'"
+                  [title]="t.status === 'active' ? ('tenants.suspend' | t) : ('tenants.reactivate' | t)"
+                  class="btn-icon-sm"
+                  [ngClass]="{
+                    'text-muted-foreground hover:bg-warning/10 hover:text-amber-600': t.status === 'active',
+                    'text-amber-600 hover:bg-success/10 hover:text-emerald-600': t.status === 'suspended',
+                    'opacity-30 cursor-not-allowed': t.status !== 'active' && t.status !== 'suspended'
+                  }">
+                  <svg *ngIf="t.status !== 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="6" y="4" width="4" height="16" rx="1"></rect>
                     <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                  </svg>
+                  <svg *ngIf="t.status === 'suspended'" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="6 3 20 12 6 21 6 3"></polygon>
                   </svg>
                 </button>
                 <button *ngIf="!isArchived(t)" (click)="archiver(t)" [title]="'tenants.archive' | t"
@@ -295,6 +304,9 @@
 <!-- Inspection administrative d'un tenant -->
 <app-modal [open]="!!detail" [title]="detail?.name || ''" (closed)="detail = null">
   <div class="p-4 space-y-3" *ngIf="detail">
+    <p *ngIf="detail.status !== 'active'" class="alert-warning text-sm">{{ 'tenants.archivedBanner' | t }}
+      <span *ngIf="detail.archivedAt">({{ 'tenants.archivedOn' | t }} {{ detail.archivedAt | dateLocale:'short' }})</span>
+    </p>
     <p *ngIf="detailLoading" class="text-sm text-muted-foreground">{{ 'common.loading' | t }}</p>
     <ng-container *ngIf="!detailLoading">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">

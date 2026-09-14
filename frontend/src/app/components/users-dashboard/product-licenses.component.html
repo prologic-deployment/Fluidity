@@ -15,7 +15,7 @@
   </div>
 
   <div class="card-content pt-6 space-y-6">
-    <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive">{{ error | t }}</p>
 
     <div *ngIf="!activeSubs().length" class="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
       {{ 'licenses.none' | t }}

@@ -10,6 +10,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { PROJECT_MEMBER_ROLES } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface AvailableUser {
   _id: string;
@@ -137,14 +138,14 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.team.added'));
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
   changeRole(m: ProjectMember, roleKey: string): void {
     this.api.updateMemberRole(this.projectId, this.memberId(m), roleKey).subscribe({
       next: () => this.refresh(),
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -154,7 +155,7 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.team.removed'));
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

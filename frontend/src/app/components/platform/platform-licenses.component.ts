@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { License } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /** Licence globale : siège assigné (userId peuplé) ou disponible (userId null). */
 export type PlatformLicense = License & { tenantName?: string; planId?: string };
@@ -22,7 +23,7 @@ export type PlatformLicense = License & { tenantName?: string; planId?: string }
 @Component({
   selector: 'app-platform-licenses',
   standalone: true,
-  imports: [CommonModule, FormsModule, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './platform-licenses.component.html',
 })
 export class PlatformLicensesComponent implements OnInit, OnDestroy {
@@ -30,7 +31,8 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
   error = '';
   licenses: PlatformLicense[] = [];
   tenantFilter = 'all';
-  productFilter = 'all';
+  /** A5.2 Fix 10 : produit sélectionné via les cartes (null = tous). */
+  selectedProduct: string | null = null;
   statusFilter = 'all';
   search = '';
 
@@ -50,7 +52,7 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     const qp = this.route.snapshot.queryParamMap;
     const product = qp.get('product');
     const tenant = qp.get('tenant');
-    if (product) this.productFilter = product;
+    if (product) this.selectedProduct = product;
     if (tenant) this.tenantFilter = tenant;
     this.load();
   }
@@ -82,30 +84,49 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     return [...new Set(this.licenses.map((l) => l.tenantName).filter(Boolean))].sort() as string[];
   }
 
-  get products(): string[] {
-    return [...new Set(this.licenses.map((l) => l.productKey))].sort();
+  /** Cartes produits : une par produit licencié + le produit demandé (?product=). */
+  productCards(): { key: string; licenses: number; users: number }[] {
+    const keys = new Set(this.licenses.map((l) => l.productKey));
+    if (this.selectedProduct) keys.add(this.selectedProduct);
+    return [...keys].sort().map((key) => {
+      const rows = this.licenses.filter((l) => l.productKey === key);
+      const users = new Set(rows.map((l) => (typeof l.userId === 'object' && l.userId ? String(l.userId._id) : '')));
+      users.delete('');
+      return { key, licenses: rows.length, users: users.size };
+    });
   }
 
+  selectProduct(key: string | null): void {
+    this.selectedProduct = key;
+  }
+
+  trackCard(_i: number, c: { key: string }): string {
+    return c.key;
+  }
+
+  /** Stats calculées sur la vue FILTRÉE (cohérentes avec la liste affichée). */
   get assigned(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.userId !== null && l.status === 'active');
+    return this.filtered().filter((l) => l.userId !== null && l.status === 'active');
   }
 
   get available(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.userId === null && l.status === 'active');
+    return this.filtered().filter((l) => l.userId === null && l.status === 'active');
   }
 
   get suspended(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.status === 'suspended');
+    return this.filtered().filter((l) => l.status === 'suspended');
   }
 
   get revoked(): PlatformLicense[] {
-    return this.licenses.filter((l) => l.status === 'revoked');
+    return this.filtered().filter((l) => l.status === 'revoked');
   }
+
+
 
   filtered(): PlatformLicense[] {
     return this.licenses.filter((l) => {
       if (this.tenantFilter !== 'all' && l.tenantName !== this.tenantFilter) return false;
-      if (this.productFilter !== 'all' && l.productKey !== this.productFilter) return false;
+      if (this.selectedProduct && l.productKey !== this.selectedProduct) return false;
       if (this.statusFilter !== 'all' && l.status !== this.statusFilter) return false;
       if (this.search) {
         const u = typeof l.userId === 'object' && l.userId ? l.userId : null;
@@ -190,7 +211,7 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t(next === 'active' ? 'platform.licenses.reactivated' : 'platform.licenses.suspended'));
         this.load();
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
@@ -207,7 +228,7 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('platform.licenses.revoked'));
         this.load();
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 }

@@ -22,7 +22,7 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-6 py-8">
-    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
     <!-- Cartes de synthèse -->
     <div class="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">

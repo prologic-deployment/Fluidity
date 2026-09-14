@@ -9,6 +9,8 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
+import { I18nService } from '../../i18n/i18n.service';
 
 /**
  * Liste des tâches du projet (route /projets/:id/taches) : filtres, tri et
@@ -45,7 +47,7 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private route: ActivatedRoute, private api: ProjectService, private cdr: ChangeDetectorRef) {}
+  constructor(private route: ActivatedRoute, private api: ProjectService, private cdr: ChangeDetectorRef, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.route.parent?.params
@@ -139,7 +141,7 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
           this.refresh();
         },
         error: (err) => {
-          this.error = err?.error?.message || 'projects.errors.create';
+          this.error = apiErrorMessage(this.i18n, err, 'projects.errors.create');
           this.submitting = false;
         },
       });

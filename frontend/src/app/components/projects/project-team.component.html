@@ -6,7 +6,7 @@
     </button>
   </div>
 
-  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
   <!-- Ajout de membre -->
   <div class="card mb-4" *ngIf="adding">

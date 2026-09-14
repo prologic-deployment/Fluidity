@@ -2,59 +2,43 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { Router } from '@angular/router';
 import { PlatformService } from '../../services/platform.service';
-import { UserService } from '../../services/user.service';
-import { ToastService } from '../../services/toast.service';
+import { TenantService } from '../../services/tenant.service';
 import { I18nService } from '../../i18n/i18n.service';
-import { License, RoleAssignment } from '../../models/product.model';
-import { AppUser } from '../../models/user.model';
+import { License } from '../../models/product.model';
+import { Tenant } from '../../models/tenant.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { ModalComponent } from '../shared/modal.component';
-
-interface MatrixRow {
-  tenantName: string;
-  userName: string;
-  userEmail: string;
-  productKey: string;
-  roleKey: string;
-  /** A5.1 — statut réel de la licence ('' = aucune licence). */
-  licenseStatus: string;
-  assignmentId?: string;
-}
 
 /**
- * « Licences & rôles produit » (Super Admin) — matrice GLOBALE :
- * tenant × utilisateur × produit × licence × rôle produit. Chaque rôle
- * affiche ses permissions (registre serveur). Le Super Admin peut changer
- * le rôle produit de n'importe quel utilisateur, tous tenants confondus.
+ * « Licences & rôles produit » (Super Admin) — A5.2 Fix 4/5 : hiérarchie
+ * cartes tenants → page détail (produits souscrits → utilisateurs & rôles).
+ * Le catalogue des rôles par produit (registre serveur) reste affiché ;
+ * l'édition des rôles vit sur la page détail du tenant.
  */
 @Component({
   selector: 'app-platform-licenses-roles',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, ...I18N_IMPORTS],
   templateUrl: './platform-licenses-roles.component.html',
 })
 export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
   loading = true;
   error = '';
-  rows: MatrixRow[] = [];
-  productFilter = 'all';
-  search = '';
   /** Catalogue des rôles par produit (registre serveur). */
   roleCatalog: { productKey: string; nameKey: string; roles: { key: string; nameKey: string; permissions: string[] }[] }[] = [];
   licenses: (License & { tenantName?: string })[] = [];
-  /** Édition de rôle (Super Admin global). */
-  editing: MatrixRow | null = null;
-  editRoleKey = '';
-  editBusy = false;
+  /** A5.2 Fix 4/5 : cartes tenants (hiérarchie tenant → produits → utilisateurs/rôles). */
+  tenants: Tenant[] = [];
+  tenantSearch = '';
 
   private readonly destroy$ = new Subject<void>();
 
   constructor(
     private platform: PlatformService,
-    private usersApi: UserService,
-    private toast: ToastService,
-    private i18n: I18nService
+    private tenantsApi: TenantService,
+    private i18n: I18nService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -69,13 +53,13 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
   load(): void {
     this.loading = true;
     this.error = '';
-    forkJoin([this.platform.roleCatalog(), this.platform.roleAssignments(), this.platform.licenses()])
+    forkJoin({ catalog: this.platform.roleCatalog(), licenses: this.platform.licenses(), tenants: this.tenantsApi.getAll() })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ([catalog, assignments, licenses]) => {
-          this.roleCatalog = catalog;
-          this.licenses = licenses as (License & { tenantName?: string })[];
-          this.buildRows(assignments, this.licenses);
+        next: (r) => {
+          this.roleCatalog = r.catalog;
+          this.licenses = r.licenses as (License & { tenantName?: string })[];
+          this.tenants = (r.tenants || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
           this.loading = false;
         },
         error: () => {
@@ -85,126 +69,34 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
       });
   }
 
-  private buildRows(assignments: RoleAssignment[], licenses: (License & { tenantName?: string })[]): void {
-    const rows: MatrixRow[] = [];
-    const covered = new Set<string>();
-    for (const a of assignments) {
-      const u = typeof a.userId === 'object' && a.userId ? a.userId : null;
-      if (!u) continue;
-      const lic = licenses.find((l) => l.productKey === a.productKey && l.userId && String((l.userId as { _id: string })._id) === String((a.userId as { _id: string })._id));
-      rows.push({
-        tenantName: (a as RoleAssignment & { tenantName?: string }).tenantName || lic?.tenantName || '—',
-        userName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || '—',
-        userEmail: u.email || '',
-        productKey: a.productKey,
-        roleKey: a.roleKey,
-        licenseStatus: lic?.status || '',
-        assignmentId: a._id,
-      });
-      covered.add(`${a.productKey}::${u.email || ''}`);
-    }
-    // Licences assignées SANS rôle produit explicite → rôle « — ».
-    for (const l of licenses) {
-      if (!l.userId) continue;
-      const email = (l.userId as { email?: string }).email || '';
-      if (covered.has(`${l.productKey}::${email}`)) continue;
-      rows.push({
-        tenantName: l.tenantName || '—',
-        userName: `${(l.userId as { firstName?: string }).firstName || ''} ${(l.userId as { lastName?: string }).lastName || ''}`.trim() || email || '—',
-        userEmail: email,
-        productKey: l.productKey,
-        roleKey: '',
-        licenseStatus: l.status || '',
-      });
-      covered.add(`${l.productKey}::${email}`);
-    }
-    this.rows = rows;
+
+
+  tenantCards(): Tenant[] {
+    const q = this.tenantSearch.trim().toLowerCase();
+    if (!q) return this.tenants;
+    return this.tenants.filter((t) => (t.name || '').toLowerCase().includes(q) || (t.contactEmail || '').toLowerCase().includes(q));
   }
 
-  get products(): string[] {
-    return [...new Set(this.rows.map((r) => r.productKey))].sort();
+  tenantCounts(t: Tenant): { products: number; licenses: number; users: number } {
+    const tid = String(t._id || '');
+    const lics = this.licenses.filter((l) => String(l.tenantId) === tid);
+    return {
+      products: new Set(lics.map((l) => l.productKey)).size,
+      licenses: lics.length,
+      users: new Set(lics.map((l) => (typeof l.userId === 'object' && l.userId ? String(l.userId._id) : String(l.userId || '')))).size,
+    };
   }
 
-  filtered(): MatrixRow[] {
-    return this.rows.filter((r) => {
-      if (this.productFilter !== 'all' && r.productKey !== this.productFilter) return false;
-      if (this.search) {
-        const hay = `${r.userName} ${r.userEmail} ${r.tenantName}`.toLowerCase();
-        if (!hay.includes(this.search.toLowerCase())) return false;
-      }
-      return true;
-    });
+  tenantStatusLabel(t: Tenant): string {
+    if (t.status === 'terminated') return this.i18n.t('tenants.archived');
+    return this.i18n.t(`tenants.${t.status || 'active'}`);
   }
 
-  productLabel(productKey: string): string {
-    return productKey === 'project_management' ? this.i18n.t('nav.projects') : this.i18n.t(`products.${productKey}.name`);
+  openTenant(t: Tenant): void {
+    if (t._id) this.router.navigate(['/plateforme/licences-roles/tenant', t._id]);
   }
 
-  roleLabel(productKey: string, roleKey: string): string {
-    const product = this.roleCatalog.find((c) => c.productKey === productKey);
-    const role = product?.roles.find((r) => r.key === roleKey);
-    return role ? this.i18n.t(role.nameKey) : roleKey || '—';
-  }
-
-  rolesFor(productKey: string): { key: string; nameKey: string; permissions: string[] }[] {
-    return this.roleCatalog.find((c) => c.productKey === productKey)?.roles || [];
-  }
-
-  /** A5.1 — permissions d'un rôle (registre serveur), pour l'infobulle. */
-  rolePermissions(productKey: string, roleKey: string): string[] {
-    return this.rolesFor(productKey).find((r) => r.key === roleKey)?.permissions || [];
-  }
-
-  rolePermissionsTitle(productKey: string, roleKey: string): string {
-    const perms = this.rolePermissions(productKey, roleKey);
-    return perms.length ? `${this.i18n.t('platform.rolesMatrix.permissions')} : ${perms.join(', ')}` : '';
-  }
-
-  licenseBadge(status: string): string {
-    if (status === 'active') return 'badge-success';
-    if (status === 'suspended') return 'badge-warning';
-    if (status === 'revoked') return 'badge-destructive';
-    return 'badge-outline';
-  }
-
-  startEdit(r: MatrixRow): void {
-    this.editing = r;
-    this.editRoleKey = r.roleKey;
-  }
-
-  saveEdit(): void {
-    if (!this.editing) return;
-    this.editBusy = true;
-    // Récupère l'ObjectId utilisateur via les licences (source fiable).
-    const lic = this.licenses.find((l) => l.productKey === this.editing!.productKey && l.userId && (l.userId as { email?: string }).email === this.editing!.userEmail);
-    const userId = lic ? String((lic.userId as { _id: string })._id) : '';
-    if (!userId) {
-      this.toast.error(this.i18n.t('platform.rolesMatrix.noLicense'));
-      this.editBusy = false;
-      return;
-    }
-    this.platform.assignRole({ userId, productKey: this.editing.productKey, roleKey: this.editRoleKey }).subscribe({
-      next: () => {
-        this.editBusy = false;
-        this.editing = null;
-        this.toast.success(this.i18n.t('platform.rolesMatrix.roleSaved'));
-        this.load();
-      },
-      error: (err) => {
-        this.editBusy = false;
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
-      },
-    });
-  }
-
-  removeRole(r: MatrixRow): void {
-    if (!r.assignmentId) return;
-    this.platform.unassignRole(r.assignmentId).subscribe({
-      next: () => {
-        this.toast.success(this.i18n.t('platform.rolesMatrix.roleRemoved'));
-        this.load();
-      },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save')),
-    });
+  trackTenant(_i: number, t: Tenant): string {
+    return String(t._id || t.name);
   }
 }

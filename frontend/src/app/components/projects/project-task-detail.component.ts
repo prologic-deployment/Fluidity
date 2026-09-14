@@ -15,6 +15,7 @@ import { BreadcrumbService } from '../shared/breadcrumb.service';
 import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Fiche tâche (route /projets/:id/taches/:taskId) : champs, transitions de
@@ -200,7 +201,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('projects.task.statusChanged', { to }));
         this.cdr.markForCheck();
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.board.moveDenied')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.board.moveDenied')),
     });
   }
 
@@ -228,7 +229,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.saving = false;
-          this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
         },
       });
   }
@@ -260,7 +261,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
         this.task = { ...this.task!, checklist: r.checklist };
         this.cdr.markForCheck();
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -281,7 +282,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
           this.newSubtask = '';
           this.reload();
         },
-        error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+        error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
       });
   }
 
@@ -300,7 +301,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
           this.toast.success(this.i18n.t('projects.task.depAdded'));
           this.cdr.markForCheck();
         },
-        error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.task.depDenied')),
+        error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.task.depDenied')),
       });
   }
 
@@ -315,7 +316,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
           this.task = { ...this.task!, dependencies: r.task.dependencies };
           this.cdr.markForCheck();
         },
-        error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+        error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
       });
   }
 
@@ -334,7 +335,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       next: (r) => {
         this.watching = r.watching;
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -363,7 +364,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   deleteComment(id: string): void {
     this.api.deleteComment(this.projectId, id).subscribe({
       next: () => this.reloadComments(),
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -420,11 +421,11 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
                 remaining -= 1;
                 if (remaining <= 0) this.reload();
               },
-              error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+              error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
             });
         }
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.upload')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.upload')),
     });
     input.value = '';
   }

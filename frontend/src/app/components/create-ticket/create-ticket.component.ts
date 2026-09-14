@@ -175,7 +175,7 @@ export class CreateTicketComponent implements OnInit {
           }
         }
       },
-      error: () => (this.error = 'Impossible de charger le ticket.'),
+      error: () => (this.error = this.i18n.t('tickets.loadError')),
     });
   }
 

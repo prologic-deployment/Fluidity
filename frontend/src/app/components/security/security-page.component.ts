@@ -2,8 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService, TwoFactorStatus, LoginActivityItem, UserSession } from '../../services/auth.service';
-import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { AuthService, TwoFactorStatus, LoginActivityItem, SessionInfo } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-settings.component';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -48,33 +47,20 @@ export class SecurityPageComponent implements OnInit {
   sessionIatActuel: number | null = null;
   readonly activiteParPage = 6;
 
-  /** Navigateur/appareil courant, dérivé localement du user-agent (sans API). */
-  readonly currentDevice: string;
-
-  // --- Sessions actives multi-appareils (GET /api/auth/sessions) ------------
-  sessions: UserSession[] = [];
+  // --- Appareils connectés (A5.2 Fix 14 : révocation à distance) ------------
+  sessions: SessionInfo[] = [];
   sessionsChargement = true;
   sessionsErreur: string | null = null;
   revokingFamily: string | null = null;
+
 
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
     private toast: ToastService,
     private router: Router,
-    private i18n: I18nService,
-    private confirmDialog: ConfirmDialogService
-  ) {
-    this.currentDevice = this.deviceLabel(typeof navigator !== 'undefined' ? navigator.userAgent : '');
-  }
-
-  /** Libellé « Navigateur · OS » depuis un user-agent (liste + session courante). */
-  deviceLabel(ua: string): string {
-    if (!ua) return this.i18n.t('security.sessions.unknownDevice');
-    const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
-    const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
-    return `${browser}${browser && os ? ' · ' : ''}${os}` || this.i18n.t('security.sessions.unknownDevice');
-  }
+    private i18n: I18nService
+  ) {}
 
   /** Principal CLIENT (accès portail) : pas de 2FA interne — seuls le mot
    *  de passe et le journal d'activité s'appliquent à son compte. */
@@ -105,47 +91,49 @@ export class SecurityPageComponent implements OnInit {
     this.chargerSessions();
   }
 
-  /** Sessions actives du compte (multi-appareils, révocables à distance). */
+  /** Sessions actives du compte (la courante est marquée côté serveur). */
   chargerSessions(): void {
     this.sessionsChargement = true;
     this.sessionsErreur = null;
-    this.auth.sessions().subscribe({
+    this.auth.listSessions().subscribe({
       next: (res) => {
         this.sessions = res.sessions || [];
         this.sessionsChargement = false;
       },
       error: (err) => {
-        this.sessions = [];
-        this.sessionsErreur = apiErrorMessage(this.i18n, err, 'security.sessions.loadError');
+        this.sessionsErreur = apiErrorMessage(this.i18n, err, 'security.sessionsError');
         this.sessionsChargement = false;
       },
     });
   }
 
-  /** Sessions autres que la courante (seules révocables). */
-  get otherSessions(): UserSession[] {
-    return this.sessions.filter((s) => !s.current);
+  /** Libellé lisible d'une session à partir de son user-agent. */
+  deviceLabel(s: SessionInfo): string {
+    const ua = s.userAgent || '';
+    const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
+    const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
+    return `${browser}${os ? ' · ' + os : ''}`;
   }
 
-  /** Révocation à distance d'une session (un appareil), après confirmation. */
-  async revoquerSession(s: UserSession): Promise<void> {
-    const ok = await this.confirmDialog.confirm({
-      title: this.i18n.t('security.sessions.revokeTitle'),
-      message: `${this.deviceLabel(s.userAgent)} — ${this.i18n.t('security.sessions.revokeMessage')}`,
-      confirmLabel: this.i18n.t('security.sessions.revoke'),
-      variant: 'destructive',
-    });
-    if (!ok) return;
+  /** Révoque une session : effet serveur immédiat (le JWT lié est rejeté). */
+  revoquerSession(s: SessionInfo): void {
+    if (this.revokingFamily) return;
     this.revokingFamily = s.familyId;
     this.auth.revokeSession(s.familyId).subscribe({
-      next: () => {
+      next: (res) => {
         this.revokingFamily = null;
-        this.toast.success(this.i18n.t('security.sessions.revoked'));
+        if (res.current) {
+          // Session courante révoquée : purge locale + retour au login.
+          this.auth.logout();
+          this.router.navigate(['/login']);
+          return;
+        }
+        this.toast.success(this.i18n.t('security.sessionRevoked'));
         this.chargerSessions();
       },
       error: (err) => {
         this.revokingFamily = null;
-        this.toast.error(apiErrorMessage(this.i18n, err, 'security.sessions.revokeError'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'security.sessionRevokeError'));
       },
     });
   }

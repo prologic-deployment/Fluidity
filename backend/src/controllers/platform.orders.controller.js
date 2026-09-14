@@ -153,12 +153,14 @@ const approveOrder = async (req, res) => {
     // 2. Sièges supplémentaires : extension d'une souscription existante.
     if (order.orderType === 'seat_expansion') {
       sub = await Subscription.findOne({ _id: order.subscriptionId, tenantId: order.tenantId });
-      if (!sub || sub.status === 'cancelled') {
+      // A5.2 Fix 1 : une extension de sièges exige une souscription vivante
+      // (ni annulée, ni expirée depuis la demande — sinon renouvellement requis).
+      if (!sub || sub.status === 'cancelled' || sub.status === 'expired') {
         // Précondition manquante APRÈS la réclamation : on rend la main
         // (retour à l'état d'attente) plutôt que de laisser une commande
         // « completed » sans effet.
         await Order.updateOne({ _id: claimed._id }, { $set: { status: 'pending_approval', reviewedBy: null, reviewedAt: null } });
-        res.status(409).json({ message: 'Souscription introuvable pour cette demande de sièges.' });
+        res.status(409).json({ message: 'Souscription introuvable, expirée ou annulée pour cette demande de sièges.' });
         return;
       }
       sub.seats += order.seats;

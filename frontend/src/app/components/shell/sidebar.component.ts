@@ -29,6 +29,7 @@ interface SidebarGroup {
   label: string;
   icon: string; // simple inline-svg key, resolved in template
   children?: SidebarChild[];
+  /** A5.2 Fix 17 : les menus démarrent FERMÉS (l'utilisateur déplie à la demande). */
   open: boolean;
 }
 
@@ -195,13 +196,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
       groups.push({
         label: 'nav.platformGroup',
         icon: 'grid',
-        open: true,
+        open: false,
         children: [{ label: 'platform.dashboard.nav', path: '/plateforme' }],
       });
       groups.push({
         label: 'nav.tenantGroup',
         icon: 'users',
-        open: true,
+        open: false,
         children: [
           { label: 'nav.tenants', path: '/plateforme/tenants' },
           { label: 'platform.users.nav', path: '/plateforme/utilisateurs' },
@@ -210,7 +211,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       groups.push({
         label: 'nav.saasGroup',
         icon: 'card',
-        open: true,
+        open: false,
         children: [
           { label: 'platform.products.nav', path: '/plateforme/produits' },
           { label: 'platform.orders.nav', path: '/plateforme/demandes' },
@@ -222,19 +223,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
       groups.push({
         label: 'nav.communicationGroup',
         icon: 'bell',
-        open: true,
+        open: false,
         children: [{ label: 'platform.notifications.nav', path: '/plateforme/notifications' }],
       });
       groups.push({
         label: 'nav.monitoringGroup',
         icon: 'activity',
-        open: true,
+        open: false,
         children: [{ label: 'platform.audit.nav', path: '/plateforme/audit' }],
       });
       groups.push({
         label: 'nav.configurationGroup',
         icon: 'settings',
-        open: true,
+        open: false,
         children: [
           { label: 'platform.roles.nav', path: '/plateforme/roles-permissions' },
           { label: 'platform.settings.nav', path: '/plateforme/reglages' },
@@ -250,7 +251,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         groups.push({
           label: 'nav.projects',
           icon: 'kanban',
-          open: true,
+          open: false,
           children: [
             { label: 'nav.allProjects', path: '/projets' },
             { label: 'nav.myTasks', path: '/projets/mes-taches' },
@@ -261,7 +262,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       groups.push({
         label: 'nav.workspace',
         icon: 'grid',
-        open: true,
+        open: false,
         children: [
           { label: 'nav.tickets', path: '/tickets' },
           { label: 'nav.demandes', path: '/demandes' },
@@ -273,7 +274,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         groups.push({
           label: 'nav.subscriptions',
           icon: 'card',
-          open: true,
+          open: false,
           children: [
             { label: 'subscriptions.overview.nav', path: '/abonnements' },
             { label: 'subscriptions.catalog.label', path: '/abonnements/produits' },
@@ -287,13 +288,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
         groups.push({
           label: 'nav.users',
           icon: 'users',
-          open: true,
+          open: false,
           children: [{ label: 'nav.accounts', path: '/utilisateurs' }],
         });
         groups.push({
           label: 'nav.contrats',
           icon: 'file',
-          open: true,
+          open: false,
           children: [
             { label: 'nav.allContracts', path: '/contrats' },
             { label: 'nav.newContract', path: '/contrats/nouveau' },
@@ -302,7 +303,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
         groups.push({
           label: 'nav.clients',
           icon: 'users',
-          open: true,
+          open: false,
           children: [
             { label: 'nav.allClients', path: '/clients' },
             { label: 'nav.newClient', path: '/clients/nouveau' },
@@ -312,13 +313,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
         groups.push({
           label: 'nav.contrats',
           icon: 'file',
-          open: true,
+          open: false,
           children: [{ label: 'nav.allContracts', path: '/contrats' }],
         });
         groups.push({
           label: 'nav.clients',
           icon: 'users',
-          open: true,
+          open: false,
           children: [{ label: 'nav.allClients', path: '/clients' }],
         });
       }

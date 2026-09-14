@@ -4,22 +4,27 @@
 |---|---|---|---|
 | UC-PA-001 | View platform dashboard (KPIs, pending, activity) | GET /api/platform/dashboard | IMPLEMENTED |
 | UC-PA-002 | List / view / create / update tenants | GET\|POST /api/tenants*, PATCH /api/tenants/:id | IMPLEMENTED |
+<<<<<<< HEAD
 | UC-PA-003 | Suspend / activate tenant (cuts all tenant access) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
 | UC-PA-004 | Archive / restore tenant (no hard delete) | PATCH /api/tenants/:id (status=archived/active) | IMPLEMENTED |
+=======
+| UC-PA-003 | Suspend / activate tenant (reversible cascade archive + session kill) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
+| UC-PA-004 | Archive tenant + all content (no hard delete, Super Admin keeps visibility) | DELETE /api/tenants/:id | IMPLEMENTED |
+>>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
 | UC-PA-005 | Impersonate tenant (x-tenant-override; audit+support) | header on any API; UI switcher in sidebar | IMPLEMENTED |
 | UC-PA-006 | Create platform product (draft) | POST /api/platform/products | IMPLEMENTED |
 | UC-PA-007 | Configure product (plans/roles/permissions) | PATCH /api/platform/products/:key/configure | IMPLEMENTED |
 | UC-PA-008 | Publish / suspend / delete product | POST .../publish\|suspend, DELETE ... | IMPLEMENTED |
 | UC-PA-009 | Toggle registry product availability (override) | PATCH /api/platform/products/:key | IMPLEMENTED |
-| UC-PA-010 | Review / approve / reject orders (atomic) | GET\|PATCH\|POST /api/platform/orders* | IMPLEMENTED |
-| UC-PA-011 | View all subscriptions / licenses (global) | GET /api/platform/subscriptions\|/licenses (isGlobalPlatform) | IMPLEMENTED |
-| UC-PA-012 | Provision subscription directly | POST /api/platform/subscriptions | IMPLEMENTED |
+| UC-PA-010 | Review / approve / reject orders (atomic, seat-expansion validation) | GET\|PATCH\|POST /api/platform/orders* | IMPLEMENTED |
+| UC-PA-011 | View all subscriptions / licenses (global, by-product cards → tenant table + detail links) | GET /api/platform/subscriptions\|/licenses (isGlobalPlatform) | IMPLEMENTED |
+| UC-PA-012 | Provision subscription directly (available products only, A5.2 Fix 7) | POST /api/platform/subscriptions | IMPLEMENTED |
 | UC-PA-013 | Update subscription (seats/plan/dates) | PATCH /api/platform/subscriptions/:id | BACKEND_ONLY |
-| UC-PA-014 | Assign / revoke any license; view role matrix | POST\|PATCH\|DELETE licenses; GET roles/matrix | PARTIAL |
+| UC-PA-014 | Assign / revoke any license; tenant → products → users/roles hierarchy | POST\|PATCH\|DELETE licenses; GET roles/* | IMPLEMENTED |
 | UC-PA-015 | Read global audit log (+ ?tenantId=) | GET /api/platform/audit | IMPLEMENTED |
 | UC-PA-016 | Read own notifications | GET /api/platform/notifications | IMPLEMENTED |
 | UC-PA-017 | Manage tenant users (via impersonation / ?tenantId=) | GET\|POST\|PATCH\|DELETE /api/users* (resolveTargetTenant) | IMPLEMENTED |
-| UC-PA-018 | View platform system info | GET /api/platform/system | IMPLEMENTED |
+| UC-PA-018 | View platform system info (services, runtime, DB volumetrics, security, mailing, payment, counters) | GET /api/platform/system | IMPLEMENTED |
 | UC-PA-019 | Access tenant product data (tickets/projects) | same APIs with x-tenant-override + global entitlements | IMPLEMENTED |
 | UC-PA-020 | Checkout subscription (online payment) | POST /api/platform/subscriptions/:id/checkout | NOT_IMPLEMENTED |
 | UC-PA-021 | Open /plateforme/saas (legacy SAAS admin) | n/a | PARTIAL |
@@ -138,7 +143,7 @@ IMPLEMENTED
 
 ---
 
-## UC-PA-003 — Suspend / activate tenant (cuts all tenant access)
+## UC-PA-003 — Suspend / activate tenant (reversible cascade archive)
 
 ### Actor
 PLATFORM_ADMIN
@@ -157,11 +162,11 @@ Platform
 1. User opens /plateforme/tenants
 2. Frontend calls PATCH /api/tenants/:id/suspend|activate
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
-4. Controller executes with global scope; tenant checks bypassed by design
-5. Audit written; affected tenant admin/user notified where applicable
+4. Suspend : tenant → `suspended` + `archivedAt` en cascade sur tout le contenu (utilisateurs, clients, souscriptions, licences, documents, projets…), sessions révoquées (tokenVersion++ + refresh tokens supprimés). Activate : `archivedAt` levé (statuts individuels intacts).
+5. Audit written (`tenant.suspended` / `tenant.reactivated`); Super Admin keeps full visibility of archived content (lists + inspection).
 
 ### Postconditions
-- Platform state changed, audited.
+- Suspended tenant archived (reversible), audited.
 
 ### Permissions
 - requirePlatformAdmin (backend) + platformGuard (frontend)
@@ -195,7 +200,11 @@ IMPLEMENTED
 
 ---
 
+<<<<<<< HEAD
 ## UC-PA-004 — Archive / restore tenant (hard delete removed, A5.1)
+=======
+## UC-PA-004 — Delete tenant (= long-term archive, A5.2 Fix 3)
+>>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
 
 ### Actor
 PLATFORM_ADMIN
@@ -214,11 +223,11 @@ Platform
 1. User opens /plateforme/tenants
 2. Frontend calls PATCH /api/tenants/:id with `status=archived` (restore: `status=active`)
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
-4. Controller executes with global scope; tenant checks bypassed by design
-5. Audit written; affected tenant admin/user notified where applicable
+4. Controller archives (NO hard delete) : tenant → `terminated` + `archivedAt` en cascade sur tout le contenu, sessions révoquées.
+5. Audit written (`tenant.archived`); archived tenant + content remain viewable by Super Admin (not reversible from the UI).
 
 ### Postconditions
-- Platform state changed, audited.
+- Tenant archived with all content preserved and viewable, audited.
 
 ### Permissions
 - requirePlatformAdmin (backend) + platformGuard (frontend)
@@ -562,6 +571,11 @@ Platform
 ### Postconditions
 - Platform state changed, audited.
 
+### Validation rules (A5.2 Fix 1)
+- New subscription request for an already-owned product (live subscription) → 409 ALREADY_SUBSCRIBED at submission and at approval.
+- Seat-expansion request requires a living subscription : expired/cancelled → 409 SUBSCRIPTION_EXPIRED at submission and at approval (renewal required first).
+- The review UI shows the order type (new subscription vs seat expansion) with current → post-approval seats.
+
 ### Permissions
 - requirePlatformAdmin (backend) + platformGuard (frontend)
 
@@ -765,7 +779,7 @@ BACKEND_ONLY
 
 ---
 
-## UC-PA-014 — Assign / revoke any license; view role matrix
+## UC-PA-014 — Assign / revoke any license; tenant → products → users/roles (A5.2 Fix 4/5)
 
 ### Actor
 PLATFORM_ADMIN
@@ -781,8 +795,10 @@ Platform
 - No tenant context required
 
 ### Main Flow
-1. User opens /plateforme/licences-roles (matrix: no UI — roleMatrix unused)
-2. Frontend calls POST|PATCH|DELETE licenses; GET roles/matrix
+1. User opens /plateforme/licences-roles : tenant cards (+ per-product role catalog)
+2. Click a tenant card → /plateforme/licences-roles/tenant/:id (tenant info + subscribed products)
+3. Click a product → licensed users & product roles (change/remove role inline)
+4. Frontend calls POST|PATCH|DELETE licenses; GET roles/assignments (+ role catalog)
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
 4. Controller executes with global scope; tenant checks bypassed by design
 5. Audit written; affected tenant admin/user notified where applicable

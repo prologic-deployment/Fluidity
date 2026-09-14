@@ -14,6 +14,8 @@ const { DEMANDE_STATUTS } = require('../utils/workflow');
 const DemandeSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     // Principal qui a soumis la demande — le Client (accès portail) depuis la
     // refonte d'architecture ; 'Utilisateur' ne subsiste que pour les
     // enregistrements historiques (voir requesterModel / populate dynamique).

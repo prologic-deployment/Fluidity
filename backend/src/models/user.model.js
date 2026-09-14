@@ -61,6 +61,8 @@ const UtilisateurSchema = new Schema(
         return this.role !== 'PLATFORM_ADMIN';
       },
     },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     email: {
       type: String,
       required: true,

@@ -18,6 +18,7 @@ import { PLATFORM_NAME, PLATFORM_TAGLINE } from '../../branding';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { ToastService } from '../../services/toast.service';
 
 /**
  * Tableau de bord PLATEFORME (Super Admin) :
@@ -75,7 +76,8 @@ export class PlatformTenantsComponent implements OnInit {
     private confirmDialog: ConfirmDialogService,
     private fb: FormBuilder
   ,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private toast: ToastService
   ) {}
 
   /** Ouvre l'inspection administrative d'un tenant (données réelles serveur). */
@@ -146,7 +148,7 @@ export class PlatformTenantsComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.error = apiErrorMessage(this.i18n, err, 'tenants.opError');
+        this.error = apiErrorMessage(this.i18n, err, 'tenants.loadError');
         this.loading = false;
       },
     });
@@ -261,18 +263,38 @@ export class PlatformTenantsComponent implements OnInit {
   // --- Cycle de vie (Actif ↔ Suspendu, Archivage verrouillé, Restauration) ---
   async toggleStatus(t: Tenant): Promise<void> {
     if (!t._id) return;
+    // A5.2 Fix 2 : les tenants résiliés n'ont pas de bascule suspendre/réactiver
+    // (l'API activate exige le statut 'suspended' → 404 garanti sinon).
+    if (t.status !== 'active' && t.status !== 'suspended') return;
     const suspendre = t.status === 'active';
     const restaure = t.status === 'archived' || (t as Tenant).status === 'terminated';
     const titleKey = suspendre ? 'tenants.suspendTitle' : restaure ? 'tenants.restoreTitle' : 'tenants.reactivateTitle';
     const ok = await this.confirmDialog.confirm({
-      title: `${this.i18n.t(titleKey)} « ${t.name} »`,
-      message: this.i18n.t(suspendre ? 'tenants.suspendMessage' : restaure ? 'tenants.restoreMessage' : 'tenants.reactivateTitle'),
-      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : restaure ? this.i18n.t('tenants.restore') : this.i18n.t('tenants.reactivate'),
+      title: this.i18n.t(suspendre ? 'tenants.suspendTitle' : 'tenants.reactivateTitle', { name: t.name }),
+      message: this.i18n.t(suspendre ? 'tenants.suspendMessage' : 'tenants.reactivateMessage'),
+      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : this.i18n.t('tenants.reactivate'),
       variant: suspendre ? 'destructive' : 'default',
     });
     if (!ok) return;
     const req = suspendre ? this.tenantService.suspend(t._id) : this.tenantService.activate(t._id);
-    req.subscribe({ next: () => this.load(), error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.opError')) });
+    req.subscribe({
+      next: (updated) => {
+        // A5.2 Fix 2 : la réponse PATCH porte le tenant à jour — l'appliquer
+        // aussitôt à la liste au lieu de dépendre d'un rechargement complet
+        // (un échec du rechargement affichait une erreur ALORS QUE l'opération
+        // avait réussi, et imposait un refresh manuel).
+        const fresh = (updated as Tenant) || null;
+        if (fresh && fresh._id) {
+          const idx = this.tenants.findIndex((x) => String(x._id) === String(fresh._id));
+          if (idx >= 0) this.tenants[idx] = { ...this.tenants[idx], ...fresh };
+        }
+        this.toast.success(this.i18n.t(suspendre ? 'tenants.suspendedOk' : 'tenants.reactivatedOk', { name: t.name }));
+        // Les compteurs globaux suivent en arrière-plan (échec silencieux :
+        // il ne doit plus jamais masquer un succès).
+        this.tenantService.getPlatformStats().subscribe({ next: (s) => (this.stats = s), error: () => {} });
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'tenants.opError')),
+    });
   }
 
   /**
@@ -282,15 +304,25 @@ export class PlatformTenantsComponent implements OnInit {
   async archiver(t: Tenant): Promise<void> {
     if (!t._id) return;
     const ok = await this.confirmDialog.confirm({
-      title: `${this.i18n.t('tenants.archiveTitle')} « ${t.name} »`,
-      message: this.i18n.t('tenants.archiveMessage'),
-      confirmLabel: this.i18n.t('tenants.archive'),
+      title: this.i18n.t('tenants.deleteTitle', { name: t.name }),
+      message: this.i18n.t('tenants.deleteMessage'),
+      confirmLabel: this.i18n.t('tenants.delete'),
       variant: 'destructive',
     });
     if (!ok) return;
     this.tenantService.delete(t._id).subscribe({
-      next: () => this.load(),
-      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.archiveError')),
+      next: (r) => {
+        // A5.2 Fix 3 : la suppression est un archivage — le tenant reste
+        // visible avec son contenu (appliquer la réponse, comme Fix 2).
+        const fresh = (r as { tenant?: Tenant })?.tenant || null;
+        if (fresh && fresh._id) {
+          const idx = this.tenants.findIndex((x) => String(x._id) === String(fresh._id));
+          if (idx >= 0) this.tenants[idx] = { ...this.tenants[idx], ...fresh };
+        }
+        this.toast.success(this.i18n.t('tenants.deletedOk', { name: t.name }));
+        this.tenantService.getPlatformStats().subscribe({ next: (s) => (this.stats = s), error: () => {} });
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'tenants.deleteError')),
     });
   }
 
@@ -307,7 +339,6 @@ export class PlatformTenantsComponent implements OnInit {
         return 'badge-success';
       case 'suspended':
         return 'badge-warning';
-      case 'archived':
       case 'terminated':
         return 'badge-secondary';
       default:
@@ -317,12 +348,15 @@ export class PlatformTenantsComponent implements OnInit {
 
   /** A5.1 — libellés traduits (plus de français codé en dur). */
   statutLabel(statut?: string): string {
-    const s = statut === 'terminated' ? 'archived' : statut || 'archived';
-    return this.i18n.t('tenants.statuses.' + s);
-  }
-
-  /** Une archive est verrouillée : ni édition, ni suspension, ni impersonation. */
-  isArchived(t: Tenant): boolean {
-    return t.status === 'archived' || t.status === 'terminated';
+    switch (statut) {
+      case 'active':
+        return this.i18n.t('tenants.active');
+      case 'suspended':
+        return this.i18n.t('tenants.suspended');
+      case 'terminated':
+        return this.i18n.t('tenants.archived');
+      default:
+        return String(statut || '');
+    }
   }
 }

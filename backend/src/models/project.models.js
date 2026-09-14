@@ -57,6 +57,8 @@ const DEFAULT_HEALTH_RULES = {
 const ProjectSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     /** Référence générée automatiquement : PRJ-2026-0001. */
     code: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true, maxlength: 120 },
@@ -145,6 +147,8 @@ const PROJECT_MEMBER_ROLES = [
 const ProjectMemberSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     roleKey: { type: String, enum: PROJECT_MEMBER_ROLES, default: 'project_member' },
@@ -171,6 +175,8 @@ const TASK_TYPES = ['task', 'subtask', 'bug', 'user_story', 'epic', 'deliverable
 const TaskSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     /** Tâche parente (sous-tâche) — un seul niveau, comme la maquette produit. */
     parentTaskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
@@ -256,6 +262,8 @@ const Task = mongoose.model('Task', TaskSchema);
 const TimeEntrySchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     taskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
@@ -279,6 +287,8 @@ const DELIVERABLE_STATUSES = ['draft', 'submitted', 'approved', 'rejected'];
 const DeliverableSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     milestoneId: { type: Schema.Types.ObjectId, ref: 'Milestone', default: null },
     taskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
@@ -317,6 +327,8 @@ const EVENT_TYPES = ['meeting', 'decision', 'event', 'deadline'];
 const ProjectEventSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     title: { type: String, required: true, trim: true, maxlength: 140 },
     type: { type: String, enum: EVENT_TYPES, default: 'event' },
@@ -338,6 +350,8 @@ const MILESTONE_STATUSES = ['not_started', 'in_progress', 'completed', 'delayed'
 const MilestoneSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     kind: { type: String, enum: MILESTONE_KINDS, default: 'milestone' },
     name: { type: String, required: true, trim: true, maxlength: 140 },
@@ -369,6 +383,8 @@ const SPRINT_PAUSED_STATES = ['planned', 'paused', 'active', 'completed'];
 const SprintSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     name: { type: String, required: true, trim: true, maxlength: 100 },
     goal: { type: String, default: '', maxlength: 500 },
@@ -400,6 +416,8 @@ const RISK_STATUSES = ['open', 'mitigating', 'resolved', 'closed'];
 const RiskSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     title: { type: String, required: true, trim: true, maxlength: 160 },
     description: { type: String, default: '', maxlength: 3000 },
@@ -426,6 +444,8 @@ const ISSUE_STATUSES = ['open', 'investigating', 'blocked', 'resolved', 'closed'
 const IssueSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     title: { type: String, required: true, trim: true, maxlength: 160 },
     description: { type: String, default: '', maxlength: 3000 },
@@ -459,6 +479,8 @@ const COMMENT_TARGETS = ['project', 'task', 'milestone', 'issue'];
 const ProjectCommentSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     targetType: { type: String, enum: COMMENT_TARGETS, required: true },
     targetId: { type: Schema.Types.ObjectId, required: true },
@@ -487,6 +509,8 @@ const ProjectComment = mongoose.model('ProjectComment', ProjectCommentSchema);
 const ProjectActivitySchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     actorId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
     action: { type: String, required: true }, // ex. 'project.activity.task_assigned'
@@ -509,6 +533,8 @@ const ProjectActivity = mongoose.model('ProjectActivity', ProjectActivitySchema)
 const ProjectFileSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
     taskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
     milestoneId: { type: Schema.Types.ObjectId, ref: 'Milestone', default: null },
@@ -536,6 +562,8 @@ const ProjectFile = mongoose.model('ProjectFile', ProjectFileSchema);
 const NotificationPreferenceSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     userId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', required: true },
     /** { eventKey: { email: bool, inapp: bool } } */
     events: { type: Schema.Types.Mixed, default: {} },

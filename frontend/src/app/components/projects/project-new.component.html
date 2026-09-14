@@ -8,7 +8,7 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-4 lg:px-6 py-6">
-    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
     <!-- Étapes -->
     <ol class="flex items-center gap-2 mb-6 text-sm">

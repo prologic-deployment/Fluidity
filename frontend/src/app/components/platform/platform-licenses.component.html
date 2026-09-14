@@ -7,9 +7,10 @@
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
+
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
     <div class="card"><div class="card-content py-3">
-      <p class="text-xl font-semibold tabular-nums">{{ licenses.length }}</p>
+      <p class="text-xl font-semibold tabular-nums">{{ filtered().length }}</p>
       <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.licenses.statTotal' | t }}</p>
     </div></div>
     <div class="card"><div class="card-content py-3">
@@ -26,14 +27,29 @@
     </div></div>
   </div>
 
+  <!-- A5.2 Fix 10 : cartes produits → table des licences -->
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'platform.licenses.cardsTitle' | t }}</h2>
+    <button *ngIf="selectedProduct" type="button" class="btn-ghost btn-sm" (click)="selectProduct(null)">× {{ 'platform.licenses.filterAllProducts' | t }}</button>
+  </div>
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-20"></div>
+  </div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" *ngIf="!loading">
+    <button *ngFor="let c of productCards(); trackBy: trackCard" type="button" (click)="selectProduct(c.key)"
+      class="card text-left hover:border-primary/50 hover:shadow transition-all cursor-pointer"
+      [class.border-primary]="selectedProduct === c.key" [class.shadow]="selectedProduct === c.key">
+      <div class="card-content p-4">
+        <p class="font-semibold truncate">{{ productLabel(c.key) }}</p>
+        <p class="text-xs text-muted-foreground mt-1 tabular-nums">{{ c.licenses }} {{ 'platform.licenses.licensesCount' | t }} · {{ c.users }} {{ 'platform.licenses.usersCount' | t }}</p>
+      </div>
+    </button>
+  </div>
+
   <div class="flex items-center gap-2 mb-3 flex-wrap">
     <select [(ngModel)]="tenantFilter" class="filter-select">
       <option value="all">{{ 'platform.licenses.filterAllTenants' | t }}</option>
       <option *ngFor="let t of tenants" [value]="t">{{ t }}</option>
-    </select>
-    <select [(ngModel)]="productFilter" class="filter-select">
-      <option value="all">{{ 'platform.licenses.filterAllProducts' | t }}</option>
-      <option *ngFor="let p of products" [value]="p">{{ p === 'project_management' ? ('nav.projects' | t) : ('products.' + p + '.name' | t) }}</option>
     </select>
     <select [(ngModel)]="statusFilter" class="filter-select">
       <option value="all">{{ 'platform.licenses.filterAllStatus' | t }}</option>
@@ -64,6 +80,7 @@
         </tr>
       </thead>
       <tbody>
+<<<<<<< HEAD
         <ng-container *ngFor="let g of grouped()">
         <tr class="bg-muted/40">
           <td colspan="8" class="!py-2">
@@ -75,6 +92,10 @@
         </tr>
         <tr *ngFor="let l of g.items">
           <td class="font-medium">{{ l.tenantName || '—' }}</td>
+=======
+        <tr *ngFor="let l of filtered()">
+          <td class="font-medium"><a class="text-primary hover:underline" [routerLink]="['/plateforme/licences-roles/tenant', l.tenantId]">{{ l.tenantName || '—' }}</a></td>
+>>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
           <td class="text-sm">
             <ng-container *ngIf="l.userId; else unassigned">
               <p class="font-medium">{{ userName(l) }}</p>

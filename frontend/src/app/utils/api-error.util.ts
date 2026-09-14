@@ -5,17 +5,19 @@ import { I18nService } from '../i18n/i18n.service';
  * JSON). La traduction appartient au frontend — jamais à l'API.
  */
 const CODE_KEYS: Record<string, string> = {
+  INVALID_CREDENTIALS: 'auth.invalid',
+  // A5.2 Fix 16 : causes réelles exposées au lieu d'un « Échec de la connexion » générique.
+  COMPTE_VERROUILLE: 'errors.accountLocked',
+  MULTIPLE_WORKSPACES: 'auth.multipleWorkspaces',
+  SESSION_EXPIREE: 'auth.sessionExpired',
+  SESSION_REVOQUEE: 'auth.sessionRevoked',
   EMAIL_TAKEN: 'errors.emailTaken',
   TENANT_INVALID: 'errors.tenantInvalid',
   TENANT_NOT_FOUND: 'errors.tenantNotFound',
   TENANT_SUSPENDED: 'errors.tenantSuspended',
   TENANT_ARCHIVED: 'errors.tenantArchived',
-  COMPTE_VERROUILLE: 'errors.accountLocked',
-  MULTIPLE_WORKSPACES: 'errors.multipleWorkspaces',
   MOT_DE_PASSE_PROVISOIRE: 'errors.provisionalPassword',
   MOT_DE_PASSE_INVALIDE: 'security.currentPwdInvalid',
-  SESSION_EXPIREE: 'errors.sessionExpired',
-  SESSION_REVOQUEE: 'errors.sessionRevoked',
   LICENSE_REQUIRED: 'errors.licenseRequired',
   LICENSE_NOT_ASSIGNED: 'errors.licenseRequired',
   PRODUCT_NOT_AVAILABLE: 'errors.productUnavailable',
@@ -32,7 +34,6 @@ const CODE_KEYS: Record<string, string> = {
   CROSS_TENANT_ROLE: 'errors.forbidden',
   CROSS_TENANT_LICENSE: 'errors.forbidden',
   CROSS_TENANT_MEMBER: 'errors.forbidden',
-  INVALID_CREDENTIALS: 'auth.invalid',
   ACCOUNT_INACTIVE: 'errors.accountInactive',
   ACCOUNT_SUSPENDED: 'errors.accountSuspended',
   LEGACY_DATA: 'errors.legacyData',
@@ -57,7 +58,12 @@ const CODE_KEYS: Record<string, string> = {
  * est localisée.
  */
 export function apiErrorMessage(i18n: I18nService, err: unknown, fallbackKey: string): string {
-  const body = (err as { error?: { code?: string; message?: string } })?.error;
+  const httpErr = err as { status?: number; error?: { code?: string; message?: string } };
+  // A5.2 Fix 16 : panne réseau / API injoignable — cause explicite.
+  if (httpErr?.status === 0) {
+    return i18n.t('errors.network');
+  }
+  const body = httpErr?.error;
   if (body?.code && CODE_KEYS[body.code]) {
     return i18n.t(CODE_KEYS[body.code]);
   }

@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { AdminProduct, ProductPlan } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 import { EmojiPickerComponent } from '../shared/emoji-picker.component';
 
 interface RoleDraft {
@@ -36,6 +37,9 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   error = '';
   products: AdminProduct[] = [];
   busyKey = '';
+
+  /** A5.2 Fix 8 : catégories prédéfinies (+ « Autre » en dernier). */
+  readonly categories = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
 
   // --- Création (brouillon plateforme) --------------------------------------
   creating = false;
@@ -102,6 +106,19 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     return this.products.filter((p) => p.effectiveAvailable).length;
   }
 
+  /** A5.2 Fix 7 : sections Disponibles puis Non disponibles. */
+  get availableProducts(): AdminProduct[] {
+    return this.products.filter((p) => p.effectiveAvailable);
+  }
+
+  get unavailableProducts(): AdminProduct[] {
+    return this.products.filter((p) => !p.effectiveAvailable);
+  }
+
+  trackProduct(_i: number, p: AdminProduct): string {
+    return p.key;
+  }
+
   isPlatformManaged(p: AdminProduct): boolean {
     return p.managedBy === 'platform';
   }
@@ -146,7 +163,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -218,7 +235,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.createBusy = false;
-          this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
         },
       });
   }
@@ -235,7 +252,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -257,7 +274,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -279,7 +296,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -354,7 +371,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.configBusy = false;
-          this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
         },
       });
   }

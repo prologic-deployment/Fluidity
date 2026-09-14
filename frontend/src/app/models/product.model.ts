@@ -118,13 +118,13 @@ export interface Subscription {
 export interface License {
   _id: string;
   tenantId: string;
+  tenantName?: string;
   productKey: string;
   userId: { _id: string; email: string; firstName?: string; lastName?: string; status?: string } | string;
   status: 'active' | 'revoked' | 'suspended';
   startDate?: string;
   endDate?: string;
   /** A5.1 — enrichissements serveur (rôle produit + identité du produit). */
-  tenantName?: string;
   roleKey?: string;
   roleName?: string;
   productNameKey?: string;
@@ -134,6 +134,8 @@ export interface License {
 
 export interface RoleAssignment {
   _id: string;
+  tenantId?: string;
+  tenantName?: string;
   productKey: string;
   userId: { _id: string; email: string; firstName?: string; lastName?: string } | string;
   roleKey: string;
@@ -266,7 +268,9 @@ export interface OrderDetail {
 export interface PlatformSystemInfo {
   status: 'operational' | 'degraded';
   api: { up: boolean; version: string; node: string };
-  database: { up: boolean; name: string };
+  database: { up: boolean; name: string; collections: number; objects: number; dataSizeMb: number; storageSizeMb: number };
+  runtime: { pid: number; startedAt: string; heapUsedMb: number; heapTotalMb: number; rssMb: number; cpuCount: number; load1: number };
+  security: { accessTokenTtl: string; refreshTtlDays: number; lockoutAttempts: number; lockoutMinutes: number; passwordMinLength: number; breachCheck: boolean; twoFactorAvailable: boolean; twoFactorUsers: number; activeSessions: number };
   mailing: { smtpConfigured: boolean; host: string; from: string; note: string };
   payment: { provider: string; note: string };
   counts: { tenants: number; users: number; products: number; subscriptions: number; licenses: number; orders: number };

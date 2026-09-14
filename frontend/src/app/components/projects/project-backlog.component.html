@@ -5,7 +5,7 @@
     <button *ngIf="canManage" type="button" class="btn-primary btn-sm" (click)="openCreate('user_story')">{{ 'projects.backlog.newStory' | t }}</button>
   </div>
 
-  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="loading" class="grid gap-3">
     <div class="skeleton h-40"></div>
     <div class="skeleton h-24"></div>

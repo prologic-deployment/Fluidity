@@ -16,7 +16,7 @@
   </div>
 
   <div class="card-content pt-6 space-y-4">
-    <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error | t }}</p>
 
     <!-- Chargement -->
     <div *ngIf="loading" class="flex items-center gap-3 py-2 text-sm text-muted-foreground">
@@ -47,6 +47,9 @@
         </button>
       </div>
 
+      <!-- ============ MODALE DE CONFIGURATION 2FA (A5.2 Fix 13) ============ -->
+      <app-modal [open]="setupModalOpen" (closed)="onModalClosed()" size="xl" [title]="modalTitle">
+        <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
       <!-- ============ ACTIVATION : PREUVE DU MOT DE PASSE (AUTH-005) ============ -->
       <form *ngIf="setupPasswordView" [formGroup]="setupPasswordForm" (ngSubmit)="confirmSetupPassword()"
         class="rounded-xl border border-border bg-muted/30 p-4 space-y-3 max-w-lg">
@@ -66,7 +69,6 @@
           <button type="button" (click)="cancelSetupPassword()" [disabled]="submittingSetupPassword" class="btn-outline">{{ 'common.cancel' | t }}</button>
         </div>
       </form>
-
       <!-- ============ ACTIVATION : QR + CLÉ + VÉRIFICATION ============ -->
       <div *ngIf="setupView" class="space-y-5">
         <ol class="space-y-1 text-sm text-muted-foreground list-decimal list-inside">
@@ -117,6 +119,32 @@
           </div>
         </div>
       </div>
+        <!-- Désactivation : preuve requise -->
+        <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()"
+          class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+          <p class="text-sm font-medium">{{ 'twofa.confirmDisableTitle' | t }}</p>
+          <p class="text-xs text-muted-foreground">
+            {{ 'twofa.confirmDisableHint' | t }}
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="field-label">{{ 'twofa.accountPassword' | t }} <span class="text-destructive">*</span></label>
+              <input type="password" formControlName="password" class="input" autocomplete="current-password" />
+            </div>
+            <div>
+              <label class="field-label">{{ 'twofa.andAuthCode' | t }} <span class="text-destructive">*</span></label>
+              <input type="text" formControlName="code" class="input tracking-[0.2em] font-mono"
+                [attr.placeholder]="'twofa.codeOrBackup' | t" maxlength="9" />
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button type="submit" [disabled]="disabling" class="btn-primary">
+              {{ disabling ? ('twofa.disabling' | t) : ('twofa.confirmDisableBtn' | t) }}
+            </button>
+            <button type="button" (click)="cancelDisable()" [disabled]="disabling" class="btn-outline">{{ 'common.cancel' | t }}</button>
+          </div>
+        </form>
+      </app-modal>
 
       <!-- ============ CODES DE SECOURS (affichés UNE seule fois) ============ -->
       <div *ngIf="backupCodes" class="rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-400/10 dark:border-amber-300/30 p-4 space-y-3">
@@ -170,6 +198,7 @@
           </button>
         </div>
 
+<<<<<<< HEAD
         <!-- Désactivation : preuve requise -->
         <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()"
           class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
@@ -195,6 +224,8 @@
             <button type="button" (click)="cancelDisable()" [disabled]="disabling" class="btn-outline">{{ 'common.cancel' | t }}</button>
           </div>
         </form>
+=======
+>>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
       </div>
 
     </ng-container>

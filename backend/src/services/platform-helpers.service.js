@@ -42,6 +42,35 @@ async function hydrateClientUsers(docs, rawUserIds) {
 }
 
 /**
+ * A5.2 Fix 6 — hydrate l'ACTEUR des entrées d'audit. `AuditLog.userId` est
+ * sans `ref` (l'auteur peut être un Utilisateur OU un Client portail), donc
+ * `populate('userId')` est un no-op silencieux et l'UI affichait « — ».
+ * On résout ici l'identité (utilisateurs puis clients) et on remplace
+ * l'ObjectId brut par `{ _id, email, firstName, lastName, principalType }`
+ * (null conservé pour les actions système → « Système » côté frontend).
+ */
+async function hydrateAuditActors(entries) {
+  const ids = [...new Set(entries.map((e) => e.userId).filter(Boolean).map(String))];
+  if (!ids.length) return;
+  const [users, clients] = await Promise.all([
+    Utilisateur.find({ _id: { $in: ids } }).select('email firstName lastName').lean(),
+    Client.find({ _id: { $in: ids } }).select('email nom firstName lastName').lean(),
+  ]);
+  const byId = new Map();
+  for (const u of users) {
+    byId.set(String(u._id), { _id: u._id, email: u.email, firstName: u.firstName || '', lastName: u.lastName || '', principalType: 'UTILISATEUR' });
+  }
+  for (const c of clients) {
+    if (!byId.has(String(c._id))) {
+      byId.set(String(c._id), { _id: c._id, email: c.email, firstName: c.firstName || c.nom || '', lastName: c.lastName || '', principalType: 'CLIENT' });
+    }
+  }
+  for (const e of entries) {
+    if (e.userId) e.userId = byId.get(String(e.userId)) || null;
+  }
+}
+
+/**
  * Notifie tous les administrateurs plateforme (in-app) d'un événement SaaS
  * (nouvelle demande d'achat, demande de sièges, demande d'annulation…).
  * Best-effort : la notification ne doit jamais casser le flux métier.
@@ -184,6 +213,7 @@ async function resolveProductDefinition(productKey) {
 
 module.exports = {
   hydrateClientUsers,
+  hydrateAuditActors,
   notifyPlatformAdmins,
   syncProducts,
   ensureProductsSynced,

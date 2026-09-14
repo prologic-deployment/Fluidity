@@ -20,6 +20,7 @@ export interface Tenant {
   maxUsers?: number;
   storageQuotaMb?: number;
   status?: TenantStatus;
+  archivedAt?: string | null;
   timezone?: string;
   language?: string;
   createdBy?: string;
@@ -38,7 +39,7 @@ export interface TenantStats {
 }
 
 export interface PlatformStats {
-  tenants: { active: number; suspended: number; archived: number; total: number };
+  tenants: { active: number; suspended: number; terminated: number; total: number };
   users: number;
   clients: number;
   contrats: number;

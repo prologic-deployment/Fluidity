@@ -89,6 +89,100 @@
       </div>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+      <!-- Ressources d'exécution -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.settings.runtime' | t }}</div>
+        <div class="card-content p-4 space-y-2.5 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.startedAt' | t }}</span>
+            <span class="text-xs">{{ info.runtime.startedAt | dateLocale:'short' }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.heap' | t }}</span>
+            <span class="tabular-nums">{{ info.runtime.heapUsedMb }} / {{ info.runtime.heapTotalMb }} {{ 'platform.settings.mb' | t }}</span>
+          </div>
+          <div class="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div class="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" [style.width.%]="heapPct()"></div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.rss' | t }}</span>
+            <span class="tabular-nums">{{ info.runtime.rssMb }} {{ 'platform.settings.mb' | t }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.cpus' | t }}</span>
+            <span class="tabular-nums">{{ info.runtime.cpuCount }} × · {{ info.runtime.load1 }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">PID</span>
+            <span class="font-mono text-xs">{{ info.runtime.pid }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Base de données -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'platform.settings.databaseDetail' | t }}</div>
+        <div class="card-content p-4 space-y-2.5 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.database' | t }}</span>
+            <span class="font-mono text-xs">{{ info.database.name || '—' }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.dbCollections' | t }}</span>
+            <span class="tabular-nums">{{ info.database.collections }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.dbObjects' | t }}</span>
+            <span class="tabular-nums">{{ info.database.objects }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.dbDataSize' | t }}</span>
+            <span class="tabular-nums">{{ info.database.dataSizeMb }} {{ 'platform.settings.mb' | t }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-muted-foreground">{{ 'platform.settings.dbStorageSize' | t }}</span>
+            <span class="tabular-nums">{{ info.database.storageSizeMb }} {{ 'platform.settings.mb' | t }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sécurité & sessions -->
+      <div class="card lg:col-span-2">
+        <div class="card-header py-3">{{ 'platform.settings.security' | t }}</div>
+        <div class="card-content p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 text-sm">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.accessTtl' | t }}</span>
+            <span class="font-mono text-xs">{{ info.security.accessTokenTtl }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.refreshTtl' | t }}</span>
+            <span class="tabular-nums">{{ info.security.refreshTtlDays }} {{ 'platform.settings.days' | t }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.lockout' | t }}</span>
+            <span class="tabular-nums">{{ info.security.lockoutAttempts }} × · {{ info.security.lockoutMinutes }} min</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.passwordPolicy' | t }}</span>
+            <span class="tabular-nums">≥ {{ info.security.passwordMinLength }} {{ 'platform.settings.chars' | t }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.breachCheck' | t }}</span>
+            <span class="badge" [ngClass]="info.security.breachCheck ? 'badge-success' : 'badge-secondary'">{{ info.security.breachCheck ? ('platform.settings.enabled' | t) : ('platform.settings.disabled' | t) }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.twoFactor' | t }}</span>
+            <span class="badge badge-success">{{ 'platform.settings.available' | t }} · {{ info.security.twoFactorUsers }} {{ 'platform.settings.twoFactorUsers' | t }}</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-muted-foreground">{{ 'platform.settings.activeSessions' | t }}</span>
+            <span class="tabular-nums text-lg font-semibold">{{ info.security.activeSessions }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <p class="text-xs text-muted-foreground mt-4">{{ 'platform.settings.readonlyNote' | t }}</p>
   </ng-container>
 </main>

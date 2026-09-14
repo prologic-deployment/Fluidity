@@ -7,6 +7,26 @@
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
+
+  <!-- A5.2 Fix 9 : cartes produits → table des tenants -->
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'platform.subscriptions.cardsTitle' | t }}</h2>
+    <button *ngIf="selectedProduct" type="button" class="btn-ghost btn-sm" (click)="selectProduct(null)">× {{ 'platform.subscriptions.productAll' | t }}</button>
+  </div>
+  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-20"></div>
+  </div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" *ngIf="!loading">
+    <button *ngFor="let c of productCards(); trackBy: trackCard" type="button" (click)="selectProduct(c.key)"
+      class="card text-left hover:border-primary/50 hover:shadow transition-all cursor-pointer"
+      [class.border-primary]="selectedProduct === c.key" [class.shadow]="selectedProduct === c.key">
+      <div class="card-content p-4">
+        <p class="font-semibold truncate">{{ productLabel(c.key) }}</p>
+        <p class="text-xs text-muted-foreground mt-1 tabular-nums">{{ c.subs }} {{ 'platform.subscriptions.subsCount' | t }} · {{ c.tenants }} {{ 'platform.subscriptions.tenantsCount' | t }}</p>
+      </div>
+    </button>
+  </div>
+
   <div class="flex items-center gap-2 mb-3 flex-wrap">
     <select [(ngModel)]="statusFilter" class="filter-select">
       <option value="all">{{ 'platform.subscriptions.filterAll' | t }}</option>
@@ -16,10 +36,6 @@
       <option value="suspended">{{ 'subscriptions.meta.status.suspended' | t }}</option>
       <option value="cancelled">{{ 'subscriptions.meta.status.cancelled' | t }}</option>
       <option value="expired">{{ 'subscriptions.meta.status.expired' | t }}</option>
-    </select>
-    <select [(ngModel)]="productFilter" class="filter-select">
-      <option value="all">{{ 'platform.subscriptions.productAll' | t }}</option>
-      <option *ngFor="let p of productOptions" [value]="p">{{ productLabel(p) }}</option>
     </select>
     <input type="search" [(ngModel)]="search" class="input w-64" [placeholder]="'platform.subscriptions.searchTenant' | t" />
     <span class="text-xs text-muted-foreground tabular-nums ml-auto">{{ filtered().length }} / {{ subscriptions.length }}</span>
@@ -44,6 +60,7 @@
         </tr>
       </thead>
       <tbody>
+<<<<<<< HEAD
         <ng-container *ngFor="let g of grouped()">
         <tr class="bg-muted/40">
           <td colspan="8" class="!py-2">
@@ -57,6 +74,12 @@
           <td class="font-medium">{{ s.tenantName || '—' }}</td>
           <td class="text-sm"><span class="mr-1">{{ s.productEmoji }}</span>{{ rowProductLabel(s.productNameKey, s.productName, s.productKey) }}</td>
           <td class="text-sm">{{ planLabel(s.planId) }}</td>
+=======
+        <tr *ngFor="let s of filtered()">
+          <td class="font-medium"><a class="text-primary hover:underline" [routerLink]="['/plateforme/licences-roles/tenant', s.tenantId]">{{ s.tenantName || '—' }}</a></td>
+          <td class="text-sm">{{ s.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + s.productKey + '.name' | t) }}</td>
+          <td class="text-sm">{{ 'subscriptions.meta.plan.' + s.planId | t }}</td>
+>>>>>>> fac8cda18f6c24adbc798fe2f70844bf39069f51
           <td><span class="badge" [ngClass]="statusBadge(s.status)">{{ 'subscriptions.meta.status.' + s.status | t }}</span></td>
           <td class="hidden md:table-cell tabular-nums">
             {{ s.usage?.used || 0 }} / {{ s.usage?.seats || s.seats }}

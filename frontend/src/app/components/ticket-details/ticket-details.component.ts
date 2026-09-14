@@ -69,7 +69,7 @@ export class TicketDetailsComponent implements OnInit {
         this.loading = false;
       },
       error: () => {
-        this.error = 'Ticket introuvable.';
+        this.error = this.i18n.t('tickets.ticketNotFound');
         this.loading = false;
       },
     });

@@ -67,7 +67,7 @@ export class DashboardContratsComponent implements OnInit {
           this.loading = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Erreur de chargement des contrats.';
+          this.error = apiErrorMessage(this.i18n, err, 'contracts.loadError');
           this.loading = false;
         },
       });

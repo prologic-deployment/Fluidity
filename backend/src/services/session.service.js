@@ -54,20 +54,22 @@ function readRefreshCookie(req) {
   return null;
 }
 
-/** Crée une NOUVELLE famille de rafraîchissement (login / 2FA réussi). */
+/** Crée une NOUVELLE famille de rafraîchissement (login / 2FA réussi). Retourne le familyId (lié au JWT d'accès — A5.2 Fix 14). */
 async function issueRefreshToken(req, res, { userId, principalType, tenantId }) {
   const raw = `${uuidv4()}.${crypto.randomBytes(32).toString('hex')}`;
+  const familyId = uuidv4();
   await RefreshToken.create({
     tokenHash: hashToken(raw),
     userId: String(userId),
     principalType,
     tenantId: tenantId ? String(tenantId) : null,
-    familyId: uuidv4(),
+    familyId,
     expiresAt: new Date(Date.now() + TTL_DAYS * 24 * 3600 * 1000),
     userAgent: String(req.headers['user-agent'] || '').slice(0, 300),
     ip: req.ip || '',
   });
   setRefreshCookie(res, raw);
+  return familyId;
 }
 
 /**
@@ -184,6 +186,7 @@ async function revokeFamilyForPrincipal(userId, principalType, familyId) {
 
 module.exports = {
   COOKIE_NAME,
+  TTL_DAYS, // A5.2 Fix 11 : affiché dans Réglages & santé
   hashToken,
   issueRefreshToken,
   rotateRefreshToken,

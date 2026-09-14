@@ -6,6 +6,8 @@ import { PlatformService } from '../../services/platform.service';
 import { TenantService } from '../../services/tenant.service';
 import { ProductInfo, Subscription } from '../../models/product.model';
 import { OrderItem } from '../../models/project.model';
+import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Administration SaaS de la plateforme (Super Admin) :
@@ -57,7 +59,7 @@ export class SaasAdminComponent implements OnInit {
     { key: 'audit' as const, label: 'saas.tabAudit' },
   ];
 
-  constructor(private platform: PlatformService, private tenantService: TenantService) {}
+  constructor(private platform: PlatformService, private tenantService: TenantService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.platform.catalog().subscribe((p) => (this.products = p));
@@ -106,12 +108,12 @@ export class SaasAdminComponent implements OnInit {
     this.actionEnCours.add(o._id);
     this.platform.approveOrder(o._id, this.reviewNote[o._id] || '').subscribe({
       next: () => {
-        this.success = 'Souscription activée.';
+        this.success = this.i18n.t('saas.activated');
         this.reviewNote[o._id] = '';
         this.loadOrders();
         this.loadSubscriptions();
       },
-      error: (err) => (this.error = err?.error?.message || 'Échec de l’approbation.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'saas.approveError')),
     }).add(() => this.actionEnCours.delete(o._id));
   }
 
@@ -120,11 +122,11 @@ export class SaasAdminComponent implements OnInit {
     this.actionEnCours.add(o._id);
     this.platform.rejectOrder(o._id, this.reviewNote[o._id] || '').subscribe({
       next: () => {
-        this.success = 'Commande rejetée.';
+        this.success = this.i18n.t('saas.orderRejected');
         this.reviewNote[o._id] = '';
         this.loadOrders();
       },
-      error: (err) => (this.error = err?.error?.message || 'Échec du rejet.'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'saas.rejectError')),
     }).add(() => this.actionEnCours.delete(o._id));
   }
 
@@ -161,7 +163,7 @@ export class SaasAdminComponent implements OnInit {
 
   provision(): void {
     if (!this.form.tenantId || !this.form.productKey) {
-      this.error = 'Selection requise';
+      this.error = this.i18n.t('saas.selectionRequired');
       return;
     }
     this.loading = true;
@@ -178,12 +180,12 @@ export class SaasAdminComponent implements OnInit {
       })
       .subscribe({
         next: () => {
-          this.success = 'Souscription provisionnée.';
+          this.success = this.i18n.t('saas.provisioned');
           this.loading = false;
           this.loadSubscriptions();
         },
         error: (err) => {
-          this.error = err.error?.message || 'Échec du provisionnement.';
+          this.error = apiErrorMessage(this.i18n, err, 'saas.provisionError');
           this.loading = false;
         },
       });

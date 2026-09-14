@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * BACKLOG SCRUM (route /projets/:id/backlog) — épopées avec leurs user
@@ -123,7 +124,7 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submitting = false;
-        this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
       },
     });
   }
@@ -134,7 +135,7 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.backlog.deleted'));
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

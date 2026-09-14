@@ -109,6 +109,16 @@ export interface LoginActivityResponse {
   sessionIatActuel: number | null;
 }
 
+/** Famille de session active (« Appareils connectés » — A5.2 Fix 14). */
+export interface SessionInfo {
+  familyId: string;
+  userAgent: string;
+  ip: string;
+  createdAt: string;
+  lastSeenAt: string;
+  current: boolean;
+}
+
 const TOKEN_KEY = 'servicedesk_token';
 const USER_KEY = 'servicedesk_user';
 const TENANT_KEY = 'servicedesk_tenant';
@@ -180,15 +190,27 @@ export class AuthService {
   }
 
   /** A5.1 — révocation à distance d'UNE session (un appareil, pas la courante). */
-  revokeSession(familyId: string): Observable<{ message: string; revoked: number }> {
-    return this.http.delete<{ message: string; revoked: number }>(`${this.baseUrl}/sessions/${familyId}`);
-  }
+  // revokeSession(familyId: string): Observable<{ message: string; revoked: number }> {
+  //   return this.http.delete<{ message: string; revoked: number }>(`${this.baseUrl}/sessions/${familyId}`);
+  // }
 
   /** Journal de connexion du compte courant (soi-même uniquement), paginé. */
   loginActivity(page = 1, limit = 10): Observable<LoginActivityResponse> {
     return this.http.get<LoginActivityResponse>(`${this.baseUrl}/me/login-activity`, {
       params: { page, limit } as never,
     });
+  }
+
+  /** Familles de session actives du compte courant (soi-même uniquement). */
+  listSessions(): Observable<{ sessions: SessionInfo[] }> {
+    return this.http.get<{ sessions: SessionInfo[] }>(`${this.baseUrl}/sessions`);
+  }
+
+  /** Révoque une famille de session (effet serveur immédiat via « fid »). */
+  revokeSession(familyId: string): Observable<{ revoked: boolean; current: boolean }> {
+    return this.http.delete<{ revoked: boolean; current: boolean }>(
+      `${this.baseUrl}/sessions/${encodeURIComponent(familyId)}`
+    );
   }
 
   me(): Observable<{ user: SessionUser & Record<string, unknown>; tenant: TenantBranding | null }> {

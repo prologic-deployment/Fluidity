@@ -1,8 +1,8 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { Subject, switchMap, takeUntil } from 'rxjs';
+import { Subject, forkJoin, switchMap, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
@@ -20,7 +20,7 @@ import { apiErrorMessage } from '../../utils/api-error.util';
 @Component({
   selector: 'app-subscription-checkout',
   standalone: true,
-  imports: [CommonModule, FormsModule, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './subscription-checkout.component.html',
 })
 export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
@@ -29,6 +29,7 @@ export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
   loading = true;
   error = '';
   product: ProductInfo | null = null;
+  alreadyOwned = false;
   planId = '';
   seats = 5;
   cycle: 'monthly' | 'annual' = 'monthly';
@@ -56,13 +57,18 @@ export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         switchMap((p) => {
           this.loading = true;
-          return this.platform.catalog();
+          return forkJoin({ catalog: this.platform.catalog(), subs: this.platform.subscriptions() });
         })
       )
       .subscribe({
-        next: (catalog) => {
+        next: ({ catalog, subs }) => {
           const key = this.route.snapshot.params['key'];
           this.product = catalog.find((p) => p.key === key) || null;
+          // A5.2 Fix 1 : produit déjà souscrit → pas de parcours d'achat
+          // (le backend rejetterait en 409 ALREADY_SUBSCRIBED de toute façon).
+          this.alreadyOwned = (subs || []).some(
+            (s) => s.productKey === key && ['pending', 'trial', 'active', 'past_due', 'suspended'].includes(s.status as string)
+          );
           if (this.product) {
             this.planId = this.product.plans[0]?.id || '';
           }
@@ -128,11 +134,11 @@ export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.submitting = false;
-          this.orderError = apiErrorMessage(this.i18n, err, 'subscriptions.errors.save');
-          const code = err?.error?.code;
-          this.orderConflict = code === 'ALREADY_SUBSCRIBED' ? 'subscribed' : code === 'DUPLICATE_PENDING_ORDER' ? 'pending' : '';
-          this.toast.error(this.orderError);
-          this.cdr.markForCheck();
+          const message =
+            err?.error?.code === 'ALREADY_SUBSCRIBED'
+              ? this.i18n.t('subscriptions.checkout.alreadySubscribed')
+              : apiErrorMessage(this.i18n, err, 'subscriptions.errors.save');
+          this.toast.error(message);
         },
       });
   }

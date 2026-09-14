@@ -26,6 +26,8 @@ const { Schema } = mongoose;
 const ClientSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    /** A5.2 Fix 3 : archivage en cascade (suspend/delete — null = vivant). */
+    archivedAt: { type: Date, default: null },
     email: {
       type: String,
       required: true,

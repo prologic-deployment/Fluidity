@@ -31,6 +31,7 @@ import { PlatformOrdersComponent } from './components/platform/platform-orders.c
 import { PlatformSubscriptionsComponent } from './components/platform/platform-subscriptions.component';
 import { PlatformLicensesComponent } from './components/platform/platform-licenses.component';
 import { PlatformLicensesRolesComponent } from './components/platform/platform-licenses-roles.component';
+import { PlatformTenantLicensesComponent } from './components/platform/platform-tenant-licenses.component';
 import { PlatformProductsComponent } from './components/platform/platform-products.component';
 import { PlatformNotificationsComponent } from './components/platform/platform-notifications.component';
 import { PlatformAuditComponent } from './components/platform/platform-audit.component';
@@ -159,6 +160,7 @@ export const routes: Routes = [
           { path: 'abonnements', component: PlatformSubscriptionsComponent, data: { breadcrumb: 'platform.subscriptions.nav' } },
           { path: 'licences', component: PlatformLicensesComponent, data: { breadcrumb: 'platform.licenses.nav' } },
           { path: 'licences-roles', component: PlatformLicensesRolesComponent, data: { breadcrumb: 'platform.rolesMatrix.nav' } },
+          { path: 'licences-roles/tenant/:id', component: PlatformTenantLicensesComponent, data: { breadcrumb: 'platform.tenantLicenses.nav' } },
           { path: 'notifications', component: PlatformNotificationsComponent, data: { breadcrumb: 'platform.notifications.nav' } },
           { path: 'audit', component: PlatformAuditComponent, data: { breadcrumb: 'platform.audit.nav' } },
           { path: 'roles-permissions', component: PlatformRolesComponent, data: { breadcrumb: 'platform.roles.nav' } },

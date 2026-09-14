@@ -119,7 +119,7 @@ export class UsersDashboardComponent implements OnInit {
           this.loading = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Erreur de chargement des utilisateurs.';
+          this.error = apiErrorMessage(this.i18n, err, 'users.loadError');
           this.loading = false;
         },
       });

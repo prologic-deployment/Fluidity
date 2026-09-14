@@ -18,7 +18,7 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-6 py-8">
-    <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
       <div class="space-y-6 min-w-0">
