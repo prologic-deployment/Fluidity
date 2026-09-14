@@ -20,6 +20,35 @@
     </div>
   </div>
 
+  <!-- A5.2 Fix 4 : cartes tenants → page détail (produits → utilisateurs/rôles) -->
+  <div class="flex items-center gap-2 mb-3 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'platform.rolesMatrix.tenantsTitle' | t }}</h2>
+    <input type="search" [(ngModel)]="tenantSearch" class="input w-64" [placeholder]="'platform.rolesMatrix.searchTenants' | t" />
+  </div>
+  <p class="text-xs text-muted-foreground mb-3">{{ 'platform.rolesMatrix.tenantsHint' | t }}</p>
+  <div *ngIf="loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-5">
+    <div *ngFor="let _ of [1,2,3]" class="skeleton h-28"></div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mb-6" *ngIf="!loading">
+    <button *ngFor="let t of tenantCards(); trackBy: trackTenant" type="button" (click)="openTenant(t)"
+      class="card text-left hover:border-primary/50 hover:shadow transition-all cursor-pointer">
+      <div class="card-content p-4">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-semibold">{{ t.name }}</span>
+          <span class="badge ml-auto" [ngClass]="t.status === 'active' ? 'badge-success' : t.status === 'suspended' ? 'badge-warning' : 'badge-secondary'">{{ tenantStatusLabel(t) }}</span>
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">{{ t.plan || '' }} · {{ t.contactEmail || '' }}</p>
+        <div class="flex items-center gap-3 mt-3 text-sm tabular-nums">
+          <span><strong>{{ tenantCounts(t).products }}</strong> <span class="text-muted-foreground text-xs">{{ 'platform.rolesMatrix.productsCount' | t }}</span></span>
+          <span><strong>{{ tenantCounts(t).licenses }}</strong> <span class="text-muted-foreground text-xs">{{ 'platform.rolesMatrix.licensesCount' | t }}</span></span>
+          <span><strong>{{ tenantCounts(t).users }}</strong> <span class="text-muted-foreground text-xs">{{ 'platform.rolesMatrix.usersCount' | t }}</span></span>
+          <span class="ml-auto text-xs text-primary font-medium">{{ 'platform.rolesMatrix.view' | t }} →</span>
+        </div>
+      </div>
+    </button>
+    <div *ngIf="!tenantCards().length" class="card"><div class="card-content py-8 text-center text-sm text-muted-foreground">{{ 'platform.rolesMatrix.noTenants' | t }}</div></div>
+  </div>
+
   <div class="flex items-center gap-2 mb-3 flex-wrap">
     <select [(ngModel)]="productFilter" class="filter-select">
       <option value="all">{{ 'platform.licenses.filterAllProducts' | t }}</option>

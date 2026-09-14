@@ -15,7 +15,7 @@
 | UC-PA-011 | View all subscriptions / licenses (global) | GET /api/platform/subscriptions\|/licenses (isGlobalPlatform) | IMPLEMENTED |
 | UC-PA-012 | Provision subscription directly | POST /api/platform/subscriptions | IMPLEMENTED |
 | UC-PA-013 | Update subscription (seats/plan/dates) | PATCH /api/platform/subscriptions/:id | BACKEND_ONLY |
-| UC-PA-014 | Assign / revoke any license; view role matrix | POST\|PATCH\|DELETE licenses; GET roles/matrix | PARTIAL |
+| UC-PA-014 | Assign / revoke any license; tenant → products → users/roles hierarchy | POST\|PATCH\|DELETE licenses; GET roles/* | IMPLEMENTED |
 | UC-PA-015 | Read global audit log (+ ?tenantId=) | GET /api/platform/audit | IMPLEMENTED |
 | UC-PA-016 | Read own notifications | GET /api/platform/notifications | IMPLEMENTED |
 | UC-PA-017 | Manage tenant users (via impersonation / ?tenantId=) | GET\|POST\|PATCH\|DELETE /api/users* (resolveTargetTenant) | IMPLEMENTED |

@@ -2,12 +2,15 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, forkJoin, takeUntil } from 'rxjs';
+import { Router } from '@angular/router';
 import { PlatformService } from '../../services/platform.service';
+import { TenantService } from '../../services/tenant.service';
 import { UserService } from '../../services/user.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { License, RoleAssignment } from '../../models/product.model';
 import { AppUser } from '../../models/user.model';
+import { Tenant } from '../../models/tenant.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 
@@ -41,6 +44,9 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
   /** Catalogue des rôles par produit (registre serveur). */
   roleCatalog: { productKey: string; nameKey: string; roles: { key: string; nameKey: string }[] }[] = [];
   licenses: (License & { tenantName?: string })[] = [];
+  /** A5.2 Fix 4 : cartes tenants (hiérarchie tenant → produits → utilisateurs/rôles). */
+  tenants: Tenant[] = [];
+  tenantSearch = '';
   /** Édition de rôle (Super Admin global). */
   editing: MatrixRow | null = null;
   editRoleKey = '';
@@ -50,9 +56,11 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
 
   constructor(
     private platform: PlatformService,
+    private tenantsApi: TenantService,
     private usersApi: UserService,
     private toast: ToastService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -67,13 +75,14 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
   load(): void {
     this.loading = true;
     this.error = '';
-    forkJoin([this.platform.roleCatalog(), this.platform.roleAssignments(), this.platform.licenses()])
+    forkJoin({ catalog: this.platform.roleCatalog(), assignments: this.platform.roleAssignments(), licenses: this.platform.licenses(), tenants: this.tenantsApi.getAll() })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: ([catalog, assignments, licenses]) => {
-          this.roleCatalog = catalog;
-          this.licenses = licenses as (License & { tenantName?: string })[];
-          this.buildRows(assignments, this.licenses);
+        next: (r) => {
+          this.roleCatalog = r.catalog;
+          this.licenses = r.licenses as (License & { tenantName?: string })[];
+          this.tenants = (r.tenants || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          this.buildRows(r.assignments, this.licenses);
           this.loading = false;
         },
         error: () => {
@@ -130,6 +139,35 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
       }
       return true;
     });
+  }
+
+  tenantCards(): Tenant[] {
+    const q = this.tenantSearch.trim().toLowerCase();
+    if (!q) return this.tenants;
+    return this.tenants.filter((t) => (t.name || '').toLowerCase().includes(q) || (t.contactEmail || '').toLowerCase().includes(q));
+  }
+
+  tenantCounts(t: Tenant): { products: number; licenses: number; users: number } {
+    const tid = String(t._id || '');
+    const lics = this.licenses.filter((l) => String(l.tenantId) === tid);
+    return {
+      products: new Set(lics.map((l) => l.productKey)).size,
+      licenses: lics.length,
+      users: new Set(lics.map((l) => (typeof l.userId === 'object' && l.userId ? String(l.userId._id) : String(l.userId || '')))).size,
+    };
+  }
+
+  tenantStatusLabel(t: Tenant): string {
+    if (t.status === 'terminated') return this.i18n.t('tenants.archived');
+    return this.i18n.t(`tenants.${t.status || 'active'}`);
+  }
+
+  openTenant(t: Tenant): void {
+    if (t._id) this.router.navigate(['/plateforme/licences-roles/tenant', t._id]);
+  }
+
+  trackTenant(_i: number, t: Tenant): string {
+    return String(t._id || t.name);
   }
 
   productLabel(productKey: string): string {

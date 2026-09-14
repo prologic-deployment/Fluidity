@@ -111,6 +111,7 @@ export interface Subscription {
 export interface License {
   _id: string;
   tenantId: string;
+  tenantName?: string;
   productKey: string;
   userId: { _id: string; email: string; firstName?: string; lastName?: string; status?: string } | string;
   status: 'active' | 'revoked' | 'suspended';
@@ -120,6 +121,8 @@ export interface License {
 
 export interface RoleAssignment {
   _id: string;
+  tenantId?: string;
+  tenantName?: string;
   productKey: string;
   userId: { _id: string; email: string; firstName?: string; lastName?: string } | string;
   roleKey: string;
