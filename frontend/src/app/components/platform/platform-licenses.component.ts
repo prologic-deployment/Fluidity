@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -22,7 +22,7 @@ export type PlatformLicense = License & { tenantName?: string; planId?: string }
 @Component({
   selector: 'app-platform-licenses',
   standalone: true,
-  imports: [CommonModule, FormsModule, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './platform-licenses.component.html',
 })
 export class PlatformLicensesComponent implements OnInit, OnDestroy {
@@ -30,7 +30,8 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
   error = '';
   licenses: PlatformLicense[] = [];
   tenantFilter = 'all';
-  productFilter = 'all';
+  /** A5.2 Fix 10 : produit sélectionné via les cartes (null = tous). */
+  selectedProduct: string | null = null;
   statusFilter = 'all';
   search = '';
 
@@ -50,7 +51,7 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     const qp = this.route.snapshot.queryParamMap;
     const product = qp.get('product');
     const tenant = qp.get('tenant');
-    if (product) this.productFilter = product;
+    if (product) this.selectedProduct = product;
     if (tenant) this.tenantFilter = tenant;
     this.load();
   }
@@ -82,12 +83,24 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     return [...new Set(this.licenses.map((l) => l.tenantName).filter(Boolean))].sort() as string[];
   }
 
-  get products(): string[] {
-    // A5.2 Fix 7 : le produit demandé (?product=) reste sélectionnable même
-    // sans aucune licence (sinon le select paraît vide / « tous tenants »).
+  /** Cartes produits : une par produit licencié + le produit demandé (?product=). */
+  productCards(): { key: string; licenses: number; users: number }[] {
     const keys = new Set(this.licenses.map((l) => l.productKey));
-    if (this.productFilter !== 'all') keys.add(this.productFilter);
-    return [...keys].sort();
+    if (this.selectedProduct) keys.add(this.selectedProduct);
+    return [...keys].sort().map((key) => {
+      const rows = this.licenses.filter((l) => l.productKey === key);
+      const users = new Set(rows.map((l) => (typeof l.userId === 'object' && l.userId ? String(l.userId._id) : '')));
+      users.delete('');
+      return { key, licenses: rows.length, users: users.size };
+    });
+  }
+
+  selectProduct(key: string | null): void {
+    this.selectedProduct = key;
+  }
+
+  trackCard(_i: number, c: { key: string }): string {
+    return c.key;
   }
 
   /** Stats calculées sur la vue FILTRÉE (cohérentes avec la liste affichée). */
@@ -107,14 +120,12 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     return this.filtered().filter((l) => l.status === 'revoked');
   }
 
-  clearProduct(): void {
-    this.productFilter = 'all';
-  }
+
 
   filtered(): PlatformLicense[] {
     return this.licenses.filter((l) => {
       if (this.tenantFilter !== 'all' && l.tenantName !== this.tenantFilter) return false;
-      if (this.productFilter !== 'all' && l.productKey !== this.productFilter) return false;
+      if (this.selectedProduct && l.productKey !== this.selectedProduct) return false;
       if (this.statusFilter !== 'all' && l.status !== this.statusFilter) return false;
       if (this.search) {
         const u = typeof l.userId === 'object' && l.userId ? l.userId : null;
