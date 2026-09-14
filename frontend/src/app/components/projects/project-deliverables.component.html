@@ -57,11 +57,11 @@
     <div class="space-y-3 p-4" *ngIf="creating || editing">
       <label class="block text-sm">
         <span class="text-muted-foreground">{{ 'projects.fields.title' | t }}</span>
-        <input type="text" [(ngModel)]="form.title" maxlength="160" class="input mt-1" />
+        <input type="text" [(ngModel)]="form.title" maxlength="160" class="input mt-1" [attr.placeholder]="'projects.deliverables.titlePh' | t" />
       </label>
       <label class="block text-sm">
         <span class="text-muted-foreground">{{ 'projects.fields.description' | t }}</span>
-        <textarea [(ngModel)]="form.description" rows="3" maxlength="3000" class="input mt-1"></textarea>
+        <textarea [(ngModel)]="form.description" rows="3" maxlength="3000" class="input mt-1" [attr.placeholder]="'projects.deliverables.descPh' | t"></textarea>
       </label>
       <div class="grid grid-cols-2 gap-3">
         <label class="block text-sm">
@@ -84,7 +84,7 @@
     <div class="space-y-3 p-4" *ngIf="rejecting">
       <label class="block text-sm">
         <span class="text-muted-foreground">{{ 'projects.deliverables.rejectionNote' | t }}</span>
-        <textarea [(ngModel)]="rejectionNote" rows="3" maxlength="1000" class="input mt-1"></textarea>
+        <textarea [(ngModel)]="rejectionNote" rows="3" maxlength="1000" class="input mt-1" [attr.placeholder]="'projects.deliverables.rejectNotePh' | t"></textarea>
       </label>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" class="btn-ghost btn-sm" (click)="rejecting = null">{{ 'common.cancel' | t }}</button>

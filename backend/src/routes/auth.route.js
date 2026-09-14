@@ -9,6 +9,8 @@ const {
   changePassword,
   refreshSession,
   logout,
+  listSessions,
+  revokeSession,
 } = require('../controllers/auth.controller');
 const {
   getStatus,
@@ -58,6 +60,9 @@ router.post('/logout', logout);
 router.get('/me', authMiddleware, me);
 // Audit : journal de connexion du compte courant (soi-même uniquement)
 router.get('/me/login-activity', authMiddleware, loginActivity);
+// A5.1 : sessions actives multi-appareils + révocation à distance (soi-même).
+router.get('/sessions', authMiddleware, listSessions);
+router.delete('/sessions/:familyId', authMiddleware, revokeSession);
 // Profil : chaque utilisateur met à jour UNIQUEMENT le sien (liste blanche zod)
 router.patch('/profile', authMiddleware, validate(updateProfileSchema), updateProfile);
 // Sécurité : changement de mot de passe avec preuve du mot de passe actuel

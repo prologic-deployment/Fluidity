@@ -47,7 +47,7 @@
             </div>
             <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'">
               <label class="field-label">{{ 'changements.specifyEnv' | t }}</label>
-              <input formControlName="serviceEnvironnementAutre" type="text" class="input" />
+              <input formControlName="serviceEnvironnementAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div>
@@ -67,7 +67,7 @@
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
               <label class="field-label">{{ 'demandes.specifyCategory' | t }}</label>
-              <input formControlName="categorieAutre" type="text" class="input" />
+              <input formControlName="categorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
@@ -81,13 +81,13 @@
             </div>
             <div *ngIf="form.get('sousCategorie')?.value === 'Autre' || form.get('categorie')?.value === 'Autre'">
               <label class="field-label">{{ 'demandes.specifySub' | t }}</label>
-              <input formControlName="sousCategorieAutre" type="text" class="input" />
+              <input formControlName="sousCategorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
             <div>
               <label class="field-label">{{ 'changements.prereq' | t }}</label>
-              <input formControlName="prerequisNecessaires" type="text" class="input" />
+              <input formControlName="prerequisNecessaires" type="text" class="input" [attr.placeholder]="'changements.prerequisPh' | t" />
             </div>
             <div class="md:col-span-2">
               <label class="field-label">{{ 'changements.contract' | t }}</label>
@@ -113,7 +113,7 @@
           </div>
           <div>
             <label class="field-label">{{ 'changements.rollback' | t }}</label>
-            <textarea formControlName="planRetourArriere" rows="3" class="textarea"></textarea>
+            <textarea formControlName="planRetourArriere" rows="3" class="textarea" [attr.placeholder]="'changements.rollbackPh' | t"></textarea>
             <p *ngIf="form.get('planRetourArriere')?.invalid && form.get('planRetourArriere')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
           </div>
           <div>

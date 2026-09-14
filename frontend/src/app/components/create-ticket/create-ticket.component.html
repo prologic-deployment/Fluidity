@@ -48,7 +48,7 @@
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
               <label class="field-label">{{ 'tickets.specifyCategory' | t }}</label>
-              <input formControlName="categorieAutre" type="text" class="input" />
+              <input formControlName="categorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div *ngIf="form.get('categorie')?.value !== 'Autre'">
@@ -61,7 +61,7 @@
             </div>
             <div *ngIf="form.get('sousCategorie')?.value === 'Autre' || form.get('categorie')?.value === 'Autre'">
               <label class="field-label">{{ 'tickets.specifySub' | t }}</label>
-              <input formControlName="sousCategorieAutre" type="text" class="input" />
+              <input formControlName="sousCategorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div>

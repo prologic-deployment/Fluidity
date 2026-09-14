@@ -34,6 +34,11 @@ async function runSeed() {
   }
   await connectDB();
   try {
+    // A5.1 — migration du cycle de vie des tenants : l'ancien statut terminal
+    // 'terminated' devient 'archived' (verrouillé, réactivable). Idempotent.
+    const { Tenant } = require('../models/tenant.model');
+    const migrated = await Tenant.updateMany({ status: 'terminated' }, { $set: { status: 'archived' } });
+    if (migrated.modifiedCount) console.log(`[Seed] Tenants migrés terminated → archived : ${migrated.modifiedCount}`);
     const tenants = await seedTenants();
     await seedUsers(tenants);
     await seedClients(tenants);

@@ -46,7 +46,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="field-label" for="p-stake">{{ 'projects.fields.stakeholder' | t }}</label>
-            <input id="p-stake" type="text" [(ngModel)]="stakeholder" class="input" maxlength="140" />
+            <input id="p-stake" type="text" [(ngModel)]="stakeholder" class="input" maxlength="140" [attr.placeholder]="'projects.new.stakeholderPh' | t" />
           </div>
           <div>
             <label class="field-label">{{ 'projects.fields.tags' | t }}</label>

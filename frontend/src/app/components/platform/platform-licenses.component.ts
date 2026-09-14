@@ -126,8 +126,57 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
     return u?.email || '';
   }
 
-  productLabel(productKey: string): string {
-    return productKey === 'project_management' ? this.i18n.t('nav.projects') : this.i18n.t(`products.${productKey}.name`);
+  /** A5.1 — libellé produit enrichi (registre traduit OU nom brut plateforme). */
+  productLabel(key: string): string {
+    const row = this.licenses.find((l) => l.productKey === key);
+    return this.rowProductLabel(row?.productNameKey, row?.productName, key);
+  }
+
+  rowProductLabel(nameKey: string | undefined, name: string | undefined, key: string): string {
+    if (nameKey && this.i18n.exists(nameKey)) return this.i18n.t(nameKey);
+    if (name) return name;
+    if (key === 'project_management') return this.i18n.t('nav.projects');
+    const fallback = `products.${key}.name`;
+    return this.i18n.exists(fallback) ? this.i18n.t(fallback) : key;
+  }
+
+  rowProductEmoji(key: string): string {
+    return this.licenses.find((l) => l.productKey === key)?.productEmoji || '';
+  }
+
+  /** A5.1 — rôle produit (enrichissement serveur ; plus de colonne vide). */
+  roleLabel(l: PlatformLicense): string {
+    if (!l.roleKey) return '—';
+    if (l.roleName && this.i18n.exists(l.roleName)) return this.i18n.t(l.roleName);
+    return l.roleName || l.roleKey;
+  }
+
+  /**
+   * A5.1 — regroupement par produit (vue orientée produit) : sections
+   * pliables par produit avec libellé + compteur, lignes à l'intérieur.
+   */
+  grouped(): { key: string; emoji: string; label: string; items: PlatformLicense[] }[] {
+    const rows = this.filtered();
+    const order: string[] = [];
+    const byKey = new Map<string, PlatformLicense[]>();
+    for (const l of rows) {
+      if (!byKey.has(l.productKey)) {
+        byKey.set(l.productKey, []);
+        order.push(l.productKey);
+      }
+      byKey.get(l.productKey)!.push(l);
+    }
+    return order
+      .map((key) => {
+        const first = byKey.get(key)![0];
+        return {
+          key,
+          emoji: first.productEmoji || '',
+          label: this.rowProductLabel(first.productNameKey, first.productName, key),
+          items: byKey.get(key)!,
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 
   statusBadge(status: string): string {

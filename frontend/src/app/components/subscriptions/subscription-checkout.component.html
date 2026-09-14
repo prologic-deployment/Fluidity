@@ -119,6 +119,19 @@
       </div>
     </div>
 
+    <!-- A5.1 : conflit de commande (produit actif / demande en attente) -->
+    <div class="card mb-4" *ngIf="orderError">
+      <div class="card-content p-8 text-center">
+        <p class="text-4xl">⚠️</p>
+        <p class="text-sm font-medium mt-3">{{ orderError }}</p>
+        <div class="flex justify-center gap-2 mt-5">
+          <button *ngIf="orderConflict === 'pending'" type="button" class="btn-primary btn-sm" (click)="goOrders()">{{ 'subscriptions.checkout.seeOrders' | t }}</button>
+          <button *ngIf="orderConflict === 'subscribed'" type="button" class="btn-primary btn-sm" (click)="goOverview()">{{ 'subscriptions.overview.nav' | t }}</button>
+          <button *ngIf="!orderConflict" type="button" class="btn-ghost btn-sm" (click)="orderError = ''">{{ 'common.back' | t }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Étape 5 : confirmation -->
     <div class="card mb-4" *ngIf="step === 5 && completedOrder">
       <div class="card-content p-8 text-center">

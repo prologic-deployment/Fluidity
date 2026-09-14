@@ -79,4 +79,19 @@ export class PlatformDashboardComponent implements OnInit, OnDestroy {
   auditLabel(a: { productKey: string; action: string }): string {
     return `platform.audit.action.${a.action}`;
   }
+
+  /**
+   * A5.1 — statut d'un tenant récent : clé traduite (l'ancien
+   * 'tenants.status.*' n'existait pas → affichait la clé brute anglaise).
+   */
+  tenantStatusKey(status: string): string {
+    const s = status === 'terminated' ? 'archived' : status || 'archived';
+    return `tenants.statuses.${s}`;
+  }
+
+  tenantBadge(status: string): string {
+    if (status === 'active') return 'badge-success';
+    if (status === 'suspended') return 'badge-warning';
+    return 'badge-secondary';
+  }
 }

@@ -73,11 +73,11 @@
     <div class="space-y-4">
       <div>
         <label class="field-label">{{ 'projects.fields.name' | t }} *</label>
-        <input type="text" [(ngModel)]="form.name" class="input" maxlength="140" />
+        <input type="text" [(ngModel)]="form.name" class="input" maxlength="140" [attr.placeholder]="'projects.milestones.namePh' | t" />
       </div>
       <div>
         <label class="field-label">{{ 'projects.fields.description' | t }}</label>
-        <textarea [(ngModel)]="form.description" rows="3" class="input"></textarea>
+        <textarea [(ngModel)]="form.description" rows="3" class="input" [attr.placeholder]="'projects.milestones.descPh' | t"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>

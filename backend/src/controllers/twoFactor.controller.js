@@ -297,12 +297,21 @@ const verifyLogin = async (req, res) => {
     let tenant = null;
     if (user.tenantId) {
       tenant = await Tenant.findById(user.tenantId);
-      if (!tenant || tenant.status === 'terminated') {
-        res.status(403).json({ message: "Cet espace de travail n'existe plus." });
+      if (!tenant) {
+        res.status(403).json({ code: 'TENANT_NOT_FOUND', message: "Cet espace de travail n'existe plus." });
+        return;
+      }
+      // A5.1 : une archive ('archived' ou 'terminated' historique) est verrouillée.
+      if ((tenant.status === 'archived' || tenant.status === 'terminated') && user.role !== 'PLATFORM_ADMIN') {
+        res.status(403).json({
+          code: 'TENANT_ARCHIVED',
+          message: 'Cet espace de travail est archivé (lecture seule). Contactez le support de la plateforme pour le restaurer.',
+        });
         return;
       }
       if (tenant.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
         res.status(403).json({
+          code: 'TENANT_SUSPENDED',
           message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
         });
         return;

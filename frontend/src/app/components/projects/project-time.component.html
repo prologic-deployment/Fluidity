@@ -81,7 +81,7 @@
       </div>
       <label class="block text-sm">
         <span class="text-muted-foreground">{{ 'projects.time.note' | t }}</span>
-        <textarea [(ngModel)]="form.note" rows="2" maxlength="500" class="input mt-1"></textarea>
+        <textarea [(ngModel)]="form.note" rows="2" maxlength="500" class="input mt-1" [attr.placeholder]="'projects.time.notePh' | t"></textarea>
       </label>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" class="btn-ghost btn-sm" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>

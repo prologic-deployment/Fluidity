@@ -44,10 +44,19 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let s of filtered()">
+        <ng-container *ngFor="let g of grouped()">
+        <tr class="bg-muted/40">
+          <td colspan="8" class="!py-2">
+            <span class="text-base mr-1">{{ g.emoji }}</span>
+            <span class="text-sm font-semibold">{{ g.label }}</span>
+            <span class="text-xs text-muted-foreground font-mono ml-1">{{ g.key }}</span>
+            <span class="badge badge-outline text-[10px] ml-2">{{ 'platform.subscriptions.groupItems' | t: { n: g.items.length } }}</span>
+          </td>
+        </tr>
+        <tr *ngFor="let s of g.items">
           <td class="font-medium">{{ s.tenantName || '—' }}</td>
-          <td class="text-sm">{{ s.productKey === 'project_management' ? ('nav.projects' | t) : ('products.' + s.productKey + '.name' | t) }}</td>
-          <td class="text-sm">{{ 'subscriptions.meta.plan.' + s.planId | t }}</td>
+          <td class="text-sm"><span class="mr-1">{{ s.productEmoji }}</span>{{ rowProductLabel(s.productNameKey, s.productName, s.productKey) }}</td>
+          <td class="text-sm">{{ planLabel(s.planId) }}</td>
           <td><span class="badge" [ngClass]="statusBadge(s.status)">{{ 'subscriptions.meta.status.' + s.status | t }}</span></td>
           <td class="hidden md:table-cell tabular-nums">
             {{ s.usage?.used || 0 }} / {{ s.usage?.seats || s.seats }}
@@ -62,6 +71,7 @@
             <span class="badge" [ngClass]="s.autoRenew ? 'badge-success' : 'badge-warning'">{{ (s.autoRenew ? 'subscriptions.overview.autoRenewOn' : 'subscriptions.overview.autoRenewOff') | t }}</span>
           </td>
         </tr>
+        </ng-container>
       </tbody>
     </table>
   </div>

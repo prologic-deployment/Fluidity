@@ -5,7 +5,7 @@
 | UC-PA-001 | View platform dashboard (KPIs, pending, activity) | GET /api/platform/dashboard | IMPLEMENTED |
 | UC-PA-002 | List / view / create / update tenants | GET\|POST /api/tenants*, PATCH /api/tenants/:id | IMPLEMENTED |
 | UC-PA-003 | Suspend / activate tenant (cuts all tenant access) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
-| UC-PA-004 | Delete tenant | DELETE /api/tenants/:id | IMPLEMENTED |
+| UC-PA-004 | Archive / restore tenant (no hard delete) | PATCH /api/tenants/:id (status=archived/active) | IMPLEMENTED |
 | UC-PA-005 | Impersonate tenant (x-tenant-override; audit+support) | header on any API; UI switcher in sidebar | IMPLEMENTED |
 | UC-PA-006 | Create platform product (draft) | POST /api/platform/products | IMPLEMENTED |
 | UC-PA-007 | Configure product (plans/roles/permissions) | PATCH /api/platform/products/:key/configure | IMPLEMENTED |
@@ -195,7 +195,7 @@ IMPLEMENTED
 
 ---
 
-## UC-PA-004 — Delete tenant
+## UC-PA-004 — Archive / restore tenant (hard delete removed, A5.1)
 
 ### Actor
 PLATFORM_ADMIN
@@ -212,7 +212,7 @@ Platform
 
 ### Main Flow
 1. User opens /plateforme/tenants
-2. Frontend calls DELETE /api/tenants/:id
+2. Frontend calls PATCH /api/tenants/:id with `status=archived` (restore: `status=active`)
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
 4. Controller executes with global scope; tenant checks bypassed by design
 5. Audit written; affected tenant admin/user notified where applicable
@@ -224,7 +224,7 @@ Platform
 - requirePlatformAdmin (backend) + platformGuard (frontend)
 
 ### APIs
-- DELETE /api/tenants/:id
+- PATCH /api/tenants/:id (A5.1 : `DELETE /api/tenants/:id` supprimé — l’archivage est réversible et audité ; `terminated` n’existe plus)
 
 ### Frontend
 - /plateforme/tenants
@@ -440,7 +440,7 @@ Platform
 
 ### Main Flow
 1. User opens /plateforme/produits
-2. Frontend calls POST .../publish|suspend, DELETE ...
+2. Frontend calls POST .../publish|suspend, DELETE ... (suppression réservée aux produits `draft` sans abonnement : 409 sinon)
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
 4. Controller executes with global scope; tenant checks bypassed by design
 5. Audit written; affected tenant admin/user notified where applicable
@@ -452,7 +452,7 @@ Platform
 - requirePlatformAdmin (backend) + platformGuard (frontend)
 
 ### APIs
-- POST .../publish|suspend, DELETE ...
+- POST .../publish|suspend, DELETE ... (A5.1 : `DELETE /api/platform/products/:key` refusé 409 si produit non-`draft` ou référencé par un abonnement)
 
 ### Frontend
 - /plateforme/produits

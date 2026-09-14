@@ -69,7 +69,9 @@ const patchOrder = async (req, res) => {
     res.status(404).json({ message: 'Commande introuvable' });
     return;
   }
-  await audit(req, { action: `order.${status}`, productKey: order.productKey, resource: 'order', resourceId: order._id, metadata: { tenantId: order.tenantId } });
+  // A5.1 : action d'audit STABLE ('order.updated' + statut en métadonnée —
+  // plus d'actions dynamiques intraduisibles côté journal).
+  await audit(req, { action: 'order.updated', productKey: order.productKey, resource: 'order', resourceId: order._id, metadata: { tenantId: order.tenantId, status } });
   res.json({ order });
 };
 

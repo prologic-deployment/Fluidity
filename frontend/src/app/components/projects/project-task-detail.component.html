@@ -37,11 +37,11 @@
           <div class="card-content p-4 space-y-3">
             <div>
               <label class="field-label">{{ 'projects.fields.title' | t }}</label>
-              <input type="text" [(ngModel)]="editTitle" class="input" maxlength="200" />
+              <input type="text" [(ngModel)]="editTitle" class="input" maxlength="200" [attr.placeholder]="'projects.task.titlePh' | t" />
             </div>
             <div>
               <label class="field-label">{{ 'projects.fields.description' | t }}</label>
-              <textarea [(ngModel)]="editDescription" rows="4" class="input"></textarea>
+              <textarea [(ngModel)]="editDescription" rows="4" class="input" [attr.placeholder]="'projects.task.descPh' | t"></textarea>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

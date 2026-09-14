@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { AdminProduct, ProductPlan } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { EmojiPickerComponent } from '../shared/emoji-picker.component';
 
 interface RoleDraft {
   key: string;
@@ -27,7 +28,7 @@ interface RoleDraft {
 @Component({
   selector: 'app-platform-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, ...I18N_IMPORTS],
   templateUrl: './platform-products.component.html',
 })
 export class PlatformProductsComponent implements OnInit, OnDestroy {
@@ -105,12 +106,24 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     return p.managedBy === 'platform';
   }
 
+  /**
+   * A5.1 — libellés avec repli EXPLICITE (t() renvoyant la clé brute quand
+   * elle manque, le `||` ne suffisait jamais : vérifier exists() d'abord).
+   */
   productName(p: AdminProduct): string {
-    return this.i18n.t(p.nameKey) || p.name || p.key;
+    if (p.nameKey && this.i18n.exists(p.nameKey)) return this.i18n.t(p.nameKey);
+    return p.name || p.key;
+  }
+
+  productDescription(p: AdminProduct): string {
+    const key = (p as AdminProduct & { descriptionKey?: string }).descriptionKey || '';
+    if (key && this.i18n.exists(key)) return this.i18n.t(key);
+    return p.description || '';
   }
 
   planName(plan: ProductPlan): string {
-    return this.i18n.t(plan.nameKey) || plan.name || plan.id;
+    if (plan.nameKey && this.i18n.exists(plan.nameKey)) return this.i18n.t(plan.nameKey);
+    return plan.name || plan.id;
   }
 
   async toggle(p: AdminProduct): Promise<void> {

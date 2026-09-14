@@ -8,6 +8,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { ProductInfo } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Parcours d'achat d'un produit (route /abonnements/produits/:key) :
@@ -33,6 +34,9 @@ export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
   cycle: 'monthly' | 'annual' = 'monthly';
   paymentMethod: 'card' | 'bank_transfer' | 'invoice' = 'bank_transfer';
   submitting = false;
+  /** A5.1 — erreur de commande affichée en ligne (jamais une page morte). */
+  orderError = '';
+  orderConflict: 'subscribed' | 'pending' | '' = '';
   completedOrder: { total: number; currency: string; seats: number; planId: string } | null = null;
 
   private readonly destroy$ = new Subject<void>();
@@ -124,11 +128,11 @@ export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.submitting = false;
-          const message =
-            err?.error?.code === 'ALREADY_SUBSCRIBED'
-              ? this.i18n.t('subscriptions.checkout.alreadySubscribed')
-              : err?.error?.message || this.i18n.t('subscriptions.errors.save');
-          this.toast.error(message);
+          this.orderError = apiErrorMessage(this.i18n, err, 'subscriptions.errors.save');
+          const code = err?.error?.code;
+          this.orderConflict = code === 'ALREADY_SUBSCRIBED' ? 'subscribed' : code === 'DUPLICATE_PENDING_ORDER' ? 'pending' : '';
+          this.toast.error(this.orderError);
+          this.cdr.markForCheck();
         },
       });
   }

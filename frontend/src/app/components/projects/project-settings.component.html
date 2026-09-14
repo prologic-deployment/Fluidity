@@ -17,15 +17,15 @@
         <div class="card-content p-4 space-y-3">
           <div>
             <label class="field-label">{{ 'projects.fields.name' | t }}</label>
-            <input type="text" [(ngModel)]="form.name" class="input" maxlength="140" [disabled]="!canManage" />
+            <input type="text" [(ngModel)]="form.name" class="input" maxlength="140" [disabled]="!canManage" [attr.placeholder]="'projects.settings.namePh' | t" />
           </div>
           <div>
             <label class="field-label">{{ 'projects.fields.description' | t }}</label>
-            <textarea [(ngModel)]="form.description" rows="3" class="input" [disabled]="!canManage"></textarea>
+            <textarea [(ngModel)]="form.description" rows="3" class="input" [disabled]="!canManage" [attr.placeholder]="'projects.settings.descPh' | t"></textarea>
           </div>
           <div>
             <label class="field-label">{{ 'projects.fields.stakeholder' | t }}</label>
-            <input type="text" [(ngModel)]="form.stakeholder" class="input" maxlength="140" [disabled]="!canManage" />
+            <input type="text" [(ngModel)]="form.stakeholder" class="input" maxlength="140" [disabled]="!canManage" [attr.placeholder]="'projects.settings.stakeholderPh' | t" />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -64,11 +64,11 @@
             <div class="space-y-3">
               <div>
                 <label class="field-label">{{ 'projects.fields.objectives' | t }}</label>
-                <textarea [(ngModel)]="form.objectives" rows="2" class="input" [disabled]="!canManage"></textarea>
+                <textarea [(ngModel)]="form.objectives" rows="2" class="input" [disabled]="!canManage" [attr.placeholder]="'projects.settings.objectivesPh' | t"></textarea>
               </div>
               <div>
                 <label class="field-label">{{ 'projects.fields.successCriteria' | t }}</label>
-                <textarea [(ngModel)]="form.successCriteria" rows="2" class="input" [disabled]="!canManage"></textarea>
+                <textarea [(ngModel)]="form.successCriteria" rows="2" class="input" [disabled]="!canManage" [attr.placeholder]="'projects.settings.criteriaPh' | t"></textarea>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
@@ -156,7 +156,7 @@
             </div>
             <div class="flex-1 min-w-[220px]">
               <label class="field-label">{{ 'projects.settings.healthOverrideReason' | t }}</label>
-              <input type="text" [(ngModel)]="override.reason" maxlength="500" class="input" [disabled]="!canManage" />
+              <input type="text" [(ngModel)]="override.reason" maxlength="500" class="input" [disabled]="!canManage" [attr.placeholder]="'projects.settings.reasonPh' | t" />
             </div>
             <button type="button" class="btn-primary btn-sm" [disabled]="!canManage" (click)="applyOverride()">{{ 'projects.settings.healthOverrideSave' | t }}</button>
           </div>

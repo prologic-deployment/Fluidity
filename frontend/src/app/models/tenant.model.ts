@@ -1,6 +1,7 @@
 export type TenantType = 'Company' | 'Individual';
 export type TenantPlan = 'Free' | 'Starter' | 'Professional' | 'Enterprise';
-export type TenantStatus = 'active' | 'suspended' | 'terminated';
+/** A5.1 : 'terminated' remplacé par 'archived' (verrouillé, réactivable). */
+export type TenantStatus = 'active' | 'suspended' | 'archived' | 'terminated';
 
 export interface Tenant {
   _id?: string;
@@ -37,7 +38,7 @@ export interface TenantStats {
 }
 
 export interface PlatformStats {
-  tenants: { active: number; suspended: number; total: number };
+  tenants: { active: number; suspended: number; archived: number; total: number };
   users: number;
   clients: number;
   contrats: number;

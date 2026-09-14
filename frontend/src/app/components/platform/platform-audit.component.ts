@@ -10,6 +10,7 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 export type RichAuditEntry = AuditEntry & {
   userId: { _id: string; email: string; firstName?: string; lastName?: string } | null;
   tenantId?: string | null;
+  tenantName?: string;
 };
 
 /**

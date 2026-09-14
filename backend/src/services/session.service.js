@@ -138,6 +138,50 @@ async function revokeAllForPrincipal(userId, principalType) {
   );
 }
 
+/**
+ * A5.1 — sessions ACTIVES d'un principal (multi-appareils) : une ligne par
+ * famille de rotation possédant encore un jeton valide (non révoqué, non
+ * expiré). Le jeton brut n'est JAMAIS exposé (famille + contexte seulement).
+ */
+async function listSessionsForPrincipal(userId, principalType) {
+  const now = new Date();
+  const rows = await RefreshToken.aggregate([
+    { $match: { userId: String(userId), principalType, revokedAt: null, expiresAt: { $gt: now } } },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: '$familyId',
+        userAgent: { $first: '$userAgent' },
+        ip: { $first: '$ip' },
+        createdAt: { $min: '$createdAt' },
+        lastUsedAt: { $max: '$createdAt' },
+        expiresAt: { $max: '$expiresAt' },
+      },
+    },
+    { $sort: { lastUsedAt: -1 } },
+  ]);
+  return rows.map((r) => ({
+    familyId: r._id,
+    userAgent: r.userAgent || '',
+    ip: r.ip || '',
+    createdAt: r.createdAt,
+    lastUsedAt: r.lastUsedAt,
+    expiresAt: r.expiresAt,
+  }));
+}
+
+/**
+ * A5.1 — révocation d'UNE famille (un appareil) d'un principal. Retourne le
+ * nombre de jetons révoqués (0 = famille inconnue ou déjà révoquée).
+ */
+async function revokeFamilyForPrincipal(userId, principalType, familyId) {
+  const res = await RefreshToken.updateMany(
+    { userId: String(userId), principalType, familyId: String(familyId), revokedAt: null },
+    { $set: { revokedAt: new Date() } }
+  );
+  return res.modifiedCount || 0;
+}
+
 module.exports = {
   COOKIE_NAME,
   hashToken,
@@ -147,6 +191,8 @@ module.exports = {
   reuseDetected,
   revokeCurrent,
   revokeAllForPrincipal,
+  listSessionsForPrincipal,
+  revokeFamilyForPrincipal,
   readRefreshCookie,
   setRefreshCookie,
   clearRefreshCookie,

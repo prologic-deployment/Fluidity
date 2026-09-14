@@ -16,11 +16,12 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
       <div
         *ngFor="let toast of toasts$ | async"
         class="pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-xl backdrop-blur-sm animate-fade-in-up"
-        [ngClass]="
-          toast.kind === 'success'
-            ? 'border-success/40 bg-success/95 text-success-foreground'
-            : 'border-destructive/40 bg-destructive/95 text-destructive-foreground'
-        "
+        [ngClass]="{
+          'border-success/40 bg-success/95 text-success-foreground': toast.kind === 'success',
+          'border-destructive/40 bg-destructive/95 text-destructive-foreground': toast.kind === 'error',
+          'border-primary/40 bg-primary/95 text-primary-foreground': toast.kind === 'info',
+          'border-warning/40 bg-warning/95 text-warning-foreground': toast.kind === 'warn'
+        }"
         role="alert"
       >
         <svg *ngIf="toast.kind === 'success'" class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -31,6 +32,16 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <svg *ngIf="toast.kind === 'info'" class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <svg *ngIf="toast.kind === 'warn'" class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
         <p class="flex-1 text-sm font-medium">{{ toast.message }}</p>
         <button type="button" (click)="toastService.dismiss(toast.id)" [attr.aria-label]="'toast.close' | t"

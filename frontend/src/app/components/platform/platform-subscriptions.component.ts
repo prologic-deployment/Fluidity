@@ -83,9 +83,49 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Libellé i18n du produit. */
+  /** A5.1 — libellé produit enrichi (registre traduit OU nom brut plateforme). */
   productLabel(key: string): string {
-    return this.i18n.t(`products.${key}.name`);
+    const row = this.subscriptions.find((s) => s.productKey === key);
+    return this.rowProductLabel(row?.productNameKey, row?.productName, key);
+  }
+
+  rowProductLabel(nameKey: string | undefined, name: string | undefined, key: string): string {
+    if (nameKey && this.i18n.exists(nameKey)) return this.i18n.t(nameKey);
+    if (name) return name;
+    if (key === 'project_management') return this.i18n.t('nav.projects');
+    const fallback = `products.${key}.name`;
+    return this.i18n.exists(fallback) ? this.i18n.t(fallback) : key;
+  }
+
+  /** A5.1 — plan : libellé traduit si connu, sinon identifiant brut (jamais de clé). */
+  planLabel(planId: string): string {
+    const key = `subscriptions.meta.plan.${planId}`;
+    return this.i18n.exists(key) ? this.i18n.t(key) : planId;
+  }
+
+  /** A5.1 — regroupement par produit (vue orientée produit). */
+  grouped(): { key: string; emoji: string; label: string; items: PlatformSubscription[] }[] {
+    const rows = this.filtered();
+    const order: string[] = [];
+    const byKey = new Map<string, PlatformSubscription[]>();
+    for (const s of rows) {
+      if (!byKey.has(s.productKey)) {
+        byKey.set(s.productKey, []);
+        order.push(s.productKey);
+      }
+      byKey.get(s.productKey)!.push(s);
+    }
+    return order
+      .map((key) => {
+        const first = byKey.get(key)![0];
+        return {
+          key,
+          emoji: first.productEmoji || '',
+          label: this.rowProductLabel(first.productNameKey, first.productName, key),
+          items: byKey.get(key)!,
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
   }
 
   statusBadge(status: string): string {

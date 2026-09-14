@@ -17,6 +17,8 @@ interface MatrixRow {
   userEmail: string;
   productKey: string;
   roleKey: string;
+  /** A5.1 — statut réel de la licence ('' = aucune licence). */
+  licenseStatus: string;
   assignmentId?: string;
 }
 
@@ -39,7 +41,7 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
   productFilter = 'all';
   search = '';
   /** Catalogue des rôles par produit (registre serveur). */
-  roleCatalog: { productKey: string; nameKey: string; roles: { key: string; nameKey: string }[] }[] = [];
+  roleCatalog: { productKey: string; nameKey: string; roles: { key: string; nameKey: string; permissions: string[] }[] }[] = [];
   licenses: (License & { tenantName?: string })[] = [];
   /** Édition de rôle (Super Admin global). */
   editing: MatrixRow | null = null;
@@ -96,6 +98,7 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
         userEmail: u.email || '',
         productKey: a.productKey,
         roleKey: a.roleKey,
+        licenseStatus: lic?.status || '',
         assignmentId: a._id,
       });
       covered.add(`${a.productKey}::${u.email || ''}`);
@@ -111,6 +114,7 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
         userEmail: email,
         productKey: l.productKey,
         roleKey: '',
+        licenseStatus: l.status || '',
       });
       covered.add(`${l.productKey}::${email}`);
     }
@@ -142,8 +146,25 @@ export class PlatformLicensesRolesComponent implements OnInit, OnDestroy {
     return role ? this.i18n.t(role.nameKey) : roleKey || '—';
   }
 
-  rolesFor(productKey: string): { key: string; nameKey: string }[] {
+  rolesFor(productKey: string): { key: string; nameKey: string; permissions: string[] }[] {
     return this.roleCatalog.find((c) => c.productKey === productKey)?.roles || [];
+  }
+
+  /** A5.1 — permissions d'un rôle (registre serveur), pour l'infobulle. */
+  rolePermissions(productKey: string, roleKey: string): string[] {
+    return this.rolesFor(productKey).find((r) => r.key === roleKey)?.permissions || [];
+  }
+
+  rolePermissionsTitle(productKey: string, roleKey: string): string {
+    const perms = this.rolePermissions(productKey, roleKey);
+    return perms.length ? `${this.i18n.t('platform.rolesMatrix.permissions')} : ${perms.join(', ')}` : '';
+  }
+
+  licenseBadge(status: string): string {
+    if (status === 'active') return 'badge-success';
+    if (status === 'suspended') return 'badge-warning';
+    if (status === 'revoked') return 'badge-destructive';
+    return 'badge-outline';
   }
 
   startEdit(r: MatrixRow): void {

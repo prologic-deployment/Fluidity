@@ -25,7 +25,9 @@
           </li>
         </ul>
         <div class="flex items-center gap-2 mt-4">
-          <a *ngIf="isAvailable(p)" [routerLink]="['/abonnements/produits', p.key]" class="btn-primary btn-sm">{{ 'subscriptions.catalog.subscribe' | t }}</a>
+          <a *ngIf="isAvailable(p) && isSubscribed(p)" [routerLink]="['/abonnements']" class="btn-outline btn-sm">{{ 'subscriptions.catalog.activeManage' | t }}</a>
+          <a *ngIf="isAvailable(p) && !isSubscribed(p) && isPending(p)" [routerLink]="['/abonnements/commandes']" class="btn-outline btn-sm">{{ 'subscriptions.catalog.pendingLabel' | t }}</a>
+          <a *ngIf="isAvailable(p) && !isSubscribed(p) && !isPending(p)" [routerLink]="['/abonnements/produits', p.key]" class="btn-primary btn-sm">{{ 'subscriptions.catalog.subscribe' | t }}</a>
           <button *ngIf="!isAvailable(p)" type="button" class="btn-ghost btn-sm" disabled>{{ 'subscriptions.meta.comingSoon' | t }}</button>
           <span class="text-sm text-muted-foreground ml-auto tabular-nums">{{ 'subscriptions.catalog.from' | t }} {{ p.plans[0].pricePerSeatMonthly }} €/{{ 'subscriptions.meta.month' | t }}</span>
         </div>

@@ -21,8 +21,9 @@ const LEGACY_MESSAGE =
  *                    dans le jeton ; req.userClientId = sa propre fiche).
  * 2. Recharge le principal : un compte suspendu/inactif est immédiatement
  *    bloqué (les JWT étant sans état, la DB fait foi).
- * 3. Charge le Tenant : un tenant « suspended » ou « terminated » coupe
- *    tout accès à ses utilisateurs (le Super Admin plateforme passe).
+ * 3. Charge le Tenant : un tenant « suspended » ou « archived » (ou
+ *    « terminated », valeur historique équivalente) coupe tout accès à
+ *    ses utilisateurs (le Super Admin plateforme passe).
  * 4. Impersonation : un PLATFORM_ADMIN peut agir "comme" un tenant via
  *    l'en-tête `x-tenant-override: <tenantId>` (audit + support).
  */
@@ -129,8 +130,13 @@ const authMiddleware = async (req, res, next) => {
         return;
       }
       if (tenant.status !== 'active' && req.userRole !== 'PLATFORM_ADMIN') {
+        // A5.1 : message et code distincts pour une archive verrouillée.
+        const archived = tenant.status === 'archived' || tenant.status === 'terminated';
         res.status(403).json({
-          message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
+          code: archived ? 'TENANT_ARCHIVED' : 'TENANT_SUSPENDED',
+          message: archived
+            ? 'Cet espace de travail est archivé (lecture seule). Contactez le support de la plateforme pour le restaurer.'
+            : 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
         });
         return;
       }

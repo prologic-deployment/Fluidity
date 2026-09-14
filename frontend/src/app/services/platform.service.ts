@@ -266,8 +266,8 @@ export class PlatformService {
 
   // --- Rôles produit (admin tenant) ----------------------------------------
 
-  roleCatalog(): Observable<{ productKey: string; nameKey: string; roles: { key: string; nameKey: string }[] }[]> {
-    return this.http.get<{ roles: { productKey: string; nameKey: string; roles: { key: string; nameKey: string }[] }[] }>(
+  roleCatalog(): Observable<{ productKey: string; nameKey: string; roles: { key: string; nameKey: string; permissions: string[] }[] }[]> {
+    return this.http.get<{ roles: { productKey: string; nameKey: string; roles: { key: string; nameKey: string; permissions: string[] }[] }[] }>(
       `${this.base}/roles`
     ).pipe(map((r) => r.roles));
   }

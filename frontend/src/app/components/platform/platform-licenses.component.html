@@ -64,7 +64,16 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let l of filtered()">
+        <ng-container *ngFor="let g of grouped()">
+        <tr class="bg-muted/40">
+          <td colspan="8" class="!py-2">
+            <span class="text-base mr-1">{{ g.emoji }}</span>
+            <span class="text-sm font-semibold">{{ g.label }}</span>
+            <span class="text-xs text-muted-foreground font-mono ml-1">{{ g.key }}</span>
+            <span class="badge badge-outline text-[10px] ml-2">{{ 'platform.licenses.groupItems' | t: { n: g.items.length } }}</span>
+          </td>
+        </tr>
+        <tr *ngFor="let l of g.items">
           <td class="font-medium">{{ l.tenantName || '—' }}</td>
           <td class="text-sm">
             <ng-container *ngIf="l.userId; else unassigned">
@@ -73,8 +82,8 @@
             </ng-container>
             <ng-template #unassigned><span class="badge badge-outline">{{ 'platform.licenses.unassigned' | t }}</span></ng-template>
           </td>
-          <td class="text-sm">{{ productLabel(l.productKey) }}</td>
-          <td class="hidden md:table-cell text-sm">—</td>
+          <td class="text-sm"><span class="mr-1">{{ l.productEmoji }}</span>{{ rowProductLabel(l.productNameKey, l.productName, l.productKey) }}</td>
+          <td class="hidden md:table-cell text-sm">{{ roleLabel(l) }}</td>
           <td><span class="badge" [ngClass]="statusBadge(l.status)">{{ 'platform.licenses.status.' + l.status | t }}</span></td>
           <td class="hidden md:table-cell text-sm text-muted-foreground">{{ l.startDate | dateLocale:'short' }}</td>
           <td class="hidden lg:table-cell text-sm text-muted-foreground">{{ l.endDate ? (l.endDate | dateLocale:'short') : '—' }}</td>
@@ -86,6 +95,7 @@
             <span *ngIf="!l.userId || l.status === 'revoked'" class="text-xs text-muted-foreground">—</span>
           </td>
         </tr>
+        </ng-container>
       </tbody>
     </table>
   </div>

@@ -72,6 +72,7 @@ const createTenant = async (req, res) => {
       await adminUser.save();
     }
 
+    await audit(req, { action: 'tenant.created', resource: 'tenant', resourceId: tenant._id, metadata: { tenantId: String(tenant._id), name: tenant.name, withAdmin: !!adminUser } });
     res.status(201).json({ tenant, admin: adminUser ? { email: adminUser.email, role: adminUser.role } : null });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
@@ -79,11 +80,16 @@ const createTenant = async (req, res) => {
   }
 };
 
-/** Liste de tous les tenants (hors résiliés) avec leurs statistiques. */
+/** Liste de tous les tenants (y compris archivés — filtrables côté UI). */
 const getAllTenants = async (req, res) => {
   try {
     // PERF-002 : vue admin bornée (plafond 200 tenants affichés).
-    const tenants = await Tenant.find({ status: { $ne: 'terminated' } }).sort({ createdAt: -1 }).limit(200);
+    // A5.1 : les archives restent listées (verrouillées, réactivables) ; le
+    // statut historique 'terminated' (pré-migration) est normalisé à la volée.
+    const tenants = await Tenant.find({}).sort({ createdAt: -1 }).limit(200);
+    for (const t of tenants) {
+      if (t.status === 'terminated') t.status = 'archived';
+    }
     const withStats = await Promise.all(
       tenants.map(async (t) => ({ ...t.toObject(), stats: await tenantStats(t) }))
     );
@@ -97,18 +103,22 @@ const getAllTenants = async (req, res) => {
 /** Vue d'ensemble de la plateforme (cartes du tableau de bord Super Admin). */
 const getPlatformStats = async (req, res) => {
   try {
-    const [tenantsActive, tenantsSuspended, usersTotal, clientsTotal, contratsTotal, demandesTotal, changementsTotal] =
+    const [tenantsActive, tenantsSuspended, tenantsArchived, tenantsLegacy, usersTotal, clientsTotal, contratsTotal, demandesTotal, changementsTotal] =
       await Promise.all([
         Tenant.countDocuments({ status: 'active' }),
         Tenant.countDocuments({ status: 'suspended' }),
+        Tenant.countDocuments({ status: 'archived' }),
+        Tenant.countDocuments({ status: 'terminated' }),
         Utilisateur.countDocuments({ role: { $ne: 'PLATFORM_ADMIN' } }),
         Client.countDocuments({}),
         Contrat.countDocuments({}),
         Demande.countDocuments({}),
         Changement.countDocuments({}),
       ]);
+    // A5.1 : les 'terminated' résiduels (pré-migration) comptent comme archivés.
+    const archived = tenantsArchived + tenantsLegacy;
     res.status(200).json({
-      tenants: { active: tenantsActive, suspended: tenantsSuspended, total: tenantsActive + tenantsSuspended },
+      tenants: { active: tenantsActive, suspended: tenantsSuspended, archived, total: tenantsActive + tenantsSuspended + archived },
       users: usersTotal,
       clients: clientsTotal,
       contrats: contratsTotal,
@@ -121,15 +131,17 @@ const getPlatformStats = async (req, res) => {
   }
 };
 
-/** Détail d'un tenant (+ statistiques & licences). */
+/** Détail d'un tenant (+ statistiques & licences) — archives incluses. */
 const getTenantById = async (req, res) => {
   try {
-    const tenant = await Tenant.findOne({ _id: req.params.id, status: { $ne: 'terminated' } });
+    const tenant = await Tenant.findById(req.params.id);
     if (!tenant) {
       res.status(404).json({ message: 'Tenant introuvable' });
       return;
     }
-    res.status(200).json({ ...tenant.toObject(), stats: await tenantStats(tenant) });
+    const obj = tenant.toObject();
+    if (obj.status === 'terminated') obj.status = 'archived';
+    res.status(200).json({ ...obj, stats: await tenantStats(tenant) });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
@@ -139,9 +151,10 @@ const getTenantById = async (req, res) => {
 /** Mise à jour : identité, marque (white-label), plan, licences… */
 const updateTenant = async (req, res) => {
   try {
+    const { status: _ignoredStatus, ...data } = req.body || {};
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: req.params.id, status: { $ne: 'terminated' } },
-      { $set: req.body },
+      { _id: req.params.id, status: { $nin: ['archived', 'terminated'] } },
+      { $set: data },
       { new: true, runValidators: true }
     );
     if (!tenant) {
@@ -159,7 +172,11 @@ const updateTenant = async (req, res) => {
   }
 };
 
-/** Suspendre un tenant : bloque immédiatement l'accès de tous ses utilisateurs. */
+/**
+ * Suspendre un tenant ACTIF : bloque immédiatement l'accès de tous ses
+ * utilisateurs (auth + middleware). Un tenant archivé ne se suspend pas —
+ * il se réactive d'abord (transition explicite, journalisée).
+ */
 const suspendTenant = async (req, res) => {
   try {
     const tenant = await Tenant.findOneAndUpdate(
@@ -168,28 +185,10 @@ const suspendTenant = async (req, res) => {
       { new: true }
     );
     if (!tenant) {
-      res.status(404).json({ message: 'Tenant introuvable ou déjà suspendu' });
+      res.status(404).json({ message: 'Tenant introuvable, déjà suspendu ou archivé (réactivez-le d’abord).' });
       return;
     }
-    res.status(200).json(tenant);
-  } catch (err) {
-    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
-    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
-  }
-};
-
-/** Réactiver un tenant suspendu. */
-const activateTenant = async (req, res) => {
-  try {
-    const tenant = await Tenant.findOneAndUpdate(
-      { _id: req.params.id, status: 'suspended' },
-      { $set: { status: 'active' } },
-      { new: true }
-    );
-    if (!tenant) {
-      res.status(404).json({ message: 'Tenant introuvable ou non suspendu' });
-      return;
-    }
+    await audit(req, { action: 'tenant.suspended', resource: 'tenant', resourceId: tenant._id, metadata: { tenantId: String(tenant._id), name: tenant.name } });
     res.status(200).json(tenant);
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
@@ -198,21 +197,47 @@ const activateTenant = async (req, res) => {
 };
 
 /**
- * Suppression DOUCE d'un tenant (statut « terminated »).
- * Les données sont conservées (audit) mais l'espace devient inaccessible.
+ * Réactiver un tenant suspendu OU archivé (restauration d'archive —
+ * les données n'ayant jamais été détruites, l'espace redevient accessible).
+ */
+const activateTenant = async (req, res) => {
+  try {
+    const tenant = await Tenant.findOneAndUpdate(
+      { _id: req.params.id, status: { $in: ['suspended', 'archived', 'terminated'] } },
+      { $set: { status: 'active' } },
+      { new: true }
+    );
+    if (!tenant) {
+      res.status(404).json({ message: 'Tenant introuvable ou déjà actif.' });
+      return;
+    }
+    await audit(req, { action: 'tenant.activated', resource: 'tenant', resourceId: tenant._id, metadata: { tenantId: String(tenant._id), name: tenant.name } });
+    res.status(200).json(tenant);
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
+/**
+ * A5.1 — ARCHIVER un tenant (remplace la « suppression douce ») : l'espace
+ * est VERROUILLÉ (connexions refusées, écritures bloquées, lecture seule
+ * côté Super Admin) mais les données sont conservées et l'archive reste
+ * réactivable (activate). Une archive existante ne peut pas être ré-archivée.
  */
 const deleteTenant = async (req, res) => {
   try {
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: req.params.id, status: { $ne: 'terminated' } },
-      { $set: { status: 'terminated' } },
+      { _id: req.params.id, status: { $nin: ['archived', 'terminated'] } },
+      { $set: { status: 'archived' } },
       { new: true }
     );
     if (!tenant) {
-      res.status(404).json({ message: 'Tenant introuvable' });
+      res.status(404).json({ message: 'Tenant introuvable ou déjà archivé.' });
       return;
     }
-    res.status(200).json({ message: `Tenant « ${tenant.name} » supprimé (résilié) avec succès`, tenant });
+    await audit(req, { action: 'tenant.archived', resource: 'tenant', resourceId: tenant._id, metadata: { tenantId: String(tenant._id), name: tenant.name } });
+    res.status(200).json({ message: `Tenant « ${tenant.name} » archivé avec succès`, tenant });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });

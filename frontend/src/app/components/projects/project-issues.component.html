@@ -48,11 +48,11 @@
     <div class="space-y-4">
       <div>
         <label class="field-label">{{ 'projects.fields.title' | t }} *</label>
-        <input type="text" [(ngModel)]="form.title" class="input" maxlength="200" />
+        <input type="text" [(ngModel)]="form.title" class="input" maxlength="200" [attr.placeholder]="'projects.issues.titlePh' | t" />
       </div>
       <div>
         <label class="field-label">{{ 'projects.fields.description' | t }}</label>
-        <textarea [(ngModel)]="form.description" rows="3" class="input"></textarea>
+        <textarea [(ngModel)]="form.description" rows="3" class="input" [attr.placeholder]="'projects.issues.descPh' | t"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -73,7 +73,7 @@
         </div>
         <div class="col-span-2">
           <label class="field-label">{{ 'projects.issues.resolution' | t }}</label>
-          <textarea [(ngModel)]="form.resolution" rows="2" class="input"></textarea>
+          <textarea [(ngModel)]="form.resolution" rows="2" class="input" [attr.placeholder]="'projects.issues.resolutionPh' | t"></textarea>
         </div>
       </div>
       <div class="flex justify-end gap-2 pt-2">

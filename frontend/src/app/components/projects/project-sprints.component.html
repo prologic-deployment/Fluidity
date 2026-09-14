@@ -122,7 +122,7 @@
       </div>
       <div>
         <label class="field-label">{{ 'projects.sprints.goal' | t }}</label>
-        <textarea [(ngModel)]="form.goal" rows="2" class="input"></textarea>
+        <textarea [(ngModel)]="form.goal" rows="2" class="input" [attr.placeholder]="'projects.sprints.goalPh' | t"></textarea>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div>
@@ -146,11 +146,11 @@
     <div class="space-y-4">
       <div>
         <label class="field-label">{{ 'projects.sprints.wentWell' | t }}</label>
-        <textarea [(ngModel)]="retro.wentWell" rows="3" class="input"></textarea>
+        <textarea [(ngModel)]="retro.wentWell" rows="3" class="input" [attr.placeholder]="'projects.sprints.retroWellPh' | t"></textarea>
       </div>
       <div>
         <label class="field-label">{{ 'projects.sprints.wentWrong' | t }}</label>
-        <textarea [(ngModel)]="retro.wentWrong" rows="3" class="input"></textarea>
+        <textarea [(ngModel)]="retro.wentWrong" rows="3" class="input" [attr.placeholder]="'projects.sprints.retroWrongPh' | t"></textarea>
       </div>
       <div>
         <label class="field-label">{{ 'projects.sprints.actions' | t }}</label>

@@ -88,6 +88,16 @@ export class I18nService {
     return out;
   }
 
+  /**
+   * A5.1 — la clé existe-t-elle (langue courante ou repli) ? Évite d'afficher
+   * la clé brute quand une valeur (nom de produit/plan personnalisé…) n'a pas
+   * de traduction : l'appelant bascule alors sur le libellé brut du serveur.
+   */
+  exists(key: string): boolean {
+    if (!key) return false;
+    return lookup(DICTS[this.lang], key) !== undefined || lookup(DICTS[this.lang === 'fr' ? 'en' : 'fr'], key) !== undefined;
+  }
+
   /** Libellé d'une valeur stockée (statut, catégorie, rôle…). */
   label(value: string | null | undefined, prefix = 'catalog'): string {
     if (!value) return '';

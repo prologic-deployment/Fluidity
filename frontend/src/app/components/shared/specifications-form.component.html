@@ -18,11 +18,11 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="md:col-span-2">
               <label class="field-label">{{ 'specs.resources' | t }}</label>
-              <input formControlName="ressourcesConcernees" type="text" class="input" />
+              <input formControlName="ressourcesConcernees" type="text" class="input" [attr.placeholder]="'specs.ph.ressourcesConcernees' | t" />
             </div>
             <div class="md:col-span-2">
               <label class="field-label">{{ 'specs.comment' | t }}</label>
-              <textarea formControlName="commentaire" rows="2" class="textarea"></textarea>
+              <textarea formControlName="commentaire" rows="2" class="textarea" [attr.placeholder]="'specs.ph.commentaire' | t"></textarea>
             </div>
           </div>
         </div>
@@ -54,15 +54,15 @@
             </div>
             <div *ngIf="showField('serveur','vmCible')">
               <label class="field-label">{{ 'specs.f.vmCible' | t }}</label>
-              <input formControlName="vmCible" type="text" class="input" />
+              <input formControlName="vmCible" type="text" class="input" [attr.placeholder]="'specs.ph.vmCible' | t" />
             </div>
             <div *ngIf="showField('serveur','vmSource')">
               <label class="field-label">{{ 'specs.f.vmSource' | t }}</label>
-              <input formControlName="vmSource" type="text" class="input" />
+              <input formControlName="vmSource" type="text" class="input" [attr.placeholder]="'specs.ph.vmSource' | t" />
             </div>
             <div *ngIf="showField('serveur','nouveauNomVm')">
               <label class="field-label">{{ 'specs.f.nouveauNomVm' | t }}</label>
-              <input formControlName="nouveauNomVm" type="text" class="input" />
+              <input formControlName="nouveauNomVm" type="text" class="input" [attr.placeholder]="'specs.ph.nouveauNomVm' | t" />
             </div>
             <div *ngIf="showField('serveur','environnementVm')">
               <label class="field-label">{{ 'specs.f.environnementVm' | t }}</label>
@@ -74,15 +74,15 @@
             </div>
             <div *ngIf="showField('serveur','cpuCores')">
               <label class="field-label">{{ 'specs.f.cpuCores' | t }}</label>
-              <input formControlName="cpuCores" type="number" min="0" class="input" />
+              <input formControlName="cpuCores" type="number" min="0" class="input" [attr.placeholder]="'specs.ph.cpuCores' | t" />
             </div>
             <div *ngIf="showField('serveur','ramGo')">
               <label class="field-label">{{ 'specs.f.ramGo' | t }}</label>
-              <input formControlName="ramGo" type="number" min="0" class="input" />
+              <input formControlName="ramGo" type="number" min="0" class="input" [attr.placeholder]="'specs.ph.ramGo' | t" />
             </div>
             <div *ngIf="showField('serveur','reseauVm')">
               <label class="field-label">{{ 'specs.f.reseauVm' | t }}</label>
-              <input formControlName="reseauVm" type="text" class="input" />
+              <input formControlName="reseauVm" type="text" class="input" [attr.placeholder]="'specs.ph.reseauVm' | t" />
             </div>
             <div *ngIf="showField('serveur','configIp')">
               <label class="field-label">{{ 'specs.f.configIp' | t }}</label>
@@ -90,7 +90,7 @@
             </div>
             <div *ngIf="showField('serveur','datacenter')">
               <label class="field-label">{{ 'specs.f.datacenter' | t }}</label>
-              <input formControlName="datacenter" type="text" class="input" />
+              <input formControlName="datacenter" type="text" class="input" [attr.placeholder]="'specs.ph.datacenter' | t" />
             </div>
             <div *ngIf="showField('serveur','typeRessource')">
               <label class="field-label">{{ 'specs.f.typeRessource' | t }}</label>
@@ -98,27 +98,27 @@
             </div>
             <div *ngIf="showField('serveur','valeurActuelle')">
               <label class="field-label">{{ 'specs.f.valeurActuelle' | t }}</label>
-              <input formControlName="valeurActuelle" type="text" class="input" />
+              <input formControlName="valeurActuelle" type="text" class="input" [attr.placeholder]="'specs.ph.valeurActuelle' | t" />
             </div>
             <div *ngIf="showField('serveur','valeurDemandee')">
               <label class="field-label">{{ 'specs.f.valeurDemandee' | t }}</label>
-              <input formControlName="valeurDemandee" type="text" class="input" />
+              <input formControlName="valeurDemandee" type="text" class="input" [attr.placeholder]="'specs.ph.valeurDemandee' | t" />
             </div>
             <div *ngIf="showField('serveur','destinationVm')">
               <label class="field-label">{{ 'specs.f.destination' | t }}</label>
-              <input formControlName="destinationVm" type="text" class="input" />
+              <input formControlName="destinationVm" type="text" class="input" [attr.placeholder]="'specs.ph.destinationVm' | t" />
             </div>
             <div *ngIf="showField('serveur','optionsPersonnalisation')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.optionsPersonnalisation' | t }}</label>
-              <input formControlName="optionsPersonnalisation" type="text" class="input" />
+              <input formControlName="optionsPersonnalisation" type="text" class="input" [attr.placeholder]="'specs.ph.optionsPersonnalisation' | t" />
             </div>
             <div *ngIf="showField('serveur','hoteSource')">
               <label class="field-label">{{ 'specs.f.hoteSource' | t }}</label>
-              <input formControlName="hoteSource" type="text" class="input" />
+              <input formControlName="hoteSource" type="text" class="input" [attr.placeholder]="'specs.ph.hoteSource' | t" />
             </div>
             <div *ngIf="showField('serveur','hoteDestination')">
               <label class="field-label">{{ 'specs.f.hoteDestination' | t }}</label>
-              <input formControlName="hoteDestination" type="text" class="input" />
+              <input formControlName="hoteDestination" type="text" class="input" [attr.placeholder]="'specs.ph.hoteDestination' | t" />
             </div>
             <div *ngIf="showField('serveur','typeMigration')">
               <label class="field-label">{{ 'specs.f.typeMigration' | t }}</label>
@@ -126,11 +126,11 @@
             </div>
             <div *ngIf="showField('serveur','downtimeEstime')">
               <label class="field-label">{{ 'specs.f.downtimeEstime' | t }}</label>
-              <input formControlName="downtimeEstime" type="text" class="input" />
+              <input formControlName="downtimeEstime" type="text" class="input" [attr.placeholder]="'specs.ph.downtimeEstime' | t" />
             </div>
             <div *ngIf="showField('serveur','impactReseau')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.impactReseau' | t }}</label>
-              <input formControlName="impactReseau" type="text" class="input" />
+              <input formControlName="impactReseau" type="text" class="input" [attr.placeholder]="'specs.ph.impactReseau' | t" />
             </div>
             <div *ngIf="showField('serveur','confirmationBackup')">
               <label class="field-label">{{ 'specs.f.confirmationBackup' | t }}</label>
@@ -148,27 +148,27 @@
             </div>
             <div *ngIf="showField('serveur','retentionDonnees')">
               <label class="field-label">{{ 'specs.f.retentionDonnees' | t }}</label>
-              <input formControlName="retentionDonnees" type="text" class="input" />
+              <input formControlName="retentionDonnees" type="text" class="input" [attr.placeholder]="'specs.ph.retentionDonnees' | t" />
             </div>
             <div *ngIf="showField('serveur','motifDecommission')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.motifDecommission' | t }}</label>
-              <input formControlName="motifDecommission" type="text" class="input" />
+              <input formControlName="motifDecommission" type="text" class="input" [attr.placeholder]="'specs.ph.motifDecommission' | t" />
             </div>
             <div *ngIf="showField('serveur','nomSnapshot')">
               <label class="field-label">{{ 'specs.f.nomSnapshot' | t }}</label>
-              <input formControlName="nomSnapshot" type="text" class="input" />
+              <input formControlName="nomSnapshot" type="text" class="input" [attr.placeholder]="'specs.ph.nomSnapshot' | t" />
             </div>
             <div *ngIf="showField('serveur','descriptionSnapshot')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.descriptionSnapshot' | t }}</label>
-              <input formControlName="descriptionSnapshot" type="text" class="input" />
+              <input formControlName="descriptionSnapshot" type="text" class="input" [attr.placeholder]="'specs.ph.descriptionSnapshot' | t" />
             </div>
             <div *ngIf="showField('serveur','retentionSnapshot')">
               <label class="field-label">{{ 'specs.f.retentionSnapshot' | t }}</label>
-              <input formControlName="retentionSnapshot" type="text" class="input" />
+              <input formControlName="retentionSnapshot" type="text" class="input" [attr.placeholder]="'specs.ph.retentionSnapshot' | t" />
             </div>
             <div *ngIf="showField('serveur','expirationSnapshot')">
               <label class="field-label">{{ 'specs.f.expirationSnapshot' | t }}</label>
-              <input formControlName="expirationSnapshot" type="text" class="input" />
+              <input formControlName="expirationSnapshot" type="text" class="input" [attr.placeholder]="'specs.ph.expirationSnapshot' | t" />
             </div>
           </div>
 
@@ -237,19 +237,19 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div *ngIf="showField('reseau','vlan')">
               <label class="field-label">{{ 'specs.f.vlan' | t }}</label>
-              <input formControlName="vlan" type="text" class="input" />
+              <input formControlName="vlan" type="text" class="input" [attr.placeholder]="'specs.ph.vlan' | t" />
             </div>
             <div *ngIf="showField('reseau','vlanName')">
               <label class="field-label">{{ 'specs.f.vlanName' | t }}</label>
-              <input formControlName="vlanName" type="text" class="input" />
+              <input formControlName="vlanName" type="text" class="input" [attr.placeholder]="'specs.ph.vlanName' | t" />
             </div>
             <div *ngIf="showField('reseau','descriptionVlan')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.descriptionSnapshot' | t }}</label>
-              <input formControlName="descriptionVlan" type="text" class="input" />
+              <input formControlName="descriptionVlan" type="text" class="input" [attr.placeholder]="'specs.ph.descriptionVlan' | t" />
             </div>
             <div *ngIf="showField('reseau','interfaceAssociee')">
               <label class="field-label">{{ 'specs.f.interfaceAssociee' | t }}</label>
-              <input formControlName="interfaceAssociee" type="text" class="input" />
+              <input formControlName="interfaceAssociee" type="text" class="input" [attr.placeholder]="'specs.ph.interfaceAssociee' | t" />
             </div>
             <div *ngIf="showField('reseau','reseauCidr')">
               <label class="field-label">{{ 'specs.f.reseauCidr' | t }}</label>
@@ -270,15 +270,15 @@
             </div>
             <div *ngIf="showField('reseau','dnsPrimaire')">
               <label class="field-label">{{ 'specs.f.dnsPrimaire' | t }}</label>
-              <input formControlName="dnsPrimaire" type="text" class="input" />
+              <input formControlName="dnsPrimaire" type="text" class="input" [attr.placeholder]="'specs.ph.dnsPrimaire' | t" />
             </div>
             <div *ngIf="showField('reseau','dnsSecondaire')">
               <label class="field-label">{{ 'specs.f.dnsSecondaire' | t }}</label>
-              <input formControlName="dnsSecondaire" type="text" class="input" />
+              <input formControlName="dnsSecondaire" type="text" class="input" [attr.placeholder]="'specs.ph.dnsSecondaire' | t" />
             </div>
             <div *ngIf="showField('reseau','zoneDns')">
               <label class="field-label">{{ 'specs.f.zoneDns' | t }}</label>
-              <input formControlName="zoneDns" type="text" class="input" />
+              <input formControlName="zoneDns" type="text" class="input" [attr.placeholder]="'specs.ph.zoneDns' | t" />
             </div>
             <div *ngIf="showField('reseau','typeEnregistrement')">
               <label class="field-label">{{ 'specs.f.typeEnregistrement' | t }}</label>
@@ -286,43 +286,43 @@
             </div>
             <div *ngIf="showField('reseau','nomEnregistrement')">
               <label class="field-label">{{ 'specs.f.nomEnregistrement' | t }}</label>
-              <input formControlName="nomEnregistrement" type="text" class="input" />
+              <input formControlName="nomEnregistrement" type="text" class="input" [attr.placeholder]="'specs.ph.nomEnregistrement' | t" />
             </div>
             <div *ngIf="showField('reseau','valeurActuelle')">
               <label class="field-label">{{ 'specs.f.valeurActuelle' | t }}</label>
-              <input formControlName="valeurActuelle" type="text" class="input" />
+              <input formControlName="valeurActuelle" type="text" class="input" [attr.placeholder]="'specs.ph.valeurActuelle' | t" />
             </div>
             <div *ngIf="showField('reseau','nouvelleValeur')">
               <label class="field-label">{{ 'specs.f.nouvelleValeur' | t }}</label>
-              <input formControlName="nouvelleValeur" type="text" class="input" />
+              <input formControlName="nouvelleValeur" type="text" class="input" [attr.placeholder]="'specs.ph.nouvelleValeur' | t" />
             </div>
             <div *ngIf="showField('reseau','ttl')">
               <label class="field-label">{{ 'specs.f.ttl' | t }}</label>
-              <input formControlName="ttl" type="text" class="input" />
+              <input formControlName="ttl" type="text" class="input" [attr.placeholder]="'specs.ph.ttl' | t" />
             </div>
             <div *ngIf="showField('reseau','scopePool')">
               <label class="field-label">{{ 'specs.f.scopePool' | t }}</label>
-              <input formControlName="scopePool" type="text" class="input" />
+              <input formControlName="scopePool" type="text" class="input" [attr.placeholder]="'specs.ph.scopePool' | t" />
             </div>
             <div *ngIf="showField('reseau','plageAdresses')">
               <label class="field-label">{{ 'specs.f.plageAdresses' | t }}</label>
-              <input formControlName="plageAdresses" type="text" class="input" />
+              <input formControlName="plageAdresses" type="text" class="input" [attr.placeholder]="'specs.ph.plageAdresses' | t" />
             </div>
             <div *ngIf="showField('reseau','reservation')">
               <label class="field-label">{{ 'specs.f.reservation' | t }}</label>
-              <input formControlName="reservation" type="text" class="input" />
+              <input formControlName="reservation" type="text" class="input" [attr.placeholder]="'specs.ph.reservation' | t" />
             </div>
             <div *ngIf="showField('reseau','reseauDestination')">
               <label class="field-label">{{ 'specs.f.reseauDestination' | t }}</label>
-              <input formControlName="reseauDestination" type="text" class="input" />
+              <input formControlName="reseauDestination" type="text" class="input" [attr.placeholder]="'specs.ph.reseauDestination' | t" />
             </div>
             <div *ngIf="showField('reseau','nextHop')">
               <label class="field-label">{{ 'specs.f.nextHop' | t }}</label>
-              <input formControlName="nextHop" type="text" class="input" />
+              <input formControlName="nextHop" type="text" class="input" [attr.placeholder]="'specs.ph.nextHop' | t" />
             </div>
             <div *ngIf="showField('reseau','metrique')">
               <label class="field-label">{{ 'specs.f.metrique' | t }}</label>
-              <input formControlName="metrique" type="text" class="input" />
+              <input formControlName="metrique" type="text" class="input" [attr.placeholder]="'specs.ph.metrique' | t" />
             </div>
             <div *ngIf="showField('reseau','protocoleRoutage')">
               <label class="field-label">{{ 'specs.f.protocoleRoutage' | t }}</label>
@@ -334,107 +334,107 @@
             </div>
             <div *ngIf="showField('reseau','reseauLocal')">
               <label class="field-label">{{ 'specs.f.reseauLocal' | t }}</label>
-              <input formControlName="reseauLocal" type="text" class="input" />
+              <input formControlName="reseauLocal" type="text" class="input" [attr.placeholder]="'specs.ph.reseauLocal' | t" />
             </div>
             <div *ngIf="showField('reseau','reseauDistant')">
               <label class="field-label">{{ 'specs.f.reseauDistant' | t }}</label>
-              <input formControlName="reseauDistant" type="text" class="input" />
+              <input formControlName="reseauDistant" type="text" class="input" [attr.placeholder]="'specs.ph.reseauDistant' | t" />
             </div>
             <div *ngIf="showField('reseau','chiffrementVpn')">
               <label class="field-label">{{ 'specs.f.chiffrementVpn' | t }}</label>
-              <input formControlName="chiffrementVpn" type="text" class="input" />
+              <input formControlName="chiffrementVpn" type="text" class="input" [attr.placeholder]="'specs.ph.chiffrementVpn' | t" />
             </div>
             <div *ngIf="showField('reseau','methodeAuth')">
               <label class="field-label">{{ 'specs.f.methodeAuth' | t }}</label>
-              <input formControlName="methodeAuth" type="text" class="input" />
+              <input formControlName="methodeAuth" type="text" class="input" [attr.placeholder]="'specs.ph.methodeAuth' | t" />
             </div>
             <div *ngIf="showField('reseau','peerGateway')">
               <label class="field-label">{{ 'specs.f.peerGateway' | t }}</label>
-              <input formControlName="peerGateway" type="text" class="input" />
+              <input formControlName="peerGateway" type="text" class="input" [attr.placeholder]="'specs.ph.peerGateway' | t" />
             </div>
             <div *ngIf="showField('reseau','typeLb')">
               <label class="field-label">{{ 'specs.f.typeLb' | t }}</label>
-              <input formControlName="typeLb" type="text" class="input" />
+              <input formControlName="typeLb" type="text" class="input" [attr.placeholder]="'specs.ph.typeLb' | t" />
             </div>
             <div *ngIf="showField('reseau','vip')">
               <label class="field-label">{{ 'specs.f.vip' | t }}</label>
-              <input formControlName="vip" type="text" class="input" />
+              <input formControlName="vip" type="text" class="input" [attr.placeholder]="'specs.ph.vip' | t" />
             </div>
             <div *ngIf="showField('reseau','serveursBackend')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.serveursBackend' | t }}</label>
-              <input formControlName="serveursBackend" type="text" class="input" />
+              <input formControlName="serveursBackend" type="text" class="input" [attr.placeholder]="'specs.ph.serveursBackend' | t" />
             </div>
             <div *ngIf="showField('reseau','portsLb')">
               <label class="field-label">{{ 'specs.f.portsLb' | t }}</label>
-              <input formControlName="portsLb" type="text" class="input" />
+              <input formControlName="portsLb" type="text" class="input" [attr.placeholder]="'specs.ph.portsLb' | t" />
             </div>
             <div *ngIf="showField('reseau','protocoleLb')">
               <label class="field-label">{{ 'specs.f.protocoleLb' | t }}</label>
-              <input formControlName="protocoleLb" type="text" class="input" />
+              <input formControlName="protocoleLb" type="text" class="input" [attr.placeholder]="'specs.ph.protocoleLb' | t" />
             </div>
             <div *ngIf="showField('reseau','algorithmeLb')">
               <label class="field-label">{{ 'specs.f.algorithmeLb' | t }}</label>
-              <input formControlName="algorithmeLb" type="text" class="input" />
+              <input formControlName="algorithmeLb" type="text" class="input" [attr.placeholder]="'specs.ph.algorithmeLb' | t" />
             </div>
             <div *ngIf="showField('reseau','healthCheck')">
               <label class="field-label">{{ 'specs.f.healthCheck' | t }}</label>
-              <input formControlName="healthCheck" type="text" class="input" />
+              <input formControlName="healthCheck" type="text" class="input" [attr.placeholder]="'specs.ph.healthCheck' | t" />
             </div>
             <div *ngIf="showField('reseau','nomSwitch')">
               <label class="field-label">{{ 'specs.f.nomSwitch' | t }}</label>
-              <input formControlName="nomSwitch" type="text" class="input" />
+              <input formControlName="nomSwitch" type="text" class="input" [attr.placeholder]="'specs.ph.nomSwitch' | t" />
             </div>
             <div *ngIf="showField('reseau','ipManagement')">
               <label class="field-label">{{ 'specs.f.ipManagement' | t }}</label>
-              <input formControlName="ipManagement" type="text" class="input" />
+              <input formControlName="ipManagement" type="text" class="input" [attr.placeholder]="'specs.ph.ipManagement' | t" />
             </div>
             <div *ngIf="showField('reseau','interfacePort')">
               <label class="field-label">{{ 'specs.f.interfacePort' | t }}</label>
-              <input formControlName="interfacePort" type="text" class="input" />
+              <input formControlName="interfacePort" type="text" class="input" [attr.placeholder]="'specs.ph.interfacePort' | t" />
             </div>
             <div *ngIf="showField('reseau','configRequise')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.configRequise' | t }}</label>
-              <input formControlName="configRequise" type="text" class="input" />
+              <input formControlName="configRequise" type="text" class="input" [attr.placeholder]="'specs.ph.configRequise' | t" />
             </div>
             <div *ngIf="showField('reseau','ssid')">
               <label class="field-label">{{ 'specs.f.ssid' | t }}</label>
-              <input formControlName="ssid" type="text" class="input" />
+              <input formControlName="ssid" type="text" class="input" [attr.placeholder]="'specs.ph.ssid' | t" />
             </div>
             <div *ngIf="showField('reseau','modeSecurite')">
               <label class="field-label">{{ 'specs.f.modeSecurite' | t }}</label>
-              <input formControlName="modeSecurite" type="text" class="input" />
+              <input formControlName="modeSecurite" type="text" class="input" [attr.placeholder]="'specs.ph.modeSecurite' | t" />
             </div>
             <div *ngIf="showField('reseau','authentificationWifi')">
               <label class="field-label">{{ 'specs.f.authentificationWifi' | t }}</label>
-              <input formControlName="authentificationWifi" type="text" class="input" />
+              <input formControlName="authentificationWifi" type="text" class="input" [attr.placeholder]="'specs.ph.authentificationWifi' | t" />
             </div>
             <div *ngIf="showField('reseau','accessPoint')">
               <label class="field-label">{{ 'specs.f.accessPoint' | t }}</label>
-              <input formControlName="accessPoint" type="text" class="input" />
+              <input formControlName="accessPoint" type="text" class="input" [attr.placeholder]="'specs.ph.accessPoint' | t" />
             </div>
             <div *ngIf="showField('reseau','typeProxy')">
               <label class="field-label">{{ 'specs.f.typeProxy' | t }}</label>
-              <input formControlName="typeProxy" type="text" class="input" />
+              <input formControlName="typeProxy" type="text" class="input" [attr.placeholder]="'specs.ph.typeProxy' | t" />
             </div>
             <div *ngIf="showField('reseau','hostProxy')">
               <label class="field-label">{{ 'specs.f.hostProxy' | t }}</label>
-              <input formControlName="hostProxy" type="text" class="input" />
+              <input formControlName="hostProxy" type="text" class="input" [attr.placeholder]="'specs.ph.hostProxy' | t" />
             </div>
             <div *ngIf="showField('reseau','portProxy')">
               <label class="field-label">{{ 'specs.f.portProxy' | t }}</label>
-              <input formControlName="portProxy" type="text" class="input" />
+              <input formControlName="portProxy" type="text" class="input" [attr.placeholder]="'specs.ph.portProxy' | t" />
             </div>
             <div *ngIf="showField('reseau','protocoleProxy')">
               <label class="field-label">{{ 'specs.f.protocoleLb' | t }}</label>
-              <input formControlName="protocoleProxy" type="text" class="input" />
+              <input formControlName="protocoleProxy" type="text" class="input" [attr.placeholder]="'specs.ph.protocoleProxy' | t" />
             </div>
             <div *ngIf="showField('reseau','servicesCibles')">
               <label class="field-label">Services cibles</label>
-              <input formControlName="servicesCibles" type="text" class="input" />
+              <input formControlName="servicesCibles" type="text" class="input" [attr.placeholder]="'specs.ph.servicesCibles' | t" />
             </div>
             <div *ngIf="showField('reseau','authProxy')">
               <label class="field-label">{{ 'specs.f.authentificationWifi' | t }}</label>
-              <input formControlName="authProxy" type="text" class="input" />
+              <input formControlName="authProxy" type="text" class="input" [attr.placeholder]="'specs.ph.authProxy' | t" />
             </div>
           </div>
         </div>
@@ -460,11 +460,11 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div *ngIf="showField('firewall','source')">
               <label class="field-label">{{ 'specs.f.source' | t }}</label>
-              <input formControlName="source" type="text" class="input" />
+              <input formControlName="source" type="text" class="input" [attr.placeholder]="'specs.ph.source' | t" />
             </div>
             <div *ngIf="showField('firewall','destination')">
               <label class="field-label">{{ 'specs.f.destination' | t }}</label>
-              <input formControlName="destination" type="text" class="input" />
+              <input formControlName="destination" type="text" class="input" [attr.placeholder]="'specs.ph.destination' | t" />
             </div>
             <div *ngIf="showField('firewall','protocole')">
               <label class="field-label">{{ 'specs.f.protocoleLb' | t }}</label>
@@ -484,11 +484,11 @@
             </div>
             <div *ngIf="showField('firewall','dureeRegle')">
               <label class="field-label">{{ 'specs.f.dureeRegle' | t }}</label>
-              <input formControlName="dureeRegle" type="text" class="input" />
+              <input formControlName="dureeRegle" type="text" class="input" [attr.placeholder]="'specs.ph.dureeRegle' | t" />
             </div>
             <div *ngIf="showField('firewall','justification')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.justification' | t }}</label>
-              <input formControlName="justification" type="text" class="input" />
+              <input formControlName="justification" type="text" class="input" [attr.placeholder]="'specs.ph.justification' | t" />
             </div>
             <div *ngIf="showField('firewall','reglesPareFeu')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.reglesPareFeu' | t }}</label>
@@ -496,19 +496,19 @@
             </div>
             <div *ngIf="showField('firewall','nat')">
               <label class="field-label">{{ 'specs.f.nat' | t }}</label>
-              <input formControlName="nat" type="text" class="input" />
+              <input formControlName="nat" type="text" class="input" [attr.placeholder]="'specs.ph.nat' | t" />
             </div>
             <div *ngIf="showField('firewall','zones')">
               <label class="field-label">{{ 'specs.f.zones' | t }}</label>
-              <input formControlName="zones" type="text" class="input" />
+              <input formControlName="zones" type="text" class="input" [attr.placeholder]="'specs.ph.zones' | t" />
             </div>
             <div *ngIf="showField('firewall','politique')">
               <label class="field-label">{{ 'specs.f.politique' | t }}</label>
-              <input formControlName="politique" type="text" class="input" />
+              <input formControlName="politique" type="text" class="input" [attr.placeholder]="'specs.ph.politique' | t" />
             </div>
             <div *ngIf="showField('firewall','vpn')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.vpn' | t }}</label>
-              <input formControlName="vpn" type="text" class="input" />
+              <input formControlName="vpn" type="text" class="input" [attr.placeholder]="'specs.ph.vpn' | t" />
             </div>
           </div>
         </div>
@@ -536,7 +536,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div *ngIf="showField('backup','espaceBackupSupplementaireGo')">
               <label class="field-label">{{ 'specs.f.espaceBackupSupplementaireGo' | t }}</label>
-              <input formControlName="espaceBackupSupplementaireGo" type="number" min="0" class="input" />
+              <input formControlName="espaceBackupSupplementaireGo" type="number" min="0" class="input" [attr.placeholder]="'specs.ph.espaceBackupSupplementaireGo' | t" />
             </div>
             <div *ngIf="showField('backup','retentionNombre') || showField('backup','retentionPeriode')">
               <label class="field-label">{{ 'specs.f.retentionSouhaitee' | t }}</label>
@@ -584,91 +584,91 @@
             </div>
             <div *ngIf="showField('backup','licencesNecessaires')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.licencesNecessaires' | t }}</label>
-              <input formControlName="licencesNecessaires" type="text" class="input" />
+              <input formControlName="licencesNecessaires" type="text" class="input" [attr.placeholder]="'specs.ph.licencesNecessaires' | t" />
             </div>
             <div *ngIf="showField('backup','sourceBackup')">
               <label class="field-label">{{ 'specs.f.source' | t }}</label>
-              <input formControlName="sourceBackup" type="text" class="input" />
+              <input formControlName="sourceBackup" type="text" class="input" [attr.placeholder]="'specs.ph.sourceBackup' | t" />
             </div>
             <div *ngIf="showField('backup','pointRestauration')">
               <label class="field-label">{{ 'specs.f.pointRestauration' | t }}</label>
-              <input formControlName="pointRestauration" type="text" class="input" />
+              <input formControlName="pointRestauration" type="text" class="input" [attr.placeholder]="'specs.ph.pointRestauration' | t" />
             </div>
             <div *ngIf="showField('backup','cibleRestore')">
               <label class="field-label">{{ 'specs.f.cibleRestore' | t }}</label>
-              <input formControlName="cibleRestore" type="text" class="input" />
+              <input formControlName="cibleRestore" type="text" class="input" [attr.placeholder]="'specs.ph.cibleRestore' | t" />
             </div>
             <div *ngIf="showField('backup','typeRestore')">
               <label class="field-label">{{ 'specs.f.typeRestore' | t }}</label>
-              <input formControlName="typeRestore" type="text" class="input" />
+              <input formControlName="typeRestore" type="text" class="input" [attr.placeholder]="'specs.ph.typeRestore' | t" />
             </div>
             <div *ngIf="showField('backup','perimetreDonnees')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.perimetreDonnees' | t }}</label>
-              <input formControlName="perimetreDonnees" type="text" class="input" />
+              <input formControlName="perimetreDonnees" type="text" class="input" [attr.placeholder]="'specs.ph.perimetreDonnees' | t" />
             </div>
             <div *ngIf="showField('backup','perimetreBackup')">
               <label class="field-label">{{ 'specs.f.perimetreBackup' | t }}</label>
-              <input formControlName="perimetreBackup" type="text" class="input" />
+              <input formControlName="perimetreBackup" type="text" class="input" [attr.placeholder]="'specs.ph.perimetreBackup' | t" />
             </div>
             <div *ngIf="showField('backup','retentionExistante')">
               <label class="field-label">{{ 'specs.f.retentionExistante' | t }}</label>
-              <input formControlName="retentionExistante" type="text" class="input" />
+              <input formControlName="retentionExistante" type="text" class="input" [attr.placeholder]="'specs.ph.retentionExistante' | t" />
             </div>
             <div *ngIf="showField('backup','typeReplication')">
               <label class="field-label">{{ 'specs.f.typeReplication' | t }}</label>
-              <input formControlName="typeReplication" type="text" class="input" />
+              <input formControlName="typeReplication" type="text" class="input" [attr.placeholder]="'specs.ph.typeReplication' | t" />
             </div>
             <div *ngIf="showField('backup','bandePassante')">
               <label class="field-label">{{ 'specs.f.bandePassante' | t }}</label>
-              <input formControlName="bandePassante" type="text" class="input" />
+              <input formControlName="bandePassante" type="text" class="input" [attr.placeholder]="'specs.ph.bandePassante' | t" />
             </div>
             <div *ngIf="showField('backup','rpo')">
               <label class="field-label">{{ 'specs.f.rpo' | t }}</label>
-              <input formControlName="rpo" type="text" class="input" />
+              <input formControlName="rpo" type="text" class="input" [attr.placeholder]="'specs.ph.rpo' | t" />
             </div>
             <div *ngIf="showField('backup','sourceArchive')">
               <label class="field-label">{{ 'specs.f.sourceBackup' | t }}</label>
-              <input formControlName="sourceArchive" type="text" class="input" />
+              <input formControlName="sourceArchive" type="text" class="input" [attr.placeholder]="'specs.ph.sourceArchive' | t" />
             </div>
             <div *ngIf="showField('backup','destinationArchive')">
               <label class="field-label">{{ 'specs.f.destinationArchive' | t }}</label>
-              <input formControlName="destinationArchive" type="text" class="input" />
+              <input formControlName="destinationArchive" type="text" class="input" [attr.placeholder]="'specs.ph.destinationArchive' | t" />
             </div>
             <div *ngIf="showField('backup','classeStockage')">
               <label class="field-label">{{ 'specs.f.classeStockage' | t }}</label>
-              <input formControlName="classeStockage" type="text" class="input" />
+              <input formControlName="classeStockage" type="text" class="input" [attr.placeholder]="'specs.ph.classeStockage' | t" />
             </div>
             <div *ngIf="showField('backup','exigencesRecuperation')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.exigencesRecuperation' | t }}</label>
-              <input formControlName="exigencesRecuperation" type="text" class="input" />
+              <input formControlName="exigencesRecuperation" type="text" class="input" [attr.placeholder]="'specs.ph.exigencesRecuperation' | t" />
             </div>
             <div *ngIf="showField('backup','nomJobVeeam')">
               <label class="field-label">{{ 'specs.f.nomJobVeeam' | t }}</label>
-              <input formControlName="nomJobVeeam" type="text" class="input" />
+              <input formControlName="nomJobVeeam" type="text" class="input" [attr.placeholder]="'specs.ph.nomJobVeeam' | t" />
             </div>
             <div *ngIf="showField('backup','serveurVeeam')">
               <label class="field-label">{{ 'specs.f.serveurVeeam' | t }}</label>
-              <input formControlName="serveurVeeam" type="text" class="input" />
+              <input formControlName="serveurVeeam" type="text" class="input" [attr.placeholder]="'specs.ph.serveurVeeam' | t" />
             </div>
             <div *ngIf="showField('backup','typeBackupVeeam')">
               <label class="field-label">{{ 'specs.f.typeBackupVeeam' | t }}</label>
-              <input formControlName="typeBackupVeeam" type="text" class="input" />
+              <input formControlName="typeBackupVeeam" type="text" class="input" [attr.placeholder]="'specs.ph.typeBackupVeeam' | t" />
             </div>
             <div *ngIf="showField('backup','repository')">
               <label class="field-label">{{ 'specs.f.repository' | t }}</label>
-              <input formControlName="repository" type="text" class="input" />
+              <input formControlName="repository" type="text" class="input" [attr.placeholder]="'specs.ph.repository' | t" />
             </div>
             <div *ngIf="showField('backup','planification')">
               <label class="field-label">{{ 'specs.f.planification' | t }}</label>
-              <input formControlName="planification" type="text" class="input" />
+              <input formControlName="planification" type="text" class="input" [attr.placeholder]="'specs.ph.planification' | t" />
             </div>
             <div *ngIf="showField('backup','systemeCible')">
               <label class="field-label">{{ 'specs.f.systemeCible' | t }}</label>
-              <input formControlName="systemeCible" type="text" class="input" />
+              <input formControlName="systemeCible" type="text" class="input" [attr.placeholder]="'specs.ph.systemeCible' | t" />
             </div>
             <div *ngIf="showField('backup','typeBackup')">
               <label class="field-label">{{ 'specs.f.typeBackup' | t }}</label>
-              <input formControlName="typeBackup" type="text" class="input" />
+              <input formControlName="typeBackup" type="text" class="input" [attr.placeholder]="'specs.ph.typeBackup' | t" />
             </div>
           </div>
         </div>
@@ -783,7 +783,7 @@
             </div>
             <div *ngIf="showField('iaGpu','nombreGpu')">
               <label class="field-label">{{ 'specs.f.nombreGpu' | t }}</label>
-              <input formControlName="nombreGpu" type="number" min="0" class="input" />
+              <input formControlName="nombreGpu" type="number" min="0" class="input" [attr.placeholder]="'specs.ph.nombreGpu' | t" />
             </div>
             <div *ngIf="showField('iaGpu','vramGo')">
               <label class="field-label">{{ 'specs.f.vramGo' | t }}</label>
@@ -803,27 +803,27 @@
             </div>
             <div *ngIf="showField('iaGpu','serveurCible')">
               <label class="field-label">{{ 'specs.f.serveurCible' | t }}</label>
-              <input formControlName="serveurCible" type="text" class="input" />
+              <input formControlName="serveurCible" type="text" class="input" [attr.placeholder]="'specs.ph.serveurCible' | t" />
             </div>
             <div *ngIf="showField('iaGpu','dureeEstimee')">
               <label class="field-label">{{ 'specs.f.dureeEstimee' | t }}</label>
-              <input formControlName="dureeEstimee" type="text" class="input" />
+              <input formControlName="dureeEstimee" type="text" class="input" [attr.placeholder]="'specs.ph.dureeEstimee' | t" />
             </div>
             <div *ngIf="showField('iaGpu','versionPiloteActuelle')">
               <label class="field-label">{{ 'specs.f.versionPiloteActuelle' | t }}</label>
-              <input formControlName="versionPiloteActuelle" type="text" class="input" />
+              <input formControlName="versionPiloteActuelle" type="text" class="input" [attr.placeholder]="'specs.ph.versionPiloteActuelle' | t" />
             </div>
             <div *ngIf="showField('iaGpu','versionPiloteDemandee')">
               <label class="field-label">{{ 'specs.f.versionPiloteDemandee' | t }}</label>
-              <input formControlName="versionPiloteDemandee" type="text" class="input" />
+              <input formControlName="versionPiloteDemandee" type="text" class="input" [attr.placeholder]="'specs.ph.versionPiloteDemandee' | t" />
             </div>
             <div *ngIf="showField('iaGpu','compatibiliteCuda')">
               <label class="field-label">{{ 'specs.f.compatibiliteCuda' | t }}</label>
-              <input formControlName="compatibiliteCuda" type="text" class="input" />
+              <input formControlName="compatibiliteCuda" type="text" class="input" [attr.placeholder]="'specs.ph.compatibiliteCuda' | t" />
             </div>
             <div *ngIf="showField('iaGpu','fenetreMaintenance')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.fenetreMaintenance' | t }}</label>
-              <input formControlName="fenetreMaintenance" type="text" class="input" />
+              <input formControlName="fenetreMaintenance" type="text" class="input" [attr.placeholder]="'specs.ph.fenetreMaintenance' | t" />
             </div>
           </div>
         </div>
@@ -852,47 +852,47 @@
             </div>
             <div *ngIf="showField('securite','systemeCible')">
               <label class="field-label">{{ 'specs.f.systemeCible' | t }}</label>
-              <input formControlName="systemeCible" type="text" class="input" />
+              <input formControlName="systemeCible" type="text" class="input" [attr.placeholder]="'specs.ph.systemeCible' | t" />
             </div>
             <div *ngIf="showField('securite','environnementAudit')">
               <label class="field-label">{{ 'specs.f.environnementVm' | t }}</label>
-              <input formControlName="environnementAudit" type="text" class="input" />
+              <input formControlName="environnementAudit" type="text" class="input" [attr.placeholder]="'specs.ph.environnementAudit' | t" />
             </div>
             <div *ngIf="showField('securite','typeAudit')">
               <label class="field-label">{{ 'specs.f.typeAudit' | t }}</label>
-              <input formControlName="typeAudit" type="text" class="input" />
+              <input formControlName="typeAudit" type="text" class="input" [attr.placeholder]="'specs.ph.typeAudit' | t" />
             </div>
             <div *ngIf="showField('securite','periodeAudit')">
               <label class="field-label">{{ 'specs.f.retentionPeriode' | t }}</label>
-              <input formControlName="periodeAudit" type="text" class="input" />
+              <input formControlName="periodeAudit" type="text" class="input" [attr.placeholder]="'specs.ph.periodeAudit' | t" />
             </div>
             <div *ngIf="showField('securite','livrables')" class="md:col-span-2">
               <label class="field-label">{{ 'specs.f.livrables' | t }}</label>
-              <input formControlName="livrables" type="text" class="input" />
+              <input formControlName="livrables" type="text" class="input" [attr.placeholder]="'specs.ph.livrables' | t" />
             </div>
             <div *ngIf="showField('securite','typeCertificat')">
               <label class="field-label">{{ 'specs.f.typeCertificat' | t }}</label>
-              <input formControlName="typeCertificat" type="text" class="input" />
+              <input formControlName="typeCertificat" type="text" class="input" [attr.placeholder]="'specs.ph.typeCertificat' | t" />
             </div>
             <div *ngIf="showField('securite','nomCommun')">
               <label class="field-label">{{ 'specs.f.nomCommun' | t }}</label>
-              <input formControlName="nomCommun" type="text" class="input" />
+              <input formControlName="nomCommun" type="text" class="input" [attr.placeholder]="'specs.ph.nomCommun' | t" />
             </div>
             <div *ngIf="showField('securite','emetteurCa')">
               <label class="field-label">{{ 'specs.f.emetteurCa' | t }}</label>
-              <input formControlName="emetteurCa" type="text" class="input" />
+              <input formControlName="emetteurCa" type="text" class="input" [attr.placeholder]="'specs.ph.emetteurCa' | t" />
             </div>
             <div *ngIf="showField('securite','validite')">
               <label class="field-label">{{ 'specs.f.validite' | t }}</label>
-              <input formControlName="validite" type="text" class="input" />
+              <input formControlName="validite" type="text" class="input" [attr.placeholder]="'specs.ph.validite' | t" />
             </div>
             <div *ngIf="showField('securite','cibleInstallation')">
               <label class="field-label">{{ 'specs.f.cibleInstallation' | t }}</label>
-              <input formControlName="cibleInstallation" type="text" class="input" />
+              <input formControlName="cibleInstallation" type="text" class="input" [attr.placeholder]="'specs.ph.cibleInstallation' | t" />
             </div>
             <div *ngIf="showField('securite','renouvellementOuNouveau')">
               <label class="field-label">{{ 'specs.f.renouvellementOuNouveau' | t }}</label>
-              <input formControlName="renouvellementOuNouveau" type="text" class="input" />
+              <input formControlName="renouvellementOuNouveau" type="text" class="input" [attr.placeholder]="'specs.ph.renouvellementOuNouveau' | t" />
             </div>
             <div *ngIf="showField('securite','niveauCriticite')">
               <label class="field-label">{{ 'specs.f.niveauCriticite' | t }}</label>

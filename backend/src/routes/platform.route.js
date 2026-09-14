@@ -111,6 +111,31 @@ router.get('/me/products', authMiddleware, async (req, res) => {
 // ABONNEMENTS (provisionnés par le Super Admin — jamais de faux paiement)
 // ---------------------------------------------------------------------------
 
+/**
+ * A5.1 — identité d'affichage des produits (vues orientées produit) :
+ * document plateforme prioritaire, registre en repli. Le frontend traduit
+ * `productNameKey` quand elle existe, sinon affiche `productName` brut
+ * (produits créés par le Super Admin, sans entrées i18n).
+ */
+async function productDisplayMap(keys) {
+  const uniq = [...new Set(keys.filter(Boolean))];
+  const docs = uniq.length
+    ? await Product.find({ key: { $in: uniq } }).select('key nameKey name emoji').lean()
+    : [];
+  const byKey = new Map(docs.map((d) => [d.key, d]));
+  const out = new Map();
+  for (const k of uniq) {
+    const doc = byKey.get(k);
+    const reg = getProduct(k);
+    out.set(k, {
+      productNameKey: doc?.nameKey || reg?.nameKey || '',
+      productName: doc?.name || '',
+      productEmoji: doc?.emoji || reg?.emoji || '',
+    });
+  }
+  return out;
+}
+
 router.get('/subscriptions', authMiddleware, requireTenantAdmin, async (req, res) => {
   // Super Admin hors impersonation : TOUTES les souscriptions, TOUS les
   // tenants (portée globale) ; sinon : uniquement le tenant courant.
@@ -128,14 +153,19 @@ router.get('/subscriptions', authMiddleware, requireTenantAdmin, async (req, res
     { $group: { _id: '$subscriptionId', count: { $sum: 1 } } },
   ]);
   const usedBySub = new Map(usedAgg.map((u) => [String(u._id), u.count]));
+  const displays = await productDisplayMap(subs.map((x) => x.productKey));
   res.json({
     subscriptions: subs.map((s) => {
       const used = usedBySub.get(String(s._id)) || 0;
       // A5 : expiration proche exposée aux portails (bandeau de renouvellement).
       const daysLeft = daysUntilExpiry(s.endDate);
+      const display = displays.get(s.productKey) || {};
       return {
         ...s,
         tenantName: byId.get(String(s.tenantId)) || '',
+        productNameKey: display.productNameKey || '',
+        productName: display.productName || '',
+        productEmoji: display.productEmoji || '',
         usage: { seats: s.seats, used, available: Math.max(0, s.seats - used) },
         expiringSoon: daysLeft !== null && daysLeft <= 30 && ['trial', 'active', 'past_due'].includes(s.status),
         daysUntilExpiry: daysLeft,
@@ -245,7 +275,43 @@ router.get('/licenses', authMiddleware, requireTenantAdmin, async (req, res) => 
   const tenantIds = [...new Set(licenses.map((l) => String(l.tenantId)))];
   const tenants = await Tenant.find({ _id: { $in: tenantIds } }).select('name').lean();
   const byId = new Map(tenants.map((t) => [String(t._id), t.name]));
-  res.json({ licenses: licenses.map((l) => ({ ...l, tenantName: byId.get(String(l.tenantId)) || '' })) });
+  // A5.1 : rôle produit de chaque licencié + identité d'affichage du produit
+  // (les vues licences/licences-rôles n'ont plus de colonnes vides).
+  const roleRows = await RoleAssignment.find({
+    tenantId: { $in: tenantIds },
+    productKey: { $in: [...new Set(licenses.map((l) => l.productKey))] },
+  }).select('tenantId userId productKey roleKey').lean();
+  const roleBySeat = new Map(roleRows.map((r) => [`${r.tenantId}::${r.productKey}::${r.userId}`, r.roleKey]));
+  const productKeys = [...new Set(licenses.map((l) => l.productKey).filter(Boolean))];
+  const roleDocs = productKeys.length
+    ? await Product.find({ key: { $in: productKeys } }).select('key roles').lean()
+    : [];
+  const roleNameByKey = new Map();
+  for (const d of roleDocs) {
+    for (const r of d.roles || []) roleNameByKey.set(`${d.key}::${r.key}`, r.nameKey || r.name || r.key);
+  }
+  for (const k of productKeys) {
+    for (const r of getProduct(k)?.roles || []) {
+      if (!roleNameByKey.has(`${k}::${r.key}`)) roleNameByKey.set(`${k}::${r.key}`, r.nameKey || r.key);
+    }
+  }
+  const displays = await productDisplayMap(productKeys);
+  res.json({
+    licenses: licenses.map((l) => {
+      const userId = l.userId?._id || l.userId;
+      const roleKey = (userId && roleBySeat.get(`${l.tenantId}::${l.productKey}::${userId}`)) || '';
+      const display = displays.get(l.productKey) || {};
+      return {
+        ...l,
+        tenantName: byId.get(String(l.tenantId)) || '',
+        roleKey,
+        roleName: roleKey ? roleNameByKey.get(`${l.productKey}::${roleKey}`) || roleKey : '',
+        productNameKey: display.productNameKey || '',
+        productName: display.productName || '',
+        productEmoji: display.productEmoji || '',
+      };
+    }),
+  });
 });
 
 /** Assigne une licence (siège) à un utilisateur. Super Admin global :
@@ -570,6 +636,12 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
       res.status(404).json({ message: 'Souscription introuvable pour cet espace.' });
       return;
     }
+    // A5.1 : des sièges ne s'ajoutent qu'à une souscription EN COURS
+    // (une souscription expirée se renouvelle, elle ne s'étend pas).
+    if (!['trial', 'active', 'past_due'].includes(sub.status)) {
+      res.status(409).json({ message: 'Des sièges ne peuvent être ajoutés qu’à une souscription en cours.' });
+      return;
+    }
     const extra = Math.max(1, Math.min(1000, parseInt(seats, 10) || 1));
     // DB-003 (audit) : idempotence — une demande de sièges IDENTIQUE déjà en
     // attente n'est pas dupliquée (double-soumission / rafraîchissement réseau).
@@ -634,19 +706,19 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
     res.status(409).json({ code: 'ALREADY_SUBSCRIBED', message: 'Ce produit est déjà souscrit pour votre espace.' });
     return;
   }
-  // DB-003 (audit) : idempotence — une souscription IDENTIQUE déjà en attente
-  // d'approbation n'est pas dupliquée (double-soumission côté client).
+  // DB-003 (audit) + A5.1 : idempotence ÉLARGIE — TOUTE demande de
+  // souscription encore en attente pour ce produit bloque une nouvelle
+  // demande (même avec un plan ou un volume différent) : un tenant ne peut
+  // jamais accumuler des demandes concurrentes pour le même produit, ni —
+  // via ALREADY_SUBSCRIBED ci-dessus — demander un produit déjà actif.
   const doublon = await Order.findOne({
     tenantId: req.tenantId,
     productKey,
-    planId,
-    billingPeriod,
-    seats: seatCount,
     orderType: 'subscription',
     status: { $in: ['pending_approval', 'pending', 'draft'] },
   });
   if (doublon) {
-    res.status(409).json({ code: 'DUPLICATE_PENDING_ORDER', message: 'Une demande identique est déjà en attente d’approbation.', order: doublon });
+    res.status(409).json({ code: 'DUPLICATE_PENDING_ORDER', message: 'Une demande pour ce produit est déjà en attente d’approbation.', order: doublon });
     return;
   }
   const order = await Order.create({
@@ -882,7 +954,18 @@ router.get('/audit', authMiddleware, async (req, res) => {
     .limit(limit)
     .populate('userId', 'email firstName lastName')
     .lean();
-  res.json({ items, total, page, pages: Math.max(1, Math.ceil(total / limit)) });
+  // A5.1 : nom du tenant concerné (le journal reste lisible en portée globale).
+  const auditTenantIds = [...new Set(items.map((a) => String(a.tenantId || '')).filter(Boolean))];
+  const auditTenants = auditTenantIds.length
+    ? await Tenant.find({ _id: { $in: auditTenantIds } }).select('name').lean()
+    : [];
+  const auditTenantById = new Map(auditTenants.map((t) => [String(t._id), t.name]));
+  res.json({
+    items: items.map((a) => ({ ...a, tenantName: auditTenantById.get(String(a.tenantId || '')) || '' })),
+    total,
+    page,
+    pages: Math.max(1, Math.ceil(total / limit)),
+  });
 });
 
 router.get('/notifications', authMiddleware, async (req, res) => {
@@ -967,7 +1050,8 @@ router.get('/dashboard', authMiddleware, requirePlatformAdmin, async (req, res) 
       .limit(5)
       .lean(),
     AuditLog.find({}).sort({ createdAt: -1 }).limit(12).populate('userId', 'email firstName lastName').lean(),
-    Tenant.find({}).sort({ createdAt: -1 }).limit(4).select('name status createdAt').lean(),
+    // A5.1 : « mis à jour récemment » — tri sur updatedAt (pas createdAt).
+    Tenant.find({}).sort({ updatedAt: -1 }).limit(4).select('name status createdAt updatedAt').lean(),
     Order.find({ status: { $in: ['pending_approval', 'pending'] } })
       .sort({ createdAt: -1 })
       .limit(5)

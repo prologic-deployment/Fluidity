@@ -15,7 +15,7 @@
         <span class="badge badge-outline text-[10px] ml-auto">{{ c.roles.length }} {{ 'platform.rolesMatrix.roles' | t }}</span>
       </div>
       <div class="card-content p-3 flex flex-wrap gap-1.5">
-        <span *ngFor="let r of c.roles" class="badge badge-default text-[11px]">{{ r.nameKey | t }}</span>
+        <span *ngFor="let r of c.roles" class="badge badge-default text-[11px]" [title]="(r.permissions || []).join(', ')">{{ r.nameKey | t }}<span *ngIf="r.permissions?.length" class="opacity-70"> · {{ r.permissions.length }}</span></span>
       </div>
     </div>
   </div>
@@ -53,8 +53,8 @@
             <p class="text-xs text-muted-foreground">{{ r.userEmail }}</p>
           </td>
           <td class="text-sm">{{ productLabel(r.productKey) }}</td>
-          <td><span class="badge" [ngClass]="r.roleKey ? 'badge-secondary' : 'badge-outline'">{{ roleLabel(r.productKey, r.roleKey) }}</span></td>
-          <td><span class="badge badge-success">{{ 'platform.rolesMatrix.licenseActive' | t }}</span></td>
+          <td><span class="badge" [ngClass]="r.roleKey ? 'badge-secondary' : 'badge-outline'" [title]="rolePermissionsTitle(r.productKey, r.roleKey)">{{ roleLabel(r.productKey, r.roleKey) }}</span></td>
+          <td><span class="badge" [ngClass]="licenseBadge(r.licenseStatus)">{{ r.licenseStatus ? ('platform.licenses.status.' + r.licenseStatus | t) : ('platform.rolesMatrix.licenseNone' | t) }}</span></td>
           <td class="whitespace-nowrap">
             <button type="button" class="btn-ghost btn-sm" (click)="startEdit(r)">{{ 'platform.rolesMatrix.changeRole' | t }}</button>
             <button *ngIf="r.assignmentId" type="button" class="btn-ghost btn-sm text-destructive" (click)="removeRole(r)">{{ 'platform.rolesMatrix.removeRole' | t }}</button>

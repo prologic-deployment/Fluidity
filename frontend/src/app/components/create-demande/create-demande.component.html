@@ -47,7 +47,7 @@
             </div>
             <div *ngIf="form.get('typeDemande')?.value === 'Autre'">
               <label class="field-label">{{ 'demandes.specifyType' | t }}</label>
-              <input formControlName="typeDemandeAutre" type="text" class="input" />
+              <input formControlName="typeDemandeAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('typeDemandeAutre')?.invalid && form.get('typeDemandeAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
@@ -61,7 +61,7 @@
             </div>
             <div *ngIf="form.get('serviceEnvironnement')?.value === 'Autre'" class="md:col-span-2">
               <label class="field-label">{{ 'demandes.specifyEnv' | t }}</label>
-              <input formControlName="serviceEnvironnementAutre" type="text" class="input" />
+              <input formControlName="serviceEnvironnementAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('serviceEnvironnementAutre')?.invalid && form.get('serviceEnvironnementAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
@@ -75,7 +75,7 @@
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
               <label class="field-label">{{ 'demandes.specifyCategory' | t }}</label>
-              <input formControlName="categorieAutre" type="text" class="input" />
+              <input formControlName="categorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('categorieAutre')?.invalid && form.get('categorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
 
@@ -89,12 +89,12 @@
             </div>
             <div *ngIf="form.get('categorie')?.value !== 'Autre' && form.get('sousCategorie')?.value === 'Autre'">
               <label class="field-label">{{ 'demandes.specifySub' | t }}</label>
-              <input formControlName="sousCategorieAutre" type="text" class="input" />
+              <input formControlName="sousCategorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
             <div *ngIf="form.get('categorie')?.value === 'Autre'">
               <label class="field-label">{{ 'demandes.specifySub' | t }}</label>
-              <input formControlName="sousCategorieAutre" type="text" class="input" />
+              <input formControlName="sousCategorieAutre" type="text" class="input" [attr.placeholder]="'common.otherPh' | t" />
               <p *ngIf="form.get('sousCategorieAutre')?.invalid && form.get('sousCategorieAutre')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
             </div>
           </div>
@@ -174,7 +174,7 @@
 
           <div>
             <label class="field-label">{{ 'demandes.complementary' | t }}</label>
-            <textarea formControlName="informationsComplementaires" rows="2" class="textarea"></textarea>
+            <textarea formControlName="informationsComplementaires" rows="2" class="textarea" [attr.placeholder]="'demandes.infoPh' | t"></textarea>
           </div>
 
           <div>

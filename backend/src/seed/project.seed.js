@@ -101,10 +101,25 @@ async function ensureRole({ tenantId, productKey, userId, roleKey }) {
   );
 }
 
-/** Commande d'abonnement idempotente (par tenant + produit + type + sièges). */
+/**
+ * Commande d'abonnement idempotente (par tenant + produit + type + sièges
+ * + statut — une tentative rejetée et sa version approuvée coexistent).
+ * A5.1 — garde de cohérence miroir de l'API (POST /me/orders) : JAMAIS de
+ * demande de souscription en attente pour un produit déjà souscrit, JAMAIS
+ * deux demandes en attente pour le même produit (la démo ne peut pas
+ * présenter un état que le backend refuserait).
+ */
 async function ensureOrder({ tenantId, userId, productKey, planId, billingPeriod = 'monthly', seats, orderType = 'subscription', status = 'pending_approval', subscriptionId = null, activatedSubscriptionId = null, reviewedBy = null, reviewNote = '', notes = '' }) {
-  const existing = await Order.findOne({ tenantId, productKey, orderType, seats });
+  const existing = await Order.findOne({ tenantId, productKey, orderType, seats, status });
   if (existing) return existing;
+  if (orderType === 'subscription' && ['pending_approval', 'pending', 'draft'].includes(status)) {
+    const incoherent = await Subscription.findOne({ tenantId, productKey, status: { $in: ['pending', 'trial', 'active', 'past_due', 'suspended'] } })
+      || await Order.findOne({ tenantId, productKey, orderType: 'subscription', status: { $in: ['pending_approval', 'pending', 'draft'] } });
+    if (incoherent) {
+      console.log(`[Seed] Commande ignorée (incohérente) : ${productKey} pour ${tenantId} — souscription ou demande déjà en cours.`);
+      return null;
+    }
+  }
   const product = await Product.findOne({ key: productKey });
   const plan = product?.plans?.find((pl) => pl.id === planId);
   const unitPrice = plan?.pricePerSeatMonthly ?? 0;
@@ -324,7 +339,9 @@ async function seedProjectManagement() {
   }
 
 
-  // REJETÉE : demande de RH Center refusée par la plateforme (Carthage).
+  // REJETÉE puis APPROUVÉE : première demande de RH Center refusée par la
+  // plateforme (Carthage, prérequis manquants), puis — effectifs renseignés —
+  // seconde demande approuvée (c'est ELLE qui a créé la souscription active).
   // Le demandeur DOIT être l'admin du tenant Carthage (jamais celui de Nova) —
   // l'isolation tenant s'applique aussi aux données de démonstration.
   if (carthage && carthage._id) {
@@ -340,6 +357,22 @@ async function seedProjectManagement() {
       reviewedBy: platformAdmin?._id || null,
       reviewNote: 'Module RH : prérequis non remplis (effectifs non renseignés). Nouvelle demande possible après mise à jour.',
     });
+    const carthageHrSub = await Subscription.findOne({ tenantId: carthage._id, productKey: 'hr_center' });
+    if (carthageHrSub) {
+      await ensureOrder({
+        tenantId: carthage._id,
+        userId: carthageAdmin?._id || admin?._id || carthage._id,
+        productKey: 'hr_center',
+        planId: 'business',
+        seats: 6,
+        orderType: 'subscription',
+        status: 'completed',
+        subscriptionId: carthageHrSub._id,
+        activatedSubscriptionId: carthageHrSub._id,
+        reviewedBy: platformAdmin?._id || null,
+        reviewNote: 'Prérequis complétés — souscription activée.',
+      });
+    }
   }
 
   // ---- Historique d'audit + notifications plateforme (activité du Super Admin)

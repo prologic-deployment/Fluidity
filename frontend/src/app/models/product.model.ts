@@ -97,7 +97,7 @@ export interface Subscription {
   productKey: string;
   planId: string;
   billingPeriod: 'monthly' | 'annual';
-  status: 'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled' | 'expired';
+  status: 'pending' | 'trial' | 'active' | 'past_due' | 'suspended' | 'cancelled' | 'expired';
   seats: number;
   pricePerSeat: number;
   currency: string;
@@ -106,6 +106,13 @@ export interface Subscription {
   autoRenew?: boolean;
   /** Utilisation des sièges (calculée côté serveur pour le portail). */
   usage?: { seats: number; used: number; available: number };
+  /** A5.1 — enrichissements serveur (vues orientées produit). */
+  tenantName?: string;
+  productNameKey?: string;
+  productName?: string;
+  productEmoji?: string;
+  expiringSoon?: boolean;
+  daysUntilExpiry?: number | null;
 }
 
 export interface License {
@@ -116,6 +123,13 @@ export interface License {
   status: 'active' | 'revoked' | 'suspended';
   startDate?: string;
   endDate?: string;
+  /** A5.1 — enrichissements serveur (rôle produit + identité du produit). */
+  tenantName?: string;
+  roleKey?: string;
+  roleName?: string;
+  productNameKey?: string;
+  productName?: string;
+  productEmoji?: string;
 }
 
 export interface RoleAssignment {

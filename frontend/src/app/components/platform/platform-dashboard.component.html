@@ -165,9 +165,9 @@
           <a class="text-xs text-primary ml-auto" routerLink="/plateforme/tenants">{{ 'platform.dashboard.viewAll' | t }}</a>
         </div>
         <div class="card-content divide-y divide-border" *ngIf="data.recent.tenants.length; else noTenants">
-          <a *ngFor="let t of data.recent.tenants" class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/40" routerLink="/plateforme/tenants">
+          <a *ngFor="let t of data.recent.tenants" class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted/40" [routerLink]="['/plateforme/tenants']" [queryParams]="{ tenant: t._id }">
             <span class="font-medium truncate">{{ t.name }}</span>
-            <span class="badge ml-auto shrink-0" [ngClass]="t.status === 'active' ? 'badge-success' : 'badge-warning'">{{ 'tenants.status.' + t.status | t }}</span>
+            <span class="badge ml-auto shrink-0" [ngClass]="tenantBadge(t.status)">{{ tenantStatusKey(t.status) | t }}</span>
           </a>
         </div>
         <ng-template #noTenants><div class="card-content p-4 text-sm text-muted-foreground">{{ 'platform.dashboard.noTenants' | t }}</div></ng-template>

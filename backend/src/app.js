@@ -151,6 +151,13 @@ app.use(
     immutable: true,
     setHeaders: (res, filePath) => {
       res.setHeader('X-Content-Type-Options', 'nosniff');
+      // A5.1 (cause racine des photos de profil invisibles) : le frontend et
+      // l'API vivent sur des origines différentes (ex. :4200 / :3000 en dev,
+      // domaines distincts en prod) — la CORP globale « same-origin » posée
+      // par helmet fait rejeter les <img> par le navigateur. Les fichiers
+      // /uploads étant déjà servis sans authentification (URLs publiques),
+      // « cross-origin » ici n'élargit aucun accès, il autorise l'affichage.
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       if (!INLINE_UPLOADS.test(filePath)) {
         res.setHeader('Content-Disposition', 'attachment');
         res.setHeader('Content-Type', 'application/octet-stream');

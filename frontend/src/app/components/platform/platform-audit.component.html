@@ -26,7 +26,7 @@
         <div class="min-w-0 grow">
           <p class="text-sm font-medium">{{ auditLabel(a) | t }}</p>
           <p class="text-xs text-muted-foreground">
-            {{ actor(a) }} · {{ a.resource || '—' }} · {{ a.createdAt | dateLocale:'short' }}
+            {{ actor(a) }}<span *ngIf="a.tenantName"> · {{ a.tenantName }}</span> · {{ a.resource || '—' }} · {{ a.createdAt | dateLocale:'short' }}
           </p>
         </div>
         <span class="badge badge-outline text-[10px]">{{ a.productKey || 'platform' }}</span>

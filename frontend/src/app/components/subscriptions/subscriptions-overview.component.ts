@@ -82,6 +82,7 @@ export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
 
   statusBadge(status: Subscription['status']): string {
     return {
+      pending: 'badge-outline',
       trial: 'badge-outline',
       active: 'badge-success',
       past_due: 'badge-warning',

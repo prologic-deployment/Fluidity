@@ -76,6 +76,16 @@ export interface TwoFactorSetup {
 }
 
 /** Une ligne du journal d'audit des connexions. */
+export interface UserSession {
+  familyId: string;
+  userAgent: string;
+  ip: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+}
+
 export interface LoginActivityItem {
   _id: string;
   date: string;
@@ -159,6 +169,19 @@ export class AuthService {
   /** AUTH-007 : désactiver la 2FA exige le mot de passe ET un code valide. */
   twoFactorDisable(payload: { password: string; code: string }): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/2fa/disable`, payload);
+  }
+
+  /**
+   * A5.1 — sessions ACTIVES du compte courant (multi-appareils) : une entrée
+   * par famille de rotation valide, la session courante marquée `current`.
+   */
+  sessions(): Observable<{ sessions: UserSession[] }> {
+    return this.http.get<{ sessions: UserSession[] }>(`${this.baseUrl}/sessions`);
+  }
+
+  /** A5.1 — révocation à distance d'UNE session (un appareil, pas la courante). */
+  revokeSession(familyId: string): Observable<{ message: string; revoked: number }> {
+    return this.http.delete<{ message: string; revoked: number }>(`${this.baseUrl}/sessions/${familyId}`);
   }
 
   /** Journal de connexion du compte courant (soi-même uniquement), paginé. */

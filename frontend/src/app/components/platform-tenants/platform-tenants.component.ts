@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TenantService } from '../../services/tenant.service';
 import { PlatformService } from '../../services/platform.service';
 import { UserService } from '../../services/user.service';
@@ -62,7 +62,11 @@ export class PlatformTenantsComponent implements OnInit {
   submitting = false;
   formError: string | null = null;
 
+  /** A5.1 — id du tenant à inspecter (?tenant=… depuis le tableau de bord). */
+  private pendingDetailId: string | null = null;
+
   constructor(
+    private route: ActivatedRoute,
     private tenantService: TenantService,
     private platform: PlatformService,
     private usersApi: UserService,
@@ -123,6 +127,7 @@ export class PlatformTenantsComponent implements OnInit {
       primaryColor: ['#6366f1'],
       secondaryColor: ['#8b5cf6'],
     });
+    this.pendingDetailId = this.route.snapshot.queryParamMap.get('tenant');
     this.load();
   }
 
@@ -133,9 +138,15 @@ export class PlatformTenantsComponent implements OnInit {
       next: (data) => {
         this.tenants = data;
         this.loading = false;
+        // A5.1 — redirection vers le détail (?tenant=… depuis le dashboard).
+        if (this.pendingDetailId) {
+          const target = this.tenants.find((x) => String(x._id) === this.pendingDetailId);
+          this.pendingDetailId = null;
+          if (target) this.openDetail(target);
+        }
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des tenants.';
+        this.error = apiErrorMessage(this.i18n, err, 'tenants.opError');
         this.loading = false;
       },
     });
@@ -247,16 +258,16 @@ export class PlatformTenantsComponent implements OnInit {
     });
   }
 
-  // --- Cycle de vie ----------------------------------------------------------
+  // --- Cycle de vie (Actif ↔ Suspendu, Archivage verrouillé, Restauration) ---
   async toggleStatus(t: Tenant): Promise<void> {
     if (!t._id) return;
     const suspendre = t.status === 'active';
+    const restaure = t.status === 'archived' || (t as Tenant).status === 'terminated';
+    const titleKey = suspendre ? 'tenants.suspendTitle' : restaure ? 'tenants.restoreTitle' : 'tenants.reactivateTitle';
     const ok = await this.confirmDialog.confirm({
-      title: suspendre ? `Suspendre « ${t.name} » ?` : `Réactiver « ${t.name} » ?`,
-      message: suspendre
-        ? 'Tous les utilisateurs de ce tenant seront immédiatement déconnectés et bloqués.'
-        : 'Les utilisateurs de ce tenant pourront de nouveau accéder à leur espace.',
-      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : this.i18n.t('tenants.reactivate'),
+      title: `${this.i18n.t(titleKey)} « ${t.name} »`,
+      message: this.i18n.t(suspendre ? 'tenants.suspendMessage' : restaure ? 'tenants.restoreMessage' : 'tenants.reactivateTitle'),
+      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : restaure ? this.i18n.t('tenants.restore') : this.i18n.t('tenants.reactivate'),
       variant: suspendre ? 'destructive' : 'default',
     });
     if (!ok) return;
@@ -264,18 +275,22 @@ export class PlatformTenantsComponent implements OnInit {
     req.subscribe({ next: () => this.load(), error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.opError')) });
   }
 
-  async supprimer(t: Tenant): Promise<void> {
+  /**
+   * A5.1 — ARCHIVER (remplace la suppression) : verrouille l'espace (lecture
+   * seule, données conservées), réversible via Restaurer (activate).
+   */
+  async archiver(t: Tenant): Promise<void> {
     if (!t._id) return;
     const ok = await this.confirmDialog.confirm({
-      title: `Supprimer le tenant « ${t.name} » ?`,
-      message: this.i18n.t('tenants.deleteMessage'),
-      confirmLabel: 'Supprimer',
+      title: `${this.i18n.t('tenants.archiveTitle')} « ${t.name} »`,
+      message: this.i18n.t('tenants.archiveMessage'),
+      confirmLabel: this.i18n.t('tenants.archive'),
       variant: 'destructive',
     });
     if (!ok) return;
     this.tenantService.delete(t._id).subscribe({
       next: () => this.load(),
-      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.deleteError')),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'tenants.archiveError')),
     });
   }
 
@@ -292,19 +307,22 @@ export class PlatformTenantsComponent implements OnInit {
         return 'badge-success';
       case 'suspended':
         return 'badge-warning';
+      case 'archived':
+      case 'terminated':
+        return 'badge-secondary';
       default:
         return 'badge-destructive';
     }
   }
 
+  /** A5.1 — libellés traduits (plus de français codé en dur). */
   statutLabel(statut?: string): string {
-    switch (statut) {
-      case 'active':
-        return 'Actif';
-      case 'suspended':
-        return 'Suspendu';
-      default:
-        return 'Résilié';
-    }
+    const s = statut === 'terminated' ? 'archived' : statut || 'archived';
+    return this.i18n.t('tenants.statuses.' + s);
+  }
+
+  /** Une archive est verrouillée : ni édition, ni suspension, ni impersonation. */
+  isArchived(t: Tenant): boolean {
+    return t.status === 'archived' || t.status === 'terminated';
   }
 }

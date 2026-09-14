@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AuthService, TwoFactorStatus, LoginActivityItem } from '../../services/auth.service';
+import { AuthService, TwoFactorStatus, LoginActivityItem, UserSession } from '../../services/auth.service';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { ToastService } from '../../services/toast.service';
 import { TwoFactorSettingsComponent } from '../two-factor-settings/two-factor-settings.component';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -50,17 +51,29 @@ export class SecurityPageComponent implements OnInit {
   /** Navigateur/appareil courant, dérivé localement du user-agent (sans API). */
   readonly currentDevice: string;
 
+  // --- Sessions actives multi-appareils (GET /api/auth/sessions) ------------
+  sessions: UserSession[] = [];
+  sessionsChargement = true;
+  sessionsErreur: string | null = null;
+  revokingFamily: string | null = null;
+
   constructor(
     private fb: FormBuilder,
     private auth: AuthService,
     private toast: ToastService,
     private router: Router,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private confirmDialog: ConfirmDialogService
   ) {
-    const ua = navigator.userAgent;
-    const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Navigateur';
+    this.currentDevice = this.deviceLabel(typeof navigator !== 'undefined' ? navigator.userAgent : '');
+  }
+
+  /** Libellé « Navigateur · OS » depuis un user-agent (liste + session courante). */
+  deviceLabel(ua: string): string {
+    if (!ua) return this.i18n.t('security.sessions.unknownDevice');
+    const browser = /Edg\//.test(ua) ? 'Microsoft Edge' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
     const os = /Windows/.test(ua) ? 'Windows' : /Mac/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : '';
-    this.currentDevice = `${browser}${os ? ' · ' + os : ''}`;
+    return `${browser}${browser && os ? ' · ' : ''}${os}` || this.i18n.t('security.sessions.unknownDevice');
   }
 
   /** Principal CLIENT (accès portail) : pas de 2FA interne — seuls le mot
@@ -89,6 +102,52 @@ export class SecurityPageComponent implements OnInit {
       error: () => (this.twoFactorStatus = null),
     });
     this.chargerActivite(1);
+    this.chargerSessions();
+  }
+
+  /** Sessions actives du compte (multi-appareils, révocables à distance). */
+  chargerSessions(): void {
+    this.sessionsChargement = true;
+    this.sessionsErreur = null;
+    this.auth.sessions().subscribe({
+      next: (res) => {
+        this.sessions = res.sessions || [];
+        this.sessionsChargement = false;
+      },
+      error: (err) => {
+        this.sessions = [];
+        this.sessionsErreur = apiErrorMessage(this.i18n, err, 'security.sessions.loadError');
+        this.sessionsChargement = false;
+      },
+    });
+  }
+
+  /** Sessions autres que la courante (seules révocables). */
+  get otherSessions(): UserSession[] {
+    return this.sessions.filter((s) => !s.current);
+  }
+
+  /** Révocation à distance d'une session (un appareil), après confirmation. */
+  async revoquerSession(s: UserSession): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: this.i18n.t('security.sessions.revokeTitle'),
+      message: `${this.deviceLabel(s.userAgent)} — ${this.i18n.t('security.sessions.revokeMessage')}`,
+      confirmLabel: this.i18n.t('security.sessions.revoke'),
+      variant: 'destructive',
+    });
+    if (!ok) return;
+    this.revokingFamily = s.familyId;
+    this.auth.revokeSession(s.familyId).subscribe({
+      next: () => {
+        this.revokingFamily = null;
+        this.toast.success(this.i18n.t('security.sessions.revoked'));
+        this.chargerSessions();
+      },
+      error: (err) => {
+        this.revokingFamily = null;
+        this.toast.error(apiErrorMessage(this.i18n, err, 'security.sessions.revokeError'));
+      },
+    });
   }
 
   /** Charge une page du journal d'activité (soi-même uniquement côté serveur). */
@@ -104,9 +163,9 @@ export class SecurityPageComponent implements OnInit {
         this.sessionIatActuel = res.sessionIatActuel;
         this.activiteChargement = false;
       },
-      error: () => {
+      error: (err) => {
         this.activites = [];
-        this.activiteErreur = "Le journal d'activité est momentanément indisponible.";
+        this.activiteErreur = apiErrorMessage(this.i18n, err, 'security.activityError');
         this.activiteChargement = false;
       },
     });
@@ -133,10 +192,11 @@ export class SecurityPageComponent implements OnInit {
     return (raison && this.i18n.t(libelles[raison])) || this.i18n.t('security.failed');
   }
 
-  /** Date + heure françaises compactes (fuseau du navigateur). */
+  /** Date + heure compactes dans la locale courante (fuseau du navigateur). */
   formatDateActivite(iso: string): string {
     const d = new Date(iso);
-    return `${d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+    const locale = this.i18n.locale;
+    return `${d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
   }
 
   private passwordsMatchValidator(form: FormGroup) {
@@ -209,7 +269,7 @@ export class SecurityPageComponent implements OnInit {
   get securityScoreLabel(): string {
     if (this.securityScore >= 90) return this.i18n.t('security.scoreExcellent');
     if (this.securityScore >= 60) return this.i18n.t('security.scoreGood');
-    return '— À renforcer : activez la double authentification.';
+    return this.i18n.t('security.scoreWeak');
   }
 
   /** Couleur de la jauge selon le score (jetons du thème). */

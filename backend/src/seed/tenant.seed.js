@@ -85,7 +85,7 @@ const seedTenants = async () => {
 };
 
 const mapTenants = async () => {
-  const tenants = await Tenant.find({ status: { $ne: 'terminated' } });
+  const tenants = await Tenant.find({ status: { $nin: ['archived', 'terminated'] } });
   return Object.fromEntries(tenants.map((t) => [t.name, t]));
 };
 

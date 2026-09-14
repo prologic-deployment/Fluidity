@@ -22,6 +22,9 @@ interface SidebarChild {
   path: string;
 }
 
+/** A5.1 — persistance locale de l'état ouvert/fermé des groupes (pur confort). */
+const SIDEBAR_OPEN_KEY = 'fluidity_sidebar_open';
+
 interface SidebarGroup {
   label: string;
   icon: string; // simple inline-svg key, resolved in template
@@ -149,6 +152,36 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.tenant = this.auth.getTenant();
     this.impersonation = this.auth.getImpersonation();
     this.groups = this.buildGroups();
+    this.restoreOpenState();
+  }
+
+  /**
+   * A5.1 — « garder la sidebar ouverte » : restaure les choix de pliage de
+   * l'utilisateur (localStorage) puis force l'ouverture du groupe contenant
+   * la route active (la section courante ne se referme jamais seule).
+   */
+  private restoreOpenState(): void {
+    let saved: Record<string, boolean> = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(SIDEBAR_OPEN_KEY) || '{}') as Record<string, boolean>;
+    } catch {
+      saved = {};
+    }
+    const url = this.router.url.split('?')[0];
+    for (const g of this.groups) {
+      if (typeof saved[g.label] === 'boolean') g.open = saved[g.label];
+      if ((g.children || []).some((c) => url === c.path || url.startsWith(c.path + '/'))) g.open = true;
+    }
+  }
+
+  private persistOpenState(): void {
+    try {
+      const state: Record<string, boolean> = {};
+      for (const g of this.groups) state[g.label] = g.open;
+      localStorage.setItem(SIDEBAR_OPEN_KEY, JSON.stringify(state));
+    } catch {
+      /* stockage indisponible : repli silencieux sur l'état en mémoire */
+    }
   }
 
   /** Groupes de navigation selon le rôle — le serveur reste l'autorité. */
@@ -307,6 +340,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   toggle(group: SidebarGroup): void {
     group.open = !group.open;
+    this.persistOpenState();
   }
 
   /** Quitte le mode impersonation et revient au tableau de bord plateforme. */

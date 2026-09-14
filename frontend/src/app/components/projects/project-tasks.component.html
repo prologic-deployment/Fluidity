@@ -84,7 +84,7 @@
     <div class="space-y-4">
       <div>
         <label class="field-label">{{ 'projects.fields.title' | t }} *</label>
-        <input type="text" [(ngModel)]="newTask.title" class="input" maxlength="200" />
+        <input type="text" [(ngModel)]="newTask.title" class="input" maxlength="200" [attr.placeholder]="'projects.tasks.newTitlePh' | t" />
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>

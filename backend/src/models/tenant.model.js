@@ -12,11 +12,16 @@ const { Schema } = mongoose;
  *
  * TypeTenant : 'Company' | 'Individual'
  * Plan       : 'Free' | 'Starter' | 'Professional' | 'Enterprise'
- * Statut     : 'active' | 'suspended' | 'terminated' (suppression douce)
+ * Statut     : 'active' | 'suspended' | 'archived' — l'archive est un état
+ *              VERROUILLÉ (accès coupé, données conservées, lecture seule)
+ *              réversible par le Super Admin (réactivation). L'ancien statut
+ *              'terminated' (versions précédentes) est migré vers 'archived'
+ *              par les seeds (seed/run.js) ; toute valeur résiduelle reste
+ *              traitée comme une archive (verrouillée) par l'authentification.
  */
 const TENANT_TYPES = ['Company', 'Individual'];
 const TENANT_PLANS = ['Free', 'Starter', 'Professional', 'Enterprise'];
-const TENANT_STATUTS = ['active', 'suspended', 'terminated'];
+const TENANT_STATUTS = ['active', 'suspended', 'archived'];
 
 const TenantSchema = new Schema(
   {

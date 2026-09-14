@@ -21,6 +21,8 @@ const {
   reuseDetected,
   revokeCurrent,
   revokeAllForPrincipal,
+  listSessionsForPrincipal,
+  revokeFamilyForPrincipal,
   clearRefreshCookie,
 } = require('../services/session.service');
 
@@ -254,12 +256,24 @@ const loginClient = async (req, res, email, password) => {
   }
 
   const tenant = await Tenant.findById(client.tenantId);
-  if (!tenant || tenant.status === 'terminated') {
+  if (!tenant) {
     enregistrerActivite(req, {
       userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
       succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
     });
     apiError(res, 403, 'TENANT_NOT_FOUND', "Cet espace de travail n'existe plus.");
+    return true;
+  }
+  // A5.1 : une archive ('archived' ou 'terminated' historique) est verrouillée.
+  if (tenant.status === 'archived' || tenant.status === 'terminated') {
+    enregistrerActivite(req, {
+      userId: client._id, tenantId: client.tenantId, principalType: PRINCIPAL_CLIENT,
+      succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
+    });
+    res.status(403).json({
+      code: 'TENANT_ARCHIVED',
+      message: 'Cet espace de travail est archivé (lecture seule). Contactez le support de la plateforme pour le restaurer.',
+    });
     return true;
   }
   if (tenant.status === 'suspended') {
@@ -366,11 +380,22 @@ const login = async (req, res) => {
     let tenant = null;
     if (user.tenantId) {
       tenant = await Tenant.findById(user.tenantId);
-      if (!tenant || tenant.status === 'terminated') {
+      if (!tenant) {
         enregistrerActivite(req, {
           userId: user._id, tenantId: user.tenantId || null, succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
         });
-        res.status(403).json({ message: 'Cet espace de travail n\'existe plus.' });
+        res.status(403).json({ code: 'TENANT_NOT_FOUND', message: 'Cet espace de travail n\'existe plus.' });
+        return;
+      }
+      // A5.1 : une archive ('archived' ou 'terminated' historique) est verrouillée.
+      if ((tenant.status === 'archived' || tenant.status === 'terminated') && user.role !== 'PLATFORM_ADMIN') {
+        enregistrerActivite(req, {
+          userId: user._id, tenantId: user.tenantId || null, succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
+        });
+        res.status(403).json({
+          code: 'TENANT_ARCHIVED',
+          message: 'Cet espace de travail est archivé (lecture seule). Contactez le support de la plateforme pour le restaurer.',
+        });
         return;
       }
       if (tenant.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
@@ -808,6 +833,56 @@ const logout = async (req, res) => {
     res.status(204).send();
   }
 };
+/**
+ * A5.1 — sessions ACTIVES du principal connecté (multi-appareils) : une
+ * entrée par famille de rotation valide. La session courante (famille du
+ * cookie refresh présenté) est marquée `current: true` — elle ne peut pas
+ * être révoquée ici (utiliser la déconnexion).
+ */
+const listSessions = async (req, res) => {
+  try {
+    const principalType = req.principalType || PRINCIPAL_UTILISATEUR;
+    const [sessions, current] = await Promise.all([
+      listSessionsForPrincipal(req.userId, principalType),
+      resolveRefreshToken(req),
+    ]);
+    const currentFamily = current && !current.revokedAt ? current.familyId : null;
+    res.status(200).json({
+      sessions: sessions.map((s) => ({ ...s, current: !!currentFamily && s.familyId === currentFamily })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
+
+/**
+ * A5.1 — révocation à distance d'UNE session (un appareil). La session
+ * courante est protégée (409 — passer par la déconnexion) ; une famille
+ * inconnue ou déjà révoquée retourne 404.
+ */
+const revokeSession = async (req, res) => {
+  try {
+    const principalType = req.principalType || PRINCIPAL_UTILISATEUR;
+    const { familyId } = req.params;
+    if (!familyId) {
+      res.status(400).json({ message: 'Session invalide.' });
+      return;
+    }
+    const current = await resolveRefreshToken(req);
+    if (current && !current.revokedAt && current.familyId === familyId) {
+      res.status(409).json({ message: 'La session courante ne peut pas être révoquée ici : utilisez la déconnexion.' });
+      return;
+    }
+    const revoked = await revokeFamilyForPrincipal(req.userId, principalType, familyId);
+    if (!revoked) {
+      res.status(404).json({ message: 'Session introuvable ou déjà révoquée.' });
+      return;
+    }
+    res.status(200).json({ message: 'Session révoquée.', revoked });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
+  }
+};
 
 module.exports = {
   // AUTH-001 : « register » supprimé (inscription publique = escalade de privilèges).
@@ -820,6 +895,8 @@ module.exports = {
   changePassword,
   refreshSession,
   logout,
+  listSessions,
+  revokeSession,
   // Réutilisés par le contrôleur 2FA (pas de logique d'émission dupliquée)
   issueSession,
   signTwoFactorToken,

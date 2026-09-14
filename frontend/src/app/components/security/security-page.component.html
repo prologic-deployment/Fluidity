@@ -278,11 +278,11 @@
               <div class="flex gap-2">
                 <button type="button" class="btn-secondary !px-2.5 !py-1.5 text-xs"
                   (click)="chargerActivite(activitePage - 1)" [disabled]="activitePage <= 1 || activiteChargement">
-                  Précédent
+                  {{ 'security.prev' | t }}
                 </button>
                 <button type="button" class="btn-secondary !px-2.5 !py-1.5 text-xs"
                   (click)="chargerActivite(activitePage + 1)" [disabled]="activitePage >= activitePages || activiteChargement">
-                  Suivant
+                  {{ 'security.next' | t }}
                 </button>
               </div>
             </div>
@@ -312,9 +312,30 @@
               </span>
               <p class="truncate text-sm text-muted-foreground">{{ currentDevice }}</p>
             </div>
-            <p class="text-xs text-muted-foreground">
-              La gestion multi-appareils (révocation à distance) suivra avec le service de sessions.
-            </p>
+            <p *ngIf="sessionsErreur" class="alert-destructive !py-2 !text-xs">{{ sessionsErreur }}</p>
+            <div *ngIf="sessionsChargement" class="space-y-2">
+              <div class="skeleton h-12"></div>
+            </div>
+            <div *ngIf="!sessionsChargement && !sessionsErreur">
+              <p class="text-xs font-medium text-muted-foreground mb-2">{{ 'security.sessions.otherDevices' | t }}</p>
+              <p *ngIf="!otherSessions.length" class="text-xs text-muted-foreground">{{ 'security.sessions.empty' | t }}</p>
+              <div *ngFor="let s of otherSessions" class="rounded-lg border border-border px-3 py-2.5 mb-2">
+                <div class="flex items-center gap-2">
+                  <p class="truncate text-sm font-medium">{{ deviceLabel(s.userAgent) }}</p>
+                  <button
+                    type="button"
+                    class="btn-ghost btn-sm ml-auto !text-destructive"
+                    [disabled]="revokingFamily === s.familyId"
+                    (click)="revoquerSession(s)"
+                  >
+                    {{ 'security.sessions.revoke' | t }}
+                  </button>
+                </div>
+                <p class="text-[11px] text-muted-foreground mt-1">
+                  {{ s.ip || '—' }} · {{ 'security.sessions.lastUsed' | t }} {{ formatDateActivite(s.lastUsedAt) }}
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -327,7 +348,7 @@
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
               </div>
-              <h3 class="text-sm font-semibold">Recommandations</h3>
+              <h3 class="text-sm font-semibold">{{ 'security.recommendations' | t }}</h3>
             </div>
             <ul class="space-y-2">
               <li *ngFor="let rec of recommendations" class="flex items-start gap-2.5 text-sm">

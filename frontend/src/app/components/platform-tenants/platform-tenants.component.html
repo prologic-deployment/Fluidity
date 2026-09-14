@@ -20,7 +20,7 @@
     <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
 
     <!-- Statistiques plateforme -->
-    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.tenants?.active ?? '—' }}</p>
         <p class="text-xs text-muted-foreground">{{ 'tenants.activeCount' | t }}</p>
@@ -28,6 +28,10 @@
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.tenants?.suspended ?? '—' }}</p>
         <p class="text-xs text-muted-foreground">{{ 'tenants.suspendedCount' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content py-4">
+        <p class="text-2xl font-semibold">{{ stats?.tenants?.archived ?? '—' }}</p>
+        <p class="text-xs text-muted-foreground">{{ 'tenants.archivedCount' | t }}</p>
       </div></div>
       <div class="card"><div class="card-content py-4">
         <p class="text-2xl font-semibold">{{ stats?.users ?? '—' }}</p>
@@ -60,6 +64,7 @@
         <option value="">{{ 'tenants.allStatuses' | t }}</option>
         <option value="active">{{ 'tenants.active' | t }}</option>
         <option value="suspended">{{ 'tenants.suspended' | t }}</option>
+        <option value="archived">{{ 'tenants.archived' | t }}</option>
       </select>
       <select [(ngModel)]="planFiltre" class="filter-select">
         <option value="">{{ 'tenants.allPlans' | t }}</option>
@@ -139,27 +144,27 @@
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </button>
-                <button (click)="consulter(t)" [title]="'tenants.impersonate' | t"
+                <button *ngIf="!isArchived(t)" (click)="consulter(t)" [title]="'tenants.impersonate' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"></path>
                     <circle cx="12" cy="12" r="3"></circle>
                   </svg>
                 </button>
-                <button (click)="openEdit(t)" [title]="'common.edit' | t"
+                <button *ngIf="!isArchived(t)" (click)="openEdit(t)" [title]="'common.edit' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-primary/10 hover:text-primary">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
                   </svg>
                 </button>
-                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? ('tenants.suspend' | t) : ('tenants.reactivate' | t)"
+                <button (click)="toggleStatus(t)" [title]="t.status === 'active' ? ('tenants.suspend' | t) : isArchived(t) ? ('tenants.restore' | t) : ('tenants.reactivate' | t)"
                   class="btn-icon-sm text-muted-foreground hover:bg-warning/10 hover:text-amber-600">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="6" y="4" width="4" height="16" rx="1"></rect>
                     <rect x="14" y="4" width="4" height="16" rx="1"></rect>
                   </svg>
                 </button>
-                <button (click)="supprimer(t)" [title]="'tenants.delete' | t"
+                <button *ngIf="!isArchived(t)" (click)="archiver(t)" [title]="'tenants.archive' | t"
                   class="btn-icon-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
                   <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
@@ -254,15 +259,15 @@
       </div>
       <div>
         <label class="field-label">Email de contact</label>
-        <input formControlName="contactEmail" type="email" class="input" />
+        <input formControlName="contactEmail" type="email" class="input" [attr.placeholder]="'tenants.emailPlaceholder' | t" />
       </div>
       <div>
         <label class="field-label">{{ 'tenants.phone' | t }}</label>
-        <input formControlName="phone" type="text" class="input" />
+        <input formControlName="phone" type="text" class="input" [attr.placeholder]="'tenants.phonePlaceholder' | t" />
       </div>
       <div class="md:col-span-2">
         <label class="field-label">{{ 'tenants.address' | t }}</label>
-        <input formControlName="address" type="text" class="input" />
+        <input formControlName="address" type="text" class="input" [attr.placeholder]="'tenants.addressPlaceholder' | t" />
       </div>
       <div class="md:col-span-2">
         <label class="field-label">{{ 'tenants.website' | t }}</label>

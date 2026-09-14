@@ -49,7 +49,7 @@
           </div>
           <div class="md:col-span-2">
             <label class="field-label">{{ 'contracts.titleField' | t }}</label>
-            <input formControlName="intitule" type="text" class="input" />
+            <input formControlName="intitule" type="text" class="input" [attr.placeholder]="'contracts.intitulePh' | t" />
             <p *ngIf="form.get('intitule')?.invalid && form.get('intitule')?.touched" class="field-error">{{ 'common.fieldRequired' | t }}</p>
           </div>
           <div>
@@ -77,7 +77,7 @@
 
         <div>
           <label class="field-label">{{ 'contracts.description' | t }}</label>
-          <textarea formControlName="description" rows="3" class="textarea"></textarea>
+          <textarea formControlName="description" rows="3" class="textarea" [attr.placeholder]="'contracts.descPh' | t"></textarea>
         </div>
 
         <div class="flex justify-end space-x-3 pt-4 border-t border-border">
