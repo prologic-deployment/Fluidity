@@ -331,6 +331,33 @@ export class PlatformTenantsComponent implements OnInit {
     return t.status === 'archived' || t.status === 'terminated';
   }
 
+  /**
+   * Fix 2 (continued) : RESTAURER une archive (miroir d'archiver) — le tenant
+   * redevient actif avec son contenu (activate accepte les archives).
+   */
+  async restaurer(t: Tenant): Promise<void> {
+    if (!t._id) return;
+    const ok = await this.confirmDialog.confirm({
+      title: this.i18n.t('tenants.restoreTitle', { name: t.name }),
+      message: this.i18n.t('tenants.restoreMessage'),
+      confirmLabel: this.i18n.t('tenants.restore'),
+      variant: 'default',
+    });
+    if (!ok) return;
+    this.tenantService.activate(t._id).subscribe({
+      next: (updated) => {
+        const fresh = (updated as Tenant) || null;
+        if (fresh && fresh._id) {
+          const idx = this.tenants.findIndex((x) => String(x._id) === String(fresh._id));
+          if (idx >= 0) this.tenants[idx] = { ...this.tenants[idx], ...fresh };
+        }
+        this.toast.success(this.i18n.t('tenants.restoredOk', { name: t.name }));
+        this.tenantService.getPlatformStats().subscribe({ next: (s) => (this.stats = s), error: () => {} });
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'tenants.opError')),
+    });
+  }
+
   /** Entre dans l'espace du tenant en impersonation (support / audit). */
   consulter(t: Tenant): void {
     if (!t._id) return;

@@ -253,17 +253,21 @@ const suspendTenant = async (req, res) => {
  *  sessions antérieures restent révoquées, par sécurité). */
 const activateTenant = async (req, res) => {
   try {
+    // Fix 2 (continued) : la restauration d'une archive passe par ici —
+    // 'terminated' (écrit par deleteTenant) comme 'archived' (enum A5.1).
+    const prev = await Tenant.findById(req.params.id).select('status').lean();
+    if (!prev || !['suspended', 'terminated', 'archived'].includes(prev.status)) {
+      res.status(404).json({ message: 'Tenant introuvable, ni suspendu ni archivé' });
+      return;
+    }
     const tenant = await Tenant.findOneAndUpdate(
-      { _id: req.params.id, status: 'suspended' },
+      { _id: req.params.id },
       { $set: { status: 'active' }, $unset: { archivedAt: '' } },
       { new: true }
     );
-    if (!tenant) {
-      res.status(404).json({ message: 'Tenant introuvable ou non suspendu' });
-      return;
-    }
+    const restored = prev.status === 'terminated' || prev.status === 'archived';
     await setTenantArchive(tenant._id, null);
-    await audit(req, { action: 'tenant.reactivated', resource: 'tenant', resourceId: tenant._id, metadata: { tenantId: String(tenant._id), name: tenant.name } });
+    await audit(req, { action: restored ? 'tenant.restored' : 'tenant.reactivated', resource: 'tenant', resourceId: tenant._id, metadata: { tenantId: String(tenant._id), name: tenant.name } });
     res.status(200).json(tenant);
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
@@ -272,8 +276,7 @@ const activateTenant = async (req, res) => {
 };
 
 /**
- * Supprimer un tenant = l'ARCHIVER (long terme, non réversible depuis
- * l'interface) : statut « terminated », TOUT le contenu archivé en cascade
+ * Supprimer un tenant = l'ARCHIVER (restaurable depuis l'interface) : statut « terminated », TOUT le contenu archivé en cascade
  * (plans, souscriptions, utilisateurs, clients, documents…), sessions
  * révoquées. AUCUNE suppression dure : les données sont conservées et
  * restent consultables par le Super Admin (listes + inspection).
