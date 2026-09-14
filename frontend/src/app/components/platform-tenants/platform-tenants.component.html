@@ -96,7 +96,6 @@
         <thead>
           <tr>
             <th>{{ 'tenants.tenantCol' | t }}</th>
-            <th>{{ 'tenants.countryCol' | t }}</th>
             <th>{{ 'tenants.type' | t }}</th>
             <th>{{ 'tenants.plan' | t }}</th>
             <th>{{ 'tenants.licenses' | t }}</th>
@@ -114,12 +113,11 @@
                   {{ tenantInitial(t) }}
                 </div>
                 <div>
-                  <p class="font-medium"><a class="text-primary hover:underline" [routerLink]="['/plateforme/licences-roles/tenant', t._id]">{{ t.name }}</a></p>
+                  <p class="font-medium">{{ t.name }}</p>
                   <p class="text-xs text-muted-foreground">{{ t.contactEmail || '—' }}</p>
                 </div>
               </div>
             </td>
-            <td class="text-sm whitespace-nowrap"><ng-container *ngIf="t.country; else noCountry">{{ flagOf(t.country) }} {{ countryName(t.country) }}</ng-container><ng-template #noCountry><span class="text-muted-foreground">—</span></ng-template></td>
             <td class="text-muted-foreground">{{ t.type === 'Individual' ? ('catalog.Individual' | t) : ('catalog.Company' | t) }}</td>
             <td><span class="badge-secondary"><span class="badge-dot"></span>{{ t.plan }}</span></td>
             <td>
@@ -275,13 +273,6 @@
       <div>
         <label class="field-label">{{ 'tenants.phone' | t }}</label>
         <input formControlName="phone" type="text" class="input" />
-      </div>
-      <div>
-        <label class="field-label">{{ 'tenants.country' | t }}</label>
-        <select formControlName="country" class="input">
-          <option value="">—</option>
-          <option *ngFor="let c of countryCodes" [value]="c">{{ flagOf(c) }} {{ countryName(c) }}</option>
-        </select>
       </div>
       <div class="md:col-span-2">
         <label class="field-label">{{ 'tenants.address' | t }}</label>

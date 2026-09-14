@@ -1184,8 +1184,6 @@ export const EN: Record<string, unknown> = {
     demandes: 'Requests',
     changements: 'Changes',
     tenantCol: 'Tenant',
-    countryCol: 'Country',
-    country: 'Country',
     type: 'Type',
     licenses: 'Licences',
     activity: 'Activity',
