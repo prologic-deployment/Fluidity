@@ -52,6 +52,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     emoji: '📦',
     color: '#6366f1',
     category: 'operations',
+    customCategory: '',
     starter: 9,
     business: 19,
     enterprise: 39,
@@ -191,6 +192,12 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.form.roles.splice(i, 1);
   }
 
+  /** Fix 6 (continued) : choix « Autre » → catégorie saisie librement. */
+  resolveCategory(): string {
+    if (this.form.category === 'other') return this.form.customCategory.trim();
+    return this.form.category || 'operations';
+  }
+
   submitCreate(): void {
     if (!this.form.key.trim() || !this.form.name.trim()) return;
     this.createBusy = true;
@@ -213,6 +220,10 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       { id: 'business', name: 'Business', pricePerSeatMonthly: this.form.business, pricePerSeatAnnual: this.form.business * 10 },
       { id: 'enterprise', name: 'Enterprise', pricePerSeatMonthly: this.form.enterprise, pricePerSeatAnnual: this.form.enterprise * 10 },
     ];
+    if (this.form.category === 'other' && !this.form.customCategory.trim()) {
+      this.toast.error(this.i18n.t('platform.products.customCategoryRequired'));
+      return;
+    }
     this.platform
       .createProduct({
         key: this.form.key.trim().toLowerCase(),
@@ -221,7 +232,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
         description: this.form.description.trim(),
         emoji: this.form.emoji || '📦',
         color: this.form.color || '#6366f1',
-        category: this.form.category || 'operations',
+        category: this.resolveCategory(),
         plans,
         permissions,
         roles,

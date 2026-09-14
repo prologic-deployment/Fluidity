@@ -44,6 +44,11 @@
           <option *ngFor="let c of categories" [value]="c">{{ 'marketplace.categories.' + c | t }}</option>
         </select>
       </label>
+      <label class="block" *ngIf="form.category === 'other'">
+        <span class="text-xs font-medium">{{ 'platform.products.customCategory' | t }}</span>
+        <input class="input mt-1" [(ngModel)]="form.customCategory" maxlength="40"
+          [attr.placeholder]="'platform.products.customCategoryPh' | t" />
+      </label>
       <div class="md:col-span-2">
         <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}</p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
