@@ -824,4 +824,7 @@ module.exports = {
   issueSession,
   signTwoFactorToken,
   verifyTwoFactorToken,
+  // A5.2 Fix 11 : politique de verrouillage affichée dans Réglages & santé
+  LOCK_MAX_ATTEMPTS,
+  LOCK_MINUTES,
 };

@@ -255,7 +255,9 @@ export interface OrderDetail {
 export interface PlatformSystemInfo {
   status: 'operational' | 'degraded';
   api: { up: boolean; version: string; node: string };
-  database: { up: boolean; name: string };
+  database: { up: boolean; name: string; collections: number; objects: number; dataSizeMb: number; storageSizeMb: number };
+  runtime: { pid: number; startedAt: string; heapUsedMb: number; heapTotalMb: number; rssMb: number; cpuCount: number; load1: number };
+  security: { accessTokenTtl: string; refreshTtlDays: number; lockoutAttempts: number; lockoutMinutes: number; passwordMinLength: number; breachCheck: boolean; twoFactorAvailable: boolean; twoFactorUsers: number; activeSessions: number };
   mailing: { smtpConfigured: boolean; host: string; from: string; note: string };
   payment: { provider: string; note: string };
   counts: { tenants: number; users: number; products: number; subscriptions: number; licenses: number; orders: number };

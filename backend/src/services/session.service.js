@@ -140,6 +140,7 @@ async function revokeAllForPrincipal(userId, principalType) {
 
 module.exports = {
   COOKIE_NAME,
+  TTL_DAYS, // A5.2 Fix 11 : affiché dans Réglages & santé
   hashToken,
   issueRefreshToken,
   rotateRefreshToken,

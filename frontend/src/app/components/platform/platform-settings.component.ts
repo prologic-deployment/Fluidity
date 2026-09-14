@@ -53,6 +53,13 @@ export class PlatformSettingsComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Part du tas Node consommée (barre de progression). */
+  heapPct(): number {
+    const total = this.info?.runtime.heapTotalMb || 0;
+    if (!total) return 0;
+    return Math.min(100, Math.round(((this.info?.runtime.heapUsedMb || 0) / total) * 100));
+  }
+
   /** Durée de fonctionnement lisible (ex. « 2 h 05 »). */
   uptime(): string {
     const s = this.info?.uptimeSeconds || 0;

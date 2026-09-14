@@ -19,7 +19,7 @@
 | UC-PA-015 | Read global audit log (+ ?tenantId=) | GET /api/platform/audit | IMPLEMENTED |
 | UC-PA-016 | Read own notifications | GET /api/platform/notifications | IMPLEMENTED |
 | UC-PA-017 | Manage tenant users (via impersonation / ?tenantId=) | GET\|POST\|PATCH\|DELETE /api/users* (resolveTargetTenant) | IMPLEMENTED |
-| UC-PA-018 | View platform system info | GET /api/platform/system | IMPLEMENTED |
+| UC-PA-018 | View platform system info (services, runtime, DB volumetrics, security, mailing, payment, counters) | GET /api/platform/system | IMPLEMENTED |
 | UC-PA-019 | Access tenant product data (tickets/projects) | same APIs with x-tenant-override + global entitlements | IMPLEMENTED |
 | UC-PA-020 | Checkout subscription (online payment) | POST /api/platform/subscriptions/:id/checkout | NOT_IMPLEMENTED |
 | UC-PA-021 | Open /plateforme/saas (legacy SAAS admin) | n/a | PARTIAL |

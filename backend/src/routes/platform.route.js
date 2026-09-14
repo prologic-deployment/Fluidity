@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const os = require('os');
 const {
   Product,
   Subscription,
@@ -21,6 +22,11 @@ const { getPaymentProvider } = require('../services/payment');
 const { audit, notify } = require('../utils/saas-log.util');
 const { notifyUser } = require('../services/project-notify.service');
 const { Utilisateur } = require('../models/user.model');
+const { RefreshToken } = require('../models/refresh-token.model');
+// A5.2 Fix 11 : constantes réelles affichées dans Réglages & santé (pas de doublons magiques).
+const { TTL_DAYS: REFRESH_TTL_DAYS } = require('../services/session.service');
+const { LONGUEUR_MIN: PASSWORD_MIN_LENGTH } = require('../utils/password.util');
+const { LOCK_MAX_ATTEMPTS, LOCK_MINUTES } = require('../controllers/auth.controller');
 const { Tenant } = require('../models/tenant.model');
 const { Client } = require('../models/client.model');
 const logger = require('../utils/logger.util');
@@ -1440,18 +1446,56 @@ router.get('/system', authMiddleware, requirePlatformAdmin, async (req, res) => 
   try {
     const dbUp = mongoose.connection.readyState === 1;
     const smtpConfigured = !!process.env.SMTP_HOST && process.env.SMTP_HOST !== 'smtp.example.com';
-    const [tenants, users, products, subs, licenses, orders] = await Promise.all([
+    const [tenants, users, products, subs, licenses, orders, activeSessions, twoFactorUsers] = await Promise.all([
       Tenant.countDocuments({}),
       Utilisateur.countDocuments({ role: { $ne: 'PLATFORM_ADMIN' } }),
       Product.countDocuments({}),
       Subscription.countDocuments({}),
       LicenseAssignment.countDocuments({}),
       Order.countDocuments({}),
+      RefreshToken.countDocuments({ revokedAt: null, expiresAt: { $gt: new Date() } }),
+      Utilisateur.countDocuments({ twoFactorEnabled: true }),
     ]);
+    // A5.2 Fix 11 : volumétrie Mongo (zéros si indisponible — jamais bloquant).
+    let dbStats = { collections: 0, objects: 0, dataSizeMb: 0, storageSizeMb: 0 };
+    if (dbUp && mongoose.connection.db) {
+      try {
+        const st = await mongoose.connection.db.stats();
+        const toMb = (b) => Math.round((Number(b) || 0) / 1024 / 1024 * 10) / 10;
+        dbStats = {
+          collections: Number(st.collections) || 0,
+          objects: Math.round(Number(st.objects) || 0),
+          dataSizeMb: toMb(st.dataSize),
+          storageSizeMb: toMb(st.storageSize),
+        };
+      } catch { /* stats indisponibles : zéros */ }
+    }
+    const mem = process.memoryUsage();
+    const toMb1 = (b) => Math.round(b / 1024 / 1024 * 10) / 10;
     res.json({
       status: dbUp ? 'operational' : 'degraded',
       api: { up: true, version: require('../../package.json').version, node: process.version },
-      database: { up: dbUp, name: mongoose.connection.name || '' },
+      database: { up: dbUp, name: mongoose.connection.name || '', ...dbStats },
+      runtime: {
+        pid: process.pid,
+        startedAt: new Date(Date.now() - process.uptime() * 1000).toISOString(),
+        heapUsedMb: toMb1(mem.heapUsed),
+        heapTotalMb: toMb1(mem.heapTotal),
+        rssMb: toMb1(mem.rss),
+        cpuCount: os.cpus().length,
+        load1: Math.round(os.loadavg()[0] * 100) / 100,
+      },
+      security: {
+        accessTokenTtl: process.env.JWT_EXPIRES_IN || '15m',
+        refreshTtlDays: REFRESH_TTL_DAYS,
+        lockoutAttempts: LOCK_MAX_ATTEMPTS,
+        lockoutMinutes: LOCK_MINUTES,
+        passwordMinLength: PASSWORD_MIN_LENGTH,
+        breachCheck: true,
+        twoFactorAvailable: true,
+        twoFactorUsers,
+        activeSessions,
+      },
       mailing: {
         smtpConfigured,
         host: smtpConfigured ? process.env.SMTP_HOST : '',
