@@ -12,7 +12,7 @@
 | UC-PA-008 | Publish / suspend / delete product | POST .../publish\|suspend, DELETE ... | IMPLEMENTED |
 | UC-PA-009 | Toggle registry product availability (override) | PATCH /api/platform/products/:key | IMPLEMENTED |
 | UC-PA-010 | Review / approve / reject orders (atomic, seat-expansion validation) | GET\|PATCH\|POST /api/platform/orders* | IMPLEMENTED |
-| UC-PA-011 | View all subscriptions / licenses (global) | GET /api/platform/subscriptions\|/licenses (isGlobalPlatform) | IMPLEMENTED |
+| UC-PA-011 | View all subscriptions / licenses (global, by-product cards → tenant table + detail links) | GET /api/platform/subscriptions\|/licenses (isGlobalPlatform) | IMPLEMENTED |
 | UC-PA-012 | Provision subscription directly (available products only, A5.2 Fix 7) | POST /api/platform/subscriptions | IMPLEMENTED |
 | UC-PA-013 | Update subscription (seats/plan/dates) | PATCH /api/platform/subscriptions/:id | BACKEND_ONLY |
 | UC-PA-014 | Assign / revoke any license; tenant → products → users/roles hierarchy | POST\|PATCH\|DELETE licenses; GET roles/* | IMPLEMENTED |

@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { PlatformService } from '../../services/platform.service';
 import { I18nService } from '../../i18n/i18n.service';
@@ -18,7 +18,7 @@ export type PlatformSubscription = Subscription & { tenantName?: string };
 @Component({
   selector: 'app-platform-subscriptions',
   standalone: true,
-  imports: [CommonModule, FormsModule, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, ...I18N_IMPORTS],
   templateUrl: './platform-subscriptions.component.html',
 })
 export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
@@ -26,7 +26,8 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
   error = '';
   subscriptions: PlatformSubscription[] = [];
   statusFilter = 'all';
-  productFilter = 'all';
+  /** A5.2 Fix 9 : produit sélectionné via les cartes (null = tous). */
+  selectedProduct: string | null = null;
   search = '';
 
   private readonly destroy$ = new Subject<void>();
@@ -41,7 +42,7 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
     // Pré-filtre depuis l'URL (?product=...) — lien « Voir les abonnements »
     // de la page Produits.
     const product = this.route.snapshot.queryParamMap.get('product');
-    if (product) this.productFilter = product;
+    if (product) this.selectedProduct = product;
     this.load();
   }
 
@@ -68,24 +69,29 @@ export class PlatformSubscriptionsComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Liste des clés produit distinctes (options du filtre produit). */
-  get productOptions(): string[] {
-    // A5.2 Fix 7 : le produit demandé (?product=) reste sélectionnable même
-    // sans aucune souscription.
+  /** Cartes produits : une par produit souscrit + le produit demandé (?product=). */
+  productCards(): { key: string; subs: number; tenants: number }[] {
     const keys = new Set(this.subscriptions.map((s) => s.productKey));
-    if (this.productFilter !== 'all') keys.add(this.productFilter);
-    return [...keys].sort();
+    if (this.selectedProduct) keys.add(this.selectedProduct);
+    return [...keys].sort().map((key) => {
+      const rows = this.subscriptions.filter((s) => s.productKey === key);
+      return { key, subs: rows.length, tenants: new Set(rows.map((s) => String(s.tenantId))).size };
+    });
   }
 
-  clearProduct(): void {
-    this.productFilter = 'all';
+  selectProduct(key: string | null): void {
+    this.selectedProduct = key;
+  }
+
+  trackCard(_i: number, c: { key: string }): string {
+    return c.key;
   }
 
   filtered(): PlatformSubscription[] {
     const q = this.search.trim().toLowerCase();
     return this.subscriptions.filter((s) => {
       if (this.statusFilter !== 'all' && s.status !== this.statusFilter) return false;
-      if (this.productFilter !== 'all' && s.productKey !== this.productFilter) return false;
+      if (this.selectedProduct && s.productKey !== this.selectedProduct) return false;
       if (q && !`${s.productKey} ${s.tenantName || ''}`.toLowerCase().includes(q)) return false;
       return true;
     });
