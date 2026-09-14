@@ -10,6 +10,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { HealthStatus, Project, WorkflowState } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { METHODOLOGIES, PRIORITIES, PROJECT_LIFECYCLE, PROJECT_STATUSES } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Paramètres du projet (route /projets/:id/parametres) : champs généraux,
@@ -141,7 +142,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.saving = false;
-          this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
         },
       });
   }
@@ -161,7 +162,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
         this.form.status = r.project.status;
         this.toast.success(this.i18n.t('projects.settings.lifecycleChanged'));
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -185,7 +186,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
           this.override = { status: r.project.healthOverride?.status || '', reason: r.project.healthOverride?.reason || '' };
           this.toast.success(this.i18n.t('projects.settings.healthOverrideSaved'));
         },
-        error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+        error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
       });
   }
 
@@ -200,7 +201,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
       .update(this.projectId, { healthRules: this.health })
       .subscribe({
         next: () => this.toast.success(this.i18n.t('projects.settings.healthSaved')),
-        error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+        error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
       });
   }
 
@@ -260,7 +261,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.saving = false;
-        this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
       },
     });
   }
@@ -281,7 +282,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t(archiving ? 'projects.settings.archived' : 'projects.settings.unarchived'));
         this.router.navigate(['/projets']);
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

@@ -310,7 +310,7 @@ const login = async (req, res) => {
       if (await loginClient(req, res, email, password)) return;
       // Email inconnu des deux référentiels : non journalisé (non attribuable,
       // pas de canal d'énumération des emails par le journal).
-      res.status(401).json({ message: 'Identifiants invalides' });
+      res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Identifiants invalides' });
       return;
     }
 
@@ -332,7 +332,7 @@ const login = async (req, res) => {
         userId: user._id, tenantId: user.tenantId || null,
         succes: false, raisonEchec: 'MOT_DE_PASSE_INVALIDE',
       });
-      res.status(401).json({ message: 'Identifiants invalides' });
+      res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Identifiants invalides' });
       return;
     }
     await clearLoginFailures(user);
@@ -376,7 +376,7 @@ const login = async (req, res) => {
         enregistrerActivite(req, {
           userId: user._id, tenantId: user.tenantId || null, succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
         });
-        res.status(403).json({ message: 'Cet espace de travail n\'existe plus.' });
+        res.status(403).json({ code: 'TENANT_NOT_FOUND', message: 'Cet espace de travail n\'existe plus.' });
         return;
       }
       if (tenant.status === 'suspended' && user.role !== 'PLATFORM_ADMIN') {
@@ -384,6 +384,7 @@ const login = async (req, res) => {
           userId: user._id, tenantId: user.tenantId || null, succes: false, raisonEchec: 'TENANT_INDISPONIBLE',
         });
         res.status(403).json({
+          code: 'TENANT_SUSPENDED',
           message: 'Cet espace de travail est suspendu. Contactez le support de la plateforme.',
         });
         return;

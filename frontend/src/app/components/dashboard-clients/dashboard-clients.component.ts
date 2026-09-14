@@ -71,7 +71,7 @@ export class DashboardClientsComponent implements OnInit {
           this.loading = false;
         },
         error: (err) => {
-          this.error = err.error?.message || 'Erreur de chargement des clients.';
+          this.error = apiErrorMessage(this.i18n, err, 'clients.loadError');
           this.loading = false;
         },
       });

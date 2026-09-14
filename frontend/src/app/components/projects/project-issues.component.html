@@ -4,7 +4,7 @@
     <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.issues.new' | t }}</button>
   </div>
 
-  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="loading" class="table-wrap p-4 space-y-3">
     <div *ngFor="let _ of [1,2,3]" class="skeleton h-10 w-full"></div>
   </div>

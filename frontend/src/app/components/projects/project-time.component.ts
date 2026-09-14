@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * SUIVI DU TEMPS (route /projets/:id/temps) — saisies par utilisateur et
@@ -118,7 +119,7 @@ export class ProjectTimeComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submitting = false;
-        this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
       },
     });
   }
@@ -129,7 +130,7 @@ export class ProjectTimeComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.time.deleted'));
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

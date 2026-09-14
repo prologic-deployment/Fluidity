@@ -9,6 +9,7 @@ import { OrderItem } from '../../models/project.model';
 import { OrderDetail } from '../../models/product.model';
 import { ModalComponent } from '../shared/modal.component';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Demandes d'achat (Super Admin) — examen et approbation/rejet.
@@ -172,7 +173,7 @@ export class PlatformOrdersComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busy = false;
-        this.toast.error(err?.error?.message || this.i18n.t('saas.reviewFailed'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'saas.reviewFailed'));
       },
     });
   }
@@ -189,7 +190,7 @@ export class PlatformOrdersComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busy = false;
-        this.toast.error(err?.error?.message || this.i18n.t('saas.reviewFailed'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'saas.reviewFailed'));
       },
     });
   }

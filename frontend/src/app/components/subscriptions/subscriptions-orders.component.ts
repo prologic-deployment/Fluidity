@@ -7,6 +7,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { OrderItem } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Commandes du tenant (route /abonnements/commandes) : historique de
@@ -88,7 +89,7 @@ export class SubscriptionsOrdersComponent implements OnInit, OnDestroy {
         this.load();
         this.toast.success(this.i18n.t('subscriptions.orders.cancelled'));
       },
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
@@ -96,7 +97,7 @@ export class SubscriptionsOrdersComponent implements OnInit, OnDestroy {
     this.platform.orderCheckout(order._id).subscribe({
       next: () => this.toast.success(this.i18n.t('subscriptions.orders.checkoutStarted')),
       error: (err) => {
-        const msg = err?.status === 501 ? this.i18n.t('subscriptions.orders.noPaymentProvider') : err?.error?.message || this.i18n.t('subscriptions.errors.save');
+        const msg = err?.status === 501 ? this.i18n.t('subscriptions.orders.noPaymentProvider') : apiErrorMessage(this.i18n, err, 'subscriptions.errors.save');
         this.toast.error(msg);
       },
     });

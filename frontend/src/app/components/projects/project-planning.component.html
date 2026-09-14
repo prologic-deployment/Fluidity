@@ -4,7 +4,7 @@
     <button type="button" class="btn-ghost btn-sm" (click)="scrollToToday()">{{ 'projects.planning.today' | t }}</button>
   </div>
 
-  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="loading" class="skeleton h-80"></div>
 
   <div *ngIf="!loading && rows.length" class="card overflow-hidden">

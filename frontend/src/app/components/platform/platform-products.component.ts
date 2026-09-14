@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { AdminProduct, ProductPlan } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface RoleDraft {
   key: string;
@@ -149,7 +150,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -221,7 +222,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.createBusy = false;
-          this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
         },
       });
   }
@@ -238,7 +239,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -260,7 +261,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -282,7 +283,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.busyKey = '';
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -357,7 +358,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.configBusy = false;
-          this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
         },
       });
   }

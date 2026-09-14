@@ -9,7 +9,7 @@
 
   <main class="max-w-4xl mx-auto px-6 py-8">
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-6">
-      <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
+      <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error | t }}</p>
 
       <section class="card animate-fade-in-up">
         <div class="card-header-tinted">

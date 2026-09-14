@@ -11,6 +11,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { FormsModule } from '@angular/forms';
 import { ModalComponent } from '../shared/modal.component';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /** Événements de notification du produit (miroir backend, clés i18n). */
 const PROJECT_EVENTS = [
@@ -122,7 +123,7 @@ export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.expandingBusy = false;
-          this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
         },
       });
   }
@@ -141,7 +142,7 @@ export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('subscriptions.overview.autoRenewSaved'));
         this.cdr.markForCheck();
       },
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
@@ -165,7 +166,7 @@ export class SubscriptionsOverviewComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('subscriptions.overview.notifSaved'));
         this.cdr.markForCheck();
       },
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 

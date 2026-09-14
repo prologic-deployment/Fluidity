@@ -10,6 +10,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { ProjectStatePipe } from './project.pipes';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Sprints SCRUM (route /projets/:id/sprints) : cycle planned → active →
@@ -108,7 +109,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.submitting = false;
-          this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
         },
       });
   }
@@ -121,7 +122,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     }
     this.api.sprintStatus(this.projectId, s._id, action).subscribe({
       next: () => this.refresh(),
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -143,7 +144,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           this.submitting = false;
-          this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+          this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
         },
       });
   }
@@ -169,7 +170,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.sprints.deleted'));
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

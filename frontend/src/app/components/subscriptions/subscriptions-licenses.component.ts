@@ -10,6 +10,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { AppUser } from '../../models/user.model';
 import { License, RoleAssignment, Subscription } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface LicenseRow {
   license: License;
@@ -146,7 +147,7 @@ export class SubscriptionsLicensesComponent implements OnInit, OnDestroy {
           this.toast.success(this.i18n.t('subscriptions.licenses.assigned', { n: r.license ? 1 : 1 }));
         },
         error: (err) => {
-          const msg = err?.error?.code === 'NO_SEATS' ? this.i18n.t('subscriptions.licenses.noSeats') : err?.error?.message || this.i18n.t('subscriptions.errors.save');
+          const msg = err?.error?.code === 'NO_SEATS' ? this.i18n.t('subscriptions.licenses.noSeats') : apiErrorMessage(this.i18n, err, 'subscriptions.errors.save');
           this.toast.error(msg);
         },
       });
@@ -161,14 +162,14 @@ export class SubscriptionsLicensesComponent implements OnInit, OnDestroy {
     if (!ok) return;
     this.platform.updateLicense(row.license._id, 'suspended').subscribe({
       next: () => this.reload(),
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
   async activate(row: LicenseRow): Promise<void> {
     this.platform.updateLicense(row.license._id, 'active').subscribe({
       next: () => this.reload(),
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
@@ -184,7 +185,7 @@ export class SubscriptionsLicensesComponent implements OnInit, OnDestroy {
         this.reload();
         this.toast.success(this.i18n.t('subscriptions.licenses.revoked'));
       },
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
@@ -196,7 +197,7 @@ export class SubscriptionsLicensesComponent implements OnInit, OnDestroy {
     }
     this.platform.assignRole({ userId: u._id, productKey: row.productKey, roleKey }).subscribe({
       next: () => this.reload(),
-      error: () => this.toast.error(this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 

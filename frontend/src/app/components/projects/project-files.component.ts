@@ -10,6 +10,7 @@ import { ProjectFile } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { FILE_FOLDERS } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Fichiers du projet (route /projets/:id/fichiers) : navigation par dossier
@@ -131,7 +132,7 @@ export class ProjectFilesComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.files.deleted'));
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

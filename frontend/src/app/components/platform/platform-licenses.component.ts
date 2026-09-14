@@ -9,6 +9,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { License } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /** Licence globale : siège assigné (userId peuplé) ou disponible (userId null). */
 export type PlatformLicense = License & { tenantName?: string; planId?: string };
@@ -161,7 +162,7 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t(next === 'active' ? 'platform.licenses.reactivated' : 'platform.licenses.suspended'));
         this.load();
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 
@@ -178,7 +179,7 @@ export class PlatformLicensesComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('platform.licenses.revoked'));
         this.load();
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 }

@@ -137,7 +137,7 @@ export class PlatformTenantsComponent implements OnInit {
         this.loading = false;
       },
       error: (err) => {
-        this.error = err.error?.message || 'Erreur de chargement des tenants.';
+        this.error = apiErrorMessage(this.i18n, err, 'tenants.loadError');
         this.loading = false;
       },
     });

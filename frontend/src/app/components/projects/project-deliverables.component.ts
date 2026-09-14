@@ -10,6 +10,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { DELIVERABLE_BADGE } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * LIVRABLES (route /projets/:id/livrables) — cycle d'approbation :
@@ -119,7 +120,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submitting = false;
-        this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
       },
     });
   }
@@ -130,7 +131,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.deliverables.submitted'));
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -140,7 +141,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.deliverables.approved'));
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -157,7 +158,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.deliverables.rejected'));
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -167,7 +168,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.deliverables.deleted'));
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

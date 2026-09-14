@@ -3,7 +3,7 @@
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.activity.title' | t }}</h2>
   </div>
 
-  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
   <div class="toolbar mb-4 flex-wrap">
     <select [(ngModel)]="fKind" (change)="applyFilters()" class="filter-select">

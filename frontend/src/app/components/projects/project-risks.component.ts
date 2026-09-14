@@ -10,6 +10,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { RISK_LEVELS, RISK_STATUSES, SEVERITY_BADGE } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 const CELLS: [string, string][] = [
   ['high', 'high'], ['high', 'medium'], ['high', 'low'],
@@ -121,7 +122,7 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.submitting = false;
-        this.toast.error(err?.error?.message || this.i18n.t('projects.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
       },
     });
   }
@@ -129,7 +130,7 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
   setStatus(r: Risk, status: Risk['status']): void {
     this.api.updateRisk(this.projectId, r._id, { status }).subscribe({
       next: () => this.refresh(),
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 
@@ -139,7 +140,7 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
         this.refresh();
         this.toast.success(this.i18n.t('projects.risks.deleted'));
       },
-      error: () => this.toast.error(this.i18n.t('projects.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
   }
 

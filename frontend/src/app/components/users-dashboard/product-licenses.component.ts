@@ -6,6 +6,8 @@ import { PlatformService } from '../../services/platform.service';
 import { UserService } from '../../services/user.service';
 import { AppUser } from '../../models/user.model';
 import { License, ProductInfo, RoleAssignment, Subscription } from '../../models/product.model';
+import { I18nService } from '../../i18n/i18n.service';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Licences produits & rôles (Tenant Admin) — assigne les sièges de chaque
@@ -34,7 +36,7 @@ export class ProductLicensesComponent implements OnInit {
   // Formulaire d'assignation par produit
   assignForm: Record<string, { userId: string; roleKey: string }> = {};
 
-  constructor(private platform: PlatformService, private userService: UserService) {}
+  constructor(private platform: PlatformService, private userService: UserService, private i18n: I18nService) {}
 
   ngOnInit(): void {
     this.platform.catalog().subscribe((c) => (this.products = c));
@@ -133,7 +135,7 @@ export class ProductLicensesComponent implements OnInit {
             this.platform.assignRole({ userId: f.userId, productKey: sub.productKey, roleKey: f.roleKey }).subscribe({
               next: () => this.finishAssign(sub.productKey),
               error: (err) => {
-                this.error = err.error?.message || 'Erreur rôle';
+                this.error = apiErrorMessage(this.i18n, err, 'licenses.roleError');
                 this.busy = false;
                 this.load();
               },
@@ -143,7 +145,7 @@ export class ProductLicensesComponent implements OnInit {
           }
         },
         error: (err) => {
-          this.error = err.error?.message || 'Erreur licence';
+          this.error = apiErrorMessage(this.i18n, err, 'licenses.assignError');
           this.busy = false;
         },
       });
@@ -161,7 +163,7 @@ export class ProductLicensesComponent implements OnInit {
     const userId = typeof l.userId === 'string' ? l.userId : (l.userId as any)._id;
     this.platform.assignRole({ userId, productKey: sub.productKey, roleKey }).subscribe({
       next: () => this.load(),
-      error: (err) => (this.error = err.error?.message || 'Erreur rôle'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'licenses.roleError')),
     });
   }
 
@@ -172,7 +174,7 @@ export class ProductLicensesComponent implements OnInit {
         if (a) this.platform.unassignRole(a._id).subscribe(() => this.load());
         else this.load();
       },
-      error: (err) => (this.error = err.error?.message || 'Erreur révocation'),
+      error: (err) => (this.error = apiErrorMessage(this.i18n, err, 'licenses.revokeError')),
     });
   }
 }

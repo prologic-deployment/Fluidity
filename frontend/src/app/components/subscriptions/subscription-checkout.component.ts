@@ -8,6 +8,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { ProductInfo } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Parcours d'achat d'un produit (route /abonnements/produits/:key) :
@@ -133,7 +134,7 @@ export class SubscriptionCheckoutComponent implements OnInit, OnDestroy {
           const message =
             err?.error?.code === 'ALREADY_SUBSCRIBED'
               ? this.i18n.t('subscriptions.checkout.alreadySubscribed')
-              : err?.error?.message || this.i18n.t('subscriptions.errors.save');
+              : apiErrorMessage(this.i18n, err, 'subscriptions.errors.save');
           this.toast.error(message);
         },
       });

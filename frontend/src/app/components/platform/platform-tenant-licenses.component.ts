@@ -11,6 +11,7 @@ import { License, RoleAssignment, Subscription } from '../../models/product.mode
 import { Tenant } from '../../models/tenant.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface ProductUserRow {
   userId: string;
@@ -201,7 +202,7 @@ export class PlatformTenantLicensesComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.editBusy = false;
-        this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save'));
       },
     });
   }
@@ -213,7 +214,7 @@ export class PlatformTenantLicensesComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('platform.rolesMatrix.roleRemoved'));
         this.load();
       },
-      error: (err) => this.toast.error(err?.error?.message || this.i18n.t('subscriptions.errors.save')),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'subscriptions.errors.save')),
     });
   }
 

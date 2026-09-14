@@ -108,7 +108,7 @@
         <p *ngIf="sessionExpiree" class="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
           {{ 'auth.sessionExpired' | t }}
         </p>
-        <p *ngIf="error" class="alert-destructive">{{ error }}</p>
+        <p *ngIf="error" class="alert-destructive">{{ error | t }}</p>
 
         <button type="submit" [disabled]="loading" class="btn-primary w-full">
           <svg *ngIf="loading" class="h-4 w-4 mr-2 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -19,7 +19,7 @@
   </div>
 
   <div class="card-content pt-6 space-y-4">
-    <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error }}</p>
+    <p *ngIf="error" class="alert-destructive animate-fade-in-up">{{ error | t }}</p>
 
     <!-- Chargement -->
     <div *ngIf="loading" class="flex items-center gap-3 py-2 text-sm text-muted-foreground">
@@ -52,7 +52,7 @@
 
       <!-- ============ MODALE DE CONFIGURATION 2FA (A5.2 Fix 13) ============ -->
       <app-modal [open]="setupModalOpen" (closed)="onModalClosed()" size="xl" [title]="modalTitle">
-        <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+        <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
       <!-- ============ ACTIVATION : PREUVE DU MOT DE PASSE (AUTH-005) ============ -->
       <form *ngIf="setupPasswordView" [formGroup]="setupPasswordForm" (ngSubmit)="confirmSetupPassword()"
         class="rounded-xl border border-border bg-muted/30 p-4 space-y-3 max-w-lg">

@@ -11,6 +11,7 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ProjectStateDotPipe, ProjectStatePipe } from './project.pipes';
 import { PRIORITY_BADGE } from './project.constants';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface BoardColumn {
   state: WorkflowState;
@@ -147,7 +148,7 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
         this.toast.success(this.i18n.t('projects.board.moved', { ref: task.ref, status: column.state.label || column.state.key }));
       },
       error: (err) => {
-        this.toast.error(err?.error?.message || this.i18n.t('projects.board.moveDenied'));
+        this.toast.error(apiErrorMessage(this.i18n, err, 'projects.board.moveDenied'));
         // Transition refusée : retour à la position serveur d'origine.
         this.refresh();
       },

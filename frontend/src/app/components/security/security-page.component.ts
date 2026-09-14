@@ -150,9 +150,9 @@ export class SecurityPageComponent implements OnInit {
         this.sessionIatActuel = res.sessionIatActuel;
         this.activiteChargement = false;
       },
-      error: () => {
+      error: (err) => {
         this.activites = [];
-        this.activiteErreur = "Le journal d'activité est momentanément indisponible.";
+        this.activiteErreur = apiErrorMessage(this.i18n, err, 'security.activityError');
         this.activiteChargement = false;
       },
     });

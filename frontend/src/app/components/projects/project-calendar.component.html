@@ -13,7 +13,7 @@
     </div>
   </div>
 
-  <p *ngIf="error" class="alert-destructive mb-4">{{ error }}</p>
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="loading" class="skeleton h-96"></div>
 
   <!-- Vue mois -->

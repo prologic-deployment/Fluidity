@@ -11,6 +11,7 @@ import { Methodology, Priority, ProjectRoleKey, ProjectStatus } from '../../mode
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
 import { METHODOLOGIES, PRIORITIES, PROJECT_MEMBER_ROLES, PROJECT_STATUSES } from './project.constants';
+import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface TeamPick {
   userId: string;
@@ -181,7 +182,7 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
           this.router.navigate(['/projets', r.project._id]);
         },
         error: (err) => {
-          this.error = err?.error?.message || 'projects.errors.create';
+          this.error = apiErrorMessage(this.i18n, err, 'projects.errors.create');
           this.submitting = false;
         },
       });

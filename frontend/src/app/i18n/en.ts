@@ -165,6 +165,8 @@ export const EN: Record<string, unknown> = {
     forgot: 'Forgot password?',
     invalid: 'Invalid credentials',
     sessionExpired: 'Session expired. Please sign in again.',
+    sessionRevoked: 'Session revoked. Please sign in again.',
+    multipleWorkspaces: 'This login exists in multiple workspaces. Contact your administrator.',
     resetTitle: 'Reset password',
     resetPassword: 'Reset',
     newPassword: 'New password',
@@ -287,6 +289,7 @@ export const EN: Record<string, unknown> = {
     revokeHint: 'Revoking signs the device out immediately, even if its token has not expired.',
     noSessions: 'No active sessions detected.',
     sessionsError: 'Unable to load signed-in devices.',
+    activityError: 'Login activity is temporarily unavailable.',
     sessionRevoked: 'Session revoked — the device is signed out.',
     sessionRevokeError: 'Failed to revoke the session.',
     recommendations: 'Recommendations',
@@ -443,6 +446,7 @@ export const EN: Record<string, unknown> = {
     empty: 'No tickets for these filters.',
     loading: 'Loading ticket...',
     notFound: 'Not found',
+    ticketNotFound: 'Ticket not found.',
     createdOk: 'Ticket created.',
     createError: 'Error saving the ticket.',
     loadError: 'Unable to load tickets.',
@@ -1079,6 +1083,7 @@ export const EN: Record<string, unknown> = {
 
   contracts: {
     title: 'Contracts',
+    loadError: 'Failed to load contracts.',
     subtitle: 'Client contracts linked to this tenant.',
     new: 'New contract',
     reference: 'Reference',
@@ -1120,6 +1125,7 @@ export const EN: Record<string, unknown> = {
 
   users: {
     title: 'Users',
+    loadError: 'Failed to load users.',
     subtitle: 'Accounts, roles and licences for your workspace.',
     email: 'Email',
     emailPlaceholder: 'firstname.lastname@company.com',
@@ -1177,6 +1183,7 @@ export const EN: Record<string, unknown> = {
 
   tenants: {
     title: 'Platform — Tenants',
+    loadError: 'Failed to load tenants.',
     subtitle: 'Multi-tenant supervision: subscriptions, licences, lifecycle.',
     name: 'Name',
     plan: 'Plan',
@@ -1290,6 +1297,8 @@ export const EN: Record<string, unknown> = {
     unexpected: 'An unexpected error occurred.',
     forbidden: 'Access denied.',
     notFound: 'Resource not found.',
+    accountLocked: 'Too many attempts: account temporarily locked. Try again in a few minutes.',
+    network: 'Network error: check your connection and try again.',
   },
 
   toast: {
@@ -1331,6 +1340,9 @@ export const EN: Record<string, unknown> = {
     subtitle: 'Assign the seats of each subscribed service to your users, and their product roles.',
     none: 'No subscribed product yet. Contact your platform administrator.',
     seats: 'Seats', user: 'User', role: 'Product role', selectUser: 'Select a user...', selectRole: 'Choose a role...', noRole: 'No specific role', assign: 'Assign', revoke: 'Revoke licence',
+    roleError: 'Failed to assign the role.',
+    assignError: 'Failed to assign the license.',
+    revokeError: 'Failed to revoke the license.',
   },
   saas: {
     title: 'SaaS administration', subtitle: 'Products, subscriptions, licences, roles and platform audit.',
@@ -1354,6 +1366,13 @@ export const EN: Record<string, unknown> = {
     approveNote: 'Approval note (optional)',
     rejectNote: 'Rejection reason (optional)',
     approved: 'Order approved — subscription activated.',
+    provisioned: 'Subscription provisioned.',
+    activated: 'Subscription activated.',
+    approveError: 'Approval failed.',
+    orderRejected: 'Order rejected.',
+    rejectError: 'Rejection failed.',
+    selectionRequired: 'Selection required.',
+    provisionError: 'Provisioning failed.',
     rejected: 'Order rejected.',
     reviewFailed: 'Failed to review the order.',
     manualApproval: 'Manual approval payment (no simulated transaction).',
@@ -1862,6 +1881,7 @@ export const EN: Record<string, unknown> = {
       load: 'Unable to load data.',
       save: 'Unable to save. Please retry.',
       upload: 'Unable to add the file.',
+      create: 'Unable to create. Please retry.',
     },
     meta: {
       priority: {

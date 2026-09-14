@@ -165,6 +165,8 @@ export const FR: Record<string, unknown> = {
     forgot: 'Mot de passe oublié ?',
     invalid: 'Identifiants invalides',
     sessionExpired: 'Session expirée. Reconnectez-vous.',
+    sessionRevoked: 'Session révoquée. Veuillez vous reconnecter.',
+    multipleWorkspaces: 'Cet identifiant est présent sur plusieurs espaces. Contactez votre administrateur.',
     resetTitle: 'Réinitialiser le mot de passe',
     resetPassword: 'Réinitialiser',
     newPassword: 'Nouveau mot de passe',
@@ -287,6 +289,7 @@ export const FR: Record<string, unknown> = {
     revokeHint: 'La révocation déconnecte l’appareil immédiatement, même si son jeton n’est pas expiré.',
     noSessions: 'Aucune session active détectée.',
     sessionsError: 'Impossible de charger les appareils connectés.',
+    activityError: 'Le journal d’activité est momentanément indisponible.',
     sessionRevoked: 'Session révoquée — l’appareil est déconnecté.',
     sessionRevokeError: 'La révocation de la session a échoué.',
     recommendations: 'Recommandations',
@@ -443,6 +446,7 @@ export const FR: Record<string, unknown> = {
     empty: 'Aucun ticket pour ces filtres.',
     loading: 'Chargement du ticket...',
     notFound: 'Introuvable',
+    ticketNotFound: 'Ticket introuvable.',
     createdOk: 'Ticket créé.',
     createError: 'Erreur lors de l’enregistrement du ticket.',
     loadError: 'Impossible de charger les tickets.',
@@ -1079,6 +1083,7 @@ export const FR: Record<string, unknown> = {
 
   contracts: {
     title: 'Contrats',
+    loadError: 'Erreur de chargement des contrats.',
     subtitle: 'Contrats clients associés à ce tenant.',
     new: 'Nouveau contrat',
     reference: 'Référence',
@@ -1120,6 +1125,7 @@ export const FR: Record<string, unknown> = {
 
   users: {
     title: 'Utilisateurs',
+    loadError: 'Erreur de chargement des utilisateurs.',
     subtitle: 'Comptes, rôles et licences de votre espace de travail.',
     email: 'Email',
     emailPlaceholder: 'prenom.nom@entreprise.com',
@@ -1177,6 +1183,7 @@ export const FR: Record<string, unknown> = {
 
   tenants: {
     title: 'Plateforme — Tenants',
+    loadError: 'Erreur de chargement des tenants.',
     subtitle: 'Supervision multi-tenant : abonnements, licences, cycle de vie.',
     name: 'Nom',
     plan: 'Plan',
@@ -1290,6 +1297,8 @@ export const FR: Record<string, unknown> = {
     unexpected: 'Une erreur inattendue est survenue.',
     forbidden: 'Accès refusé.',
     notFound: 'Ressource introuvable.',
+    accountLocked: 'Trop de tentatives : compte temporairement verrouillé. Réessayez dans quelques minutes.',
+    network: 'Erreur réseau : vérifiez votre connexion puis réessayez.',
   },
 
   toast: {
@@ -1331,6 +1340,9 @@ export const FR: Record<string, unknown> = {
     subtitle: 'Assignez les sièges de chaque service souscrit à vos utilisateurs, et leurs rôles produit.',
     none: 'Aucun produit souscrit pour le moment. Contactez votre administrateur plateforme.',
     seats: 'Sièges', user: 'Utilisateur', role: 'Rôle produit', selectUser: 'Sélectionner un utilisateur...', selectRole: 'Choisir un rôle...', noRole: 'Sans rôle spécifique', assign: 'Assigner', revoke: 'Révoquer la licence',
+    roleError: 'Échec de l’assignation du rôle.',
+    assignError: 'Échec de l’assignation de la licence.',
+    revokeError: 'Échec de la révocation de la licence.',
   },
   saas: {
     title: 'Administration SaaS', subtitle: 'Produits, souscriptions, licences, rôles et audit de la plateforme.',
@@ -1354,6 +1366,13 @@ export const FR: Record<string, unknown> = {
     approveNote: 'Note d’approbation (optionnelle)',
     rejectNote: 'Motif du rejet (optionnel)',
     approved: 'Commande approuvée — souscription activée.',
+    provisioned: 'Souscription provisionnée.',
+    activated: 'Souscription activée.',
+    approveError: 'Échec de l’approbation.',
+    orderRejected: 'Commande rejetée.',
+    rejectError: 'Échec du rejet.',
+    selectionRequired: 'Sélection requise.',
+    provisionError: 'Échec du provisionnement.',
     rejected: 'Commande rejetée.',
     reviewFailed: 'Échec de l’examen de la commande.',
     manualApproval: 'Paiement par approbation manuelle (aucune transaction simulée).',
@@ -1862,6 +1881,7 @@ export const FR: Record<string, unknown> = {
       load: 'Impossible de charger les données.',
       save: 'Impossible d’enregistrer. Réessayez.',
       upload: 'Impossible d’ajouter le fichier.',
+      create: 'Impossible de créer. Réessayez.',
     },
     meta: {
       priority: {
