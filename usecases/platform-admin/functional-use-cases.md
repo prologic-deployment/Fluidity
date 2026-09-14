@@ -770,7 +770,7 @@ BACKEND_ONLY
 
 ---
 
-## UC-PA-014 — Assign / revoke any license; view role matrix
+## UC-PA-014 — Assign / revoke any license; tenant → products → users/roles (A5.2 Fix 4/5)
 
 ### Actor
 PLATFORM_ADMIN
@@ -786,8 +786,10 @@ Platform
 - No tenant context required
 
 ### Main Flow
-1. User opens /plateforme/licences-roles (matrix: no UI — roleMatrix unused)
-2. Frontend calls POST|PATCH|DELETE licenses; GET roles/matrix
+1. User opens /plateforme/licences-roles : tenant cards (+ per-product role catalog)
+2. Click a tenant card → /plateforme/licences-roles/tenant/:id (tenant info + subscribed products)
+3. Click a product → licensed users & product roles (change/remove role inline)
+4. Frontend calls POST|PATCH|DELETE licenses; GET roles/assignments (+ role catalog)
 3. `authMiddleware` + `requirePlatformAdmin` (or equivalent check)
 4. Controller executes with global scope; tenant checks bypassed by design
 5. Audit written; affected tenant admin/user notified where applicable
