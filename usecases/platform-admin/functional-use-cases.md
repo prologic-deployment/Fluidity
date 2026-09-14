@@ -11,7 +11,7 @@
 | UC-PA-007 | Configure product (plans/roles/permissions) | PATCH /api/platform/products/:key/configure | IMPLEMENTED |
 | UC-PA-008 | Publish / suspend / delete product | POST .../publish\|suspend, DELETE ... | IMPLEMENTED |
 | UC-PA-009 | Toggle registry product availability (override) | PATCH /api/platform/products/:key | IMPLEMENTED |
-| UC-PA-010 | Review / approve / reject orders (atomic) | GET\|PATCH\|POST /api/platform/orders* | IMPLEMENTED |
+| UC-PA-010 | Review / approve / reject orders (atomic, seat-expansion validation) | GET\|PATCH\|POST /api/platform/orders* | IMPLEMENTED |
 | UC-PA-011 | View all subscriptions / licenses (global) | GET /api/platform/subscriptions\|/licenses (isGlobalPlatform) | IMPLEMENTED |
 | UC-PA-012 | Provision subscription directly | POST /api/platform/subscriptions | IMPLEMENTED |
 | UC-PA-013 | Update subscription (seats/plan/dates) | PATCH /api/platform/subscriptions/:id | BACKEND_ONLY |
@@ -561,6 +561,11 @@ Platform
 
 ### Postconditions
 - Platform state changed, audited.
+
+### Validation rules (A5.2 Fix 1)
+- New subscription request for an already-owned product (live subscription) → 409 ALREADY_SUBSCRIBED at submission and at approval.
+- Seat-expansion request requires a living subscription : expired/cancelled → 409 SUBSCRIPTION_EXPIRED at submission and at approval (renewal required first).
+- The review UI shows the order type (new subscription vs seat expansion) with current → post-approval seats.
 
 ### Permissions
 - requirePlatformAdmin (backend) + platformGuard (frontend)

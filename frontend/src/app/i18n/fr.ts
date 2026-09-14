@@ -2188,6 +2188,8 @@ export const FR: Record<string, unknown> = {
       title: 'Catalogue de produits',
       subscribe: 'Souscrire',
       from: 'à partir de',
+      alreadySubscribed: 'Déjà souscrit',
+      manage: 'Gérer',
     },
     checkout: {
       title: 'Souscription',
@@ -3279,6 +3281,8 @@ export const FR: Record<string, unknown> = {
     manualApprovalBadge: 'Approvisionnement manuel (paiement différé)',
     currentProducts: 'Produits actuels du tenant',
     currentSeats: 'Sièges demandés',
+    seatsCurrent: 'Sièges actuels',
+    seatsAfter: 'Sièges après approbation',
     activeLicenses: 'Licences actives',
     reviewNote: 'Note d’examen (approbation ou motif de rejet)',
     empty: 'Aucune demande d’achat.',

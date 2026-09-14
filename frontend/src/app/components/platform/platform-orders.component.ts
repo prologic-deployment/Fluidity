@@ -128,6 +128,17 @@ export class PlatformOrdersComponent implements OnInit, OnDestroy {
     return ['pending_approval', 'pending', 'draft'].includes(o.status);
   }
 
+  orderTypeOf(o: OrderItem): string {
+    return (o as OrderItem & { orderType?: string }).orderType || 'subscription';
+  }
+
+  /** Contexte d'une extension de sièges : sièges actuels → sièges après approbation. */
+  expansionSeats(): { current: number; after: number } | null {
+    if (!this.detail || this.orderTypeOf(this.detail.order) !== 'seat_expansion') return null;
+    const current = this.detail.currentProducts.find((cp) => cp.productKey === this.detail!.order.productKey)?.seats ?? 0;
+    return { current, after: current + this.detail.order.seats };
+  }
+
   openDetail(o: OrderItem): void {
     this.detail = null;
     this.reviewNote = '';

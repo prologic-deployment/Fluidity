@@ -48,6 +48,7 @@
           <th>{{ 'saas.orderTenant' | t }}</th>
           <th>{{ 'platform.orders.requester' | t }}</th>
           <th>{{ 'saas.orderProduct' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'saas.orderType' | t }}</th>
           <th>{{ 'saas.orderPlan' | t }}</th>
           <th class="hidden md:table-cell">{{ 'saas.orderSeats' | t }}</th>
           <th class="hidden md:table-cell">{{ 'saas.orderTotal' | t }}</th>
@@ -62,6 +63,7 @@
           <td class="font-medium">{{ tenantName(o) }}</td>
           <td class="text-sm">{{ requesterName(o) }}</td>
           <td class="text-sm">{{ productLabel(o) }}</td>
+          <td class="hidden md:table-cell"><span class="badge badge-outline">{{ 'subscriptions.meta.orderType.' + orderTypeOf(o) | t }}</span></td>
           <td class="text-sm">{{ 'subscriptions.meta.plan.' + o.planId | t }}</td>
           <td class="hidden md:table-cell tabular-nums">{{ o.seats }}</td>
           <td class="hidden md:table-cell tabular-nums">{{ o.total }} {{ o.currency }}</td>
@@ -89,6 +91,7 @@
         <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderTenant' | t }}</dt><dd class="font-medium">{{ detail.order.tenantName || '—' }}</dd></div>
         <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'platform.orders.requester' | t }}</dt><dd>{{ requesterName(detail.order) }}</dd></div>
         <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderProduct' | t }}</dt><dd>{{ productLabel(detail.order) }}</dd></div>
+        <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderType' | t }}</dt><dd><span class="badge badge-outline">{{ 'subscriptions.meta.orderType.' + orderTypeOf(detail.order) | t }}</span></dd></div>
         <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderPlan' | t }}</dt><dd>{{ 'subscriptions.meta.plan.' + detail.order.planId | t }}</dd></div>
         <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderSeats' | t }}</dt><dd class="tabular-nums">{{ detail.order.seats }}</dd></div>
         <div class="flex justify-between gap-2"><dt class="text-muted-foreground">{{ 'saas.orderTotal' | t }}</dt><dd class="tabular-nums font-medium">{{ detail.order.total }} {{ detail.order.currency }}</dd></div>
@@ -102,6 +105,7 @@
               <span class="badge" [ngClass]="['active','trial','past_due'].includes(cp.status) ? 'badge-success' : 'badge-warning'">{{ 'subscriptions.meta.status.' + cp.status | t }}</span>
             </div>
             <p class="text-xs text-muted-foreground mt-1">{{ 'platform.orders.currentSeats' | t }}: {{ detail.order.seats }} · {{ 'platform.orders.activeLicenses' | t }}: {{ detail.activeLicenses }}</p>
+            <p class="text-xs mt-1 font-medium" *ngIf="expansionSeats() as exp">{{ 'platform.orders.seatsCurrent' | t }}: {{ exp.current }} → {{ 'platform.orders.seatsAfter' | t }}: {{ exp.after }}</p>
           </dd>
         </div>
       </dl>

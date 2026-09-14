@@ -9,8 +9,21 @@
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="loading" class="skeleton h-96"></div>
 
+  <!-- Produit déjà souscrit : pas de nouvelle demande possible -->
+  <div class="card mb-4" *ngIf="!loading && alreadyOwned && !completedOrder">
+    <div class="card-content p-8 text-center">
+      <p class="text-4xl">📦</p>
+      <h3 class="text-lg font-semibold mt-3">{{ 'subscriptions.catalog.alreadySubscribed' | t }}</h3>
+      <p class="text-sm text-muted-foreground mt-2">{{ 'subscriptions.checkout.alreadySubscribed' | t }}</p>
+      <div class="flex justify-center gap-2 mt-5">
+        <button type="button" class="btn-primary btn-sm" (click)="goOverview()">{{ 'subscriptions.catalog.manage' | t }}</button>
+        <a routerLink="/abonnements/produits" class="btn-ghost btn-sm">{{ 'common.back' | t }}</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Étapes -->
-  <ol class="flex items-center gap-2 mb-6 text-sm" *ngIf="!loading && !completedOrder">
+  <ol class="flex items-center gap-2 mb-6 text-sm" *ngIf="!loading && !completedOrder && !alreadyOwned">
     <li class="flex items-center gap-2">
       <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold" [class]="step === 1 ? 'bg-indigo-600 text-white' : 'bg-muted text-muted-foreground'">1</span>
       <span>{{ 'subscriptions.checkout.stepPlan' | t }}</span>
@@ -32,7 +45,7 @@
     </li>
   </ol>
 
-  <ng-container *ngIf="product && !loading">
+  <ng-container *ngIf="product && !loading && !alreadyOwned">
     <!-- Étape 1 : plan -->
     <div class="card mb-4" *ngIf="step === 1">
       <div class="card-content p-4 grid grid-cols-1 md:grid-cols-3 gap-3">

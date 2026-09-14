@@ -570,6 +570,12 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
       res.status(404).json({ message: 'Souscription introuvable pour cet espace.' });
       return;
     }
+    // A5.2 Fix 1 : pas d'extension de sièges sur une souscription expirée —
+    // le tenant doit d'abord la renouveler (nouvelle demande de souscription).
+    if (sub.status === 'expired') {
+      res.status(409).json({ code: 'SUBSCRIPTION_EXPIRED', message: 'Cette souscription est expirée : renouvelez-la avant de demander des sièges supplémentaires.' });
+      return;
+    }
     const extra = Math.max(1, Math.min(1000, parseInt(seats, 10) || 1));
     // DB-003 (audit) : idempotence — une demande de sièges IDENTIQUE déjà en
     // attente n'est pas dupliquée (double-soumission / rafraîchissement réseau).
