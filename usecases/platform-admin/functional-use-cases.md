@@ -3,7 +3,7 @@
 | UC | Action | API | Status |
 |---|---|---|---|
 | UC-PA-001 | View platform dashboard (KPIs, pending, activity) | GET /api/platform/dashboard | IMPLEMENTED |
-| UC-PA-002 | List / view / create / update tenants | GET\|POST /api/tenants*, PATCH /api/tenants/:id | IMPLEMENTED |
+| UC-PA-002 | List / view / create / update tenants (country flag+name, detail link) | GET\|POST /api/tenants*, PATCH /api/tenants/:id | IMPLEMENTED |
 | UC-PA-003 | Suspend / activate tenant (reversible cascade archive + session kill) | PATCH /api/tenants/:id/suspend\|activate | IMPLEMENTED |
 | UC-PA-004 | Archive tenant + all content (no hard delete, Super Admin keeps visibility) | DELETE /api/tenants/:id | IMPLEMENTED |
 | UC-PA-005 | Impersonate tenant (x-tenant-override; audit+support) | header on any API; UI switcher in sidebar | IMPLEMENTED |

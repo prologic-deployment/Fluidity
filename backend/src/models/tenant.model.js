@@ -33,6 +33,8 @@ const TenantSchema = new Schema(
     // --- Coordonnées ---
     contactEmail: { type: String, lowercase: true, trim: true },
     phone: { type: String },
+    // A5.2 Fix 11 : pays du tenant (ISO-3166 alpha-2, ex. « TN »).
+    country: { type: String, default: '', uppercase: true, trim: true, maxlength: 2 },
     address: { type: String },
     website: { type: String },
 

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TenantService } from '../../services/tenant.service';
 import { PlatformService } from '../../services/platform.service';
 import { UserService } from '../../services/user.service';
@@ -10,7 +10,7 @@ import { Subscription as Sub } from '../../models/product.model';
 import { License } from '../../models/product.model';
 import { OrderItem } from '../../models/project.model';
 import { AppUser } from '../../models/user.model';
-import { Tenant, PlatformStats, TENANT_PLANS, TENANT_TYPES } from '../../models/tenant.model';
+import { Tenant, PlatformStats, TENANT_PLANS, TENANT_TYPES, TENANT_COUNTRY_CODES, countryFlag } from '../../models/tenant.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
@@ -29,7 +29,7 @@ import { ToastService } from '../../services/toast.service';
 @Component({
   selector: 'app-platform-tenants',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ModalComponent, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './platform-tenants.component.html',
 })
 export class PlatformTenantsComponent implements OnInit {
@@ -120,6 +120,7 @@ export class PlatformTenantsComponent implements OnInit {
       maxUsers: [1, [Validators.required, Validators.min(1)]],
       contactEmail: ['', Validators.email],
       phone: [''],
+      country: [''],
       address: [''],
       website: [''],
       primaryColor: ['#6366f1'],
@@ -155,6 +156,22 @@ export class PlatformTenantsComponent implements OnInit {
       const matchPlan = !this.planFiltre || t.plan === this.planFiltre;
       return matchTerm && matchStatut && matchPlan;
     });
+  }
+
+  readonly countryCodes = TENANT_COUNTRY_CODES;
+
+  /** A5.2 Fix 11 : drapeau + nom localisé du pays. */
+  flagOf(code: string | undefined): string {
+    return countryFlag(code);
+  }
+
+  countryName(code: string | undefined): string {
+    if (!code) return '';
+    try {
+      return new Intl.DisplayNames([this.i18n.lang], { type: 'region' }).of(code.toUpperCase()) || code;
+    } catch {
+      return code;
+    }
   }
 
   tenantInitial(t: Tenant): string {
@@ -220,6 +237,7 @@ export class PlatformTenantsComponent implements OnInit {
       maxUsers: t.maxUsers || 5,
       contactEmail: t.contactEmail || '',
       phone: t.phone || '',
+      country: t.country || '',
       address: t.address || '',
       website: t.website || '',
       primaryColor: t.primaryColor || '#6366f1',
