@@ -263,16 +263,16 @@ export class PlatformTenantsComponent implements OnInit {
   // --- Cycle de vie (Actif ↔ Suspendu, Archivage verrouillé, Restauration) ---
   async toggleStatus(t: Tenant): Promise<void> {
     if (!t._id) return;
-    // A5.2 Fix 2 : les tenants résiliés n'ont pas de bascule suspendre/réactiver
-    // (l'API activate exige le statut 'suspended' → 404 garanti sinon).
-    if (t.status !== 'active' && t.status !== 'suspended') return;
     const suspendre = t.status === 'active';
-    const restaure = t.status === 'archived' || (t as Tenant).status === 'terminated';
+    const restaure = t.status === 'archived' || t.status === 'terminated';
+    // A5.2 Fix 2 (réconcilié avec la restauration A5.1) : les statuts inconnus
+    // n'ont pas de bascule ; les archives passent par la restauration (activate).
+    if (!suspendre && !restaure && t.status !== 'suspended') return;
     const titleKey = suspendre ? 'tenants.suspendTitle' : restaure ? 'tenants.restoreTitle' : 'tenants.reactivateTitle';
     const ok = await this.confirmDialog.confirm({
-      title: this.i18n.t(suspendre ? 'tenants.suspendTitle' : 'tenants.reactivateTitle', { name: t.name }),
-      message: this.i18n.t(suspendre ? 'tenants.suspendMessage' : 'tenants.reactivateMessage'),
-      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : this.i18n.t('tenants.reactivate'),
+      title: this.i18n.t(titleKey, { name: t.name }),
+      message: this.i18n.t(suspendre ? 'tenants.suspendMessage' : restaure ? 'tenants.restoreMessage' : 'tenants.reactivateMessage'),
+      confirmLabel: suspendre ? this.i18n.t('tenants.suspend') : restaure ? this.i18n.t('tenants.restore') : this.i18n.t('tenants.reactivate'),
       variant: suspendre ? 'destructive' : 'default',
     });
     if (!ok) return;
@@ -324,6 +324,11 @@ export class PlatformTenantsComponent implements OnInit {
       },
       error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'tenants.deleteError')),
     });
+  }
+
+  /** Une archive est verrouillée : ni édition, ni suspension, ni impersonation. */
+  isArchived(t: Tenant): boolean {
+    return t.status === 'archived' || t.status === 'terminated';
   }
 
   /** Entre dans l'espace du tenant en impersonation (support / audit). */
