@@ -327,6 +327,7 @@ export const EN: Record<string, unknown> = {
     stateOff: 'Off',
     stateOffHint: 'Protect your account: after your password, a 6-digit code from your authenticator app will be requested at every sign-in.',
     enableBtn: 'Enable two-factor authentication',
+    setupTitle: 'Set up two-factor authentication',
     qrAlt: 'Google/Microsoft Authenticator setup QR code',
     manualEntry: 'Can’t scan? Manual entry',
     manualKeyHint: 'Choose “Enter a setup key” in your app, then copy this code.',

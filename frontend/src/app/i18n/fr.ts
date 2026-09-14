@@ -327,6 +327,7 @@ export const FR: Record<string, unknown> = {
     stateOff: 'Désactivée',
     stateOffHint: 'Protégez votre compte : après votre mot de passe, un code à 6 chiffres de votre application d’authentification sera demandé à chaque connexion.',
     enableBtn: 'Activer la double authentification',
+    setupTitle: 'Configurer la double authentification',
     qrAlt: 'QR code de configuration Google/Microsoft Authenticator',
     manualEntry: 'Impossible de scanner ? Saisie manuelle',
     manualKeyHint: 'Choisissez « Saisir une clé de configuration » dans votre application, puis copiez ce code.',

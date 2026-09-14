@@ -2,13 +2,15 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService, TwoFactorStatus } from '../../services/auth.service';
+import { ModalComponent } from '../shared/modal.component';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
  * Section « Double authentification » du profil : chaque utilisateur gère SA
- * propre 2FA.
+ * propre 2FA. A5.2 Fix 13 : la configuration (activation comme désactivation)
+ * s'effectue dans une modale dédiée, pas en ligne.
  *   - Désactivée : activation en 3 étapes (QR code → clé manuelle → code de
  *     vérification), puis affichage UNIQUE des codes de secours.
  *   - Activée : statut + désactivation (preuve : mot de passe ou code).
@@ -17,13 +19,16 @@ import { apiErrorMessage } from '../../utils/api-error.util';
 @Component({
   selector: 'app-two-factor-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ...I18N_IMPORTS],
+  imports: [CommonModule, ReactiveFormsModule, ModalComponent, ...I18N_IMPORTS],
   templateUrl: './two-factor-settings.component.html',
 })
 export class TwoFactorSettingsComponent implements OnInit {
   loading = true;
   error: string | null = null;
   status: TwoFactorStatus | null = null;
+
+  /** A5.2 Fix 13 : la configuration 2FA s'ouvre en modale. */
+  setupModalOpen = false;
 
   // --- Flux d'activation ---
   setupPasswordView = false; // AUTH-005 : preuve du mot de passe avant le QR
@@ -78,15 +83,31 @@ export class TwoFactorSettingsComponent implements OnInit {
 
   // --- Activation ------------------------------------------------------------
 
+  /** Titre de la modale selon le flux en cours. */
+  get modalTitle(): string {
+    return this.i18n.t(this.disableView ? 'twofa.confirmDisableTitle' : 'twofa.setupTitle');
+  }
+
+  /** Fermeture modale (croix / Échap / fond) : on repart d'un flux vierge. */
+  onModalClosed(): void {
+    this.setupModalOpen = false;
+    this.setupPasswordView = false;
+    this.setupView = false;
+    this.disableView = false;
+    this.error = null;
+  }
+
   /** AUTH-005 : l'activation commence par la preuve du mot de passe courant. */
   startSetup(): void {
     this.error = null;
     this.setupPasswordForm.reset();
     this.setupPasswordView = true;
+    this.setupModalOpen = true;
   }
 
   cancelSetupPassword(): void {
     this.setupPasswordView = false;
+    this.setupModalOpen = false;
     this.error = null;
   }
 
@@ -117,6 +138,7 @@ export class TwoFactorSettingsComponent implements OnInit {
 
   cancelSetup(): void {
     this.setupView = false;
+    this.setupModalOpen = false;
     this.qrCode = null;
     this.manualKey = null;
     this.error = null;
@@ -133,6 +155,7 @@ export class TwoFactorSettingsComponent implements OnInit {
       next: (res) => {
         this.verifying = false;
         this.setupView = false;
+        this.setupModalOpen = false;
         // Affichage UNIQUE : jamais renvoyés ensuite par l'API
         this.backupCodes = res.backupCodes;
         this.refresh();
@@ -162,10 +185,12 @@ export class TwoFactorSettingsComponent implements OnInit {
     this.disableForm.reset();
     this.error = null;
     this.disableView = true;
+    this.setupModalOpen = true;
   }
 
   cancelDisable(): void {
     this.disableView = false;
+    this.setupModalOpen = false;
     this.error = null;
   }
 
@@ -183,6 +208,7 @@ export class TwoFactorSettingsComponent implements OnInit {
       next: () => {
         this.disabling = false;
         this.disableView = false;
+        this.setupModalOpen = false;
         this.refresh();
       },
       error: (err) => {
