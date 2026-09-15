@@ -110,21 +110,38 @@
      fixed et le dialogue se rend DANS la carte au lieu d'en surimpression. -->
 <ng-container *ngIf="!loading && status">
       <!-- ============ MODALE DE CONFIGURATION 2FA (A5.2 Fix 13) ============ -->
-      <app-modal [open]="setupModalOpen" (closed)="onModalClosed()" size="xl" [title]="modalTitle">
+      <app-modal [open]="setupModalOpen" (closed)="onModalClosed()" [size]="setupView ? 'xl' : 'md'" [title]="modalTitle">
         <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+
+        <!-- Assistant : progression de la configuration -->
+        <ol *ngIf="!disableView" class="flex items-center gap-2 mb-6">
+          <li *ngFor="let s of [1,2,3]; let last = last" class="flex items-center gap-2" [class.flex-1]="!last" [class.just-end]="false">
+            <span class="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0"
+              [ngClass]="setupStep > s ? 'bg-emerald-500 text-white' : setupStep === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'">{{ setupStep > s ? '✓' : s }}</span>
+            <span class="text-xs font-medium whitespace-nowrap" [ngClass]="setupStep === s ? 'text-foreground' : 'text-muted-foreground'">{{ stepLabels[s-1] | t }}</span>
+            <span *ngIf="!last" class="flex-1 h-px bg-border mx-1 min-w-4"></span>
+          </li>
+        </ol>
       <!-- ============ ACTIVATION : PREUVE DU MOT DE PASSE (AUTH-005) ============ -->
-      <form *ngIf="setupPasswordView" [formGroup]="setupPasswordForm" (ngSubmit)="confirmSetupPassword()"
-        class="rounded-xl border border-border bg-muted/30 p-4 space-y-3 max-w-lg">
-        <p class="text-sm font-medium">{{ 'twofa.setupPasswordTitle' | t }}</p>
-        <p class="text-xs text-muted-foreground">{{ 'twofa.setupPasswordHint' | t }}</p>
+      <form *ngIf="setupPasswordView" [formGroup]="setupPasswordForm" (ngSubmit)="confirmSetupPassword()" class="max-w-sm mx-auto text-center space-y-4">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
         <div>
+          <p class="text-base font-semibold">{{ 'twofa.setupPasswordTitle' | t }}</p>
+          <p class="text-sm text-muted-foreground mt-1">{{ 'twofa.setupPasswordHint' | t }}</p>
+        </div>
+        <div class="text-left">
           <label class="field-label" for="setup-2fa-password">{{ 'twofa.accountPassword' | t }}</label>
           <input id="setup-2fa-password" type="password" formControlName="password" class="input" autocomplete="current-password" [attr.placeholder]="'twofa.passwordPh' | t" />
           <p *ngIf="setupPasswordForm.get('password')?.invalid && setupPasswordForm.get('password')?.touched" class="field-error">
             {{ 'users.formError' | t }}
           </p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex gap-3 justify-center">
           <button type="submit" [disabled]="submittingSetupPassword" class="btn-primary">
             {{ submittingSetupPassword ? ('common.saving' | t) : ('common.continue' | t) }}
           </button>
@@ -132,62 +149,64 @@
         </div>
       </form>
       <!-- ============ ACTIVATION : QR + CLÉ + VÉRIFICATION ============ -->
-      <div *ngIf="setupView" class="space-y-5">
-        <ol class="space-y-1 text-sm text-muted-foreground list-decimal list-inside">
-          <li>{{ 'twofa.step1' | t }}</li>
-          <li>{{ 'twofa.step2' | t }}</li>
-        </ol>
-
-        <div class="flex flex-col md:flex-row gap-6 items-start">
-          <!-- QR code (affiché uniquement pendant le setup) -->
-          <div class="rounded-xl border border-border bg-white p-3 shadow-sm">
-            <img [src]="qrCode" [alt]="'twofa.qrAlt' | t" width="220" height="220" class="block" />
+      <div *ngIf="setupView" class="grid grid-cols-1 md:grid-cols-[240px,1fr] gap-6 items-start">
+        <!-- QR code (affiché uniquement pendant le setup) -->
+        <div class="mx-auto md:mx-0 text-center">
+          <p class="text-sm font-semibold mb-2">{{ 'twofa.scanTitle' | t }}</p>
+          <div class="rounded-2xl border border-border bg-white p-4 shadow-sm inline-block">
+            <img [src]="qrCode" [alt]="'twofa.qrAlt' | t" width="200" height="200" class="block" />
           </div>
+          <p class="mt-2 text-xs text-muted-foreground max-w-[240px]">{{ 'twofa.step1' | t }}</p>
+        </div>
 
-          <div class="flex-1 space-y-4 w-full">
-            <!-- Clé manuelle -->
-            <div>
-              <p class="field-label">{{ 'twofa.manualEntry' | t }}</p>
-              <div class="flex items-center gap-2">
-                <code class="flex-1 rounded-lg border border-border bg-muted/50 px-3 py-2 font-mono text-sm tracking-[0.2em] select-all">
-                  {{ manualKeyVisible ? manualKey : '•••• •••• •••• •••• •••• •••• •••• ••••' }}
-                </code>
-                <button type="button" (click)="manualKeyVisible = !manualKeyVisible" class="btn-outline btn-sm">
-                  {{ manualKeyVisible ? ('security.hide' | t) : ('security.show' | t) }}
-                </button>
-              </div>
-              <p class="mt-1 text-xs text-muted-foreground">
-                {{ 'twofa.manualKeyHint' | t }}
-              </p>
+        <div class="space-y-5 min-w-0">
+          <!-- Clé manuelle -->
+          <div class="rounded-xl border border-border bg-muted/30 p-4">
+            <p class="text-sm font-semibold">{{ 'twofa.manualEntry' | t }}</p>
+            <div class="flex items-center gap-2 mt-2">
+              <code class="flex-1 min-w-0 truncate rounded-lg border border-border bg-card px-3 py-2 font-mono text-sm tracking-[0.15em] select-all">
+                {{ manualKeyVisible ? manualKey : '•••• •••• •••• •••• •••• •••• •••• ••••' }}
+              </code>
+              <button type="button" (click)="manualKeyVisible = !manualKeyVisible" class="btn-outline btn-sm shrink-0">
+                {{ manualKeyVisible ? ('security.hide' | t) : ('security.show' | t) }}
+              </button>
+              <button type="button" (click)="copyManualKey()" class="btn-outline btn-sm shrink-0">
+                {{ keyCopied ? ('common.copied' | t) + ' ✓' : ('twofa.copyKey' | t) }}
+              </button>
             </div>
-
-            <!-- Code de vérification -->
-            <form [formGroup]="verifyForm" (ngSubmit)="confirmSetup()" class="space-y-3">
-              <div>
-                <label class="field-label">{{ 'twofa.enterVerifyCode' | t }}</label>
-                <input type="text" formControlName="code" class="input max-w-[220px] tracking-[0.35em] font-mono"
-                  placeholder="123456" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
-                <p *ngIf="verifyForm.get('code')?.invalid && verifyForm.get('code')?.touched" class="field-error">
-                  {{ 'twofa.code6Required' | t }}
-                </p>
-              </div>
-              <div class="flex gap-3">
-                <button type="submit" [disabled]="verifying" class="btn-primary">
-                  {{ verifying ? ('twofa.verifying' | t) : ('twofa.verifyAndEnable' | t) }}
-                </button>
-                <button type="button" (click)="cancelSetup()" [disabled]="verifying" class="btn-outline">{{ 'common.cancel' | t }}</button>
-              </div>
-            </form>
+            <p class="mt-1.5 text-xs text-muted-foreground">{{ 'twofa.manualKeyHint' | t }}</p>
           </div>
+
+          <!-- Code de vérification -->
+          <form [formGroup]="verifyForm" (ngSubmit)="confirmSetup()" class="rounded-xl border border-border p-4 space-y-3">
+            <div>
+              <p class="text-sm font-semibold">{{ 'twofa.enterVerifyCode' | t }}</p>
+              <p class="text-xs text-muted-foreground mt-0.5">{{ 'twofa.step2' | t }}</p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+              <input type="text" formControlName="code" class="input max-w-[200px] text-center tracking-[0.35em] font-mono text-lg"
+                placeholder="123456" autocomplete="one-time-code" inputmode="numeric" maxlength="6" />
+              <button type="submit" [disabled]="verifying" class="btn-primary">
+                {{ verifying ? ('twofa.verifying' | t) : ('twofa.verifyAndEnable' | t) }}
+              </button>
+              <button type="button" (click)="cancelSetup()" [disabled]="verifying" class="btn-outline">{{ 'common.cancel' | t }}</button>
+            </div>
+            <p *ngIf="verifyForm.get('code')?.invalid && verifyForm.get('code')?.touched" class="field-error">
+              {{ 'twofa.code6Required' | t }}
+            </p>
+          </form>
         </div>
       </div>
         <!-- Désactivation : preuve requise -->
-        <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()"
-          class="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-          <p class="text-sm font-medium">{{ 'twofa.confirmDisableTitle' | t }}</p>
-          <p class="text-xs text-muted-foreground">
-            {{ 'twofa.confirmDisableHint' | t }}
-          </p>
+        <form *ngIf="disableView" [formGroup]="disableForm" (ngSubmit)="confirmDisable()" class="max-w-lg mx-auto space-y-4">
+          <div class="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <svg class="h-5 w-5 text-destructive shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <path d="M12 9v4"></path>
+              <path d="M12 17h.01"></path>
+            </svg>
+            <p class="text-sm text-muted-foreground">{{ 'twofa.confirmDisableHint' | t }}</p>
+          </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="field-label">{{ 'twofa.accountPassword' | t }} <span class="text-destructive">*</span></label>

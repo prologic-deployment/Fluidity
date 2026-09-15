@@ -88,6 +88,25 @@ export class TwoFactorSettingsComponent implements OnInit {
     return this.i18n.t(this.disableView ? 'twofa.confirmDisableTitle' : 'twofa.setupTitle');
   }
 
+  /** Assistant visuel : 1 identité → 2 scan → 3 vérification. */
+  readonly stepLabels = ['twofa.stepIdentity', 'twofa.stepScan', 'twofa.stepVerify'];
+
+  get setupStep(): number {
+    if (this.setupPasswordView) return 1;
+    if (this.setupView) return String(this.verifyForm.get('code')?.value || '').length > 0 ? 3 : 2;
+    return 1;
+  }
+
+  keyCopied = false;
+
+  copyManualKey(): void {
+    if (!this.manualKey) return;
+    navigator.clipboard?.writeText(this.manualKey).then(() => {
+      this.keyCopied = true;
+      setTimeout(() => (this.keyCopied = false), 2500);
+    });
+  }
+
   /** Fermeture modale (croix / Échap / fond) : on repart d'un flux vierge. */
   onModalClosed(): void {
     this.setupModalOpen = false;
