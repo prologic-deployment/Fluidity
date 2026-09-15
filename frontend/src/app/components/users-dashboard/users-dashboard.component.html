@@ -50,8 +50,37 @@
       </div>
     </div>
 
-    <!-- Licences produits & rôles SaaS -->
-    <app-product-licenses></app-product-licenses>
+    <!-- Licences produits & rôles SaaS (tenant : assignation des sièges) -->
+    <app-product-licenses *ngIf="!isPlatformAdmin"></app-product-licenses>
+
+    <!-- Plateforme : cartes tenants → page détail (produits → utilisateurs/rôles) -->
+    <section *ngIf="isPlatformAdmin" class="mb-6">
+      <h2 class="text-base font-semibold">{{ 'licenses.title' | t }}</h2>
+      <p class="text-xs text-muted-foreground mt-0.5 mb-3">{{ 'platform.rolesMatrix.tenantsHint' | t }}</p>
+      <input type="search" [(ngModel)]="tenantSearch" class="input w-64 mb-3" [attr.placeholder]="'platform.rolesMatrix.searchTenants' | t" />
+      <div *ngIf="tenantCardsLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div *ngFor="let _ of [1,2,3]" class="skeleton h-28"></div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" *ngIf="!tenantCardsLoading">
+        <button *ngFor="let t of tenantCards(); trackBy: trackTenant" type="button" (click)="openTenant(t)"
+          class="card text-left hover:border-primary/50 hover:shadow transition-all cursor-pointer">
+          <div class="card-content p-4">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-semibold">{{ t.name }}</span>
+              <span class="badge ml-auto" [ngClass]="t.status === 'active' ? 'badge-success' : t.status === 'suspended' ? 'badge-warning' : 'badge-secondary'">{{ tenantStatusLabel(t) }}</span>
+            </div>
+            <p class="text-xs text-muted-foreground mt-1">{{ t.plan || '' }} · {{ t.contactEmail || '' }}</p>
+            <div class="flex items-center gap-3 mt-3 text-sm tabular-nums">
+              <span><strong>{{ tenantCounts(t).products }}</strong> <span class="text-muted-foreground text-xs">{{ 'platform.rolesMatrix.productsCount' | t }}</span></span>
+              <span><strong>{{ tenantCounts(t).licenses }}</strong> <span class="text-muted-foreground text-xs">{{ 'platform.rolesMatrix.licensesCount' | t }}</span></span>
+              <span><strong>{{ tenantCounts(t).users }}</strong> <span class="text-muted-foreground text-xs">{{ 'platform.rolesMatrix.usersCount' | t }}</span></span>
+              <span class="ml-auto text-xs text-primary font-medium">{{ 'platform.rolesMatrix.view' | t }} →</span>
+            </div>
+          </div>
+        </button>
+        <div *ngIf="!tenantCards().length" class="card"><div class="card-content py-8 text-center text-sm text-muted-foreground">{{ 'platform.rolesMatrix.noTenants' | t }}</div></div>
+      </div>
+    </section>
 
     <!-- Filtres -->
     <div class="toolbar">

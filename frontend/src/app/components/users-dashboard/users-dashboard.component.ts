@@ -2,8 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { UserService } from '../../services/user.service';
 import { TenantService } from '../../services/tenant.service';
+import { PlatformService } from '../../services/platform.service';
+import { License } from '../../models/product.model';
+import { Tenant } from '../../models/tenant.model';
 import { AppUser, AppRole, LicenseInfo, APP_ROLES, ROLE_LABELS, USER_STATUS_LABELS } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
 import { ModalComponent } from '../shared/modal.component';
@@ -53,6 +58,11 @@ export class UsersDashboardComponent implements OnInit {
   /** Super Admin : colonne tenant visible + nom résolu via la liste des tenants. */
   isPlatformAdmin = false;
   tenantNames = new Map<string, string>();
+  /** Plateforme : cartes tenants remplaçant le listing plat multi-tenant. */
+  platformTenants: Tenant[] = [];
+  platformLicenses: License[] = [];
+  tenantCardsLoading = false;
+  tenantSearch = '';
 
   // Création / édition
   createForm!: FormGroup;
@@ -65,6 +75,8 @@ export class UsersDashboardComponent implements OnInit {
   constructor(
     private userService: UserService,
     private tenantService: TenantService,
+    private platform: PlatformService,
+    private router: Router,
     private auth: AuthService,
     private confirmDialog: ConfirmDialogService,
     private fb: FormBuilder
@@ -76,12 +88,19 @@ export class UsersDashboardComponent implements OnInit {
     this.currentUserId = this.auth.getUserId();
     this.isPlatformAdmin = this.auth.isPlatformAdmin();
     if (this.isPlatformAdmin) {
-      // Résolution des noms de tenant pour la colonne « Tenant ».
-      this.tenantService.getAll().subscribe({
-        next: (ts) => {
-          this.tenantNames = new Map(ts.map((t) => [String(t._id), t.name]));
+      // Résolution des noms de tenant pour la colonne « Tenant » + cartes.
+      this.tenantCardsLoading = true;
+      forkJoin({ tenants: this.tenantService.getAll(), licenses: this.platform.licenses() }).subscribe({
+        next: (r) => {
+          this.platformTenants = (r.tenants || []).slice().sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+          this.platformLicenses = r.licenses || [];
+          this.tenantNames = new Map(this.platformTenants.map((t) => [String(t._id), t.name]));
+          this.tenantCardsLoading = false;
         },
-        error: () => (this.tenantNames = new Map()),
+        error: () => {
+          this.tenantNames = new Map();
+          this.tenantCardsLoading = false;
+        },
       });
     }
     this.createForm = this.fb.group({
@@ -96,6 +115,36 @@ export class UsersDashboardComponent implements OnInit {
       department: [''],
     });
     this.load();
+  }
+
+  /** Cartes tenants (plateforme) : hiérarchie tenant → produits → utilisateurs/rôles. */
+  tenantCards(): Tenant[] {
+    const q = this.tenantSearch.trim().toLowerCase();
+    if (!q) return this.platformTenants;
+    return this.platformTenants.filter((t) => (t.name || '').toLowerCase().includes(q) || (t.contactEmail || '').toLowerCase().includes(q));
+  }
+
+  tenantCounts(t: Tenant): { products: number; licenses: number; users: number } {
+    const tid = String(t._id || '');
+    const lics = this.platformLicenses.filter((l) => String(l.tenantId) === tid);
+    return {
+      products: new Set(lics.map((l) => l.productKey)).size,
+      licenses: lics.length,
+      users: new Set(lics.map((l) => (typeof l.userId === 'object' && l.userId ? String((l.userId as { _id?: string })._id) : String(l.userId || '')))).size,
+    };
+  }
+
+  tenantStatusLabel(t: Tenant): string {
+    if (t.status === 'terminated') return this.i18n.t('tenants.archived');
+    return this.i18n.t(`tenants.${t.status || 'active'}`);
+  }
+
+  openTenant(t: Tenant): void {
+    if (t._id) this.router.navigate(['/plateforme/licences-roles/tenant', t._id]);
+  }
+
+  trackTenant(_i: number, t: Tenant): string {
+    return String(t._id || t.name);
   }
 
   load(): void {
