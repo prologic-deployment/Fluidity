@@ -93,19 +93,19 @@
     <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-40"></div>
   </div>
 
-  <h2 *ngIf="!loading && availableProducts.length" class="text-base font-semibold mt-2 mb-3">{{ 'platform.products.availableSection' | t }} ({{ availableProducts.length }})</h2>
-  <div *ngIf="!loading && availableProducts.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-    <ng-container *ngFor="let p of availableProducts; trackBy: trackProduct">
+  <app-carousel *ngIf="!loading && availableProducts.length" class="mt-2" [prevLabel]="'platform.products.carouselPrev' | t" [nextLabel]="'platform.products.carouselNext' | t">
+    <span class="carousel-title text-base font-semibold">{{ 'platform.products.availableSection' | t }} ({{ availableProducts.length }})</span>
+    <div class="carousel-slide" *ngFor="let p of availableProducts; trackBy: trackProduct">
       <ng-container *ngTemplateOutlet="productCard; context: { product: p }"></ng-container>
-    </ng-container>
-  </div>
+    </div>
+  </app-carousel>
 
-  <h2 *ngIf="!loading && unavailableProducts.length" class="text-base font-semibold mt-6 mb-3">{{ 'platform.products.unavailableSection' | t }} ({{ unavailableProducts.length }})</h2>
-  <div *ngIf="!loading && unavailableProducts.length" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-    <ng-container *ngFor="let p of unavailableProducts; trackBy: trackProduct">
+  <app-carousel *ngIf="!loading && unavailableProducts.length" class="mt-6" [prevLabel]="'platform.products.carouselPrev' | t" [nextLabel]="'platform.products.carouselNext' | t">
+    <span class="carousel-title text-base font-semibold">{{ 'platform.products.unavailableSection' | t }} ({{ unavailableProducts.length }})</span>
+    <div class="carousel-slide" *ngFor="let p of unavailableProducts; trackBy: trackProduct">
       <ng-container *ngTemplateOutlet="productCard; context: { product: p }"></ng-container>
-    </ng-container>
-  </div>
+    </div>
+  </app-carousel>
 
 
   <ng-template #productCard let-p="product">
@@ -167,7 +167,7 @@
                   <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions()" remember="roles" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
                   <button type="button" class="btn-ghost btn-sm" (click)="removeConfigRole(i)">×</button>
                 </div>
-                <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="permissionSuggestions(declaredConfigPermissions())" remember="permissions" [validOptions]="declaredConfigPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
+                <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="permissionSuggestions(declaredConfigPermissions())" remember="permissions" [dropUp]="true" [validOptions]="declaredConfigPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
               </div>
               <button type="button" class="btn-ghost btn-sm" (click)="addConfigRole()">+ {{ 'platform.products.addRole' | t }}</button>
             </div>

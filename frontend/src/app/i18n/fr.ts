@@ -3686,6 +3686,8 @@ export const FR: Record<string, unknown> = {
     unavailable: 'Indisponible',
     availableSection: 'Disponibles',
     unavailableSection: 'Non disponibles',
+    carouselPrev: 'Précédent',
+    carouselNext: 'Suivant',
     plans: 'Plans & tarifs (registre)',
     perMonth: 'mois',
     perYear: 'an',

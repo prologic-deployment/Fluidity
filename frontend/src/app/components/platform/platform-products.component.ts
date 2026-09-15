@@ -14,6 +14,7 @@ import { EmojiPickerComponent } from '../shared/emoji-picker.component';
 import { FieldHintComponent } from '../shared/field-hint.component';
 import { AutocompleteInputComponent } from '../shared/autocomplete-input.component';
 import { AutocompleteListService } from '../shared/autocomplete-list.service';
+import { CarouselComponent } from '../shared/carousel.component';
 
 interface RoleDraft {
   key: string;
@@ -34,7 +35,7 @@ interface RoleDraft {
 @Component({
   selector: 'app-platform-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, FieldHintComponent, AutocompleteInputComponent, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, FieldHintComponent, AutocompleteInputComponent, CarouselComponent, ...I18N_IMPORTS],
   templateUrl: './platform-products.component.html',
 })
 export class PlatformProductsComponent implements OnInit, OnDestroy {

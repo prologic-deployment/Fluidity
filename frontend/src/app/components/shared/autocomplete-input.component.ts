@@ -59,7 +59,7 @@ import { AutocompleteListService } from './autocomplete-list.service';
       </div>
       <ul
         *ngIf="open && filtered().length"
-        class="absolute left-0 top-full z-30 mt-1 max-h-48 w-full overflow-auto rounded-md border border-border bg-card py-1 shadow-lg"
+        class="absolute left-0 z-30 max-h-48 w-full overflow-auto rounded-md border border-border bg-card py-1 shadow-lg" [ngClass]="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'"
       >
         <li *ngFor="let s of filtered(); let i = index">
           <button
@@ -73,7 +73,7 @@ import { AutocompleteListService } from './autocomplete-list.service';
           </button>
         </li>
       </ul>
-      <p *ngIf="open && !filtered().length && typing.trim() && allowCustom" class="absolute left-0 top-full z-30 mt-1 w-full rounded-md border border-border bg-card px-3 py-1.5 shadow-lg font-mono text-xs text-muted-foreground">
+      <p *ngIf="open && !filtered().length && typing.trim() && allowCustom" class="absolute left-0 z-30 w-full rounded-md border border-border bg-card px-3 py-1.5 shadow-lg font-mono text-xs text-muted-foreground" [ngClass]="dropUp ? 'bottom-full mb-1' : 'top-full mt-1'">
         {{ addLabel }} « {{ typing.trim() }} »
       </p>
     </div>
@@ -94,6 +94,8 @@ export class AutocompleteInputComponent implements ControlValueAccessor, OnChang
   /** Suggestions valides (défaut = `suggestions`) — le reste s'affiche estompé. */
   @Input() validOptions: string[] | null = null;
   @Input() invalidHint = '';
+  /** Ouvre la liste vers le haut (utile en bas d'un conteneur à défilement). */
+  @Input() dropUp = false;
   @Input() disabled = false;
 
   values: string[] = [];
