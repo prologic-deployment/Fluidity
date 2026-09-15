@@ -153,21 +153,24 @@
   @keyframes shimmer {
     100% { transform: translateX(100%); }
   }
+  /* Fix 5 (round 3) : `backwards` (pas `both`) — les états finaux sont
+     l’état naturel ; `both` conservait un transform persistant qui fait de
+     TOUTE carte animée un bloc conteneur piégeant les modales fixed. */
   .animate-fade-in-up {
-    animation: fade-in-up 0.35s ease-out both;
+    animation: fade-in-up 0.35s ease-out backwards;
   }
   .animate-fade-in {
-    animation: fade-in 0.25s ease-out both;
+    animation: fade-in 0.25s ease-out backwards;
   }
   .animate-scale-in {
-    animation: scale-in 0.2s ease-out both;
+    animation: scale-in 0.2s ease-out backwards;
   }
   @keyframes slide-in-left {
     from { transform: translateX(-100%); }
     to { transform: translateX(0); }
   }
   .animate-slide-in-left {
-    animation: slide-in-left 0.25s ease-out both;
+    animation: slide-in-left 0.25s ease-out backwards;
   }
   .stagger-1 { animation-delay: 40ms; }
   .stagger-2 { animation-delay: 80ms; }

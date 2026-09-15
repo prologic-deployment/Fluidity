@@ -47,6 +47,68 @@
         </button>
       </div>
 
+      <!-- ============ CODES DE SECOURS (affichés UNE seule fois) ============ -->
+      <div *ngIf="backupCodes" class="rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-400/10 dark:border-amber-300/30 p-4 space-y-3">
+        <div class="flex items-start gap-2.5">
+          <svg class="h-5 w-5 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <path d="M12 9v4"></path>
+            <path d="M12 17h.01"></path>
+          </svg>
+          <div>
+            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">{{ 'twofa.enabledBackupTitle' | t }}</p>
+            <p class="text-xs text-amber-800 dark:text-amber-300/80 mt-0.5">
+              {{ 'twofa.enabledBackupText' | t: { n: backupCodes.length } }}
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <code *ngFor="let code of backupCodes"
+            class="rounded-md border border-amber-300/60 bg-white dark:bg-amber-400/10 dark:border-amber-300/30 dark:text-amber-200 px-2 py-1.5 text-center font-mono text-xs tracking-wider">
+            {{ code }}
+          </code>
+        </div>
+        <div class="flex gap-3">
+          <button type="button" (click)="copyBackupCodes()" class="btn-outline btn-sm">
+            {{ backupCopied ? ('common.copied' | t) + ' ✓' : ('twofa.copyCodes' | t) }}
+          </button>
+          <button type="button" (click)="acknowledgeBackupCodes()" class="btn-outline btn-sm">
+            {{ 'twofa.codesKept' | t }}
+          </button>
+        </div>
+      </div>
+
+      <!-- ============ ÉTAT : ACTIVÉE ============ -->
+      <div *ngIf="status.enabled && !backupCodes" class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+              {{ 'twofa.stateOn' | t }}
+            </span>
+            <div class="text-sm text-muted-foreground">
+              <p>
+                {{ 'twofa.otpRequired' | t }}
+                <span *ngIf="status.createdAt">— {{ 'twofa.enabledOn' | t }} {{ status.createdAt | dateLocale: 'short' }}</span>.
+              </p>
+              <p class="text-xs mt-0.5">{{ 'twofa.backupLeft' | t: { n: status.backupCodesRemaining } }}.</p>
+            </div>
+          </div>
+          <button *ngIf="!disableView" type="button" (click)="startDisable()" class="btn-outline shrink-0">
+            {{ 'twofa.disableBtn' | t }}
+          </button>
+        </div>
+
+      </div>
+
+    </ng-container>
+  </div>
+</section>
+
+<!-- Fix 5 (round 3) : la modale vit HORS de la carte (racine du template) —
+     un ancêtre animé (transform persistant) piège sinon le positionnement
+     fixed et le dialogue se rend DANS la carte au lieu d'en surimpression. -->
+<ng-container *ngIf="!loading && status">
       <!-- ============ MODALE DE CONFIGURATION 2FA (A5.2 Fix 13) ============ -->
       <app-modal [open]="setupModalOpen" (closed)="onModalClosed()" size="xl" [title]="modalTitle">
         <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -145,61 +207,4 @@
           </div>
         </form>
       </app-modal>
-
-      <!-- ============ CODES DE SECOURS (affichés UNE seule fois) ============ -->
-      <div *ngIf="backupCodes" class="rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-400/10 dark:border-amber-300/30 p-4 space-y-3">
-        <div class="flex items-start gap-2.5">
-          <svg class="h-5 w-5 text-amber-600 dark:text-amber-300 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-            <path d="M12 9v4"></path>
-            <path d="M12 17h.01"></path>
-          </svg>
-          <div>
-            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">{{ 'twofa.enabledBackupTitle' | t }}</p>
-            <p class="text-xs text-amber-800 dark:text-amber-300/80 mt-0.5">
-              {{ 'twofa.enabledBackupText' | t: { n: backupCodes.length } }}
-            </p>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          <code *ngFor="let code of backupCodes"
-            class="rounded-md border border-amber-300/60 bg-white dark:bg-amber-400/10 dark:border-amber-300/30 dark:text-amber-200 px-2 py-1.5 text-center font-mono text-xs tracking-wider">
-            {{ code }}
-          </code>
-        </div>
-        <div class="flex gap-3">
-          <button type="button" (click)="copyBackupCodes()" class="btn-outline btn-sm">
-            {{ backupCopied ? ('common.copied' | t) + ' ✓' : ('twofa.copyCodes' | t) }}
-          </button>
-          <button type="button" (click)="acknowledgeBackupCodes()" class="btn-outline btn-sm">
-            {{ 'twofa.codesKept' | t }}
-          </button>
-        </div>
-      </div>
-
-      <!-- ============ ÉTAT : ACTIVÉE ============ -->
-      <div *ngIf="status.enabled && !backupCodes" class="space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="flex items-start gap-3">
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-              {{ 'twofa.stateOn' | t }}
-            </span>
-            <div class="text-sm text-muted-foreground">
-              <p>
-                {{ 'twofa.otpRequired' | t }}
-                <span *ngIf="status.createdAt">— {{ 'twofa.enabledOn' | t }} {{ status.createdAt | dateLocale: 'short' }}</span>.
-              </p>
-              <p class="text-xs mt-0.5">{{ 'twofa.backupLeft' | t: { n: status.backupCodesRemaining } }}.</p>
-            </div>
-          </div>
-          <button *ngIf="!disableView" type="button" (click)="startDisable()" class="btn-outline shrink-0">
-            {{ 'twofa.disableBtn' | t }}
-          </button>
-        </div>
-
-      </div>
-
-    </ng-container>
-  </div>
-</section>
+</ng-container>
