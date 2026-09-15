@@ -1,70 +1,102 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-3 mb-5 flex-wrap">
     <a routerLink="/plateforme/licences-roles" class="btn-ghost btn-sm">{{ 'platform.tenantLicenses.back' | t }}</a>
-    <h1 class="text-xl font-semibold">{{ tenant?.name || ('platform.tenantLicenses.title' | t) }}</h1>
-    <span *ngIf="tenant" class="badge" [ngClass]="statusClass(tenant.status)">{{ statusLabel(tenant.status) }}</span>
+    <h1 class="text-xl font-semibold">{{ 'platform.tenantLicenses.title' | t }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'platform.tenantLicenses.subtitle' | t }}</p>
     <button type="button" class="btn-ghost btn-sm ml-auto" (click)="load()">{{ 'common.refresh' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="notFound" class="card"><div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'platform.tenantLicenses.notFound' | t }}</div></div>
-  <div *ngIf="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-    <div *ngFor="let _ of [1,2,3,4]" class="skeleton h-24"></div>
+  <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-4">
+    <div class="space-y-2"><div *ngFor="let _ of [1,2,3]" class="skeleton h-20"></div></div>
+    <div class="skeleton h-64"></div>
   </div>
 
   <ng-container *ngIf="!loading && tenant">
-    <!-- Informations du tenant -->
-    <div class="card mb-5">
-      <div class="card-header py-2.5"><span class="text-sm font-semibold">{{ 'platform.tenantLicenses.info' | t }}</span></div>
-      <div class="card-content p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-        <div><p class="text-muted-foreground text-xs">{{ 'tenants.plan' | t }}</p><p class="font-medium">{{ tenant.plan || '—' }}</p></div>
-        <div><p class="text-muted-foreground text-xs">{{ 'tenants.type' | t }}</p><p class="font-medium">{{ tenant.type || '—' }}</p></div>
-        <div><p class="text-muted-foreground text-xs">{{ 'tenants.contactEmail' | t }}</p><p class="font-medium">{{ tenant.contactEmail || '—' }}</p></div>
-        <div><p class="text-muted-foreground text-xs">{{ 'platform.tenantLicenses.createdOn' | t }}</p><p class="font-medium">{{ tenant.createdAt ? (tenant.createdAt | dateLocale:'short') : '—' }}</p></div>
+    <!-- Bandeau d'identité du tenant -->
+    <div class="card mb-4">
+      <div class="card-content p-4 flex items-center gap-4 flex-wrap">
+        <div class="h-12 w-12 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-lg shrink-0">{{ initials(tenant.name) }}</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <p class="text-lg font-semibold truncate">{{ tenant.name }}</p>
+            <span class="badge" [ngClass]="statusClass(tenant.status)">{{ statusLabel(tenant.status) }}</span>
+          </div>
+          <p class="text-xs text-muted-foreground mt-0.5">
+            {{ tenant.plan || '—' }} · {{ tenant.type || '—' }} · {{ tenant.contactEmail || '—' }} · {{ 'platform.tenantLicenses.createdOn' | t }} {{ tenant.createdAt ? (tenant.createdAt | dateLocale:'short') : '—' }}
+          </p>
+        </div>
       </div>
     </div>
 
-    <!-- Produits souscrits -->
-    <h2 class="text-base font-semibold mb-3">{{ 'platform.tenantLicenses.products' | t }}</h2>
+    <!-- Indicateurs -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div class="card"><div class="card-content p-4">
+        <p class="text-xl font-semibold tabular-nums">{{ subs.length }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.tenantLicenses.products' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content p-4">
+        <p class="text-xl font-semibold tabular-nums">{{ activeSubs.length }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.tenantLicenses.statsActive' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content p-4">
+        <p class="text-xl font-semibold tabular-nums">{{ seatsUsedTotal }} / {{ seatsTotal }}</p>
+        <div class="h-1.5 rounded bg-muted mt-2 overflow-hidden"><div class="h-full rounded bg-primary" [style.width.%]="seatsPct"></div></div>
+        <p class="text-xs text-muted-foreground mt-1">{{ 'platform.tenantLicenses.seatsUsed' | t }}</p>
+      </div></div>
+      <div class="card"><div class="card-content p-4">
+        <p class="text-xl font-semibold tabular-nums">{{ licensedUsersTotal }}</p>
+        <p class="text-xs text-muted-foreground mt-0.5">{{ 'platform.tenantLicenses.statsUsers' | t }}</p>
+      </div></div>
+    </div>
+
+    <!-- Espace de travail : rail produits + panneau utilisateurs -->
     <div *ngIf="!subs.length" class="card"><div class="card-content py-12 text-center text-sm text-muted-foreground">{{ 'platform.tenantLicenses.noProducts' | t }}</div></div>
-    <div class="space-y-3" *ngIf="subs.length">
-      <div class="card" *ngFor="let s of subs; trackBy: trackSub">
-        <button type="button" (click)="toggle(s.productKey)" class="w-full text-left card-header py-3 flex items-center gap-3 flex-wrap hover:bg-muted/40 rounded-t-xl">
-          <span class="font-semibold">{{ productLabel(s.productKey) }}</span>
-          <span class="badge badge-outline">{{ 'subscriptions.meta.plan.' + s.planId | t }}</span>
-          <span class="badge" [ngClass]="s.status === 'active' ? 'badge-success' : 'badge-outline'">{{ 'subscriptions.meta.status.' + s.status | t }}</span>
-          <span class="text-xs text-muted-foreground ml-auto tabular-nums">{{ 'platform.tenantLicenses.seatsUsed' | t }} : {{ seatsUsed(s.productKey) }} / {{ s.seats }}</span>
-          <span class="text-muted-foreground">{{ expanded === s.productKey ? '▾' : '▸' }}</span>
-        </button>
-        <div class="card-content p-0" *ngIf="expanded === s.productKey">
-          <p class="px-4 pt-3 pb-1 text-xs font-medium text-muted-foreground">{{ 'platform.tenantLicenses.usersTitle' | t }}</p>
-          <div *ngIf="!usersOf(s.productKey).length" class="px-4 pb-4 text-sm text-muted-foreground">{{ 'platform.tenantLicenses.noUsers' | t }}</div>
-          <div *ngIf="usersOf(s.productKey).length" class="table-wrap rounded-none border-x-0 border-b-0">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>{{ 'platform.licenses.user' | t }}</th>
-                  <th>{{ 'platform.rolesMatrix.license' | t }}</th>
-                  <th>{{ 'platform.rolesMatrix.productRole' | t }}</th>
-                  <th>{{ 'saas.action' | t }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let r of usersOf(s.productKey)">
-                  <td class="text-sm">
-                    <p class="font-medium">{{ r.userName }}</p>
-                    <p class="text-xs text-muted-foreground">{{ r.userEmail }}</p>
-                  </td>
-                  <td><span class="badge" [ngClass]="licenseBadge(r.licenseStatus)">{{ licenseLabel(r.licenseStatus) }}</span></td>
-                  <td><span class="badge" [ngClass]="r.roleKey ? 'badge-secondary' : 'badge-outline'">{{ roleLabel(s.productKey, r.roleKey) }}</span></td>
-                  <td class="whitespace-nowrap">
-                    <button type="button" class="btn-ghost btn-sm" (click)="startEdit(s.productKey, r)">{{ 'platform.rolesMatrix.changeRole' | t }}</button>
-                    <button *ngIf="r.assignmentId" type="button" class="btn-ghost btn-sm text-destructive" (click)="removeRole(r)">{{ 'platform.rolesMatrix.removeRole' | t }}</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+    <div *ngIf="subs.length" class="grid grid-cols-1 lg:grid-cols-[300px,1fr] gap-4 items-start">
+      <div class="space-y-2">
+        <button *ngFor="let s of subs; trackBy: trackSub" type="button" (click)="select(s.productKey)"
+          class="card w-full text-left hover:border-primary/50 transition-colors cursor-pointer"
+          [class.border-primary]="selected === s.productKey" [class.shadow]="selected === s.productKey">
+          <div class="card-content p-3">
+            <div class="flex items-center gap-2">
+              <span class="h-2 w-2 rounded-full shrink-0" [ngClass]="s.status === 'active' ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+              <p class="font-semibold truncate">{{ productLabel(s.productKey) }}</p>
+            </div>
+            <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <span class="badge badge-outline text-[10px]">{{ 'subscriptions.meta.plan.' + s.planId | t }}</span>
+              <span class="badge text-[10px]" [ngClass]="s.status === 'active' ? 'badge-success' : 'badge-outline'">{{ 'subscriptions.meta.status.' + s.status | t }}</span>
+              <span class="text-[11px] text-muted-foreground ml-auto tabular-nums">{{ seatsUsed(s.productKey) }} / {{ s.seats }}</span>
+            </div>
+            <div class="h-1 rounded bg-muted mt-2 overflow-hidden"><div class="h-full rounded bg-primary" [style.width.%]="seatPct(s.productKey)"></div></div>
           </div>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-header py-3 flex items-center gap-2 flex-wrap" *ngIf="selectedSub">
+          <span class="text-sm font-semibold">{{ productLabel(selectedSub.productKey) }}</span>
+          <span class="badge badge-outline text-[10px]">{{ 'subscriptions.meta.plan.' + selectedSub.planId | t }}</span>
+          <span class="text-xs text-muted-foreground ml-auto tabular-nums">{{ 'platform.tenantLicenses.seatsUsed' | t }} : {{ seatsUsed(selectedSub.productKey) }} / {{ selectedSub.seats }}</span>
+        </div>
+        <div class="card-content p-4">
+          <p class="text-xs font-medium text-muted-foreground mb-2">{{ 'platform.tenantLicenses.usersTitle' | t }}</p>
+          <div *ngIf="!selectedRows.length" class="py-10 text-center text-sm text-muted-foreground">{{ 'platform.tenantLicenses.noUsers' | t }}</div>
+          <ul *ngIf="selectedRows.length" class="divide-y divide-border rounded-lg border border-border overflow-hidden">
+            <li *ngFor="let r of selectedRows" class="flex items-center gap-3 p-3 flex-wrap">
+              <div class="h-9 w-9 rounded-full bg-secondary text-secondary-foreground font-semibold text-xs flex items-center justify-center shrink-0">{{ initials(r.userName) }}</div>
+              <div class="min-w-0 flex-1 basis-40">
+                <p class="font-medium text-sm truncate">{{ r.userName }}</p>
+                <p class="text-xs text-muted-foreground truncate">{{ r.userEmail }}</p>
+              </div>
+              <span class="badge" [ngClass]="licenseBadge(r.licenseStatus)">{{ licenseLabel(r.licenseStatus) }}</span>
+              <span class="badge" [ngClass]="r.roleKey ? 'badge-secondary' : 'badge-outline'">{{ selected ? roleLabel(selected, r.roleKey) : '—' }}</span>
+              <span class="ml-auto flex gap-1" *ngIf="selected">
+                <button type="button" class="btn-ghost btn-sm" (click)="startEdit(selected, r)">{{ 'platform.rolesMatrix.changeRole' | t }}</button>
+                <button *ngIf="r.assignmentId" type="button" class="btn-ghost btn-sm text-destructive" (click)="removeRole(r)">{{ 'platform.rolesMatrix.removeRole' | t }}</button>
+              </span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>

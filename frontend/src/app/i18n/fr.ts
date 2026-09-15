@@ -3614,6 +3614,8 @@ export const FR: Record<string, unknown> = {
     licenseActive: 'Licence active',
     licenseRevoked: 'Licence révoquée',
     licenseSuspended: 'Licence suspendue',
+    statsActive: 'Souscriptions actives',
+    statsUsers: 'Utilisateurs licenciés',
   },
   settings: {
     nav: 'Réglages & santé',

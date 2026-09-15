@@ -3615,6 +3615,8 @@ export const EN: Record<string, unknown> = {
     licenseActive: 'Active license',
     licenseRevoked: 'Revoked license',
     licenseSuspended: 'Suspended license',
+    statsActive: 'Active subscriptions',
+    statsUsers: 'Licensed users',
   },
   settings: {
     nav: 'Settings & health',

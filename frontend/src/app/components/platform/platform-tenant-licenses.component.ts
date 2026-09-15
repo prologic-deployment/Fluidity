@@ -23,10 +23,10 @@ interface ProductUserRow {
 }
 
 /**
- * Détail « Licences & rôles » d'un tenant (Super Admin) — A5.2 Fix 4 :
- * hiérarchie tenant → produits souscrits → utilisateurs & rôles.
- * Un clic sur un produit déplie ses utilisateurs licenciés et leurs rôles
- * (modifiables comme dans la matrice globale).
+ * Détail « Licences & rôles » d'un tenant (Super Admin) — Fix 3 (round 3) :
+ * espace de travail maître-détail (rail des produits → panneau utilisateurs),
+ * bandeau d'identité + indicateurs. Mêmes données et mêmes actions
+ * (changement/retrait de rôle) que l'accordéon précédent, réorganisées.
  */
 @Component({
   selector: 'app-platform-tenant-licenses',
@@ -43,7 +43,8 @@ export class PlatformTenantLicensesComponent implements OnInit, OnDestroy {
   licenses: License[] = [];
   assignments: RoleAssignment[] = [];
   roleCatalog: { productKey: string; nameKey: string; roles: { key: string; nameKey: string }[] }[] = [];
-  expanded: string | null = null;
+  /** Produit sélectionné dans le rail (panneau utilisateurs à droite). */
+  selected: string | null = null;
   /** Édition de rôle produit. */
   editing: (ProductUserRow & { productKey: string }) | null = null;
   editRoleKey = '';
@@ -89,6 +90,9 @@ export class PlatformTenantLicensesComponent implements OnInit, OnDestroy {
           this.licenses = (r.licenses || []).filter((l) => String(l.tenantId) === String(this.tenantId));
           this.assignments = (r.assignments || []).filter((a) => String(a.tenantId || '') === String(this.tenantId));
           this.roleCatalog = r.catalog || [];
+          if (!this.selected || !this.subs.some((s) => s.productKey === this.selected)) {
+            this.selected = this.subs.length ? this.subs[0].productKey : null;
+          }
           this.loading = false;
         },
         error: (err) => {
@@ -99,8 +103,55 @@ export class PlatformTenantLicensesComponent implements OnInit, OnDestroy {
       });
   }
 
-  toggle(productKey: string): void {
-    this.expanded = this.expanded === productKey ? null : productKey;
+  select(productKey: string): void {
+    this.selected = productKey;
+  }
+
+  // --- Indicateurs -----------------------------------------------------------
+  get activeSubs(): Subscription[] {
+    return this.subs.filter((s) => ['active', 'trial', 'past_due'].includes(s.status));
+  }
+
+  get seatsUsedTotal(): number {
+    return this.licenses.filter((l) => l.status === 'active').length;
+  }
+
+  get seatsTotal(): number {
+    return this.subs.reduce((n, s) => n + (s.seats || 0), 0);
+  }
+
+  get licensedUsersTotal(): number {
+    return new Set(this.licenses.map((l) => this.userKey(l.userId)).filter(Boolean)).size;
+  }
+
+  get seatsPct(): number {
+    if (!this.seatsTotal) return 0;
+    return Math.min(100, Math.round((this.seatsUsedTotal / this.seatsTotal) * 100));
+  }
+
+  // --- Panneau produit sélectionné -------------------------------------------
+  get selectedSub(): Subscription | null {
+    return this.subs.find((s) => s.productKey === this.selected) || null;
+  }
+
+  get selectedRows(): ProductUserRow[] {
+    return this.selected ? this.usersOf(this.selected) : [];
+  }
+
+  seatPct(productKey: string): number {
+    const sub = this.subs.find((s) => s.productKey === productKey);
+    if (!sub?.seats) return 0;
+    return Math.min(100, Math.round((this.seatsUsed(productKey) / sub.seats) * 100));
+  }
+
+  initials(name: string): string {
+    return (name || '?')
+      .trim()
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
   }
 
   productLabel(productKey: string): string {
