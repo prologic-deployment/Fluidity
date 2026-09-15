@@ -16,6 +16,8 @@ interface RoleDraft {
   key: string;
   name: string;
   permissions: string;
+  /** Fix 4 (round 3) : « Autre » sélectionné → saisie libre de la clé. */
+  other: boolean;
 }
 
 /**
@@ -40,6 +42,8 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
 
   /** A5.2 Fix 8 : catégories prédéfinies (+ « Autre » en dernier). */
   readonly categories = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
+  /** Fix 4 (round 3) : clés de rôle prédéfinies (+ « Autre » en dernier). */
+  readonly rolePresets = ['admin', 'manager', 'member', 'viewer', 'other'];
 
   // --- Création (brouillon plateforme) --------------------------------------
   creating = false;
@@ -57,7 +61,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     business: 19,
     enterprise: 39,
     permissions: '',
-    roles: [{ key: '', name: '', permissions: '' }] as RoleDraft[],
+    roles: [{ key: '', name: '', permissions: '', other: false }] as RoleDraft[],
   };
 
   // --- Configuration (produits plateforme) ----------------------------------
@@ -184,8 +188,27 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.creating = false;
   }
 
+  /** Valeur du sélecteur de preset pour une ligne de rôle. */
+  presetOf(r: RoleDraft): string {
+    if (r.other) return 'other';
+    if (['admin', 'manager', 'member', 'viewer'].includes(r.key)) return r.key;
+    return '';
+  }
+
+  /** Application d'un preset (nom affiché suggéré si vide) ou bascule « Autre ». */
+  applyPreset(r: RoleDraft, value: string): void {
+    if (value === 'other') {
+      r.other = true;
+      if (['admin', 'manager', 'member', 'viewer'].includes(r.key)) r.key = '';
+      return;
+    }
+    r.other = false;
+    r.key = value;
+    if (value && !r.name.trim()) r.name = this.i18n.t('platform.products.rolePresets.' + value);
+  }
+
   addFormRole(): void {
-    this.form.roles.push({ key: '', name: '', permissions: '' });
+    this.form.roles.push({ key: '', name: '', permissions: '', other: false });
   }
 
   removeFormRole(i: number): void {
@@ -320,7 +343,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.configPlans = (p.plans || []).map((pl) => ({ ...pl }));
     this.configPermissions = (p.permissions || []).join('\n');
     const roles = (p as unknown as { roles: { key: string; nameKey?: string; name?: string; permissions?: string[] }[] }).roles || [];
-    this.configRoles = roles.map((r) => ({ key: r.key, name: r.name || '', permissions: (r.permissions || []).join(', ') }));
+    this.configRoles = roles.map((r) => ({ key: r.key, name: r.name || '', permissions: (r.permissions || []).join(', '), other: !['admin', 'manager', 'member', 'viewer'].includes(r.key) }));
   }
 
   cancelConfigure(): void {
@@ -336,7 +359,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   }
 
   addConfigRole(): void {
-    this.configRoles.push({ key: '', name: '', permissions: '' });
+    this.configRoles.push({ key: '', name: '', permissions: '', other: false });
   }
 
   removeConfigRole(i: number): void {

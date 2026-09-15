@@ -75,10 +75,16 @@
       <div>
         <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}</p>
         <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
-        <div *ngFor="let r of form.roles; let i = index" class="flex gap-1 mb-1">
-          <input class="input font-mono text-xs" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
-          <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleNamePh' | t }}" />
-          <button type="button" class="btn-ghost btn-sm" (click)="removeFormRole(i)">×</button>
+        <div *ngFor="let r of form.roles; let i = index" class="mb-1 space-y-1">
+          <div class="flex gap-1">
+            <select class="input text-xs" [ngModel]="presetOf(r)" (ngModelChange)="applyPreset(r, $event)">
+              <option value="">{{ 'platform.products.rolePresets.choose' | t }}</option>
+              <option *ngFor="let p of rolePresets" [value]="p">{{ 'platform.products.rolePresets.' + p | t }}</option>
+            </select>
+            <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleNamePh' | t }}" />
+            <button type="button" class="btn-ghost btn-sm" (click)="removeFormRole(i)">×</button>
+          </div>
+          <input *ngIf="r.other" class="input font-mono text-xs w-full" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
         </div>
         <div *ngFor="let r of form.roles; let i = index" class="mb-1">
           <input class="input font-mono text-xs w-full" [(ngModel)]="r.permissions" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}" />
@@ -168,10 +174,14 @@
               <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
               <div *ngFor="let r of configRoles; let i = index" class="mb-1 space-y-1">
                 <div class="flex gap-1">
-                  <input class="input font-mono text-xs" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
+                  <select class="input text-xs" [ngModel]="presetOf(r)" (ngModelChange)="applyPreset(r, $event)">
+                    <option value="">{{ 'platform.products.rolePresets.choose' | t }}</option>
+                    <option *ngFor="let p of rolePresets" [value]="p">{{ 'platform.products.rolePresets.' + p | t }}</option>
+                  </select>
                   <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleNamePh' | t }}" />
                   <button type="button" class="btn-ghost btn-sm" (click)="removeConfigRole(i)">×</button>
                 </div>
+                <input *ngIf="r.other" class="input font-mono text-xs w-full" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
                 <input class="input font-mono text-xs w-full" [(ngModel)]="r.permissions" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}" />
               </div>
               <button type="button" class="btn-ghost btn-sm" (click)="addConfigRole()">+ {{ 'platform.products.addRole' | t }}</button>
