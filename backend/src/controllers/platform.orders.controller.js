@@ -49,7 +49,9 @@ const getOrder = async (req, res) => {
   }
   const tenant = await Tenant.findById(order.tenantId).select('name status').lean();
   const subs = await Subscription.find({ tenantId: order.tenantId }).lean();
-  const licenses = await LicenseAssignment.countDocuments({ tenantId: order.tenantId, status: 'active' });
+  // Examen par produit : les licences actives sont celles DU PRODUIT demandé
+  // (pas du tenant entier — « 21 » face à « 8 sièges » était incohérent).
+  const licenses = await LicenseAssignment.countDocuments({ tenantId: order.tenantId, productKey: order.productKey, status: 'active' });
   res.json({
     order: { ...order, tenantName: tenant?.name || '', tenantStatus: tenant?.status || '', status: normalizeOrderStatus(order.status) },
     currentProducts: subs.map((x) => ({ productKey: x.productKey, planId: x.planId, seats: x.seats, status: x.status, endDate: x.endDate })),

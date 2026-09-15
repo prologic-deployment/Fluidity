@@ -645,8 +645,14 @@ router.post('/me/orders', authMiddleware, requireTenantAdmin, async (req, res) =
       return;
     }
     const sub = await Subscription.findOne({ _id: subscriptionId, tenantId: req.tenantId });
-    if (!sub || sub.status === 'cancelled') {
+    if (!sub) {
       res.status(404).json({ message: 'Souscription introuvable pour cet espace.' });
+      return;
+    }
+    // Même règle que l'expiration : une souscription annulée ne s'étend pas,
+    // elle se RENOUVELLE (nouvelle demande de souscription → réactivation).
+    if (sub.status === 'cancelled') {
+      res.status(409).json({ code: 'SUBSCRIPTION_CANCELLED', message: 'Cette souscription est annulée : soumettez une nouvelle demande de souscription pour réactiver le produit.' });
       return;
     }
     // A5.2 Fix 1 : pas d'extension de sièges sur une souscription expirée —
