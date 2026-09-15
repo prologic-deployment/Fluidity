@@ -68,32 +68,17 @@
       </div>
       <div class="block">
         <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}<app-field-hint [text]="'platform.products.hints.permissions' | t" [label]="'platform.products.permissions' | t"></app-field-hint></span>
-        <div *ngFor="let r of form.permRows; let i = index" class="mt-1 space-y-1">
-          <div class="flex gap-1">
-            <select class="input font-mono text-xs" [(ngModel)]="r.preset">
-              <option value="">{{ 'platform.products.permPresets.choose' | t }}</option>
-              <option *ngFor="let p of permPresets" [value]="p">{{ 'platform.products.permPresets.' + p | t }}</option>
-            </select>
-            <button type="button" class="btn-ghost btn-sm" (click)="removeFormPerm(i)">×</button>
-          </div>
-          <div *ngIf="r.preset === 'other'" class="flex items-center gap-1">
-            <input class="input font-mono text-xs flex-1" [(ngModel)]="r.custom" placeholder="{{ 'platform.products.permCustomPh' | t }}" />
-            <app-field-hint [text]="'platform.products.hints.permCustom' | t" [label]="'platform.products.permCustomPh' | t"></app-field-hint>
-          </div>
-          <p *ngIf="permPreview(r, form.key)" class="text-[11px] font-mono text-muted-foreground">{{ permPreview(r, form.key) }}</p>
-        </div>
-        <button type="button" class="btn-ghost btn-sm mt-1" (click)="addFormPerm()">+ {{ 'platform.products.addPermission' | t }}</button>
-        <span class="text-[11px] text-muted-foreground block mt-1">{{ 'platform.products.permissionsHint' | t }}</span>
+        <app-autocomplete-input class="mt-1" [(ngModel)]="form.permissions" [multiple]="true" [suggestions]="permissionSuggestions()" remember="permissions" [allowCustom]="true" placeholder="{{ 'platform.products.permissionsPh' | t }}"></app-autocomplete-input>
       </div>
       <div>
         <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}<app-field-hint [text]="'platform.products.hints.roles' | t" [label]="'platform.products.rolesTitle' | t"></app-field-hint></p>
         <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
         <div *ngFor="let r of form.roles; let i = index" class="mb-1.5 rounded-lg border border-border p-2 space-y-1.5">
           <div class="flex gap-1">
-            <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
+            <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions()" remember="roles" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
             <button type="button" class="btn-ghost btn-sm" (click)="removeFormRole(i)">×</button>
           </div>
-          <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="declaredFormPermissions()" [validOptions]="declaredFormPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
+          <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="permissionSuggestions(declaredFormPermissions())" remember="permissions" [validOptions]="declaredFormPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
         </div>
         <button type="button" class="btn-ghost btn-sm mt-1" (click)="addFormRole()">+ {{ 'platform.products.addRole' | t }}</button>
       </div>
@@ -172,32 +157,17 @@
             </div>
             <div class="block">
               <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}<app-field-hint [text]="'platform.products.hints.permissions' | t" [label]="'platform.products.permissions' | t"></app-field-hint></span>
-              <div *ngFor="let r of configPermRows; let i = index" class="mt-1 space-y-1">
-                <div class="flex gap-1">
-                  <select class="input font-mono text-xs" [(ngModel)]="r.preset">
-                    <option value="">{{ 'platform.products.permPresets.choose' | t }}</option>
-                    <option *ngFor="let p of permPresets" [value]="p">{{ 'platform.products.permPresets.' + p | t }}</option>
-                  </select>
-                  <button type="button" class="btn-ghost btn-sm" (click)="removeConfigPerm(i)">×</button>
-                </div>
-                <div *ngIf="r.preset === 'other'" class="flex items-center gap-1">
-                  <input class="input font-mono text-xs flex-1" [(ngModel)]="r.custom" placeholder="{{ 'platform.products.permCustomPh' | t }}" />
-                  <app-field-hint [text]="'platform.products.hints.permCustom' | t" [label]="'platform.products.permCustomPh' | t"></app-field-hint>
-                </div>
-                <p *ngIf="permPreview(r, configuringKey)" class="text-[11px] font-mono text-muted-foreground">{{ permPreview(r, configuringKey) }}</p>
-              </div>
-              <button type="button" class="btn-ghost btn-sm mt-1" (click)="addConfigPerm()">+ {{ 'platform.products.addPermission' | t }}</button>
-              <span class="text-[11px] text-muted-foreground block mt-1">{{ 'platform.products.permissionsHint' | t }}</span>
+              <app-autocomplete-input class="mt-1" [(ngModel)]="configPermissions" [multiple]="true" [suggestions]="permissionSuggestions()" remember="permissions" [allowCustom]="true" placeholder="{{ 'platform.products.permissionsPh' | t }}"></app-autocomplete-input>
             </div>
             <div>
               <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}<app-field-hint [text]="'platform.products.hints.roles' | t" [label]="'platform.products.rolesTitle' | t"></app-field-hint></p>
               <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
               <div *ngFor="let r of configRoles; let i = index" class="mb-1.5 rounded-lg border border-border p-2 space-y-1.5">
                 <div class="flex gap-1">
-                  <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
+                  <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions()" remember="roles" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
                   <button type="button" class="btn-ghost btn-sm" (click)="removeConfigRole(i)">×</button>
                 </div>
-                <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="declaredConfigPermissions()" [validOptions]="declaredConfigPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
+                <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="permissionSuggestions(declaredConfigPermissions())" remember="permissions" [validOptions]="declaredConfigPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
               </div>
               <button type="button" class="btn-ghost btn-sm" (click)="addConfigRole()">+ {{ 'platform.products.addRole' | t }}</button>
             </div>

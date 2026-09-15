@@ -13,6 +13,7 @@ import { apiErrorMessage } from '../../utils/api-error.util';
 import { EmojiPickerComponent } from '../shared/emoji-picker.component';
 import { FieldHintComponent } from '../shared/field-hint.component';
 import { AutocompleteInputComponent } from '../shared/autocomplete-input.component';
+import { AutocompleteListService } from '../shared/autocomplete-list.service';
 
 interface RoleDraft {
   key: string;
@@ -20,11 +21,6 @@ interface RoleDraft {
   name: string;
   /** Permissions du rôle (pills) — sous-ensemble des permissions déclarées. */
   permissions: string[];
-}
-/** Ligne de permission produit : preset d'action (+ clé produit) ou « Autre » libre. */
-interface PermDraft {
-  preset: string;
-  custom: string;
 }
 
 /**
@@ -49,11 +45,6 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
 
   /** A5.2 Fix 8 : catégories prédéfinies (+ « Autre » en dernier). */
   readonly categories = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
-  /** Fix 4 (round 3) : clés de rôle prédéfinies (+ « Autre » en dernier). */
-  /** Suggestions de clés de rôle (saisie libre acceptée — remplace le preset + « Autre »). */
-  readonly roleKeySuggestions = ['admin', 'manager', 'member', 'viewer'];
-  /** Permissions : actions prédéfinies (+ « Autre » en dernier). */
-  readonly permPresets = ['read', 'write', 'delete', 'admin', 'other'];
 
   // --- Création (brouillon plateforme) --------------------------------------
   creating = false;
@@ -70,7 +61,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     starter: 9,
     business: 19,
     enterprise: 39,
-    permRows: [{ preset: '', custom: '' }] as PermDraft[],
+    permissions: [] as string[],
     roles: [{ key: '', name: '', permissions: [] }] as RoleDraft[],
   };
 
@@ -78,7 +69,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   configuringKey = '';
   configBusy = false;
   configPlans: ProductPlan[] = [];
-  configPermRows: PermDraft[] = [];
+  configPermissions: string[] = [];
   configRoles: RoleDraft[] = [];
 
   private readonly destroy$ = new Subject<void>();
@@ -87,7 +78,8 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     private platform: PlatformService,
     private confirm: ConfirmDialogService,
     private toast: ToastService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private acLists: AutocompleteListService
   ) {}
 
   ngOnInit(): void {
@@ -198,56 +190,32 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.creating = false;
   }
 
-  /** Permissions déclarées (création) → suggestions des pills de rôle. */
-  declaredFormPermissions(): string[] {
-    return this.resolvePermRows(this.form.permRows, this.form.key);
+  /** Suggestions de clés de rôle : défauts + rôles mémorisés. */
+  roleKeySuggestions(): string[] {
+    return this.acLists.roleSuggestions();
   }
 
-  /** Permissions déclarées (panneau config) → suggestions des pills de rôle. */
-  declaredConfigPermissions(): string[] {
-    return this.resolvePermRows(this.configPermRows, this.configuringKey);
-  }
-
-  /** Identifiant calculé d'une ligne de permission (preset + clé produit). */
-  permPreview(r: PermDraft, productKey: string): string {
-    if (!r.preset || r.preset === 'other') return '';
-    return `${(productKey || '…').trim().toLowerCase() || '…'}.${r.preset}`;
-  }
-
-  /** Résout les lignes du constructeur en identifiants (dédupliqués). */
-  resolvePermRows(rows: PermDraft[], productKey: string): string[] {
-    const key = (productKey || '').trim().toLowerCase();
+  /** Suggestions de permissions : déclarées d'abord, puis mémorisées (dédupliquées). */
+  permissionSuggestions(extra: string[] = []): string[] {
+    const seen = new Set<string>();
     const out: string[] = [];
-    for (const r of rows) {
-      const v = r.preset === 'other' ? r.custom.trim() : r.preset && key ? `${key}.${r.preset}` : '';
-      if (v && !out.includes(v)) out.push(v);
+    for (const v of [...extra, ...this.acLists.permissionSuggestions()]) {
+      if (!seen.has(v)) {
+        seen.add(v);
+        out.push(v);
+      }
     }
     return out;
   }
 
-  /** Recharge une permission existante dans le constructeur (panneau config). */
-  permRowFromString(perm: string, productKey: string): PermDraft {
-    const m = /\.([a-z]+)$/.exec((perm || '').trim());
-    if (m && ['read', 'write', 'delete', 'admin'].includes(m[1]) && (perm || '').trim() === `${productKey}.${m[1]}`) {
-      return { preset: m[1], custom: '' };
-    }
-    return { preset: 'other', custom: (perm || '').trim() };
+  /** Permissions déclarées (création) → pills valides des rôles. */
+  declaredFormPermissions(): string[] {
+    return [...this.form.permissions];
   }
 
-  addFormPerm(): void {
-    this.form.permRows.push({ preset: '', custom: '' });
-  }
-
-  removeFormPerm(i: number): void {
-    this.form.permRows.splice(i, 1);
-  }
-
-  addConfigPerm(): void {
-    this.configPermRows.push({ preset: '', custom: '' });
-  }
-
-  removeConfigPerm(i: number): void {
-    this.configPermRows.splice(i, 1);
+  /** Permissions déclarées (panneau config) → pills valides des rôles. */
+  declaredConfigPermissions(): string[] {
+    return [...this.configPermissions];
   }
 
   addFormRole(): void {
@@ -267,7 +235,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   submitCreate(): void {
     if (!this.form.key.trim() || !this.form.name.trim()) return;
     this.createBusy = true;
-    const permissions = this.resolvePermRows(this.form.permRows, this.form.key);
+    const permissions = [...new Set(this.form.permissions.map((x) => x.trim()).filter(Boolean))];
     const roles = this.form.roles
       .filter((r) => r.key.trim())
       .map((r) => ({
@@ -378,8 +346,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.configuringKey = p.key;
     this.creating = false;
     this.configPlans = (p.plans || []).map((pl) => ({ ...pl }));
-    this.configPermRows = (p.permissions || []).map((perm) => this.permRowFromString(perm, p.key));
-    if (!this.configPermRows.length) this.configPermRows = [{ preset: '', custom: '' }];
+    this.configPermissions = [...(p.permissions || [])];
     const roles = (p as unknown as { roles: { key: string; nameKey?: string; name?: string; permissions?: string[] }[] }).roles || [];
     this.configRoles = roles.map((r) => ({ key: r.key, name: r.name || '', permissions: [...(r.permissions || [])] }));
   }
@@ -407,7 +374,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   submitConfigure(): void {
     if (!this.configuringKey) return;
     this.configBusy = true;
-    const permissions = this.resolvePermRows(this.configPermRows, this.configuringKey);
+    const permissions = [...new Set(this.configPermissions.map((x) => x.trim()).filter(Boolean))];
     this.platform
       .configureProduct(this.configuringKey, {
         plans: this.configPlans

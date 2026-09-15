@@ -1,6 +1,7 @@
 import { Component, ElementRef, HostListener, Input, OnChanges, forwardRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { AutocompleteListService } from './autocomplete-list.service';
 
 /**
  * Champ autocomplété : suggestions filtrées pendant la frappe, navigation
@@ -88,6 +89,8 @@ export class AutocompleteInputComponent implements ControlValueAccessor, OnChang
   @Input() placeholder = '';
   /** Texte « ajouter … » sous la liste quand aucune suggestion ne matche. */
   @Input() addLabel = '+';
+  /** Mémorise chaque valeur validée dans la liste persistée (`roles` ou `permissions`). */
+  @Input() remember: 'roles' | 'permissions' | '' = '';
   /** Suggestions valides (défaut = `suggestions`) — le reste s'affiche estompé. */
   @Input() validOptions: string[] | null = null;
   @Input() invalidHint = '';
@@ -102,7 +105,7 @@ export class AutocompleteInputComponent implements ControlValueAccessor, OnChang
   private onChange: (v: string | string[]) => void = () => {};
   private onTouched: () => void = () => {};
 
-  constructor(private host: ElementRef) {}
+  constructor(private host: ElementRef, private lists: AutocompleteListService) {}
 
   ngOnChanges(): void {
     if (!this.multiple && this.single && !this.typing) this.typing = this.single;
@@ -168,6 +171,7 @@ export class AutocompleteInputComponent implements ControlValueAccessor, OnChang
     } else {
       this.single = this.typing;
       this.onChange(this.typing);
+      this.rememberValue(this.typing);
     }
     this.open = false;
   }
@@ -209,12 +213,14 @@ export class AutocompleteInputComponent implements ControlValueAccessor, OnChang
       this.onChange(s);
       this.open = false;
     }
+    this.rememberValue(s);
     this.onTouched();
   }
 
   commitCustom(): void {
     const v = this.typing.trim();
     if (!v || !this.allowCustom) return;
+    this.rememberValue(v);
     if (this.multiple) {
       if (!this.values.includes(v)) {
         this.values = [...this.values, v];
@@ -222,6 +228,13 @@ export class AutocompleteInputComponent implements ControlValueAccessor, OnChang
       }
       this.typing = '';
     }
+  }
+
+  private rememberValue(v: string): void {
+    const value = (v || '').trim();
+    if (!value) return;
+    if (this.remember === 'roles') this.lists.rememberRole(value);
+    else if (this.remember === 'permissions') this.lists.rememberPermission(value);
   }
 
   removeAt(i: number): void {
