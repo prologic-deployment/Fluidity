@@ -19,38 +19,38 @@
     </div>
     <div class="card-content p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
       <div class="block">
-        <span class="text-xs font-medium">{{ 'platform.products.key' | t }}</span>
+        <span class="text-xs font-medium">{{ 'platform.products.key' | t }}<app-field-hint [text]="'platform.products.hints.key' | t" [label]="'platform.products.key' | t"></app-field-hint></span>
         <div class="mt-1 flex items-center gap-2">
-          <app-emoji-picker [(value)]="form.emoji"></app-emoji-picker>
+          <app-emoji-picker [(value)]="form.emoji"></app-emoji-picker><app-field-hint [text]="'platform.products.hints.emoji' | t" [label]="'platform.products.hints.emoji' | t"></app-field-hint>
           <input class="input flex-1 font-mono" [(ngModel)]="form.key" placeholder="{{ 'platform.products.keyPh' | t }}" />
         </div>
         <span class="text-[11px] text-muted-foreground">{{ 'platform.products.keyHint' | t }}</span>
       </div>
-      <label class="block">
-        <span class="text-xs font-medium">{{ 'platform.products.name' | t }}</span>
+      <div class="block">
+        <span class="text-xs font-medium">{{ 'platform.products.name' | t }}<app-field-hint [text]="'platform.products.hints.name' | t" [label]="'platform.products.name' | t"></app-field-hint></span>
         <input class="input mt-1" [(ngModel)]="form.name" [attr.placeholder]="'platform.products.ph.name' | t" />
-      </label>
-      <label class="block md:col-span-2">
-        <span class="text-xs font-medium">{{ 'platform.products.tagline' | t }}</span>
+      </div>
+      <div class="block md:col-span-2">
+        <span class="text-xs font-medium">{{ 'platform.products.tagline' | t }}<app-field-hint [text]="'platform.products.hints.tagline' | t" [label]="'platform.products.tagline' | t"></app-field-hint></span>
         <input class="input mt-1" [(ngModel)]="form.tagline" [attr.placeholder]="'platform.products.ph.tagline' | t" />
-      </label>
-      <label class="block md:col-span-2">
-        <span class="text-xs font-medium">{{ 'platform.products.description' | t }}</span>
+      </div>
+      <div class="block md:col-span-2">
+        <span class="text-xs font-medium">{{ 'platform.products.description' | t }}<app-field-hint [text]="'platform.products.hints.description' | t" [label]="'platform.products.description' | t"></app-field-hint></span>
         <textarea class="textarea mt-1" rows="2" [(ngModel)]="form.description" [attr.placeholder]="'platform.products.ph.description' | t"></textarea>
-      </label>
-      <label class="block">
-        <span class="text-xs font-medium">{{ 'platform.products.category' | t }}</span>
+      </div>
+      <div class="block">
+        <span class="text-xs font-medium">{{ 'platform.products.category' | t }}<app-field-hint [text]="'platform.products.hints.category' | t" [label]="'platform.products.category' | t"></app-field-hint></span>
         <select class="input mt-1" [(ngModel)]="form.category">
           <option *ngFor="let c of categories" [value]="c">{{ 'marketplace.categories.' + c | t }}</option>
         </select>
-      </label>
-      <label class="block" *ngIf="form.category === 'other'">
-        <span class="text-xs font-medium">{{ 'platform.products.customCategory' | t }}</span>
+      </div>
+      <div class="block" *ngIf="form.category === 'other'">
+        <span class="text-xs font-medium">{{ 'platform.products.customCategory' | t }}<app-field-hint [text]="'platform.products.hints.customCategory' | t" [label]="'platform.products.customCategory' | t"></app-field-hint></span>
         <input class="input mt-1" [(ngModel)]="form.customCategory" maxlength="40"
           [attr.placeholder]="'platform.products.customCategoryPh' | t" />
-      </label>
+      </div>
       <div class="md:col-span-2">
-        <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}</p>
+        <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}<app-field-hint [text]="'platform.products.hints.planPrice' | t" [label]="'platform.products.plans' | t"></app-field-hint></p>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <label class="block">
             <span class="text-[11px] text-muted-foreground">Starter / {{ 'platform.products.perMonth' | t }}</span>
@@ -67,7 +67,7 @@
         </div>
       </div>
       <div class="block">
-        <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}</span>
+        <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}<app-field-hint [text]="'platform.products.hints.permissions' | t" [label]="'platform.products.permissions' | t"></app-field-hint></span>
         <div *ngFor="let r of form.permRows; let i = index" class="mt-1 space-y-1">
           <div class="flex gap-1">
             <select class="input font-mono text-xs" [(ngModel)]="r.preset">
@@ -76,14 +76,17 @@
             </select>
             <button type="button" class="btn-ghost btn-sm" (click)="removeFormPerm(i)">×</button>
           </div>
-          <input *ngIf="r.preset === 'other'" class="input font-mono text-xs w-full" [(ngModel)]="r.custom" placeholder="{{ 'platform.products.permCustomPh' | t }}" />
+          <div *ngIf="r.preset === 'other'" class="flex items-center gap-1">
+            <input class="input font-mono text-xs flex-1" [(ngModel)]="r.custom" placeholder="{{ 'platform.products.permCustomPh' | t }}" />
+            <app-field-hint [text]="'platform.products.hints.permCustom' | t" [label]="'platform.products.permCustomPh' | t"></app-field-hint>
+          </div>
           <p *ngIf="permPreview(r, form.key)" class="text-[11px] font-mono text-muted-foreground">{{ permPreview(r, form.key) }}</p>
         </div>
         <button type="button" class="btn-ghost btn-sm mt-1" (click)="addFormPerm()">+ {{ 'platform.products.addPermission' | t }}</button>
         <span class="text-[11px] text-muted-foreground block mt-1">{{ 'platform.products.permissionsHint' | t }}</span>
       </div>
       <div>
-        <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}</p>
+        <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}<app-field-hint [text]="'platform.products.hints.roles' | t" [label]="'platform.products.rolesTitle' | t"></app-field-hint></p>
         <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
         <div *ngFor="let r of form.roles; let i = index" class="mb-1 space-y-1">
           <div class="flex gap-1">
@@ -163,7 +166,7 @@
           <!-- Panneau de configuration (produits plateforme) -->
           <div *ngIf="configuringKey === p.key" class="mt-3 pt-3 border-t border-border space-y-3">
             <div>
-              <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}</p>
+              <p class="text-xs font-medium mb-1">{{ 'platform.products.plans' | t }}<app-field-hint [text]="'platform.products.hints.configPlans' | t" [label]="'platform.products.plans' | t"></app-field-hint></p>
               <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.planIdHint' | t }}</p>
               <div *ngFor="let plan of configPlans; let i = index" class="grid grid-cols-2 sm:grid-cols-5 gap-1 mb-1">
                 <input class="input font-mono text-xs" [(ngModel)]="plan.id" placeholder="{{ 'platform.products.planIdPh' | t }}" />
@@ -175,7 +178,7 @@
               <button type="button" class="btn-ghost btn-sm" (click)="addConfigPlan()">+ {{ 'platform.products.addPlan' | t }}</button>
             </div>
             <div class="block">
-              <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}</span>
+              <span class="text-xs font-medium">{{ 'platform.products.permissions' | t }}<app-field-hint [text]="'platform.products.hints.permissions' | t" [label]="'platform.products.permissions' | t"></app-field-hint></span>
               <div *ngFor="let r of configPermRows; let i = index" class="mt-1 space-y-1">
                 <div class="flex gap-1">
                   <select class="input font-mono text-xs" [(ngModel)]="r.preset">
@@ -184,14 +187,17 @@
                   </select>
                   <button type="button" class="btn-ghost btn-sm" (click)="removeConfigPerm(i)">×</button>
                 </div>
-                <input *ngIf="r.preset === 'other'" class="input font-mono text-xs w-full" [(ngModel)]="r.custom" placeholder="{{ 'platform.products.permCustomPh' | t }}" />
+                <div *ngIf="r.preset === 'other'" class="flex items-center gap-1">
+                  <input class="input font-mono text-xs flex-1" [(ngModel)]="r.custom" placeholder="{{ 'platform.products.permCustomPh' | t }}" />
+                  <app-field-hint [text]="'platform.products.hints.permCustom' | t" [label]="'platform.products.permCustomPh' | t"></app-field-hint>
+                </div>
                 <p *ngIf="permPreview(r, configuringKey)" class="text-[11px] font-mono text-muted-foreground">{{ permPreview(r, configuringKey) }}</p>
               </div>
               <button type="button" class="btn-ghost btn-sm mt-1" (click)="addConfigPerm()">+ {{ 'platform.products.addPermission' | t }}</button>
               <span class="text-[11px] text-muted-foreground block mt-1">{{ 'platform.products.permissionsHint' | t }}</span>
             </div>
             <div>
-              <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}</p>
+              <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}<app-field-hint [text]="'platform.products.hints.roles' | t" [label]="'platform.products.rolesTitle' | t"></app-field-hint></p>
               <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
               <div *ngFor="let r of configRoles; let i = index" class="mb-1 space-y-1">
                 <div class="flex gap-1">

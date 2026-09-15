@@ -11,6 +11,7 @@ import { AdminProduct, ProductPlan } from '../../models/product.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
 import { EmojiPickerComponent } from '../shared/emoji-picker.component';
+import { FieldHintComponent } from '../shared/field-hint.component';
 
 interface RoleDraft {
   key: string;
@@ -36,7 +37,7 @@ interface PermDraft {
 @Component({
   selector: 'app-platform-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, FieldHintComponent, ...I18N_IMPORTS],
   templateUrl: './platform-products.component.html',
 })
 export class PlatformProductsComponent implements OnInit, OnDestroy {
@@ -211,7 +212,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     }
     r.other = false;
     r.key = value;
-    if (value && !r.name.trim()) r.name = this.i18n.t('platform.products.rolePresets.' + value);
+    // Le nom affiché reste manuel (pas de recopie auto du preset — source de confusion).
   }
 
   /** Identifiant calculé d'une ligne de permission (preset + clé produit). */
