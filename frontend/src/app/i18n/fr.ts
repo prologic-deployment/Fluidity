@@ -3509,6 +3509,7 @@ export const FR: Record<string, unknown> = {
     activeLicenses: 'Licences actives',
     reviewNote: 'Note d’examen (approbation ou motif de rejet)',
     reviewNotePh: 'ex : pièces vérifiées, activation immédiate…',
+    duplicateWarn: 'Demande redondante : le tenant dispose déjà d’un accès actif à ce produit. Seul le renouvellement (à expiration) ou le rejet sont possibles.',
     empty: 'Aucune demande d’achat.',
     loadError: 'Impossible de charger les demandes d’achat.',
     detailError: 'Impossible de charger le détail de la demande.',

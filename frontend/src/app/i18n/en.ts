@@ -3510,6 +3510,7 @@ export const EN: Record<string, unknown> = {
     activeLicenses: 'Active licenses',
     reviewNote: 'Review note (approval or rejection reason)',
     reviewNotePh: 'e.g. documents checked, immediate activation…',
+    duplicateWarn: 'Redundant request: the tenant already has active access to this product. Only renewal (at expiry) or rejection is possible.',
     empty: 'No purchase requests.',
     loadError: 'Unable to load purchase requests.',
     detailError: 'Unable to load the request details.',

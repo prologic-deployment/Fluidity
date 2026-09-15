@@ -170,14 +170,20 @@ const approveOrder = async (req, res) => {
       const end = new Date(start);
       if (order.billingPeriod === 'annual') end.setFullYear(end.getFullYear() + 1);
       else end.setMonth(end.getMonth() + 1);
-      sub = await Subscription.findOne({ tenantId: order.tenantId, productKey: order.productKey });
+      // Fix 1 (round 3) : refus DÉTERMINISTE si une souscription vivante
+      // existe — l'ancien findOne sans filtre de statut pouvait renvoyer une
+      // ligne expirée/annulée alors qu'une ligne active co-existait pour le
+      // même couple (tenant, produit), créant un doublon actif à
+      // l'approbation. Seules expirée/annulée sont renouvelables.
+      const live = await Subscription.findOne({ tenantId: order.tenantId, productKey: order.productKey, status: { $in: ['pending', 'trial', 'active', 'past_due', 'suspended'] } });
+      if (live) {
+        await Order.updateOne({ _id: claimed._id }, { $set: { status: 'pending_approval', reviewedBy: null, reviewedAt: null } });
+        res.status(409).json({ code: 'ALREADY_SUBSCRIBED', message: 'Une souscription active existe déjà pour ce produit.' });
+        return;
+      }
+      sub = await Subscription.findOne({ tenantId: order.tenantId, productKey: order.productKey, status: { $in: ['expired', 'cancelled'] } });
       if (sub) {
         // Renouvellement d'une souscription expirée : réactivation, données conservées.
-        if (!['expired', 'cancelled'].includes(sub.status)) {
-          await Order.updateOne({ _id: claimed._id }, { $set: { status: 'pending_approval', reviewedBy: null, reviewedAt: null } });
-          res.status(409).json({ message: 'Une souscription active existe déjà pour ce produit.' });
-          return;
-        }
         sub.planId = order.planId;
         sub.billingPeriod = order.billingPeriod;
         sub.seats = order.seats;

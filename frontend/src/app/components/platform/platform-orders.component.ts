@@ -129,6 +129,19 @@ export class PlatformOrdersComponent implements OnInit, OnDestroy {
     return ['pending_approval', 'pending', 'draft'].includes(o.status);
   }
 
+  /**
+   * Fix 1 (round 3) : la demande est-elle redondante — produit déjà couvert
+   * par une souscription vivante du tenant ? (Miroir de la règle serveur
+   * ALREADY_SUBSCRIBED ; le rejet reste possible pour nettoyer la demande.)
+   */
+  duplicateLive(): boolean {
+    if (!this.detail || this.orderTypeOf(this.detail.order) !== 'subscription') return false;
+    return this.detail.currentProducts.some(
+      (cp) => cp.productKey === this.detail!.order.productKey
+        && ['pending', 'trial', 'active', 'past_due', 'suspended'].includes(cp.status)
+    );
+  }
+
   orderTypeOf(o: OrderItem): string {
     return (o as OrderItem & { orderType?: string }).orderType || 'subscription';
   }
