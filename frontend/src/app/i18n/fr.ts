@@ -1457,6 +1457,15 @@ export const FR: Record<string, unknown> = {
     notFound: 'Ressource introuvable.',
     accountLocked: 'Trop de tentatives : compte temporairement verrouillé. Réessayez dans quelques minutes.',
     network: 'Erreur réseau : vérifiez votre connexion puis réessayez.',
+    passwordBreached: 'Ce mot de passe figure dans des fuites connues — choisissez-en un autre.',
+    tenantArchived: 'Cet espace de travail est archivé.',
+    provisionalPassword: 'Vous utilisez un mot de passe provisoire : changez-le pour continuer.',
+    licenseRequired: 'Une licence est requise pour cette action.',
+    productUnavailable: 'Ce produit n’est pas disponible.',
+    alreadySubscribed: 'Une souscription active existe déjà pour ce produit.',
+    pendingOrderExists: 'Une demande identique est déjà en attente d’approbation.',
+    tooManyRequests: 'Trop de requêtes : patientez un moment puis réessayez.',
+    storageQuota: 'Quota de stockage atteint. Supprimez des fichiers ou contactez votre administrateur.',
   },
 
   toast: {

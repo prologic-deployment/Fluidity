@@ -1458,6 +1458,15 @@ export const EN: Record<string, unknown> = {
     notFound: 'Resource not found.',
     accountLocked: 'Too many attempts: account temporarily locked. Try again in a few minutes.',
     network: 'Network error: check your connection and try again.',
+    passwordBreached: 'This password appears in known data breaches — please choose another one.',
+    tenantArchived: 'This workspace is archived.',
+    provisionalPassword: 'You are using a provisional password: change it to continue.',
+    licenseRequired: 'A license is required for this action.',
+    productUnavailable: 'This product is not available.',
+    alreadySubscribed: 'An active subscription already exists for this product.',
+    pendingOrderExists: 'An identical request is already pending approval.',
+    tooManyRequests: 'Too many requests: wait a moment and try again.',
+    storageQuota: 'Storage quota reached. Delete files or contact your administrator.',
   },
 
   toast: {
