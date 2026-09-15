@@ -18,18 +18,18 @@
       <p class="text-xs text-muted-foreground">{{ 'platform.products.createHint' | t }}</p>
     </div>
     <div class="card-content p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-      <label class="block">
-        <span class="text-xs font-medium">{{ 'platform.products.key' | t }}</span>
-        <input class="input mt-1 font-mono" [(ngModel)]="form.key" placeholder="{{ 'platform.products.keyPh' | t }}" />
-        <span class="text-[11px] text-muted-foreground">{{ 'platform.products.keyHint' | t }}</span>
-      </label>
       <div class="block">
-        <span class="text-xs font-medium">{{ 'platform.products.name' | t }}</span>
+        <span class="text-xs font-medium">{{ 'platform.products.key' | t }}</span>
         <div class="mt-1 flex items-center gap-2">
-          <input class="input flex-1" [(ngModel)]="form.name" [attr.placeholder]="'platform.products.ph.name' | t" />
           <app-emoji-picker [(value)]="form.emoji"></app-emoji-picker>
+          <input class="input flex-1 font-mono" [(ngModel)]="form.key" placeholder="{{ 'platform.products.keyPh' | t }}" />
         </div>
+        <span class="text-[11px] text-muted-foreground">{{ 'platform.products.keyHint' | t }}</span>
       </div>
+      <label class="block">
+        <span class="text-xs font-medium">{{ 'platform.products.name' | t }}</span>
+        <input class="input mt-1" [(ngModel)]="form.name" [attr.placeholder]="'platform.products.ph.name' | t" />
+      </label>
       <label class="block md:col-span-2">
         <span class="text-xs font-medium">{{ 'platform.products.tagline' | t }}</span>
         <input class="input mt-1" [(ngModel)]="form.tagline" [attr.placeholder]="'platform.products.ph.tagline' | t" />
