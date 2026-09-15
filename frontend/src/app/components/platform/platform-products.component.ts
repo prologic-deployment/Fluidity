@@ -12,13 +12,14 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
 import { EmojiPickerComponent } from '../shared/emoji-picker.component';
 import { FieldHintComponent } from '../shared/field-hint.component';
+import { AutocompleteInputComponent } from '../shared/autocomplete-input.component';
 
 interface RoleDraft {
   key: string;
+  /** Libellé conservé pour les produits existants (plus édité dans le formulaire). */
   name: string;
-  permissions: string;
-  /** Fix 4 (round 3) : « Autre » sélectionné → saisie libre de la clé. */
-  other: boolean;
+  /** Permissions du rôle (pills) — sous-ensemble des permissions déclarées. */
+  permissions: string[];
 }
 /** Ligne de permission produit : preset d'action (+ clé produit) ou « Autre » libre. */
 interface PermDraft {
@@ -37,7 +38,7 @@ interface PermDraft {
 @Component({
   selector: 'app-platform-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, FieldHintComponent, ...I18N_IMPORTS],
+  imports: [CommonModule, FormsModule, RouterLink, EmojiPickerComponent, FieldHintComponent, AutocompleteInputComponent, ...I18N_IMPORTS],
   templateUrl: './platform-products.component.html',
 })
 export class PlatformProductsComponent implements OnInit, OnDestroy {
@@ -49,7 +50,8 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   /** A5.2 Fix 8 : catégories prédéfinies (+ « Autre » en dernier). */
   readonly categories = ['operations', 'collaboration', 'people', 'sales', 'itops', 'security', 'analytics', 'intelligence', 'other'];
   /** Fix 4 (round 3) : clés de rôle prédéfinies (+ « Autre » en dernier). */
-  readonly rolePresets = ['admin', 'manager', 'member', 'viewer', 'other'];
+  /** Suggestions de clés de rôle (saisie libre acceptée — remplace le preset + « Autre »). */
+  readonly roleKeySuggestions = ['admin', 'manager', 'member', 'viewer'];
   /** Permissions : actions prédéfinies (+ « Autre » en dernier). */
   readonly permPresets = ['read', 'write', 'delete', 'admin', 'other'];
 
@@ -69,7 +71,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     business: 19,
     enterprise: 39,
     permRows: [{ preset: '', custom: '' }] as PermDraft[],
-    roles: [{ key: '', name: '', permissions: '', other: false }] as RoleDraft[],
+    roles: [{ key: '', name: '', permissions: [] }] as RoleDraft[],
   };
 
   // --- Configuration (produits plateforme) ----------------------------------
@@ -196,23 +198,14 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.creating = false;
   }
 
-  /** Valeur du sélecteur de preset pour une ligne de rôle. */
-  presetOf(r: RoleDraft): string {
-    if (r.other) return 'other';
-    if (['admin', 'manager', 'member', 'viewer'].includes(r.key)) return r.key;
-    return '';
+  /** Permissions déclarées (création) → suggestions des pills de rôle. */
+  declaredFormPermissions(): string[] {
+    return this.resolvePermRows(this.form.permRows, this.form.key);
   }
 
-  /** Application d'un preset (nom affiché suggéré si vide) ou bascule « Autre ». */
-  applyPreset(r: RoleDraft, value: string): void {
-    if (value === 'other') {
-      r.other = true;
-      if (['admin', 'manager', 'member', 'viewer'].includes(r.key)) r.key = '';
-      return;
-    }
-    r.other = false;
-    r.key = value;
-    // Le nom affiché reste manuel (pas de recopie auto du preset — source de confusion).
+  /** Permissions déclarées (panneau config) → suggestions des pills de rôle. */
+  declaredConfigPermissions(): string[] {
+    return this.resolvePermRows(this.configPermRows, this.configuringKey);
   }
 
   /** Identifiant calculé d'une ligne de permission (preset + clé produit). */
@@ -258,7 +251,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   }
 
   addFormRole(): void {
-    this.form.roles.push({ key: '', name: '', permissions: '', other: false });
+    this.form.roles.push({ key: '', name: '', permissions: [] });
   }
 
   removeFormRole(i: number): void {
@@ -279,11 +272,8 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
       .filter((r) => r.key.trim())
       .map((r) => ({
         key: r.key.trim(),
-        name: r.name.trim() || r.key.trim(),
-        permissions: r.permissions
-          .split(',')
-          .map((x) => x.trim())
-          .filter(Boolean),
+        name: r.key.trim(),
+        permissions: r.permissions.map((x) => x.trim()).filter(Boolean),
       }));
     const plans = [
       { id: 'starter', name: 'Starter', pricePerSeatMonthly: this.form.starter, pricePerSeatAnnual: this.form.starter * 10 },
@@ -391,7 +381,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
     this.configPermRows = (p.permissions || []).map((perm) => this.permRowFromString(perm, p.key));
     if (!this.configPermRows.length) this.configPermRows = [{ preset: '', custom: '' }];
     const roles = (p as unknown as { roles: { key: string; nameKey?: string; name?: string; permissions?: string[] }[] }).roles || [];
-    this.configRoles = roles.map((r) => ({ key: r.key, name: r.name || '', permissions: (r.permissions || []).join(', '), other: !['admin', 'manager', 'member', 'viewer'].includes(r.key) }));
+    this.configRoles = roles.map((r) => ({ key: r.key, name: r.name || '', permissions: [...(r.permissions || [])] }));
   }
 
   cancelConfigure(): void {
@@ -407,7 +397,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
   }
 
   addConfigRole(): void {
-    this.configRoles.push({ key: '', name: '', permissions: '', other: false });
+    this.configRoles.push({ key: '', name: '', permissions: [] });
   }
 
   removeConfigRole(i: number): void {
@@ -435,10 +425,7 @@ export class PlatformProductsComponent implements OnInit, OnDestroy {
           .map((r) => ({
             key: r.key.trim(),
             name: r.name.trim() || r.key.trim(),
-            permissions: r.permissions
-              .split(',')
-              .map((x) => x.trim())
-              .filter(Boolean),
+            permissions: r.permissions.map((x) => x.trim()).filter(Boolean),
           })),
       })
       .subscribe({

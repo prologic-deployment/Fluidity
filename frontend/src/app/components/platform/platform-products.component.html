@@ -88,19 +88,12 @@
       <div>
         <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}<app-field-hint [text]="'platform.products.hints.roles' | t" [label]="'platform.products.rolesTitle' | t"></app-field-hint></p>
         <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
-        <div *ngFor="let r of form.roles; let i = index" class="mb-1 space-y-1">
+        <div *ngFor="let r of form.roles; let i = index" class="mb-1.5 rounded-lg border border-border p-2 space-y-1.5">
           <div class="flex gap-1">
-            <select class="input text-xs" [ngModel]="presetOf(r)" (ngModelChange)="applyPreset(r, $event)">
-              <option value="">{{ 'platform.products.rolePresets.choose' | t }}</option>
-              <option *ngFor="let p of rolePresets" [value]="p">{{ 'platform.products.rolePresets.' + p | t }}</option>
-            </select>
-            <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleNamePh' | t }}" />
+            <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
             <button type="button" class="btn-ghost btn-sm" (click)="removeFormRole(i)">×</button>
           </div>
-          <input *ngIf="r.other" class="input font-mono text-xs w-full" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
-        </div>
-        <div *ngFor="let r of form.roles; let i = index" class="mb-1">
-          <input class="input font-mono text-xs w-full" [(ngModel)]="r.permissions" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}" />
+          <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="declaredFormPermissions()" [validOptions]="declaredFormPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
         </div>
         <button type="button" class="btn-ghost btn-sm mt-1" (click)="addFormRole()">+ {{ 'platform.products.addRole' | t }}</button>
       </div>
@@ -199,17 +192,12 @@
             <div>
               <p class="text-xs font-medium mb-1">{{ 'platform.products.rolesTitle' | t }}<app-field-hint [text]="'platform.products.hints.roles' | t" [label]="'platform.products.rolesTitle' | t"></app-field-hint></p>
               <p class="text-[11px] text-muted-foreground mb-1">{{ 'platform.products.rolesHint' | t }}</p>
-              <div *ngFor="let r of configRoles; let i = index" class="mb-1 space-y-1">
+              <div *ngFor="let r of configRoles; let i = index" class="mb-1.5 rounded-lg border border-border p-2 space-y-1.5">
                 <div class="flex gap-1">
-                  <select class="input text-xs" [ngModel]="presetOf(r)" (ngModelChange)="applyPreset(r, $event)">
-                    <option value="">{{ 'platform.products.rolePresets.choose' | t }}</option>
-                    <option *ngFor="let p of rolePresets" [value]="p">{{ 'platform.products.rolePresets.' + p | t }}</option>
-                  </select>
-                  <input class="input text-xs" [(ngModel)]="r.name" placeholder="{{ 'platform.products.roleNamePh' | t }}" />
+                  <app-autocomplete-input class="flex-1" [(ngModel)]="r.key" [suggestions]="roleKeySuggestions" [allowCustom]="true" placeholder="{{ 'platform.products.roleKeyPh' | t }}"></app-autocomplete-input>
                   <button type="button" class="btn-ghost btn-sm" (click)="removeConfigRole(i)">×</button>
                 </div>
-                <input *ngIf="r.other" class="input font-mono text-xs w-full" [(ngModel)]="r.key" placeholder="{{ 'platform.products.roleKeyPh' | t }}" />
-                <input class="input font-mono text-xs w-full" [(ngModel)]="r.permissions" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}" />
+                <app-autocomplete-input [(ngModel)]="r.permissions" [multiple]="true" [suggestions]="declaredConfigPermissions()" [validOptions]="declaredConfigPermissions()" [invalidHint]="'platform.products.rolePermNotDeclared' | t" [allowCustom]="true" placeholder="{{ 'platform.products.rolePermissionsPh' | t }}"></app-autocomplete-input>
               </div>
               <button type="button" class="btn-ghost btn-sm" (click)="addConfigRole()">+ {{ 'platform.products.addRole' | t }}</button>
             </div>
