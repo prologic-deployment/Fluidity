@@ -144,7 +144,7 @@ Rangs projet (`project-access.util.js`) :
 
 ```mermaid
 flowchart LR
-    E[Événement projet / SaaS] --> N{Préférences utilisateur<br/>27 + 3 événements, FR/EN}
+    E[Événement projet / SaaS] --> N{Préférences utilisateur<br/>29 + 3 événements, FR/EN}
     N -- inapp --> I[Notification en base<br/>clé i18n + params + lien]
     N -- email --> M[Template bilingue<br/>project-email.service.js]
     M --> S[MailingService]
@@ -153,7 +153,9 @@ flowchart LR
 
 Événements notifiables : assignation/échéance/retard de tâche, jalons,
 sprints (démarrage, fin, fin imminente), projet terminé, livrables
-(soumission/approbation/rejet), risques/problèmes assignés, souscriptions
+(soumission/approbation/rejet), risques/problèmes assignés, changements
+de statut risque/problème (Fix 26 : le chef de projet est aussi alerté
+des tâches en retard), souscriptions
 (demande, approbation, rejet, expiration, renouvellement), licences
 (assignation, retrait, limite atteinte).
 
@@ -267,5 +269,35 @@ end note
 ```plantuml
 @startuml
 note "Plus aucune liste de statuts codée en dur :\nopen/done/cancelled sont dérivés du workflow\neffectif de chaque projet (taskStates) —\ndone = états terminaux hors cancelled +\ncompleted si présent. Tableaux de bord,\nvélocité, burndown/burnup, backlog, garde\nde clôture, WIP et rappels d'échéances\nutilisent ce découpage. Sans état done,\nles indicateurs sont marqués dégradés\n(workflowMapped: false) au lieu de chiffres\nsilencieusement faux." as N1
+@enduml
+```
+
+---
+
+## 12. Client lié au projet (Fix 28)
+
+```plantuml
+@startuml
+note "Project.clientId référence un Client du même tenant\n(400/404 sinon, null = aucun). Le texte libre\nstakeholder reste le repli. Le résumé client\n(_id, nom) est renvoyé par lecture/update." as N1
+@enduml
+```
+
+---
+
+## 13. Plan de réponse aux risques (Fix 29)
+
+```plantuml
+@startuml
+note "Risque = plan structuré : stratégie (avoid /\nmitigate / transfer / accept / exploit —\ndéfaut mitigate), action (mitigation),\nresponsable (ownerId), coût estimé\n(responseCost ≥ 0, défaut 0), échéance.\nStratégie et coût invalides → 400." as N1
+@enduml
+```
+
+---
+
+## 14. Terminologie unifiée (Fix 30)
+
+```plantuml
+@startuml
+note "Listes identiques backend/UI (terminology.test.js) :\nMETHODOLOGIES, PROJECT_STATUSES (dont 'paused',\nalias historique de on_hold), TASK_TYPES,\nBUDGET_CURRENCIES (8 devises, 400 sinon),\nRISK_STRATEGIES/STATUSES, ISSUE_STATUSES.\nRègle tags : 10 max × 30 car., rognés +\ndédupliqués (projets ET tâches, deux côtés)." as N1
 @enduml
 ```
