@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.events.title' | t }}</h2>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.events.new' | t }}</button>
+    <button *ngIf="canManage" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.events.new' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -24,8 +24,8 @@
         </div>
         <span class="text-xs text-muted-foreground whitespace-nowrap shrink-0" [class.text-red-600]="isPast(e)">{{ e.date | dateLocale:'short' }}</span>
         <span class="flex items-center gap-1 shrink-0">
-          <button type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
-          <button type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
+          <button *ngIf="canManage" type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
+          <button *ngIf="canManage" type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
         </span>
       </div>
     </div>

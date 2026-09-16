@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.issues.title' | t }}</h2>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.issues.new' | t }}</button>
+    <button *ngIf="canEdit" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.issues.new' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -32,8 +32,8 @@
           <td class="hidden lg:table-cell text-sm">{{ ownerName(i) || '—' }}</td>
           <td class="hidden md:table-cell text-sm whitespace-nowrap">{{ i.dueDate | dateLocale:'short' }}</td>
           <td class="text-right whitespace-nowrap">
-            <button type="button" class="btn-ghost btn-sm" (click)="openEdit(i)">{{ 'common.edit' | t }}</button>
-            <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(i)">{{ 'common.delete' | t }}</button>
+            <button *ngIf="canEdit" type="button" class="btn-ghost btn-sm" (click)="openEdit(i)">{{ 'common.edit' | t }}</button>
+            <button *ngIf="canDelete" type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(i)">{{ 'common.delete' | t }}</button>
           </td>
         </tr>
       </tbody>

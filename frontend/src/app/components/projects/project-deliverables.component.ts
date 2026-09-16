@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { Deliverable } from '../../models/project.model';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { Deliverable, ProjectCapabilities } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -15,8 +16,8 @@ import { apiErrorMessage } from '../../utils/api-error.util';
 /**
  * LIVRABLES (route /projets/:id/livrables) — cycle d'approbation :
  * brouillon → soumis → approuvé/rejeté. La soumission est ouverte aux
- * membres actifs ; l'approbation appartient au Chef de projet et au
- * Product Owner (le serveur tranche, l'UI n'affiche que ce qui est permis).
+ * membres actifs (rang ≥ 2) ; l'approbation appartient aux rangs ≥ 4
+ * (Chef de projet, Product Owner, Scrum Master). Le serveur tranche,
  */
 @Component({
   selector: 'app-project-deliverables',
@@ -29,8 +30,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
   error = '';
   projectId = '';
   deliverables: Deliverable[] = [];
-  canApprove = false;
-  canSubmit = false;
+  caps: ProjectCapabilities | null = null;
 
   creating = false;
   editing: Deliverable | null = null;
@@ -48,6 +48,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -57,12 +58,15 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         switchMap((p) => {
           this.projectId = p['id'];
-          this.api.get(p['id']).subscribe((r) => {
-            // Approbation : manager, PO, Scrum Master ou admin (miroir du rang serveur).
-            this.canApprove = ['project_admin', 'project_manager', 'product_owner', 'scrum_master'].includes(r.myRole.roleKey);
-            // Soumission / re-soumission : rang serveur ≥ 2 (miroir de CAN.updateTasks).
-            this.canSubmit = ['project_admin', 'project_manager', 'product_owner', 'scrum_master', 'project_lead', 'developer', 'designer', 'qa'].includes(r.myRole.roleKey);
-          });
+          this.capsApi
+            .forProject(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (caps) => {
+                this.caps = caps;
+                this.cdr.markForCheck();
+              },
+            });
           return this.api.deliverables(p['id']);
         })
       )
@@ -77,6 +81,21 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  /** Soumission / édition (brouillon, rejeté) : `task.update` + rang ≥ 2. */
+  get canSubmit(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.update') && !!this.caps?.can.updateTasks;
+  }
+
+  /** Approbation / rejet : `task.update` + rang ≥ 4, comme le serveur. */
+  get canApprove(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.update') && !!this.caps?.can.approveWork;
+  }
+
+  /** Suppression : `task.delete` + rang ≥ 3, comme le serveur. */
+  get canDeleteD(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.delete') && !!this.caps?.can.manageTasks;
   }
 
   ngOnDestroy(): void {

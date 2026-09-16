@@ -1,8 +1,8 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.milestones.title' | t }}</h2>
-    <button type="button" class="btn-secondary btn-sm" (click)="openCreate('milestone')">{{ 'projects.milestones.new' | t }}</button>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate('phase')">{{ 'projects.milestones.newPhase' | t }}</button>
+    <button *ngIf="canCreateM" type="button" class="btn-secondary btn-sm" (click)="openCreate('milestone')">{{ 'projects.milestones.new' | t }}</button>
+    <button *ngIf="canCreateM" type="button" class="btn-primary btn-sm" (click)="openCreate('phase')">{{ 'projects.milestones.newPhase' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -28,7 +28,7 @@
               <span class="text-xs tabular-nums text-muted-foreground">{{ p.progress }}%</span>
             </div>
             <div class="flex gap-1 mt-2 flex-wrap">
-              <button *ngFor="let s of phaseStatuses(p)" type="button" class="badge badge-outline text-[10px] cursor-pointer" (click)="setStatus(p, s)">{{ 'projects.meta.milestoneStatus.' + s | t }}</button>
+              <ng-container *ngIf="canEditM"><button *ngFor="let s of phaseStatuses(p)" type="button" class="badge badge-outline text-[10px] cursor-pointer" (click)="setStatus(p, s)">{{ 'projects.meta.milestoneStatus.' + s | t }}</button></ng-container>
             </div>
           </div>
         </div>
@@ -53,8 +53,8 @@
         </div>
         <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
           <span *ngIf="memberName(m.ownerId)">{{ 'projects.fields.owner' | t }} : {{ memberName(m.ownerId) }}</span>
-          <button type="button" class="btn-ghost btn-sm ml-auto" (click)="openEdit(m)">{{ 'common.edit' | t }}</button>
-          <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(m)">{{ 'common.delete' | t }}</button>
+          <button *ngIf="canEditM" type="button" class="btn-ghost btn-sm ml-auto" (click)="openEdit(m)">{{ 'common.edit' | t }}</button>
+          <button *ngIf="canDeleteM" type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(m)">{{ 'common.delete' | t }}</button>
         </div>
       </div>
     </div>

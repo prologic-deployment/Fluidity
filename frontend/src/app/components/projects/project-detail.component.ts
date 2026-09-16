@@ -1,8 +1,9 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { Subject, switchMap, takeUntil } from 'rxjs';
+import { Subject, catchError, map, of, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { Project, ProjectDetailResponse } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { BreadcrumbService } from '../shared/breadcrumb.service';
@@ -37,6 +38,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
   taskStats: { total: number; progress: number; overdue: number; blocked: number; open: number; completed: number } | null = null;
 
   tabs: Tab[] = [];
+  private reportReadable = false;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -45,6 +47,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private api: ProjectService,
     private breadcrumbs: BreadcrumbService,
+    private caps: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -56,12 +59,19 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
           this.loading = true;
           this.error = '';
           return this.api.get(p['id']);
-        })
+        }),
+        switchMap((r) =>
+          this.caps.forProject(r.project._id).pipe(
+            catchError(() => of(null)),
+            map((capabilities) => ({ r, capabilities }))
+          )
+        )
       )
       .subscribe({
-        next: (r) => {
+        next: ({ r, capabilities }) => {
           this.data = r;
           this.project = r.project;
+          this.reportReadable = hasProjectPermission(capabilities, 'project.report.read');
           this.taskStats = r.taskStats || null;
           this.buildTabs(r.project);
           // Fil d'Ariane lisible : « Refonte Portail Client » au lieu de l'ObjectId.
@@ -103,7 +113,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
       { path: `${base}/risques`, labelKey: 'projects.tabs.risks', exact: false, show: true },
       { path: `${base}/problemes`, labelKey: 'projects.tabs.issues', exact: false, show: true },
       { path: `${base}/calendrier`, labelKey: 'projects.tabs.calendar', exact: false, show: true },
-      { path: `${base}/rapports`, labelKey: 'projects.tabs.reports', exact: false, show: true },
+      { path: `${base}/rapports`, labelKey: 'projects.tabs.reports', exact: false, show: this.reportReadable },
       { path: `${base}/parametres`, labelKey: 'projects.tabs.settings', exact: false, show: true },
     ];
   }

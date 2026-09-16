@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { ProjectEvent } from '../../models/project.model';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { ProjectEvent, ProjectCapabilities } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -37,6 +38,8 @@ export class ProjectEventsComponent implements OnInit, OnDestroy {
   readonly types = PROJECT_EVENT_TYPES;
   readonly icons = EVENT_ICONS;
 
+  caps: ProjectCapabilities | null = null;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -44,10 +47,22 @@ export class ProjectEventsComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.route.parent?.params.pipe(takeUntil(this.destroy$)).subscribe((p) => {
+      this.capsApi
+        .forProject(p['id'])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (caps) => {
+            this.caps = caps;
+            this.cdr.markForCheck();
+          },
+        });
+    });
     this.route.parent?.params
       .pipe(
         takeUntil(this.destroy$),
@@ -67,6 +82,11 @@ export class ProjectEventsComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  /** Réunions : `event.manage` + rang ≥ 3, comme le serveur. */
+  get canManage(): boolean {
+    return hasProjectPermission(this.caps, 'project.event.manage') && !!this.caps?.can.manageTasks;
   }
 
   ngOnDestroy(): void {

@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.deliverables.title' | t }}</h2>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.deliverables.new' | t }}</button>
+    <button *ngIf="canSubmit" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.deliverables.new' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -41,11 +41,11 @@
               <td class="text-xs">{{ name(d.submittedBy) }}</td>
               <td class="text-xs">{{ name(d.approvedBy) }}</td>
               <td class="whitespace-nowrap text-right">
-                <button *ngIf="d.status === 'draft'" type="button" class="btn-outline btn-xs mr-1" (click)="submitForReview(d)">{{ 'projects.deliverables.submit' | t }}</button>
-                <button *ngIf="d.status === 'draft'" type="button" class="btn-ghost btn-xs mr-1" (click)="openEdit(d)">{{ 'common.edit' | t }}</button>
+                <button *ngIf="d.status === 'draft' && canSubmit" type="button" class="btn-outline btn-xs mr-1" (click)="submitForReview(d)">{{ 'projects.deliverables.submit' | t }}</button>
+                <button *ngIf="d.status === 'draft' && canSubmit" type="button" class="btn-ghost btn-xs mr-1" (click)="openEdit(d)">{{ 'common.edit' | t }}</button>
                 <button *ngIf="d.status === 'submitted' && canApprove" type="button" class="btn-primary btn-xs mr-1" (click)="approve(d)">{{ 'projects.deliverables.approve' | t }}</button>
                 <button *ngIf="d.status === 'submitted' && canApprove" type="button" class="btn-outline btn-xs mr-1 text-destructive" (click)="openReject(d)">{{ 'projects.deliverables.reject' | t }}</button>
-                <button *ngIf="d.status === 'draft'" type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(d)">{{ 'common.delete' | t }}</button>
+                <button *ngIf="d.status === 'draft' && canDeleteD" type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(d)">{{ 'common.delete' | t }}</button>
                 <button *ngIf="d.status === 'rejected' && canSubmit" type="button" class="btn-outline btn-xs mr-1" (click)="resubmit(d)">{{ 'projects.deliverables.resubmit' | t }}</button>
                 <button *ngIf="d.status === 'rejected' && canSubmit" type="button" class="btn-ghost btn-xs mr-1" (click)="openEdit(d)">{{ 'common.edit' | t }}</button>
                 <span *ngIf="d.status === 'submitted' && !canApprove" class="text-xs text-muted-foreground">{{ 'projects.deliverables.pendingReview' | t }}</span>

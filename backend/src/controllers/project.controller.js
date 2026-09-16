@@ -13,7 +13,7 @@ const {
 } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROLES } = require('../models/project.models');
-const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
+const { resolveProjectRole, guardProjectRole, can, CAN, RANKS } = require('../utils/project-access.util');
 const { literalRegex } = require('../utils/regex.util');
 const { effectiveWorkflow } = require('../utils/project-workflow.util');
 const { ARCHIVED_STATUS, isProjectArchived } = require('../utils/project-archive.util');
@@ -949,6 +949,45 @@ const updateWorkflowConfig = async (req, res) => {
   }
 };
 
+/**
+ * Capacités effectives de l'appelant sur le projet (Fix 15) : rang résolu,
+ * permissions produit (même source que les gardes de routes) et drapeaux
+ * CAN évalués avec les fonctions des contrôleurs. Le frontend en dérive
+ * l'affichage (onglets, boutons) au lieu de miroirs codés en dur — le
+ * serveur reste l'autorité (chaque action est re-vérifiée).
+ */
+const getCapabilities = async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!project) {
+      res.status(404).json({ message: 'Projet introuvable.' });
+      return;
+    }
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    res.json({
+      roleKey: role.roleKey,
+      rank: role.rank,
+      isMember: !!role.isMember,
+      permissions: req.productEntry?.permissions || [],
+      ranks: RANKS,
+      can: {
+        view: can(role, CAN.view),
+        comment: can(role, CAN.comment),
+        updateTasks: can(role, CAN.updateTasks),
+        manageTasks: can(role, CAN.manageTasks),
+        approveWork: can(role, CAN.approveWork),
+        manageBacklog: can(role, CAN.manageBacklog),
+        manageMembers: can(role, CAN.manageMembers),
+        manageProject: can(role, CAN.manageProject),
+      },
+    });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
 module.exports = {
   listProjects,
   searchProjects,
@@ -962,6 +1001,7 @@ module.exports = {
   projectReports,
   projectCalendar,
   getWorkflowConfig,
+  getCapabilities,
   updateWorkflowConfig,
   serializeProject,
 };

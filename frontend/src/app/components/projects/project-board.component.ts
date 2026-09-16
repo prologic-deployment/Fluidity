@@ -12,6 +12,9 @@ import { ProjectStateDotPipe, ProjectStatePipe } from './project.pipes';
 import { PRIORITY_BADGE } from './project.constants';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { AuthService } from '../../services/auth.service';
+import { ProjectCapabilitiesService } from '../../services/project-capabilities.service';
+import { ProjectCapabilities } from '../../models/project.model';
 
 interface BoardColumn {
   state: WorkflowState;
@@ -42,6 +45,7 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
   isScrum = false;
 
   readonly priorityBadge = PRIORITY_BADGE;
+  caps: ProjectCapabilities | null = null;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -50,6 +54,8 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private auth: AuthService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -66,6 +72,15 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
         next: (r) => {
           this.isScrum = r.project.methodology === 'scrum' || r.project.methodology === 'hybrid';
           if (this.isScrum) this.loadSprints();
+          this.capsApi
+            .forProject(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (caps) => {
+                this.caps = caps;
+                this.cdr.markForCheck();
+              },
+            });
           this.refresh();
         },
         error: () => {
@@ -114,6 +129,13 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
   }
 
   // --- Glisser-déposer ------------------------------------------------------
+
+  /** Déplacement : rang ≥ 3 ou assigné, comme le serveur (Fix 5). */
+  canDrag(t: Task): boolean {
+    if (this.caps?.can.manageTasks) return true;
+    const me = this.auth.getUser()?.userId || '';
+    return !!me && t.assigneeId === me;
+  }
 
   onDragStart(event: DragEvent, task: Task): void {
     this.dragTaskId = task._id;

@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { Task, TimeEntry } from '../../models/project.model';
+import { AuthService } from '../../services/auth.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { Task, TimeEntry, ProjectCapabilities } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -36,6 +38,8 @@ export class ProjectTimeComponent implements OnInit, OnDestroy {
   form = { taskId: '', date: '', minutes: 60, note: '' };
   submitting = false;
 
+  caps: ProjectCapabilities | null = null;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -43,10 +47,23 @@ export class ProjectTimeComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private auth: AuthService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.route.parent?.params.pipe(takeUntil(this.destroy$)).subscribe((p) => {
+      this.capsApi
+        .forProject(p['id'])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (caps) => {
+            this.caps = caps;
+            this.cdr.markForCheck();
+          },
+        });
+    });
     this.route.parent?.params
       .pipe(
         takeUntil(this.destroy$),
@@ -72,6 +89,19 @@ export class ProjectTimeComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  /** Saisie : `time.log` + rang ≥ 2, comme le serveur. */
+  get canLog(): boolean {
+    return hasProjectPermission(this.caps, 'project.time.log') && !!this.caps?.can.updateTasks;
+  }
+
+  /** Édition/suppression : `time.log` + (propre saisie ou rang ≥ 3). */
+  canEditEntry(e: TimeEntry): boolean {
+    if (!hasProjectPermission(this.caps, 'project.time.log')) return false;
+    if (this.caps?.can.manageTasks) return true;
+    const me = this.auth.getUser()?.userId || '';
+    return !!me && e.userId === me;
   }
 
   ngOnDestroy(): void {

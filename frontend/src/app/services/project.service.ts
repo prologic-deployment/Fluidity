@@ -15,6 +15,7 @@ import {
   Project,
   ProjectComment,
   ProjectDashboard,
+  ProjectCapabilities,
   ProjectDetailResponse,
   ProjectEvent,
   ProjectFile,
@@ -51,6 +52,10 @@ export class ProjectService {
 
   get(id: string): Observable<ProjectDetailResponse> {
     return this.http.get<ProjectDetailResponse>(`${this.base}/${id}`);
+  }
+
+  capabilities(id: string): Observable<ProjectCapabilities> {
+    return this.http.get<ProjectCapabilities>(`${this.base}/${id}/capabilities`);
   }
 
   create(payload: Partial<Project> & { teamMembers?: { userId: string; roleKey: string }[] }): Observable<{ project: Project }> {

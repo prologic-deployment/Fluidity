@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { Milestone, ProjectMember } from '../../models/project.model';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { Milestone, ProjectMember, ProjectCapabilities } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -33,6 +34,8 @@ export class ProjectMilestonesComponent implements OnInit, OnDestroy {
   form = { name: '', description: '', kind: 'milestone', startDate: '', dueDate: '', ownerId: '', dependsOnId: '' };
   submitting = false;
 
+  caps: ProjectCapabilities | null = null;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -40,10 +43,22 @@ export class ProjectMilestonesComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.route.parent?.params.pipe(takeUntil(this.destroy$)).subscribe((p) => {
+      this.capsApi
+        .forProject(p['id'])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (caps) => {
+            this.caps = caps;
+            this.cdr.markForCheck();
+          },
+        });
+    });
     this.route.parent?.params
       .pipe(
         takeUntil(this.destroy$),
@@ -64,6 +79,17 @@ export class ProjectMilestonesComponent implements OnInit, OnDestroy {
         },
       });
     this.api.members(this.projectId).subscribe((m) => (this.members = m.members));
+  }
+
+  /** Jalons : permission dédiée + rang ≥ 3, comme le serveur. */
+  get canCreateM(): boolean {
+    return hasProjectPermission(this.caps, 'project.milestone.create') && !!this.caps?.can.manageTasks;
+  }
+  get canEditM(): boolean {
+    return hasProjectPermission(this.caps, 'project.milestone.update') && !!this.caps?.can.manageTasks;
+  }
+  get canDeleteM(): boolean {
+    return hasProjectPermission(this.caps, 'project.milestone.delete') && !!this.caps?.can.manageTasks;
   }
 
   ngOnDestroy(): void {

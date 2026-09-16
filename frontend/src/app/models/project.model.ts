@@ -462,3 +462,24 @@ export interface PortalOverview {
 export interface NotificationPreferences {
   [event: string]: { email: boolean; inapp: boolean };
 }
+
+/** Capacités effectives renvoyées par GET /:id/capabilities (Fix 15). */
+export interface ProjectCapabilityFlags {
+  view: boolean;
+  comment: boolean;
+  updateTasks: boolean;
+  manageTasks: boolean;
+  approveWork: boolean;
+  manageBacklog: boolean;
+  manageMembers: boolean;
+  manageProject: boolean;
+}
+
+export interface ProjectCapabilities {
+  roleKey: string;
+  rank: number;
+  isMember: boolean;
+  permissions: string[];
+  ranks: Record<string, number>;
+  can: ProjectCapabilityFlags;
+}

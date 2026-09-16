@@ -35,7 +35,7 @@
         <div
           *ngFor="let t of col.tasks; trackBy: trackTask"
           class="card card-hover cursor-grab active:cursor-grabbing"
-          draggable="true"
+          [attr.draggable]="canDrag(t) ? 'true' : 'false'"
           (dragstart)="onDragStart($event, t)"
           (dragend)="onDragEnd()"
           (dragover)="onDragOver($event)"

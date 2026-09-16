@@ -36,6 +36,7 @@ cd backend && npm run matrix:permissions
 | GET | `/:id/reports` | projectController.projectReports | `project.report.read` | — |
 | GET | `/:id/calendar` | projectController.projectCalendar | `project.project.read` | — |
 | GET | `/:id/workflow` | projectController.getWorkflowConfig | `project.project.read` | — |
+| GET | `/:id/capabilities` | projectController.getCapabilities | `project.project.read` | — |
 | PUT | `/:id/workflow` | projectController.updateWorkflowConfig | `project.workflow.manage` | yes |
 | GET | `/:id/activity` | activityController.listActivity | `project.project.read` | — |
 | GET | `/:id/members` | memberController.listMembers | `project.project.read` | — |

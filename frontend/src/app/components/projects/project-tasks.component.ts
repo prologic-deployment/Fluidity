@@ -11,6 +11,8 @@ import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
 import { apiErrorMessage } from '../../utils/api-error.util';
 import { I18nService } from '../../i18n/i18n.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { ProjectCapabilities } from '../../models/project.model';
 
 /**
  * Liste des tâches du projet (route /projets/:id/taches) : filtres, tri et
@@ -44,10 +46,17 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
 
   readonly priorities = PRIORITIES;
   readonly priorityBadge = PRIORITY_BADGE;
+  caps: ProjectCapabilities | null = null;
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private route: ActivatedRoute, private api: ProjectService, private cdr: ChangeDetectorRef, private i18n: I18nService) {}
+  constructor(
+    private route: ActivatedRoute,
+    private api: ProjectService,
+    private capsApi: ProjectCapabilitiesService,
+    private cdr: ChangeDetectorRef,
+    private i18n: I18nService
+  ) {}
 
   ngOnInit(): void {
     this.route.parent?.params
@@ -56,10 +65,24 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
         switchMap((p) => {
           this.projectId = p['id'];
           this.loading = true;
+          this.capsApi
+            .forProject(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (caps) => {
+                this.caps = caps;
+                this.cdr.markForCheck();
+              },
+            });
           return this.load();
         })
       )
       .subscribe();
+  }
+
+  /** Création : permission `task.create` + rang ≥ 3, comme le serveur. */
+  get canCreate(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.create') && !!this.caps?.can.manageTasks;
   }
 
   ngOnDestroy(): void {

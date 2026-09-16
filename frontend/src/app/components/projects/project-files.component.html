@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.files.title' | t }}</h2>
-    <label class="btn-primary btn-sm inline-flex items-center gap-1 cursor-pointer">
+    <label *ngIf="canUpload" class="btn-primary btn-sm inline-flex items-center gap-1 cursor-pointer">
       {{ uploading ? '…' : ('projects.files.upload' | t) }}
       <input type="file" multiple class="hidden" (change)="onFilesPicked($event)" [disabled]="uploading" />
     </label>
@@ -49,7 +49,7 @@
           <td class="hidden lg:table-cell text-sm">{{ uploadedByName(f) }}</td>
           <td class="hidden lg:table-cell text-sm text-muted-foreground whitespace-nowrap">{{ f.createdAt | dateLocale:'short' }}</td>
           <td class="text-right">
-            <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(f)">{{ 'common.delete' | t }}</button>
+            <button *ngIf="canDeleteFile(f)" type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(f)">{{ 'common.delete' | t }}</button>
           </td>
         </tr>
       </tbody>

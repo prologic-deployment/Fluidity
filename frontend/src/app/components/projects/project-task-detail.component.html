@@ -34,7 +34,7 @@
         <!-- Détails -->
         <div class="card">
           <div class="card-header py-3">{{ 'projects.task.details' | t }}</div>
-          <div class="card-content p-4 space-y-3">
+          <fieldset [disabled]="!canEditTask" class="card-content p-4 space-y-3">
             <div>
               <label class="field-label">{{ 'projects.fields.title' | t }}</label>
               <input type="text" [(ngModel)]="editTitle" class="input" maxlength="200" [attr.placeholder]="'projects.task.titlePh' | t" />
@@ -46,13 +46,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
-                <select [(ngModel)]="editPriority" class="input">
+                <select [(ngModel)]="editPriority" class="input" [disabled]="!caps?.can.manageBacklog">
                   <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
                 </select>
               </div>
               <div>
                 <label class="field-label">{{ 'projects.fields.assignee' | t }}</label>
-                <select [(ngModel)]="editAssignee" class="input">
+                <select [(ngModel)]="editAssignee" class="input" [disabled]="!canAssign">
                   <option value="">{{ 'projects.filters.unassigned' | t }}</option>
                   <option *ngFor="let m of members" [value]="memberIdOf(m)">{{ memberNameOf(m) }}</option>
                 </select>
@@ -79,9 +79,9 @@
               <input type="text" [(ngModel)]="editTags" class="input" placeholder="{{ 'projects.task.tagsPh' | t }}" />
             </div>
             <div class="flex justify-end">
-              <button type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
+              <button *ngIf="canEditTask" type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
             </div>
-          </div>
+          </fieldset>
         </div>
 
         <!-- Checklist -->
@@ -89,13 +89,13 @@
           <div class="card-header py-3">{{ 'projects.task.checklist' | t }}</div>
           <div class="card-content p-4 space-y-2">
             <div *ngFor="let c of task.checklist; let i = index" class="flex items-center gap-2">
-              <input type="checkbox" [checked]="c.done" (change)="toggleChecklist(i)" class="checkbox" />
+              <input type="checkbox" [checked]="c.done" (change)="toggleChecklist(i)" class="checkbox" [disabled]="!canTransitionTask" />
               <span class="text-sm flex-1 min-w-0 truncate" [class.line-through]="c.done" [class.text-muted-foreground]="c.done">{{ c.text }}</span>
-              <button type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeChecklist(i)">×</button>
+              <button *ngIf="canTransitionTask" type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeChecklist(i)">×</button>
             </div>
             <div class="flex gap-2 pt-1">
-              <input type="text" [(ngModel)]="newChecklist" (keyup.enter)="addChecklist()" class="input" placeholder="{{ 'projects.task.checklistPh' | t }}" />
-              <button type="button" class="btn-secondary btn-sm" (click)="addChecklist()">+</button>
+              <input type="text" [(ngModel)]="newChecklist" (keyup.enter)="addChecklist()" class="input" [disabled]="!canTransitionTask" placeholder="{{ 'projects.task.checklistPh' | t }}" />
+              <button *ngIf="canTransitionTask" type="button" class="btn-secondary btn-sm" (click)="addChecklist()">+</button>
             </div>
           </div>
         </div>
@@ -115,8 +115,8 @@
             </a>
             <p *ngIf="!data?.subtasks?.length" class="text-sm text-muted-foreground py-2">{{ 'projects.task.noSubtasks' | t }}</p>
             <div class="flex gap-2 pt-1">
-              <input type="text" [(ngModel)]="newSubtask" (keyup.enter)="addSubtask()" class="input" placeholder="{{ 'projects.task.subtaskPh' | t }}" />
-              <button type="button" class="btn-secondary btn-sm" (click)="addSubtask()">+</button>
+              <input type="text" [(ngModel)]="newSubtask" (keyup.enter)="addSubtask()" class="input" [disabled]="!canAddSubtask" placeholder="{{ 'projects.task.subtaskPh' | t }}" />
+              <button *ngIf="canAddSubtask" type="button" class="btn-secondary btn-sm" (click)="addSubtask()">+</button>
             </div>
           </div>
         </div>
@@ -130,15 +130,15 @@
               <span class="font-mono text-xs text-muted-foreground">{{ d.dependsOn?.ref }}</span>
               <span class="truncate flex-1 min-w-0">{{ d.dependsOn?.title }}</span>
               <span class="badge badge-outline text-[10px]">{{ 'projects.meta.dep.' + d.type | t }}</span>
-              <button type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeDependency(d.dependsOnId)">×</button>
+              <button *ngIf="canEditTask" type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeDependency(d.dependsOnId)">×</button>
             </div>
             <p *ngIf="!task.dependencies.length" class="text-sm text-muted-foreground py-2">{{ 'projects.task.noDeps' | t }}</p>
             <div class="flex gap-2 pt-1">
-              <select [(ngModel)]="newDependency" class="input">
+              <select [(ngModel)]="newDependency" class="input" [disabled]="!canEditTask">
                 <option value="">{{ 'projects.task.depPh' | t }}</option>
                 <option *ngFor="let s of depCandidates" [value]="s._id">{{ s.ref }} — {{ s.title }}</option>
               </select>
-              <button type="button" class="btn-secondary btn-sm" [disabled]="!newDependency" (click)="addDependency()">+</button>
+              <button *ngIf="canEditTask" type="button" class="btn-secondary btn-sm" [disabled]="!newDependency" (click)="addDependency()">+</button>
             </div>
           </div>
         </div>
@@ -159,15 +159,15 @@
                   </p>
                   <p class="text-sm mt-0.5 whitespace-pre-wrap break-words">{{ c.text }}</p>
                 </div>
-                <button type="button" class="text-muted-foreground hover:text-destructive text-xs self-start" (click)="deleteComment(c._id)">×</button>
+                <button *ngIf="canDeleteComment(c)" type="button" class="text-muted-foreground hover:text-destructive text-xs self-start" (click)="deleteComment(c._id)">×</button>
               </div>
               <p *ngIf="!comments.length" class="text-sm text-muted-foreground">{{ 'projects.task.noComments' | t }}</p>
             </div>
             <div class="border-t border-border pt-3">
-              <textarea [(ngModel)]="commentText" rows="3" class="input" placeholder="{{ 'projects.task.commentPh' | t }}"></textarea>
+              <textarea [(ngModel)]="commentText" rows="3" class="input" [disabled]="!canComment" placeholder="{{ 'projects.task.commentPh' | t }}"></textarea>
               <div class="flex justify-between items-center mt-2">
                 <p class="text-xs text-muted-foreground">{{ 'projects.task.mentionHint' | t }}</p>
-                <button type="button" class="btn-primary btn-sm" [disabled]="!commentText.trim() || commentSubmitting" (click)="addComment()">
+                <button *ngIf="canComment" type="button" class="btn-primary btn-sm" [disabled]="!commentText.trim() || commentSubmitting" (click)="addComment()">
                   {{ 'projects.task.comment' | t }}
                 </button>
               </div>

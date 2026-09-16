@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.time.title' | t }}</h2>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.time.new' | t }}</button>
+    <button *ngIf="canLog" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.time.new' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -49,8 +49,8 @@
               <td class="text-right text-xs font-medium tabular-nums">{{ (e.minutes / 60).toFixed(2) }} h</td>
               <td class="text-xs text-muted-foreground max-w-[320px] truncate">{{ e.note }}</td>
               <td class="whitespace-nowrap text-right">
-                <button type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
-                <button type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
+                <button *ngIf="canEditEntry(e)" type="button" class="btn-ghost btn-xs" (click)="openEdit(e)">{{ 'common.edit' | t }}</button>
+                <button *ngIf="canEditEntry(e)" type="button" class="btn-ghost btn-xs text-destructive" (click)="remove(e)">{{ 'common.delete' | t }}</button>
               </td>
             </tr>
           </tbody>

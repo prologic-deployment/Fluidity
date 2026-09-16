@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
-import { HealthStatus, Project, WorkflowState } from '../../models/project.model';
+import { HealthStatus, Project, WorkflowState, ProjectCapabilities } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { METHODOLOGIES, PRIORITIES, PROJECT_LIFECYCLE, PROJECT_STATUSES } from './project.constants';
 import { apiErrorMessage } from '../../utils/api-error.util';
@@ -29,7 +30,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
   error = '';
   projectId = '';
   project: Project | null = null;
-  canManage = false;
+  caps: ProjectCapabilities | null = null;
   saving = false;
 
   // Champs généraux (cadrage)
@@ -68,6 +69,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
     private confirm: ConfirmDialogService,
     private toast: ToastService,
     private i18n: I18nService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -83,7 +85,15 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (r) => {
           this.project = r.project;
-          this.canManage = ['project_admin', 'project_manager'].includes(r.myRole.roleKey) || ['TENANT_ADMIN'].includes(r.myRole.roleKey);
+          this.capsApi
+            .forProject(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (caps) => {
+                this.caps = caps;
+                this.cdr.markForCheck();
+              },
+            });
           this.form = {
             name: r.project.name,
             description: r.project.description,
@@ -109,6 +119,21 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  /** Paramètres / cycle de vie : `project.update` + rang 5, comme le serveur. */
+  get canManage(): boolean {
+    return hasProjectPermission(this.caps, 'project.project.update') && !!this.caps?.can.manageProject;
+  }
+
+  /** Workflow : `project.workflow.manage` + rang 5, comme le serveur. */
+  get canWorkflow(): boolean {
+    return hasProjectPermission(this.caps, 'project.project.workflow.manage') && !!this.caps?.can.manageProject;
+  }
+
+  /** Archivage : `project.archive` + rang 5, comme le serveur. */
+  get canArchive(): boolean {
+    return hasProjectPermission(this.caps, 'project.project.archive') && !!this.caps?.can.manageProject;
   }
 
   ngOnDestroy(): void {

@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.risks.title' | t }}</h2>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.risks.new' | t }}</button>
+    <button *ngIf="canManage" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.risks.new' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -28,6 +28,7 @@
               <div class="rounded-lg border border-border min-h-[64px] p-1.5 space-y-1 bg-card/50">
                 <button
                   *ngFor="let r of matrixCell(l, i)"
+                  [disabled]="!canManage"
                   type="button"
                   class="block w-full text-left text-xs rounded px-1.5 py-1 border"
                   [ngClass]="matrixBorder(r)"
@@ -63,11 +64,11 @@
         </div>
         <p *ngIf="r.mitigation" class="text-sm mt-2 rounded-lg bg-muted/40 p-2">{{ 'projects.risks.mitigation' | t }} : {{ r.mitigation }}</p>
         <div class="flex gap-1 mt-2 flex-wrap">
-          <button *ngIf="r.status === 'open'" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'mitigating')">{{ 'projects.risks.mitigate' | t }}</button>
-          <button *ngIf="r.status === 'mitigating'" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'resolved')">{{ 'projects.risks.resolve' | t }}</button>
-          <button *ngIf="r.status !== 'closed'" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'closed')">{{ 'projects.risks.close' | t }}</button>
-          <button type="button" class="btn-ghost btn-sm ml-auto" (click)="openEdit(r)">{{ 'common.edit' | t }}</button>
-          <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(r)">{{ 'common.delete' | t }}</button>
+          <button *ngIf="r.status === 'open' && canManage" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'mitigating')">{{ 'projects.risks.mitigate' | t }}</button>
+          <button *ngIf="r.status === 'mitigating' && canManage" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'resolved')">{{ 'projects.risks.resolve' | t }}</button>
+          <button *ngIf="r.status !== 'closed' && canManage" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'closed')">{{ 'projects.risks.close' | t }}</button>
+          <button *ngIf="canManage" type="button" class="btn-ghost btn-sm ml-auto" (click)="openEdit(r)">{{ 'common.edit' | t }}</button>
+          <button *ngIf="canManage" type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(r)">{{ 'common.delete' | t }}</button>
         </div>
       </div>
     </div>

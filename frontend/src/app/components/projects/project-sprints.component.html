@@ -1,7 +1,7 @@
 <main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
   <div class="flex items-center gap-2 mb-4 flex-wrap">
     <h2 class="text-base font-semibold mr-auto">{{ 'projects.sprints.title' | t }}</h2>
-    <button type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.sprints.new' | t }}</button>
+    <button *ngIf="canManageSprints" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.sprints.new' | t }}</button>
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
@@ -17,8 +17,8 @@
         <span class="badge badge-success">{{ 'projects.meta.sprintStatus.active' | t }}</span>
         <span class="font-semibold">{{ a.name }}</span>
         <span class="text-sm text-muted-foreground ml-auto">{{ a.startDate | dateLocale:'short' }} → {{ a.endDate | dateLocale:'short' }}</span>
-        <button type="button" class="btn-ghost btn-sm" (click)="action(a, 'pause')">{{ 'projects.sprints.pause' | t }}</button>
-        <button type="button" class="btn-secondary btn-sm" (click)="action(a, 'complete')">{{ 'projects.sprints.complete' | t }}</button>
+        <button *ngIf="canManageSprints" type="button" class="btn-ghost btn-sm" (click)="action(a, 'pause')">{{ 'projects.sprints.pause' | t }}</button>
+        <button *ngIf="canManageSprints" type="button" class="btn-secondary btn-sm" (click)="action(a, 'complete')">{{ 'projects.sprints.complete' | t }}</button>
       </div>
       <p *ngIf="a.goal" class="text-sm text-muted-foreground px-4 pt-2"><span class="font-medium">{{ 'projects.sprints.goal' | t }} :</span> {{ a.goal }}</p>
       <div class="card-content p-4">
@@ -60,7 +60,7 @@
         <span class="badge badge-secondary text-[10px] shrink-0">{{ t.status | pState }}</span>
         <span class="text-xs text-muted-foreground shrink-0">{{ t.estimatedHours }}h</span>
         <button
-          *ngIf="active()"
+          *ngIf="active() && canPlan"
           type="button"
           class="btn-ghost btn-sm shrink-0"
           [disabled]="pendingAssign[t._id]"
@@ -105,9 +105,9 @@
           </ul>
         </div>
         <div class="flex gap-1 mt-2 flex-wrap">
-          <button *ngIf="s.status === 'planned'" type="button" class="btn-ghost btn-sm" (click)="action(s, 'start')">{{ 'projects.sprints.start' | t }}</button>
-          <button *ngIf="s.status === 'paused'" type="button" class="btn-ghost btn-sm" (click)="action(s, 'resume')">{{ 'projects.sprints.resume' | t }}</button>
-          <button *ngIf="s.status !== 'completed'" type="button" class="btn-ghost btn-sm text-destructive ml-auto" (click)="remove(s)">{{ 'common.delete' | t }}</button>
+          <button *ngIf="s.status === 'planned' && canManageSprints" type="button" class="btn-ghost btn-sm" (click)="action(s, 'start')">{{ 'projects.sprints.start' | t }}</button>
+          <button *ngIf="s.status === 'paused' && canManageSprints" type="button" class="btn-ghost btn-sm" (click)="action(s, 'resume')">{{ 'projects.sprints.resume' | t }}</button>
+          <button *ngIf="s.status !== 'completed' && canManageSprints" type="button" class="btn-ghost btn-sm text-destructive ml-auto" (click)="remove(s)">{{ 'common.delete' | t }}</button>
         </div>
       </div>
     </div>

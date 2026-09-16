@@ -63,7 +63,7 @@
           </td>
           <td class="hidden md:table-cell">
             <select *ngIf="canManage" [value]="m.roleKey" (change)="changeRole(m, $any($event.target).value)" class="input !w-auto !py-1 text-xs">
-              <option *ngFor="let r of roles" [value]="r">{{ 'products.roles.' + r | t }}</option>
+              <option *ngFor="let r of grantableRoles()" [value]="r">{{ 'products.roles.' + r | t }}</option>
             </select>
             <span *ngIf="!canManage" class="badge badge-secondary">{{ 'products.roles.' + m.roleKey | t }}</span>
           </td>

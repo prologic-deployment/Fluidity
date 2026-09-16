@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { Sprint, Task } from '../../models/project.model';
+import { Sprint, Task, ProjectCapabilities } from '../../models/project.model';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -36,6 +37,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
   form = { name: '', goal: '', startDate: '', endDate: '' };
   pendingAssign: Record<string, boolean> = {};
   submitting = false;
+  caps: ProjectCapabilities | null = null;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -44,6 +46,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -68,6 +71,27 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
         },
       });
     this.loadBacklog();
+    this.route.parent?.params.pipe(takeUntil(this.destroy$)).subscribe((p) => {
+      this.capsApi
+        .forProject(p['id'])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (caps) => {
+            this.caps = caps;
+            this.cdr.markForCheck();
+          },
+        });
+    });
+  }
+
+  /** Sprints (création, statuts, suppression) : `sprint.manage` + rang ≥ 3. */
+  get canManageSprints(): boolean {
+    return hasProjectPermission(this.caps, 'project.sprint.manage') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Planification (affectation au sprint) : `sprint.manage` + rang ≥ 4 (Fix 12). */
+  get canPlan(): boolean {
+    return hasProjectPermission(this.caps, 'project.sprint.manage') && !!this.caps?.can.manageBacklog;
   }
 
   ngOnDestroy(): void {

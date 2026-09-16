@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, of, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { UploadService, UploadedFile } from '../../services/upload.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief } from '../../models/project.model';
+import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities } from '../../models/project.model';
 import { BreadcrumbService } from '../shared/breadcrumb.service';
 import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
@@ -37,7 +38,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   task: Task | null = null;
   workflow: WorkflowState[] = [];
   transitions: TaskTransition[] = [];
-  myRoleKey = '';
+  caps: ProjectCapabilities | null = null;
   members: ProjectMember[] = [];
   comments: ProjectComment[] = [];
   watching = false;
@@ -74,6 +75,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     private i18n: I18nService,
     private uploads: UploadService,
     private breadcrumbs: BreadcrumbService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -112,7 +114,15 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     return this.api.get(this.projectId).pipe(
       switchMap((proj) => {
         this.projectCode = proj.project?.code || '';
-        this.myRoleKey = proj.myRole?.roleKey || '';
+        this.capsApi
+          .forProject(this.projectId)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (caps) => {
+              this.caps = caps;
+              this.cdr.markForCheck();
+            },
+          });
         return this.api.task(this.projectId, this.taskId);
       }),
       switchMap((r) => {
@@ -169,11 +179,53 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
    * Annulation = transition (task.update, tranché serveur) + règle
    * assigné-ou-rang≥3 (DECISION Fix 3, appliquée serveur en Fix 5).
    */
+  /** Assigné courant ? */
+  private isAssignee(): boolean {
+    const me = this.auth.getUser()?.userId || '';
+    return !!me && !!this.task && this.task.assigneeId === me;
+  }
+
+  /**
+   * Annulation = transition (task.update, tranchée serveur) + règle
+   * assigné-ou-rang≥3 (DECISION Fix 3, appliquée serveur en Fix 5).
+   */
   private canCancel(): boolean {
     if (!this.task) return false;
+    return this.isAssignee() || !!this.caps?.can.manageTasks;
+  }
+
+  /** Édition des champs : rang ≥ 2 ou assigné, comme le serveur. */
+  get canEditTask(): boolean {
+    if (!this.task) return false;
+    return this.isAssignee() || !!this.caps?.can.updateTasks;
+  }
+
+  /** Changement d'assigné : `task.assign` + rang ≥ 3, comme le serveur. */
+  get canAssign(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.assign') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Checklist : `task.update` + assigné-ou-rang≥3, comme le serveur. */
+  get canTransitionTask(): boolean {
+    if (!this.task) return false;
+    return hasProjectPermission(this.caps, 'project.task.update') && (this.isAssignee() || !!this.caps?.can.manageTasks);
+  }
+
+  /** Sous-tâche : `task.create` + rang ≥ 3, comme le serveur. */
+  get canAddSubtask(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.create') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Commentaire : rang ≥ 1, comme le serveur. */
+  get canComment(): boolean {
+    return !!this.caps?.can.comment;
+  }
+
+  /** Suppression d'un commentaire : auteur ou rang 5, comme le serveur. */
+  canDeleteComment(c: ProjectComment): boolean {
+    if (this.caps?.can.manageMembers) return true;
     const me = this.auth.getUser()?.userId || '';
-    if (me && this.task.assigneeId === me) return true;
-    return ['project_lead', 'scrum_master', 'product_owner', 'project_manager', 'project_admin'].includes(this.myRoleKey);
+    return !!me && c.author?._id === me;
   }
 
   transition(to: string): void {

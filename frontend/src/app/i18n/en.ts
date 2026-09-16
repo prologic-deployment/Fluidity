@@ -1622,6 +1622,7 @@ export const EN: Record<string, unknown> = {
     },
     new: {
       stakeholderPh: 'e.g. Business owner',
+      noPermission: 'Project creation requires the “project.project.create” permission.',
       title: 'New project',
       subtitle: 'Define the essential project information.',
       step1: 'Information',

@@ -46,6 +46,7 @@ router.get('/:id/dashboard', access(), projectController.projectDashboard);
 router.get('/:id/reports', access('project.report.read'), projectController.projectReports);
 router.get('/:id/calendar', access(), projectController.projectCalendar);
 router.get('/:id/workflow', access(), projectController.getWorkflowConfig);
+router.get('/:id/capabilities', access(), projectController.getCapabilities);
 router.put('/:id/workflow', access('project.workflow.manage'), rejectArchivedProject, projectController.updateWorkflowConfig);
 router.get('/:id/activity', access(), activityController.listActivity);
 

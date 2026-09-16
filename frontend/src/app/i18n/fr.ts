@@ -1621,6 +1621,7 @@ export const FR: Record<string, unknown> = {
     },
     new: {
       stakeholderPh: 'ex : Direction métier',
+      noPermission: 'La création de projet exige la permission « project.project.create ».',
       title: 'Nouveau projet',
       subtitle: 'Définissez les informations essentielles du projet.',
       step1: 'Informations',

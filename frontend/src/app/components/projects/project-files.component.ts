@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { AuthService } from '../../services/auth.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { UploadService } from '../../services/upload.service';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
-import { ProjectFile } from '../../models/project.model';
+import { ProjectFile, ProjectCapabilities } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { FILE_FOLDERS } from './project.constants';
@@ -33,6 +35,8 @@ export class ProjectFilesComponent implements OnInit, OnDestroy {
   folder = '';
   uploading = false;
 
+  caps: ProjectCapabilities | null = null;
+
   private readonly destroy$ = new Subject<void>();
 
   constructor(
@@ -41,10 +45,23 @@ export class ProjectFilesComponent implements OnInit, OnDestroy {
     private uploads: UploadService,
     private toast: ToastService,
     private i18n: I18nService,
+    private auth: AuthService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.route.parent?.params.pipe(takeUntil(this.destroy$)).subscribe((p) => {
+      this.capsApi
+        .forProject(p['id'])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (caps) => {
+            this.caps = caps;
+            this.cdr.markForCheck();
+          },
+        });
+    });
     this.route.parent?.params
       .pipe(
         takeUntil(this.destroy$),
@@ -63,6 +80,18 @@ export class ProjectFilesComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  /** Envoi : rang ≥ 1, comme le serveur. */
+  get canUpload(): boolean {
+    return !!this.caps?.can.comment;
+  }
+
+  /** Suppression : rang ≥ 3 ou propriétaire du fichier, comme le serveur. */
+  canDeleteFile(f: ProjectFile): boolean {
+    if (this.caps?.can.manageTasks) return true;
+    const me = this.auth.getUser()?.userId || '';
+    return !!me && f.uploadedBy?._id === me;
   }
 
   ngOnDestroy(): void {

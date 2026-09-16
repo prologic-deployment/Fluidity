@@ -9,6 +9,7 @@
 
   <main class="max-w-3xl mx-auto px-4 lg:px-6 py-6">
     <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+    <ng-container *ngIf="canCreateProject; else noPerm">
 
     <!-- Étapes -->
     <ol class="flex items-center gap-2 mb-6 text-sm">
@@ -156,5 +157,9 @@
         {{ submitting ? '…' : ('projects.new.create' | t) }}
       </button>
     </div>
+    </ng-container>
+    <ng-template #noPerm>
+      <p class="alert-destructive">{{ 'projects.new.noPermission' | t }}</p>
+    </ng-template>
   </main>
 </div>

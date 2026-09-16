@@ -10,6 +10,9 @@ import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { AuthService } from '../../services/auth.service';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { ProjectCapabilities } from '../../models/project.model';
 
 /**
  * BACKLOG SCRUM (route /projets/:id/backlog) — épopées avec leurs user
@@ -28,7 +31,7 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
   error = '';
   projectId = '';
   data: BacklogData = { epics: [], unassigned: [] };
-  canManage = false;
+  caps: ProjectCapabilities | null = null;
 
   creating = false;
   editing: Task | null = null;
@@ -42,6 +45,8 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private auth: AuthService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -66,11 +71,33 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
         },
       });
     this.route.parent?.params.pipe(takeUntil(this.destroy$)).subscribe((p) => {
-      // Les droits fins restent côté serveur ; ici simple affichage des actions.
-      this.api.get(p['id']).subscribe((r) => {
-        this.canManage = ['project_admin', 'project_manager', 'scrum_master', 'product_owner', 'project_lead'].includes(r.myRole.roleKey);
-      });
+      this.capsApi
+        .forProject(p['id'])
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (caps) => {
+            this.caps = caps;
+            this.cdr.markForCheck();
+          },
+        });
     });
+  }
+
+  /** Création : permission `task.create` + rang ≥ 3, comme le serveur. */
+  get canCreate(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.create') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Édition : rang ≥ 2 ou assigné (les champs backlog restent réservés rang ≥ 4). */
+  canEditItem(t: Task): boolean {
+    if (this.caps?.can.updateTasks) return true;
+    const me = this.auth.getUser()?.userId || '';
+    return !!me && t.assigneeId === me;
+  }
+
+  /** Suppression : permission `task.delete` + rang ≥ 3, comme le serveur. */
+  get canDelete(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.delete') && !!this.caps?.can.manageTasks;
   }
 
   ngOnDestroy(): void {

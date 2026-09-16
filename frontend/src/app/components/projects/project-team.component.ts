@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { ProjectMember, WorkloadRow } from '../../models/project.model';
+import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
+import { ProjectMember, WorkloadRow, ProjectCapabilities } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -43,12 +44,11 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
   workload: WorkloadRow[] = [];
   roles = PROJECT_MEMBER_ROLES;
   readonly Math = Math;
-  canManage = false;
+  caps: ProjectCapabilities | null = null;
   adding = false;
   candidates: AvailableUser[] = [];
   candidateQuery = '';
   candidateLoading = false;
-  myRole = '';
 
   private readonly destroy$ = new Subject<void>();
 
@@ -57,6 +57,7 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
     private api: ProjectService,
     private toast: ToastService,
     private i18n: I18nService,
+    private capsApi: ProjectCapabilitiesService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -71,8 +72,15 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (r) => {
-          this.myRole = r.myRole.roleKey;
-          this.canManage = ['project_admin', 'project_manager'].includes(r.myRole.roleKey);
+          this.capsApi
+            .forProject(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (caps) => {
+                this.caps = caps;
+                this.cdr.markForCheck();
+              },
+            });
           this.refresh();
         },
         error: () => {
@@ -80,6 +88,18 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  /** Membres : `member.manage` + rang 5, comme le serveur. */
+  get canManage(): boolean {
+    return hasProjectPermission(this.caps, 'project.member.manage') && !!this.caps?.can.manageMembers;
+  }
+
+  /** Rôles attribuables : plafond au rang courant (Fix 14), rangs fournis par le serveur. */
+  grantableRoles(): string[] {
+    const rank = this.caps?.rank ?? 0;
+    const ranks = this.caps?.ranks || {};
+    return this.roles.filter((r) => (ranks[r] ?? 99) <= rank);
   }
 
   ngOnDestroy(): void {

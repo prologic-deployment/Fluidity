@@ -167,7 +167,7 @@ const transitionDeliverable = async (req, res) => {
       return;
     }
     if ((to === 'approved' || to === 'rejected') && !can(role, CAN.approveWork)) {
-      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Réservé au Chef de projet ou au Product Owner.' });
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Réservé au Chef de projet, au Product Owner ou au Scrum Master (rang ≥ 4).' });
       return;
     }
     const plan = planDeliverableTransition(deliverable, to, { actorId: req.userId, note });

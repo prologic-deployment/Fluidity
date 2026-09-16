@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { PlatformService } from '../../services/platform.service';
 import { ToastService } from '../../services/toast.service';
 import { UserService } from '../../services/user.service';
 import { AppUser } from '../../models/user.model';
@@ -72,8 +73,14 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     private toast: ToastService,
     private i18n: I18nService,
     private router: Router,
+    private platform: PlatformService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  /** La création exige la permission produit (le serveur tranche). */
+  get canCreateProject(): boolean {
+    return this.platform.canAccess('project_management', 'project.project.create');
+  }
 
   ngOnInit(): void {
     this.loadUsers('');
