@@ -41,6 +41,12 @@ export class ProjectPlanningComponent implements OnInit, OnDestroy {
   dayWidth = 34;
   todayOffset = 0;
   dependencyLines: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  /** Fix 27 : tâches sans dates (bandeau dédié) + troncature visible. */
+  dateless: Task[] = [];
+  datedTotal = 0;
+  shownTasks = 0;
+  /** Suivis différés (Fix 27) : glisser-déplacer pour replanifier + chemin critique. */
+  readonly GanttCap = 60;
 
   @ViewChild('timelineScroll') scrollRef?: ElementRef<HTMLElement>;
 
@@ -128,9 +134,12 @@ export class ProjectPlanningComponent implements OnInit, OnDestroy {
         color: 'bg-emerald-500/80',
       });
     }
-    // Tâches planifiées (celles qui ont au moins une date)
+    // Tâches planifiées (celles qui ont au moins une date) + bandeau sans-dates.
     const tasks = d.tasks.filter((t) => t.startDate || t.dueDate);
-    for (const t of tasks.slice(0, 60)) {
+    this.dateless = d.tasks.filter((t) => !t.startDate && !t.dueDate);
+    this.datedTotal = tasks.length;
+    this.shownTasks = Math.min(tasks.length, this.GanttCap);
+    for (const t of tasks.slice(0, this.GanttCap)) {
       rows.push({
         kind: 'task',
         id: t._id,

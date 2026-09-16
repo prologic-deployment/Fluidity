@@ -2131,6 +2131,8 @@ export const EN: Record<string, unknown> = {
       legend: 'Phases · Milestones · Sprints · Tasks',
       projectRange: 'Project duration',
       empty: 'No planned data. Add milestones, sprints or dated tasks.',
+      truncated: 'Display limited to {{shown}} of {{total}} dated tasks — narrow dates or scope.',
+      dateless: 'Dateless tasks (not placed on the scale)',
     },
     filters: {
       allAssignees: 'All assignees',

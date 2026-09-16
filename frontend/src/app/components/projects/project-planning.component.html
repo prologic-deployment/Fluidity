@@ -6,6 +6,7 @@
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
   <div *ngIf="loading" class="skeleton h-80"></div>
+  <p *ngIf="!loading && datedTotal > shownTasks" class="alert-warning mb-4">{{ 'projects.planning.truncated' | t: { shown: shownTasks, total: datedTotal } }}</p>
 
   <div *ngIf="!loading && rows.length" class="card overflow-hidden">
     <!-- En-tête de l'échelle -->
@@ -76,7 +77,21 @@
     </div>
   </div>
 
-  <div *ngIf="!loading && !rows.length" class="card">
+  <div *ngIf="!loading && dateless.length" class="card mt-4">
+    <div class="card-header py-3 flex items-center justify-between">
+      <span>{{ 'projects.planning.dateless' | t }}</span>
+      <span class="badge badge-secondary tabular-nums">{{ dateless.length }}</span>
+    </div>
+    <ul class="card-content py-2 divide-y divide-border">
+      <li *ngFor="let t of dateless" class="py-2 flex items-center gap-2 text-sm min-w-0">
+        <span class="badge badge-secondary shrink-0 font-mono text-xs">{{ t.ref }}</span>
+        <a [routerLink]="['/projets', projectId, 'taches', t._id]" class="truncate hover:underline min-w-0">{{ t.title }}</a>
+        <span class="badge badge-outline ml-auto shrink-0">{{ t.status }}</span>
+      </li>
+    </ul>
+  </div>
+
+  <div *ngIf="!loading && !rows.length && !dateless.length" class="card">
     <div class="card-content py-16 text-center text-sm text-muted-foreground">{{ 'projects.planning.empty' | t }}</div>
   </div>
 </main>

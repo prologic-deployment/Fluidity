@@ -2130,6 +2130,8 @@ export const FR: Record<string, unknown> = {
       legend: 'Phases · Jalons · Sprints · Tâches',
       projectRange: 'Durée du projet',
       empty: 'Aucune donnée planifiée. Ajoutez des jalons, des sprints ou des tâches datées.',
+      truncated: 'Affichage limité à {{shown}} tâches datées sur {{total}} — affinez les dates ou le périmètre.',
+      dateless: 'Tâches sans dates (non placées sur l’échelle)',
     },
     filters: {
       allAssignees: 'Tous les intervenants',
