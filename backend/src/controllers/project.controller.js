@@ -390,6 +390,12 @@ const updateProject = async (req, res) => {
     }
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
+    // Fix 7 : défense en profondeur — ne pas dépendre de la seule
+    // configuration des permissions produit (manager/admin en pratique).
+    if (!can(role, CAN.manageProject)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour modifier ce projet.' });
+      return;
+    }
     const { name, description, stakeholder, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules, objectives, successCriteria, businessValue, estimatedEffortHours, color, healthOverride } = req.body;
     if (name !== undefined && !String(name).trim()) {
       res.status(400).json({ message: 'Le nom du projet est requis.' });
