@@ -228,8 +228,8 @@ export class ProjectService {
     return this.http.post<{ sprint: Sprint }>(`${this.base}/${id}/sprints`, payload);
   }
 
-  sprintStatus(id: string, sprintId: string, action: string, retrospective?: Partial<Sprint['retrospective']>): Observable<{ sprint: Sprint }> {
-    return this.http.patch<{ sprint: Sprint }>(`${this.base}/${id}/sprints/${sprintId}/status`, { action, retrospective });
+  sprintStatus(id: string, sprintId: string, action: string, retrospective?: Partial<Sprint['retrospective']>, rollover?: { rollover?: string; rolloverTo?: string }): Observable<{ sprint: Sprint; rolledOver?: number }> {
+    return this.http.patch<{ sprint: Sprint; rolledOver?: number }>(`${this.base}/${id}/sprints/${sprintId}/status`, { action, retrospective, ...(rollover || {}) });
   }
 
   updateSprint(id: string, sprintId: string, payload: Partial<Sprint>): Observable<{ sprint: Sprint }> {

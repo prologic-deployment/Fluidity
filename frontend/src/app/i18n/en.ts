@@ -1841,6 +1841,12 @@ export const EN: Record<string, unknown> = {
     },
     sprints: {
       goalPh: 'e.g. ship authentication and the dashboard',
+      rollover: 'Unfinished tasks',
+      rolloverBacklog: 'Move them back to the backlog',
+      rolloverTarget: 'Roll them over to a sprint',
+      rolloverPick: 'Pick the target sprint…',
+      rolloverKeep: 'Leave them in the completed sprint',
+      burndownUnit: { points: 'Burndown in story points', hours: 'Burndown in hours (fallback)' },
       retroWellPh: 'e.g. systematic code reviews, mutual help…',
       retroWrongPh: 'e.g. oversized stories, late testing…',
       title: 'Sprints',

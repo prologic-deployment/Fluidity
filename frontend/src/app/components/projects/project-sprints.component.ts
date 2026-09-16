@@ -34,6 +34,8 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
   creating = false;
   retroFor: Sprint | null = null;
   retro = { wentWell: '', wentWrong: '', actions: '' };
+  rollover: 'keep' | 'backlog' | 'target' = 'backlog';
+  rolloverTo = '';
   form = { name: '', goal: '', startDate: '', endDate: '' };
   pendingAssign: Record<string, boolean> = {};
   submitting = false;
@@ -142,6 +144,8 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     if (action === 'complete') {
       this.retroFor = s;
       this.retro = { wentWell: s.retrospective?.wentWell || '', wentWrong: s.retrospective?.wentWrong || '', actions: (s.retrospective?.actions || []).join('\n') };
+      this.rollover = (s.stats?.remaining || 0) > 0 ? 'backlog' : 'keep';
+      this.rolloverTo = '';
       return;
     }
     this.api.sprintStatus(this.projectId, s._id, action).subscribe({
@@ -154,11 +158,21 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     if (!this.retroFor) return;
     this.submitting = true;
     this.api
-      .sprintStatus(this.projectId, this.retroFor._id, 'complete', {
-        wentWell: this.retro.wentWell,
-        wentWrong: this.retro.wentWrong,
-        actions: this.retro.actions.split('\n').map((a) => a.trim()).filter(Boolean),
-      })
+      .sprintStatus(
+        this.projectId,
+        this.retroFor._id,
+        'complete',
+        {
+          wentWell: this.retro.wentWell,
+          wentWrong: this.retro.wentWrong,
+          actions: this.retro.actions.split('\n').map((a) => a.trim()).filter(Boolean),
+        },
+        this.rollover === 'target' && this.rolloverTo
+          ? { rolloverTo: this.rolloverTo }
+          : this.rollover === 'backlog'
+            ? { rollover: 'backlog' }
+            : {}
+      )
       .subscribe({
         next: () => {
           this.retroFor = null;
@@ -171,6 +185,11 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
           this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save'));
         },
       });
+  }
+
+  /** Sprints cibles du report (non terminés, hors sprint courant). */
+  rolloverTargets(): Sprint[] {
+    return this.sprints.filter((x) => x.status !== 'completed' && (!this.retroFor || x._id !== this.retroFor._id));
   }
 
   assignToSprint(sprintId: string, taskId: string): void {

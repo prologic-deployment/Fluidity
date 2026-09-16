@@ -86,8 +86,9 @@
           <span *ngIf="s.stats?.pointsCommitted">{{ 'projects.sprints.velocity' | t }} : <b class="tabular-nums">{{ s.stats?.velocityPoints || 0 }} pts</b> · {{ 'projects.reports.pointsCommitted' | t }} <b class="tabular-nums">{{ s.stats?.pointsCommitted }}</b> · {{ 'projects.reports.pointsDelivered' | t }} <b class="tabular-nums">{{ s.stats?.pointsDelivered }}</b></span>
         </div>
         <div class="mt-2" *ngIf="(s.stats?.burndown || []).length">
+          <p class="text-[10px] text-muted-foreground mb-1">{{ 'projects.sprints.burndownUnit.' + (s.stats?.burndownUnit || 'points') | t }}</p>
           <div class="flex items-end gap-px h-10" [attr.aria-label]="'projects.reports.burndown' | t">
-            <div *ngFor="let b of s.stats!.burndown" class="flex-1 rounded-t bg-indigo-500/70" [style.height.%]="burnHeight(b.remaining, s.stats!.pointsCommitted || 1)" [title]="(b.day | slice:0:10) + ' — ' + b.remaining"></div>
+            <div *ngFor="let b of s.stats!.burndown" class="flex-1 rounded-t bg-indigo-500/70" [style.height.%]="burnHeight(b.remaining, s.stats!.burndownTotal || 1)" [title]="(b.day | slice:0:10) + ' — ' + b.remaining"></div>
           </div>
         </div>
         <!-- Rétrospective -->
@@ -155,6 +156,27 @@
       <div>
         <label class="field-label">{{ 'projects.sprints.actions' | t }}</label>
         <textarea [(ngModel)]="retro.actions" rows="3" class="input" placeholder="{{ 'projects.sprints.actionsPh' | t }}"></textarea>
+      </div>
+      <div *ngIf="(retroFor?.stats?.remaining || 0) > 0">
+        <label class="field-label">{{ 'projects.sprints.rollover' | t }} ({{ retroFor?.stats?.remaining }})</label>
+        <div class="space-y-1 text-sm">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="rollover" value="backlog" [(ngModel)]="rollover" class="checkbox" />
+            {{ 'projects.sprints.rolloverBacklog' | t }}
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="rollover" value="target" [(ngModel)]="rollover" class="checkbox" [disabled]="!rolloverTargets().length" />
+            {{ 'projects.sprints.rolloverTarget' | t }}
+          </label>
+          <select *ngIf="rollover === 'target'" [(ngModel)]="rolloverTo" class="input ml-6">
+            <option value="">{{ 'projects.sprints.rolloverPick' | t }}</option>
+            <option *ngFor="let x of rolloverTargets()" [value]="x._id">{{ x.name }} ({{ 'projects.meta.sprintStatus.' + x.status | t }})</option>
+          </select>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="rollover" value="keep" [(ngModel)]="rollover" class="checkbox" />
+            {{ 'projects.sprints.rolloverKeep' | t }}
+          </label>
+        </div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button type="button" class="btn-ghost" (click)="retroFor = null">{{ 'common.cancel' | t }}</button>

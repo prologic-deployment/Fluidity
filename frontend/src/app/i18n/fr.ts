@@ -1840,6 +1840,12 @@ export const FR: Record<string, unknown> = {
     },
     sprints: {
       goalPh: 'ex : livrer l’authentification et le tableau de bord',
+      rollover: 'Tâches inachevées',
+      rolloverBacklog: 'Les renvoyer au backlog',
+      rolloverTarget: 'Les reporter vers un sprint',
+      rolloverPick: 'Choisir le sprint cible…',
+      rolloverKeep: 'Les laisser dans le sprint terminé',
+      burndownUnit: { points: 'Burndown en story points', hours: 'Burndown en heures (repli)' },
       retroWellPh: 'ex : revues de code systématiques, entraide…',
       retroWrongPh: 'ex : stories trop grosses, tests tardifs…',
       title: 'Sprints',

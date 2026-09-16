@@ -207,6 +207,7 @@ export interface Sprint {
   stats?: {
     total: number; completed: number; blocked: number; committed: number; delivered: number; remaining: number; progress: number;
     pointsCommitted?: number; pointsDelivered?: number; velocityPoints?: number;
+    burndownUnit?: 'points' | 'hours'; burndownTotal?: number;
     burndown?: { day: string; remaining: number; ideal: number }[];
     burnup?: { day: string; completed: number; total: number }[];
   };

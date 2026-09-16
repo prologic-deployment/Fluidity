@@ -5,6 +5,7 @@ const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
+const { computeBurndown } = require('../utils/sprint-burndown.util');
 const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
@@ -48,36 +49,21 @@ async function sprintStats(tenantId, projectId, sprintId) {
   // comparé à la ligne idéale (linéaire du total engagé vers zéro).
   const sprint = await Sprint.findById(sprintId).select('startDate endDate').lean();
   const tasks = await Task.find({ tenantId, projectId, sprintId, parentTaskId: null })
-    .select('points status completedAt')
+    .select('points estimatedHours status completedAt')
     .lean();
-  let burndown = [];
-  let burnup = [];
+  // Fix 20 : repli sur les heures estimées quand aucun story point n'est renseigné.
   const totalPoints = tasks.reduce((a, t) => a + (t.points || 0), 0);
-  const start = sprint?.startDate ? new Date(sprint.startDate) : null;
-  const end = sprint?.endDate ? new Date(sprint.endDate) : null;
-  if (start && end && totalPoints > 0) {
-    const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000));
-    let completedSoFar = 0;
-    for (let d = 0; d <= days; d += 1) {
-      const dayStart = new Date(start.getTime() + d * 86400000);
-      const dayEnd = new Date(dayStart.getTime() + 86400000);
-      completedSoFar += tasks
-        .filter((t) => t.status === 'completed' && t.completedAt && new Date(t.completedAt) >= dayStart && new Date(t.completedAt) < dayEnd)
-        .reduce((a, t) => a + (t.points || 0), 0);
-      const ideal = Math.round(totalPoints * (1 - d / days) * 10) / 10;
-      const remaining = Math.round(Math.max(0, totalPoints - completedSoFar) * 10) / 10;
-      burndown.push({ day: d, remaining, ideal });
-      burnup.push({ day: d, completed: Math.round(completedSoFar * 10) / 10, total: totalPoints });
-    }
-  }
+  const series = computeBurndown(tasks, sprint?.startDate, sprint?.endDate, totalPoints > 0 ? 'points' : 'hours');
 
   return {
     ...row,
     remaining: row.total - row.completed,
     progress: row.total ? Math.round((row.completed / row.total) * 100) : 0,
     velocityPoints: row.pointsDelivered,
-    burndown,
-    burnup,
+    burndownUnit: series.unit,
+    burndownTotal: series.total,
+    burndown: series.burndown,
+    burnup: series.burnup,
   };
 }
 
@@ -157,12 +143,20 @@ const changeSprintStatus = async (req, res) => {
       res.status(404).json({ message: 'Sprint introuvable.' });
       return;
     }
-    const { action, retrospective } = req.body;
+    const { action, retrospective, rollover, rolloverTo } = req.body;
     const transitions = { start: ['planned', 'active'], pause: ['active', 'paused'], resume: ['paused', 'active'], complete: ['active', 'completed'] };
     const rule = transitions[action];
     if (!rule || sprint.status !== rule[0]) {
       res.status(400).json({ code: 'INVALID_SPRINT_TRANSITION', message: 'Transition de sprint invalide.' });
       return;
+    }
+    // Fix 20 : un seul sprint actif à la fois par projet.
+    if ((action === 'start' || action === 'resume') && rule[1] === 'active') {
+      const other = await Sprint.findOne({ tenantId: req.tenantId, projectId: project._id, status: 'active', _id: { $ne: sprint._id } }).select('_id name').lean();
+      if (other) {
+        res.status(409).json({ code: 'SPRINT_ALREADY_ACTIVE', message: `Un sprint est déjà actif (${other.name || other._id}). Terminez-le ou mettez-le en pause d'abord.` });
+        return;
+      }
     }
     const previous = sprint.status;
     sprint.status = rule[1];
@@ -170,7 +164,28 @@ const changeSprintStatus = async (req, res) => {
       sprint.startDate = new Date();
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.sprint_started', targetType: 'sprint', targetId: sprint._id, metadata: { name: sprint.name } });
     }
+    let rolledOver = 0;
     if (action === 'complete') {
+      // Fix 20 : report des tâches inachevées (backlog ou sprint cible).
+      if (rollover === 'backlog' || rolloverTo) {
+        const targetId = rolloverTo || null;
+        if (targetId) {
+          if (!mongoose.isValidObjectId(targetId) || String(targetId) === String(sprint._id)) {
+            res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Sprint cible du report invalide.' });
+            return;
+          }
+          const target = await Sprint.findOne({ _id: targetId, tenantId: req.tenantId, projectId: project._id }).select('status').lean();
+          if (!target || target.status === 'completed') {
+            res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Le sprint cible doit être un sprint non terminé du projet.' });
+            return;
+          }
+        }
+        const moved = await Task.updateMany(
+          { tenantId: req.tenantId, projectId: project._id, sprintId: sprint._id, parentTaskId: null, status: { $ne: 'completed' } },
+          { $set: { sprintId: targetId } }
+        );
+        rolledOver = moved.modifiedCount || 0;
+      }
       sprint.completedAt = new Date();
       if (retrospective) {
         sprint.retrospective = {
@@ -197,7 +212,7 @@ const changeSprintStatus = async (req, res) => {
         emailParams: { sprintName: sprint.name, projectName: project.name, goal: sprint.goal, link: `/projets/${project._id}/sprints` },
       });
     }
-    res.json({ sprint: serializeSprint(sprint), from: previous });
+    res.json({ sprint: serializeSprint(sprint), from: previous, rolledOver });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
