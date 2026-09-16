@@ -32,7 +32,7 @@ export const productAccessGuard: CanActivateFn = (route) => {
 
 /**
  * Garde de PERMISSION produit : la route déclare une permission requise via
- * `data: { permission: 'project.task.read' }`. Vérifie localement pour
+ * `data: { permission: 'project.project.read' }`. Vérifie localement pour
  * l'UX ; l'API reste l'autorité.
  */
 export const productPermissionGuard: CanActivateFn = (route) => {

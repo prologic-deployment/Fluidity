@@ -11,8 +11,8 @@ const USER_SELECT = 'email firstName lastName avatarUrl';
 /**
  * TIME TRACKING — saisies de temps par utilisateur et par tâche.
  *   - log : tout membre actif (project.time.log) ;
- *   - modification/suppression : sa propre saisie, ou project.time.manage
- *     (Team Lead / Chef de projet) ;
+ *   - modification/suppression : sa propre saisie, ou rang ≥ 3
+ *     (Team Lead et au-dessus — CAN.manageTasks) ;
  *   - consultation : tous les membres du projet.
  * Le total consigné d'une tâche est maintenu sur Task.loggedHours (agrégat).
  */
@@ -115,7 +115,7 @@ const createTimeEntry = async (req, res) => {
   }
 };
 
-/** Modifie une saisie (la sienne, ou project.time.manage). */
+/** Modifie une saisie (la sienne, ou rang ≥ 3). */
 const updateTimeEntry = async (req, res) => {
   try {
     const project = await loadProject(req, res);
@@ -151,7 +151,7 @@ const updateTimeEntry = async (req, res) => {
   }
 };
 
-/** Supprime une saisie (la sienne, ou project.time.manage). */
+/** Supprime une saisie (la sienne, ou rang ≥ 3). */
 const deleteTimeEntry = async (req, res) => {
   try {
     const project = await loadProject(req, res);
