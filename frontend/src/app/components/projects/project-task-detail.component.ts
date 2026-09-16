@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Params, Router, RouterLink } from '@angular/router';
 import { Subject, combineLatest, of, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
@@ -99,7 +99,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // `:id` vit sur la route PARENTE, `:taskId` sur la route courante —
     // lire `p['id']` ici donnait `undefined` (GET /projects/undefined → erreur).
-    const parentParams = this.route.parent?.params ?? of({});
+    const parentParams = this.route.parent?.params ?? of({} as Params);
     combineLatest([parentParams, this.route.params])
       .pipe(
         takeUntil(this.destroy$),
