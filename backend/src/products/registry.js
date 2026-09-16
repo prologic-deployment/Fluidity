@@ -1012,7 +1012,7 @@ function rolePermissions(roleKey, productKey) {
     project_lead: ['project.project.read', 'project.task.create', 'project.task.read', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.comment', 'project.time.manage', 'project.activity.read'],
     developer: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log', 'project.activity.read'],
     designer: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log', 'project.activity.read'],
-    qa: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.issue.manage', 'project.file.manage', 'project.time.log', 'project.activity.read'],
+    qa: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.complete', 'project.task.comment', 'project.issue.manage', 'project.file.manage', 'project.time.log', 'project.activity.read'],
     stakeholder: ['project.project.read', 'project.task.read', 'project.task.comment', 'project.milestone.read', 'project.activity.read', 'project.report.read'],
     project_member: ['project.project.read', 'project.task.read', 'project.task.update', 'project.task.comment', 'project.file.manage', 'project.time.log'],
     project_viewer: ['project.project.read', 'project.task.read', 'project.activity.read', 'project.report.read'],

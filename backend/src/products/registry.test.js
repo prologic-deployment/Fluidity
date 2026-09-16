@@ -113,6 +113,14 @@ check('projet : transition non déclarée refusée', () =>
 check('projet : permission manquante refusée (review→completed sans task.complete)', () =>
   assert.strictEqual(canTransition('project_management', 'review', 'completed', ['project.task.read']).reason, 'PERMISSION_DENIED')
 );
+// Fix 8 (A5.3) : le rôle QA détient task.complete — la portée « review »
+// est structurelle (seule arête review→completed l'exige).
+check('projet : QA peut clôturer review→completed (gate QA)', () =>
+  assert.deepStrictEqual(canTransition('project_management', 'review', 'completed', proj('qa')), { ok: true, reason: 'OK' })
+);
+check('projet : task.complete QA ne permet aucun raccourci (portée review)', () =>
+  assert.strictEqual(canTransition('project_management', 'todo', 'completed', proj('qa')).ok, false)
+);
 check('projet : wildcard admin autorisé (permissions [*])', () =>
   assert.deepStrictEqual(canTransition('project_management', 'backlog', 'todo', ['*']), { ok: true, reason: 'OK' })
 );
