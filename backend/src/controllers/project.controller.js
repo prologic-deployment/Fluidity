@@ -19,6 +19,7 @@ const { effectiveWorkflow } = require('../utils/project-workflow.util');
 const { ARCHIVED_STATUS, isProjectArchived } = require('../utils/project-archive.util');
 const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
 const { computeBudgetActuals } = require('../utils/budget.util');
+const { closureGuard, buildClosureSummary } = require('../utils/closure.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers, notifyProjectManager, notifyUser } = require('../services/project-notify.service');
@@ -54,6 +55,8 @@ function serializeProject(p, extra = {}) {
     businessValue: p.businessValue,
     estimatedEffortHours: p.estimatedEffortHours,
     color: p.color,
+    lessonsLearned: p.lessonsLearned,
+    closureReport: p.closureReport,
     attachments: p.attachments,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -397,7 +400,7 @@ const updateProject = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour modifier ce projet.' });
       return;
     }
-    const { name, description, stakeholder, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules, objectives, successCriteria, businessValue, estimatedEffortHours, color, healthOverride } = req.body;
+    const { name, description, stakeholder, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules, objectives, successCriteria, businessValue, estimatedEffortHours, color, healthOverride, lessonsLearned } = req.body;
     if (name !== undefined && !String(name).trim()) {
       res.status(400).json({ message: 'Le nom du projet est requis.' });
       return;
@@ -437,6 +440,42 @@ const updateProject = async (req, res) => {
         res.status(400).json({ code: 'INVALID_PROJECT_TRANSITION', message: `Transition de cycle de vie refusée : ${project.status} → ${canonical}.` });
         return;
       }
+      // Fix 23 : garde de complétion (blocage dur, pas de contournement silencieux).
+      if (canonical === 'completed') {
+        const [openTasks, openMilestones, openIssues] = await Promise.all([
+          Task.countDocuments({ tenantId: req.tenantId, projectId: project._id, parentTaskId: null, status: { $nin: ['completed', 'cancelled'] } }),
+          Milestone.countDocuments({ tenantId: req.tenantId, projectId: project._id, status: { $ne: 'completed' } }),
+          Issue.countDocuments({ tenantId: req.tenantId, projectId: project._id, status: { $nin: ['resolved', 'closed'] } }),
+        ]);
+        const gate = closureGuard({ openTasks, openMilestones, openIssues });
+        if (!gate.allowed) {
+          res.status(409).json({
+            code: 'COMPLETION_BLOCKED',
+            message: `Clôture impossible : éléments ouverts restants (tâches : ${openTasks}, jalons/phases : ${openMilestones}, problèmes : ${openIssues}).`,
+            blockers: gate.blockers,
+          });
+          return;
+        }
+        // Rapport final figé (prévu vs livré).
+        const [counts, ms, iss, sp] = await Promise.all([
+          taskCounts(req.tenantId, project._id),
+          Milestone.aggregate([{ $match: { tenantId: req.tenantId, projectId: project._id } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
+          Issue.aggregate([{ $match: { tenantId: req.tenantId, projectId: project._id } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
+          Sprint.aggregate([{ $match: { tenantId: req.tenantId, projectId: project._id } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
+        ]);
+        const sum = (rows, keys) => rows.filter((r) => keys.includes(r._id)).reduce((a, r) => a + r.n, 0);
+        const tot = (rows) => rows.reduce((a, r) => a + r.n, 0);
+        project.closureReport = buildClosureSummary(
+          {
+            tasksTotal: counts.total, tasksCompleted: counts.completed, tasksCancelled: counts.cancelled,
+            milestonesTotal: tot(ms), milestonesCompleted: sum(ms, ['completed']),
+            issuesTotal: tot(iss), issuesResolved: sum(iss, ['resolved', 'closed']),
+            sprintsTotal: tot(sp), sprintsCompleted: sum(sp, ['completed']),
+          },
+          { closedAt: new Date(), plannedStartDate: project.startDate, plannedEndDate: project.endDate },
+          req.userId
+        );
+      }
       const from = project.status;
       project.status = canonical;
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.project_status_changed', targetType: 'project', targetId: project._id, metadata: { from, to: canonical } });
@@ -451,6 +490,7 @@ const updateProject = async (req, res) => {
     if (priority !== undefined) project.priority = priority;
     if (visibility !== undefined) project.visibility = visibility;
     if (tags !== undefined) project.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
+    if (lessonsLearned !== undefined) project.lessonsLearned = String(lessonsLearned || '').slice(0, 8000);
     if (startDate !== undefined) project.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) project.endDate = endDate ? new Date(endDate) : null;
     if (budget !== undefined) {

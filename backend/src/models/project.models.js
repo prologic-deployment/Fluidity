@@ -113,6 +113,19 @@ const ProjectSchema = new Schema(
     objectives: { type: String, default: '', maxlength: 3000 },
     successCriteria: { type: String, default: '', maxlength: 3000 },
     businessValue: { type: String, default: '', maxlength: 3000 },
+    /** A5.3 Fix 23 : leçons apprises + rapport final figé à la clôture. */
+    lessonsLearned: { type: String, default: '', maxlength: 8000 },
+    closureReport: {
+      closedAt: { type: Date, default: null },
+      closedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+      plannedStartDate: { type: Date, default: null },
+      plannedEndDate: { type: Date, default: null },
+      onTime: { type: Boolean, default: null },
+      tasks: { total: { type: Number, default: 0 }, completed: { type: Number, default: 0 }, cancelled: { type: Number, default: 0 } },
+      milestones: { total: { type: Number, default: 0 }, completed: { type: Number, default: 0 } },
+      issues: { total: { type: Number, default: 0 }, resolved: { type: Number, default: 0 } },
+      sprints: { total: { type: Number, default: 0 }, completed: { type: Number, default: 0 } },
+    },
     estimatedEffortHours: { type: Number, default: 0, min: 0 },
     color: { type: String, default: '' },
     attachments: [

@@ -69,6 +69,15 @@ export interface Project {
   businessValue?: number;
   estimatedEffortHours?: number;
   color?: string;
+  lessonsLearned?: string;
+  closureReport?: {
+    closedAt: string | null; closedBy: string | null;
+    plannedStartDate: string | null; plannedEndDate: string | null; onTime: boolean | null;
+    tasks: { total: number; completed: number; cancelled: number };
+    milestones: { total: number; completed: number };
+    issues: { total: number; resolved: number };
+    sprints: { total: number; completed: number };
+  } | null;
   attachments: { name: string; url: string; size?: number }[];
   createdAt: string;
   updatedAt?: string;

@@ -115,6 +115,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
             budgetCurrency: r.project.budget?.currency || 'EUR',
           };
           this.override = { status: r.project.healthOverride?.status || '', reason: r.project.healthOverride?.reason || '' };
+          this.lessons = r.project.lessonsLearned || '';
           this.wfStates = (r.workflow.states || []).map((s) => ({ key: s.key, label: s.label || '', color: s.color || '', terminal: !!s.terminal, wipLimit: s.wipLimit || 0 }));
           if (r.project.healthRules) this.health = { ...this.health, ...r.project.healthRules };
           this.loading = false;
@@ -186,12 +187,27 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
     return PROJECT_LIFECYCLE[this.project.status] || [];
   }
 
+  lessons = '';
+
+  /** Leçons apprises (clôture, Fix 23). */
+  saveLessons(): void {
+    if (!this.project) return;
+    this.api.update(this.projectId, { lessonsLearned: this.lessons }).subscribe({
+      next: (r) => {
+        this.project = { ...this.project!, ...r.project };
+        this.toast.success(this.i18n.t('projects.settings.saved'));
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
   changeStatus(status: Project['status']): void {
     if (!this.project) return;
     this.api.update(this.projectId, { status }).subscribe({
       next: (r) => {
         this.project = { ...this.project!, ...r.project };
         this.form.status = r.project.status;
+        this.lessons = r.project.lessonsLearned || '';
         this.toast.success(this.i18n.t('projects.settings.lifecycleChanged'));
       },
       error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),

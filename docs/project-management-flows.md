@@ -239,3 +239,25 @@ note right of in_progress
 end note
 @enduml
 ```
+
+## 10. Clôture projet (garde + rapport final)
+
+```plantuml
+@startuml
+active --> completed : Clôturer [garde OK]
+completed --> active : Rouvrir (rapport conservé)
+completed --> archived : Archiver
+
+note right of completed
+  Garde de complétion : la transition vers
+  completed est refusée (409 COMPLETION_BLOCKED)
+  tant qu'il reste des tâches, jalons/phases ou
+  problèmes ouverts. À la clôture, un rapport
+  final est figé (prévu vs livré : tâches,
+  jalons, problèmes, sprints + respect des
+  délais) ; les leçons apprises sont saisies
+  dans les paramètres. Le projet clôturé
+  affiche un bandeau distinct du mode archive.
+end note
+@enduml
+```

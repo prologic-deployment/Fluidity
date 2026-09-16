@@ -128,7 +128,29 @@
             </button>
           </div>
           <p *ngIf="!nextStatuses().length" class="text-xs text-muted-foreground">{{ 'projects.settings.noNextStatus' | t }}</p>
+          <div class="mt-4">
+            <label class="field-label">{{ 'projects.settings.lessons' | t }}</label>
+            <textarea [(ngModel)]="lessons" rows="4" maxlength="8000" class="input" [disabled]="!canManage" placeholder="{{ 'projects.settings.lessonsPh' | t }}"></textarea>
+            <div class="flex justify-end mt-2" *ngIf="canManage">
+              <button type="button" class="btn-secondary btn-sm" (click)="saveLessons()">{{ 'common.save' | t }}</button>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <!-- Rapport de clôture (Fix 23) -->
+      <div class="card" *ngIf="project.closureReport?.closedAt">
+        <div class="card-header py-3 flex items-center justify-between">
+          <span>{{ 'projects.settings.closure' | t }}</span>
+          <span class="badge" [ngClass]="project.closureReport!.onTime === false ? 'badge-destructive' : 'badge-success'">{{ 'projects.settings.onTime.' + (project.closureReport!.onTime === false ? 'late' : project.closureReport!.onTime === true ? 'yes' : 'na') | t }}</span>
+        </div>
+        <div class="card-content p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+          <div><p class="text-lg font-semibold tabular-nums">{{ project.closureReport!.tasks.completed }}/{{ project.closureReport!.tasks.total }}</p><p class="text-xs text-muted-foreground">{{ 'projects.settings.closureTasks' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ project.closureReport!.milestones.completed }}/{{ project.closureReport!.milestones.total }}</p><p class="text-xs text-muted-foreground">{{ 'projects.settings.closureMilestones' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ project.closureReport!.issues.resolved }}/{{ project.closureReport!.issues.total }}</p><p class="text-xs text-muted-foreground">{{ 'projects.settings.closureIssues' | t }}</p></div>
+          <div><p class="text-lg font-semibold tabular-nums">{{ project.closureReport!.sprints.completed }}/{{ project.closureReport!.sprints.total }}</p><p class="text-xs text-muted-foreground">{{ 'projects.settings.closureSprints' | t }}</p></div>
+        </div>
+        <div class="card-content px-4 pb-4 text-xs text-muted-foreground">{{ 'projects.settings.closedAt' | t }} : {{ project.closureReport!.closedAt | dateLocale:'short' }}</div>
       </div>
 
       <!-- Workflow personnalisé -->
