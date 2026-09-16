@@ -87,7 +87,7 @@ stateDiagram-v2
     submitted --> rejected: Rejet (rang ≥ 4) + motif
     draft --> [*]: Suppression
     approved --> [*]
-    rejected --> draft: Révision et re-soumission
+    rejected --> submitted: Re-soumission (version +1, motif archivé en historique)
 
     note right of submitted
       Le chef de projet est notifié (deliverable_submitted) ;

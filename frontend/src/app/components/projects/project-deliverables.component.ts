@@ -30,6 +30,7 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
   projectId = '';
   deliverables: Deliverable[] = [];
   canApprove = false;
+  canSubmit = false;
 
   creating = false;
   editing: Deliverable | null = null;
@@ -59,6 +60,8 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
           this.api.get(p['id']).subscribe((r) => {
             // Approbation : manager, PO, Scrum Master ou admin (miroir du rang serveur).
             this.canApprove = ['project_admin', 'project_manager', 'product_owner', 'scrum_master'].includes(r.myRole.roleKey);
+            // Soumission / re-soumission : rang serveur ≥ 2 (miroir de CAN.updateTasks).
+            this.canSubmit = ['project_admin', 'project_manager', 'product_owner', 'scrum_master', 'project_lead', 'developer', 'designer', 'qa'].includes(r.myRole.roleKey);
           });
           return this.api.deliverables(p['id']);
         })
@@ -88,7 +91,8 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
   }
 
   openEdit(d: Deliverable): void {
-    if (d.status !== 'draft') return;
+    // Un livrable rejeté reste révisable avant re-soumission (Fix 2).
+    if (d.status !== 'draft' && d.status !== 'rejected') return;
     this.editing = d;
     this.creating = false;
     this.form = {
@@ -130,6 +134,16 @@ export class ProjectDeliverablesComponent implements OnInit, OnDestroy {
       next: () => {
         this.refresh();
         this.toast.success(this.i18n.t('projects.deliverables.submitted'));
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  resubmit(d: Deliverable): void {
+    this.api.transitionDeliverable(this.projectId, d._id, 'submitted').subscribe({
+      next: () => {
+        this.refresh();
+        this.toast.success(this.i18n.t('projects.deliverables.resubmitted'));
       },
       error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });

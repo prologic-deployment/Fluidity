@@ -312,6 +312,16 @@ const DeliverableSchema = new Schema(
     approvedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
     approvedAt: { type: Date, default: null },
     rejectionNote: { type: String, default: '', maxlength: 1000 },
+    /** A5.3 Fix 2 : historique des verdicts (version jugée, décision, motif). */
+    reviewHistory: [
+      {
+        version: Number,
+        decision: { type: String, enum: ['approved', 'rejected'] },
+        note: { type: String, default: '' },
+        decidedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+        decidedAt: { type: Date, default: null },
+      },
+    ],
   },
   { timestamps: true }
 );

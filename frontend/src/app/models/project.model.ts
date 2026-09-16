@@ -235,7 +235,16 @@ export interface Deliverable {
   approvedBy?: UserBrief | string | null;
   approvedAt: string | null;
   rejectionNote: string;
+  reviewHistory?: DeliverableReview[];
   createdAt?: string;
+}
+
+export interface DeliverableReview {
+  version: number;
+  decision: 'approved' | 'rejected';
+  note: string;
+  decidedBy?: UserBrief | string | null;
+  decidedAt: string | null;
 }
 
 export interface ProjectEvent {

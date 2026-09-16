@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { Project, Deliverable, Milestone } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
+const { planDeliverableTransition } = require('../utils/deliverable-workflow.util');
 const { notifyUser, notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
 const logger = require('../utils/logger.util');
@@ -33,6 +34,7 @@ function serializeDeliverable(d, extra = {}) {
     approvedBy: d.approvedBy,
     approvedAt: d.approvedAt,
     rejectionNote: d.rejectionNote,
+    reviewHistory: d.reviewHistory || [],
     createdAt: d.createdAt,
     updatedAt: d.updatedAt,
     ...extra,
@@ -148,21 +150,26 @@ const transitionDeliverable = async (req, res) => {
       return;
     }
     const { to, note } = req.body;
+    // A5.3 Fix 2 : les règles de transition vivent dans deliverable-workflow.util
+    // (testées) ; le contrôleur ne garde que les contrôles d'autorisation.
+    if (to === 'submitted' && !can(role, CAN.updateTasks)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour soumettre un livrable.' });
+      return;
+    }
+    if ((to === 'approved' || to === 'rejected') && !can(role, CAN.approveWork)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Réservé au Chef de projet ou au Product Owner.' });
+      return;
+    }
+    const plan = planDeliverableTransition(deliverable, to, { actorId: req.userId, note });
+    if (!plan.ok) {
+      res.status(plan.status).json({ message: plan.message });
+      return;
+    }
+    Object.assign(deliverable, plan.updates);
+    if (plan.historyEntry) deliverable.reviewHistory.push(plan.historyEntry);
+    await deliverable.save();
     if (to === 'submitted') {
-      if (!can(role, CAN.updateTasks)) {
-        res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour soumettre un livrable.' });
-        return;
-      }
-      if (deliverable.status !== 'draft') {
-        res.status(400).json({ message: 'Seul un livrable en brouillon peut être soumis.' });
-        return;
-      }
-      deliverable.status = 'submitted';
-      deliverable.submittedBy = req.userId;
-      deliverable.submittedAt = new Date();
-      deliverable.version = (deliverable.version || 1);
-      await deliverable.save();
-      // Le chef de projet est notifié d'une nouvelle soumission.
+      // Le chef de projet est notifié d'une nouvelle soumission (ou re-soumission).
       if (project.managerId) {
         await notifyUser({
           tenantId: req.tenantId, projectId: project._id, userId: project.managerId, event: 'deliverable_submitted',
@@ -170,23 +177,9 @@ const transitionDeliverable = async (req, res) => {
           link: `/projets/${project._id}/livrables`,
         });
       }
-      await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.deliverable_submitted', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title } });
-    } else if (to === 'approved' || to === 'rejected') {
-      if (!can(role, CAN.approveWork)) {
-        res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Réservé au Chef de projet ou au Product Owner.' });
-        return;
-      }
-      if (deliverable.status !== 'submitted') {
-        res.status(400).json({ message: 'Seul un livrable soumis peut être approuvé ou rejeté.' });
-        return;
-      }
-      deliverable.status = to;
-      deliverable.approvedBy = req.userId;
-      deliverable.approvedAt = new Date();
-      if (to === 'rejected') deliverable.rejectionNote = String(note || '').slice(0, 1000);
-      else deliverable.rejectionNote = '';
-      await deliverable.save();
-      await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: to === 'approved' ? 'projects.activity.deliverable_approved' : 'projects.activity.deliverable_rejected', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title } });
+      await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: plan.resubmit ? 'projects.activity.deliverable_resubmitted' : 'projects.activity.deliverable_submitted', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title, version: deliverable.version } });
+    } else {
+      await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: to === 'approved' ? 'projects.activity.deliverable_approved' : 'projects.activity.deliverable_rejected', targetType: 'deliverable', targetId: deliverable._id, metadata: { title: deliverable.title, version: deliverable.version } });
       if (deliverable.submittedBy && String(deliverable.submittedBy) !== String(req.userId)) {
         await notifyUser({
           tenantId: req.tenantId, projectId: project._id, userId: deliverable.submittedBy,
@@ -195,9 +188,6 @@ const transitionDeliverable = async (req, res) => {
           link: `/projets/${project._id}/livrables`,
         });
       }
-    } else {
-      res.status(400).json({ message: 'Transition invalide.' });
-      return;
     }
     res.json({ deliverable: serializeDeliverable(deliverable) });
   } catch (err) {
