@@ -10,12 +10,13 @@ import { ToastService } from '../../services/toast.service';
 import { UploadService, UploadedFile } from '../../services/upload.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities, TestCase, Issue } from '../../models/project.model';
+import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities, TestCase, Issue, Sprint, Milestone } from '../../models/project.model';
 import { BreadcrumbService } from '../shared/breadcrumb.service';
 import { ProjectStatePipe } from './project.pipes';
-import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
+import { PRIORITIES, PRIORITY_BADGE, TASK_TYPES } from './project.constants';
 import { UrlUploadPipe } from '../../pipes/upload-url.pipe';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 
 /**
  * Fiche tâche (route /projets/:id/taches/:taskId) : champs, transitions de
@@ -54,7 +55,16 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   editDue = '';
   editEstimated = 0;
   editLogged = 0;
+  editRemaining = 0;
+  editPoints = 0;
+  editAC = '';
+  editType: Task['type'] = 'task';
+  editEpic = '';
+  editSprint = '';
+  editMilestone = '';
   editTags = '';
+  sprintsList: Sprint[] = [];
+  milestonesList: Milestone[] = [];
   newChecklist = '';
   newSubtask = '';
   commentText = '';
@@ -67,6 +77,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   tcNote: Record<string, string> = {};
 
   readonly priorities = PRIORITIES;
+  readonly taskTypes = TASK_TYPES;
   readonly priorityBadge = PRIORITY_BADGE;
 
   private readonly destroy$ = new Subject<void>();
@@ -81,6 +92,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     private uploads: UploadService,
     private breadcrumbs: BreadcrumbService,
     private capsApi: ProjectCapabilitiesService,
+    private confirm: ConfirmDialogService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -164,7 +176,15 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       }),
       switchMap((il) => {
         this.issues = il.issues;
-        return of(il);
+        return this.api.sprints(this.projectId);
+      }),
+      switchMap((sl) => {
+        this.sprintsList = sl.sprints;
+        return this.api.milestones(this.projectId);
+      }),
+      switchMap((ml) => {
+        this.milestonesList = ml.milestones;
+        return of(ml);
       })
     );
   }
@@ -178,6 +198,13 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     this.editDue = t.dueDate ? t.dueDate.slice(0, 10) : '';
     this.editEstimated = t.estimatedHours;
     this.editLogged = t.loggedHours;
+    this.editRemaining = t.remainingHours || 0;
+    this.editPoints = t.points || 0;
+    this.editAC = t.acceptanceCriteria || '';
+    this.editType = t.type;
+    this.editEpic = t.epicId || '';
+    this.editSprint = t.sprintId || '';
+    this.editMilestone = t.milestoneId || '';
     this.editTags = (t.tags || []).join(', ');
   }
 
@@ -222,6 +249,33 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   get canTransitionTask(): boolean {
     if (!this.task) return false;
     return hasProjectPermission(this.caps, 'project.task.update') && (this.isAssignee() || !!this.caps?.can.manageTasks);
+  }
+
+  /** Suppression : `task.delete` + rang ≥ 3, comme le backlog (Fix 24). */
+  get canDeleteTask(): boolean {
+    return hasProjectPermission(this.caps, 'project.task.delete') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Epics du projet (sélecteur de rattachement). */
+  epics(): Task[] {
+    return (this.projectTasks || []).filter((t) => t.type === 'epic' && t._id !== this.taskId);
+  }
+
+  async removeTask(): Promise<void> {
+    if (!this.task) return;
+    const ok = await this.confirm.confirm({
+      title: this.i18n.t('projects.task.deleteTitle'),
+      message: this.i18n.t('projects.task.deleteBody', { ref: this.task.ref }),
+      confirmLabel: this.i18n.t('common.delete'),
+    });
+    if (!ok) return;
+    this.api.deleteTask(this.projectId, this.taskId).subscribe({
+      next: () => {
+        this.toast.success(this.i18n.t('projects.backlog.deleted'));
+        this.router.navigate(['/projets', this.projectId, 'taches']);
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
   }
 
   /** Sous-tâche : `task.create` + rang ≥ 3, comme le serveur. */
@@ -362,6 +416,13 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
         dueDate: this.editDue || null,
         estimatedHours: Number(this.editEstimated) || 0,
         loggedHours: Number(this.editLogged) || 0,
+        remainingHours: Number(this.editRemaining) || 0,
+        points: Number(this.editPoints) || 0,
+        acceptanceCriteria: this.editAC,
+        type: this.editType,
+        epicId: this.editEpic || null,
+        sprintId: this.editSprint || null,
+        milestoneId: this.editMilestone || null,
         tags: this.editTags.split(',').map((t) => t.trim()).filter(Boolean),
       })
       .subscribe({

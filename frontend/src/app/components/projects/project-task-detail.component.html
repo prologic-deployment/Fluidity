@@ -43,6 +43,10 @@
               <label class="field-label">{{ 'projects.fields.description' | t }}</label>
               <textarea [(ngModel)]="editDescription" rows="4" class="input" [attr.placeholder]="'projects.task.descPh' | t"></textarea>
             </div>
+            <div>
+              <label class="field-label">{{ 'projects.fields.acceptanceCriteria' | t }}</label>
+              <textarea [(ngModel)]="editAC" rows="3" class="input" placeholder="{{ 'projects.task.acPh' | t }}"></textarea>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
@@ -73,12 +77,49 @@
                 <label class="field-label">{{ 'projects.fields.logged' | t }} (h)</label>
                 <input type="number" min="0" step="1" [(ngModel)]="editLogged" class="input" />
               </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.remaining' | t }} (h)</label>
+                <input type="number" min="0" step="1" [(ngModel)]="editRemaining" class="input" />
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.points' | t }}</label>
+                <input type="number" min="0" step="1" [(ngModel)]="editPoints" class="input" [disabled]="!caps?.can.manageBacklog" />
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.type' | t }}</label>
+                <select [(ngModel)]="editType" class="input">
+                  <option *ngFor="let ty of taskTypes" [value]="ty">{{ 'projects.meta.taskType.' + ty | t }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.fields.epic' | t }}</label>
+                <select [(ngModel)]="editEpic" class="input">
+                  <option value="">—</option>
+                  <option *ngFor="let e of epics()" [value]="e._id">{{ e.ref }} — {{ e.title }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.tabs.sprints' | t }}</label>
+                <select [(ngModel)]="editSprint" class="input" [disabled]="!caps?.can.manageBacklog">
+                  <option value="">—</option>
+                  <option *ngFor="let sp of sprintsList" [value]="sp._id">{{ sp.name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">{{ 'projects.tabs.milestones' | t }}</label>
+                <select [(ngModel)]="editMilestone" class="input">
+                  <option value="">—</option>
+                  <option *ngFor="let ms of milestonesList" [value]="ms._id">{{ ms.name }}</option>
+                </select>
+              </div>
             </div>
             <div>
               <label class="field-label">{{ 'projects.fields.tags' | t }}</label>
               <input type="text" [(ngModel)]="editTags" class="input" placeholder="{{ 'projects.task.tagsPh' | t }}" />
             </div>
-            <div class="flex justify-end">
+            <div class="flex justify-between">
+              <button *ngIf="canDeleteTask" type="button" class="btn-ghost btn-sm text-destructive" (click)="removeTask()">{{ 'common.delete' | t }}</button>
+              <span *ngIf="!canDeleteTask"></span>
               <button *ngIf="canEditTask" type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
             </div>
           </fieldset>

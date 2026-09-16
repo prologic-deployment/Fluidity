@@ -11,6 +11,7 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { apiErrorMessage } from '../../utils/api-error.util';
 import { AuthService } from '../../services/auth.service';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { ProjectCapabilities } from '../../models/project.model';
 
@@ -47,6 +48,7 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
     private i18n: I18nService,
     private auth: AuthService,
     private capsApi: ProjectCapabilitiesService,
+    private confirm: ConfirmDialogService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -156,7 +158,13 @@ export class ProjectBacklogComponent implements OnInit, OnDestroy {
     });
   }
 
-  remove(t: Task): void {
+  async remove(t: Task): Promise<void> {
+    const ok = await this.confirm.confirm({
+      title: this.i18n.t('projects.backlog.deleteTitle'),
+      message: this.i18n.t('projects.backlog.deleteBody', { ref: t.ref }),
+      confirmLabel: this.i18n.t('common.delete'),
+    });
+    if (!ok) return;
     this.api.deleteTask(this.projectId, t._id).subscribe({
       next: () => {
         this.refresh();

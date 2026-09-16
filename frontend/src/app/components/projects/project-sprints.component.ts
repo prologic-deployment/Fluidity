@@ -12,6 +12,7 @@ import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { ProjectStatePipe } from './project.pipes';
 import { apiErrorMessage } from '../../utils/api-error.util';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 
 /**
  * Sprints SCRUM (route /projets/:id/sprints) : cycle planned → active →
@@ -49,6 +50,7 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     private toast: ToastService,
     private i18n: I18nService,
     private capsApi: ProjectCapabilitiesService,
+    private confirm: ConfirmDialogService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -210,7 +212,13 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
     });
   }
 
-  remove(s: Sprint): void {
+  async remove(s: Sprint): Promise<void> {
+    const ok = await this.confirm.confirm({
+      title: this.i18n.t('projects.sprints.deleteTitle'),
+      message: this.i18n.t('projects.sprints.deleteBody', { name: s.name }),
+      confirmLabel: this.i18n.t('common.delete'),
+    });
+    if (!ok) return;
     this.api.deleteSprint(this.projectId, s._id).subscribe({
       next: () => {
         this.refresh();
