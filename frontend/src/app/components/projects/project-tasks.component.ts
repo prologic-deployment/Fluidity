@@ -4,11 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { Task, WorkflowState } from '../../models/project.model';
+import { ProjectMember, Task, WorkflowState } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
 import { ProjectStatePipe } from './project.pipes';
-import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
+import { PRIORITIES, PRIORITY_BADGE, TASK_TYPES } from './project.constants';
 import { apiErrorMessage } from '../../utils/api-error.util';
 import { I18nService } from '../../i18n/i18n.service';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
@@ -41,10 +41,13 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
 
   // Création rapide
   creating = false;
-  newTask = { title: '', priority: 'medium', status: '', assigneeId: '', dueDate: '' };
+  newTask = { title: '', description: '', type: 'task', priority: 'medium', status: '', assigneeId: '', dueDate: '' };
   submitting = false;
+  createError = '';
+  members: ProjectMember[] = [];
 
   readonly priorities = PRIORITIES;
+  readonly taskTypes = TASK_TYPES;
   readonly priorityBadge = PRIORITY_BADGE;
   caps: ProjectCapabilities | null = null;
 
@@ -74,10 +77,36 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
                 this.cdr.markForCheck();
               },
             });
+          // Assigné du formulaire de création : membres du projet.
+          this.api
+            .members(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (m) => {
+                this.members = m.members;
+                this.cdr.markForCheck();
+              },
+            });
           return this.load();
         })
       )
-      .subscribe();
+      .subscribe({
+        // La réponse initiale était jetée (subscribe vide) : la liste
+        // restait en chargement et le workflow vide cassait le formulaire.
+        next: (r) => {
+          this.tasks = r.tasks;
+          this.workflow = r.workflow?.states || [];
+          this.total = r.total;
+          this.pages = r.pages;
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.error = 'projects.errors.load';
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   /** Création : permission `task.create` + rang ≥ 3, comme le serveur. */
@@ -110,7 +139,7 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
     this.load().subscribe({
       next: (r) => {
         this.tasks = r.tasks;
-        this.workflow = r.workflow.states;
+        this.workflow = r.workflow?.states || [];
         this.total = r.total;
         this.pages = r.pages;
         this.loading = false;
@@ -143,15 +172,19 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
 
   openCreate(): void {
     this.creating = true;
-    this.newTask = { title: '', priority: 'medium', status: this.workflow[0]?.key || 'backlog', assigneeId: '', dueDate: '' };
+    this.createError = '';
+    this.newTask = { title: '', description: '', type: 'task', priority: 'medium', status: this.workflow[0]?.key || 'backlog', assigneeId: '', dueDate: '' };
   }
 
   submitCreate(): void {
     if (!this.newTask.title.trim()) return;
     this.submitting = true;
+    this.createError = '';
     this.api
       .createTask(this.projectId, {
-        title: this.newTask.title,
+        title: this.newTask.title.trim(),
+        description: this.newTask.description.trim(),
+        type: this.newTask.type as Task['type'],
         priority: this.newTask.priority as Task['priority'],
         status: this.newTask.status,
         assigneeId: this.newTask.assigneeId || null,
@@ -161,13 +194,25 @@ export class ProjectTasksComponent implements OnInit, OnDestroy {
         next: () => {
           this.creating = false;
           this.submitting = false;
+          this.page = 1;
           this.refresh();
         },
         error: (err) => {
-          this.error = apiErrorMessage(this.i18n, err, 'projects.errors.create');
+          // Erreur affichée DANS la modale (le bandeau de page est masqué derrière).
+          this.createError = apiErrorMessage(this.i18n, err, 'projects.errors.create');
           this.submitting = false;
+          this.cdr.markForCheck();
         },
       });
+  }
+
+  memberIdOf(m: ProjectMember): string {
+    return typeof m.userId === 'object' ? m.userId?._id || '' : m.userId;
+  }
+
+  memberNameOf(m: ProjectMember): string {
+    const u = typeof m.userId === 'object' ? m.userId : null;
+    return u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '';
   }
 
   trackTask(_i: number, t: Task): string {

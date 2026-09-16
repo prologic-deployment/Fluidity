@@ -12,52 +12,58 @@
       </div>
 
       <ng-container *ngIf="project">
-        <div class="flex flex-wrap items-start gap-3">
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5">{{ project.code }}</span>
-              <h1 class="text-lg font-semibold tracking-tight truncate max-w-full">{{ project.name }}</h1>
-              <span class="badge badge-secondary">{{ 'projects.meta.status.' + project.status | t }}</span>
-              <span class="badge" [ngClass]="healthBadge[data?.health?.status || 'on_track']">{{ 'projects.health.' + (data?.health?.status || 'on_track') | t }}</span>
-              <span class="badge badge-outline">{{ 'projects.meta.methodology.' + project.methodology | t }}</span>
-            </div>
-            <p class="text-sm text-muted-foreground mt-1 line-clamp-1">{{ project.description }}</p>
-          </div>
-          <div class="flex items-center gap-3 text-xs text-muted-foreground shrink-0 flex-wrap">
-            <span>{{ 'projects.fields.deadline' | t }} :
-              <span class="font-medium text-foreground" [class.text-red-600]="isPast(project.endDate) && project.status !== 'completed'">{{ project.endDate | dateLocale:'short' }}</span>
+        <!-- Titre + badges -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" class="btn-ghost btn-icon-sm -ml-2 shrink-0" (click)="goBack()" [title]="'common.back' | t" [attr.aria-label]="'common.back' | t">←</button>
+          <span class="font-mono text-xs text-muted-foreground border border-border rounded px-1.5 py-0.5 shrink-0">{{ project.code }}</span>
+          <h1 class="text-lg font-semibold tracking-tight truncate min-w-0 flex-1 basis-40">{{ project.name }}</h1>
+          <span class="badge badge-secondary shrink-0">{{ 'projects.meta.status.' + project.status | t }}</span>
+          <span class="badge shrink-0" [ngClass]="healthBadge[data?.health?.status || 'on_track']">{{ 'projects.health.' + (data?.health?.status || 'on_track') | t }}</span>
+          <span class="badge badge-outline shrink-0">{{ 'projects.meta.methodology.' + project.methodology | t }}</span>
+        </div>
+        <p *ngIf="project.description" class="text-sm text-muted-foreground mt-1 line-clamp-1">{{ project.description }}</p>
+
+        <!-- Méta + progression -->
+        <div class="flex items-center gap-x-5 gap-y-2 mt-2.5 text-xs text-muted-foreground flex-wrap">
+          <span class="inline-flex items-center gap-1.5">
+            <span class="uppercase tracking-wide text-[10px]">{{ 'projects.fields.deadline' | t }}</span>
+            <span class="font-medium text-foreground tabular-nums" [class.text-red-600]="isPast(project.endDate) && project.status !== 'completed'">{{ project.endDate | dateLocale:'short' }}</span>
+          </span>
+          <span *ngIf="project.manager" class="inline-flex items-center gap-1.5">
+            <span class="uppercase tracking-wide text-[10px]">{{ 'projects.fields.manager' | t }}</span>
+            <span class="font-medium text-foreground">{{ project.manager.firstName }} {{ project.manager.lastName }}</span>
+          </span>
+          <span *ngIf="project.client" class="inline-flex items-center gap-1.5">
+            <span class="uppercase tracking-wide text-[10px]">{{ 'projects.fields.client' | t }}</span>
+            <span class="font-medium text-foreground">{{ project.client.nom }}</span>
+          </span>
+          <span *ngIf="teamList.length" class="inline-flex items-center">
+            <span *ngFor="let m of teamList; let first = first" class="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium ring-2 ring-card overflow-hidden shrink-0" [class.-ml-1.5]="!first" [title]="m.name">
+              <img *ngIf="m.avatarUrl" [src]="m.avatarUrl | urlUpload" class="w-full h-full object-cover" alt="" />
+              <ng-container *ngIf="!m.avatarUrl">{{ initials(m.name) }}</ng-container>
             </span>
-            <span *ngIf="project.manager">{{ 'projects.fields.manager' | t }} :
-              <span class="font-medium text-foreground">{{ project.manager.firstName }} {{ project.manager.lastName }}</span>
-            </span>
-            <span *ngIf="project.client">{{ 'projects.fields.client' | t }} :
-              <span class="font-medium text-foreground">{{ project.client.nom }}</span>
-            </span>
-            <span class="flex items-center gap-1">
-              <span *ngFor="let m of teamList" class="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium border border-border overflow-hidden shrink-0" [title]="m.name">
-                <img *ngIf="m.avatarUrl" [src]="m.avatarUrl | urlUpload" class="w-full h-full object-cover" alt="" />
-                <ng-container *ngIf="!m.avatarUrl">{{ initials(m.name) }}</ng-container>
-              </span>
-            </span>
-          </div>
+            <span *ngIf="teamOverflow > 0" class="ml-1 tabular-nums">+{{ teamOverflow }}</span>
+          </span>
+          <span class="inline-flex items-center gap-2 ml-auto" *ngIf="taskStats">
+            <span class="tabular-nums">{{ taskStats.completed }}/{{ taskStats.total }}</span>
+            <span class="w-28 h-1.5 rounded-full bg-muted/60 overflow-hidden"><span class="block h-full rounded-full bg-gradient-to-r from-primary to-violet-500" [style.width.%]="progress"></span></span>
+            <span class="tabular-nums font-medium text-foreground">{{ progress }}%</span>
+          </span>
         </div>
 
-        <!-- Progression + onglets -->
-        <div class="flex items-center gap-3 mt-3">
-          <div class="flex items-center gap-2 text-xs text-muted-foreground shrink-0" *ngIf="progress !== null">
-            <div class="w-28 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="progress"></div></div>
-            <span class="tabular-nums">{{ progress }}%</span>
-          </div>
-          <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar -mb-px" [attr.aria-label]="'projects.tabs.label' | t">
+        <!-- Onglets -->
+        <nav class="relative mt-3 border-t border-border/60" [attr.aria-label]="'projects.tabs.label' | t">
+          <div class="flex items-stretch gap-0.5 overflow-x-auto no-scrollbar">
             <a
-              *ngFor="let tab of tabs"
+              *ngFor="let tab of visibleTabs"
               [routerLink]="tab.path"
               routerLinkActive="tab-active"
               [routerLinkActiveOptions]="{ exact: tab.exact }"
-              class="tab whitespace-nowrap"
-            >{{ tab.labelKey | t }}</a>
-          </nav>
-        </div>
+              class="tab"
+            >{{ tab.labelKey | t }}<span *ngIf="tab.count !== null && tab.count !== undefined" class="tab-count">{{ tab.count }}</span></a>
+          </div>
+          <span class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-card to-transparent" aria-hidden="true"></span>
+        </nav>
       </ng-container>
     </div>
   </header>

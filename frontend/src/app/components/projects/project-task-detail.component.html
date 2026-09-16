@@ -7,6 +7,7 @@
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
 
   <ng-container *ngIf="task">
+    <a [routerLink]="['/projets', projectId, 'taches']" class="btn-link text-xs mb-3 inline-flex">← {{ 'projects.tabs.tasks' | t }}</a>
     <div class="flex items-center gap-2 mb-4 flex-wrap">
       <span class="font-mono text-sm text-muted-foreground border border-border rounded px-1.5 py-0.5">{{ task.ref }}</span>
       <h2 class="text-base font-semibold truncate max-w-full">{{ task.title }}</h2>

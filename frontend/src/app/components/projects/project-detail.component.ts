@@ -15,6 +15,8 @@ interface Tab {
   labelKey: string;
   exact: boolean;
   show: boolean;
+  /** Pastille de compteur (null = aucune). */
+  count?: number | null;
 }
 
 /**
@@ -96,9 +98,10 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
     const base = `/projets/${p._id}`;
     const scrum = p.methodology === 'scrum' || p.methodology === 'hybrid';
     const waterfall = p.methodology === 'waterfall' || p.methodology === 'hybrid';
+    const openCount = this.taskStats ? this.taskStats.open : null;
     this.tabs = [
       { path: base, labelKey: 'projects.tabs.overview', exact: true, show: true },
-      { path: `${base}/taches`, labelKey: 'projects.tabs.tasks', exact: false, show: true },
+      { path: `${base}/taches`, labelKey: 'projects.tabs.tasks', exact: false, show: true, count: openCount },
       { path: `${base}/board`, labelKey: 'projects.tabs.board', exact: false, show: true },
       { path: `${base}/sprints`, labelKey: 'projects.tabs.sprints', exact: false, show: scrum },
       { path: `${base}/backlog`, labelKey: 'projects.tabs.backlog', exact: false, show: scrum },
@@ -117,6 +120,16 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
       { path: `${base}/rapports`, labelKey: 'projects.tabs.reports', exact: false, show: this.reportReadable },
       { path: `${base}/parametres`, labelKey: 'projects.tabs.settings', exact: false, show: true },
     ];
+  }
+
+  /** Onglets visibles (méthodologie + permissions) — `show` était calculé mais jamais appliqué. */
+  get visibleTabs(): Tab[] {
+    return this.tabs.filter((t) => t.show);
+  }
+
+  /** Membres au-delà des 8 avatars affichés. */
+  get teamOverflow(): number {
+    return Math.max(0, (this.data?.members || []).length - this.teamList.length);
   }
 
   /** Les sous-onglets planification (Waterfall) restent couverts par Jalons (phases). */

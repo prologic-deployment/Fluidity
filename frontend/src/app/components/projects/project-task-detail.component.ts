@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, of, switchMap, takeUntil } from 'rxjs';
+import { Subject, combineLatest, of, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { AuthService } from '../../services/auth.service';
@@ -97,13 +97,18 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.route.params
+    // `:id` vit sur la route PARENTE, `:taskId` sur la route courante —
+    // lire `p['id']` ici donnait `undefined` (GET /projects/undefined → erreur).
+    const parentParams = this.route.parent?.params ?? of({});
+    combineLatest([parentParams, this.route.params])
       .pipe(
         takeUntil(this.destroy$),
-        switchMap((p) => {
-          this.projectId = p['id'];
+        switchMap(([pp, p]) => {
+          this.projectId = pp['id'];
           this.taskId = p['taskId'];
           this.loading = true;
+          this.error = '';
+          this.task = null;
           return this.loadAll();
         })
       )
@@ -115,6 +120,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
         error: (err) => {
           this.error = err?.status === 404 ? 'projects.errors.taskNotFound' : 'projects.errors.load';
           this.loading = false;
+          this.cdr.markForCheck();
         },
       });
   }
@@ -145,7 +151,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       switchMap((r) => {
         this.data = r;
         this.task = r.task;
-        this.workflow = r.workflow.states;
+        this.workflow = r.workflow?.states || [];
         this.fillEdits(r.task);
         const me = this.auth.getUser()?.userId || '';
         this.watching = Array.isArray(r.task.watchers)

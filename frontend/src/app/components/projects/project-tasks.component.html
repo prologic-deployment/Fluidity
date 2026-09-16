@@ -82,9 +82,14 @@
   <!-- Création rapide -->
   <app-modal [open]="creating" [title]="'projects.tasks.new' | t" [subtitle]="'projects.tasks.newSub' | t" (closed)="creating = false">
     <div class="space-y-4">
+      <p *ngIf="createError" class="alert-destructive">{{ createError | t }}</p>
       <div>
         <label class="field-label">{{ 'projects.fields.title' | t }} *</label>
         <input type="text" [(ngModel)]="newTask.title" class="input" maxlength="200" [attr.placeholder]="'projects.tasks.newTitlePh' | t" />
+      </div>
+      <div>
+        <label class="field-label">{{ 'projects.fields.description' | t }}</label>
+        <textarea [(ngModel)]="newTask.description" rows="2" class="input" [attr.placeholder]="'projects.task.descPh' | t"></textarea>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -94,9 +99,22 @@
           </select>
         </div>
         <div>
+          <label class="field-label">{{ 'projects.fields.type' | t }}</label>
+          <select [(ngModel)]="newTask.type" class="input">
+            <option *ngFor="let ty of taskTypes" [value]="ty">{{ 'projects.meta.taskType.' + ty | t }}</option>
+          </select>
+        </div>
+        <div>
           <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
           <select [(ngModel)]="newTask.priority" class="input">
             <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.assignee' | t }}</label>
+          <select [(ngModel)]="newTask.assigneeId" class="input">
+            <option value="">{{ 'projects.filters.unassigned' | t }}</option>
+            <option *ngFor="let m of members" [value]="memberIdOf(m)">{{ memberNameOf(m) }}</option>
           </select>
         </div>
         <div>
