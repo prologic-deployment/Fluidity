@@ -7,7 +7,7 @@ const { hasProductPermission } = require('../services/authorization.service');
 const { ensureLicense } = require('../services/license.service');
 const { literalRegex } = require('../utils/regex.util');
 const { validateTransition, effectiveWorkflow, availableTransitions } = require('../utils/project-workflow.util');
-const { canTransitionTask } = require('../utils/project-task-access.util');
+const { canTransitionTask, requiresBacklogAuthority } = require('../utils/project-task-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit, auditWorkflow } = require('../utils/saas-log.util');
 const { notifyUser, notifyProjectEvent } = require('../services/project-notify.service');
@@ -373,6 +373,12 @@ const updateTask = async (req, res) => {
     }
     if (!can(role, CAN.updateTasks) && String(task.assigneeId || '') !== String(req.userId)) {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Vous ne pouvez pas modifier cette tâche.' });
+      return;
+    }
+    // Fix 12 : estimation / valeur / priorité / sprint = autorité backlog
+    // (rang ≥ 4 : PO / Scrum Master et au-dessus) en cas de changement.
+    if (requiresBacklogAuthority(req.body, task) && !can(role, CAN.manageBacklog)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Estimation, valeur métier, priorité et planification sprint réservés au rang ≥ 4 (Product Owner / Scrum Master et au-dessus).' });
       return;
     }
     const { title, description, priority, assigneeId, sprintId, milestoneId, startDate, dueDate, estimatedHours, loggedHours, remainingHours, points, businessValue, acceptanceCriteria, type, epicId, tags, dependencies } = req.body;

@@ -21,4 +21,28 @@ function canTransitionTask(roleRank, taskAssigneeId, userId) {
   return false;
 }
 
-module.exports = { TRANSITION_MIN_RANK, canTransitionTask };
+/**
+ * Autorité BACKLOG (Fix 12, A5.3) : l'estimation (points), la valeur métier,
+ * la priorité et l'affectation sprint relèvent du rang ≥ 4 (PO / Scrum
+ * Master et au-dessus = CAN.manageBacklog). Seuls les CHANGEMENTS effectifs
+ * exigent l'autorité (le formulaire backlog renvoie toujours les champs,
+ * même inchangés — un changement de titre seul reste ouvert).
+ *
+ * @param body payload updateTask (champs éventuellement présents)
+ * @param current { points, businessValue, priority, sprintId } actuels
+ */
+const BACKLOG_MANAGED_FIELDS = ['points', 'businessValue', 'priority', 'sprintId'];
+
+function requiresBacklogAuthority(body = {}, current = {}) {
+  if (body.points !== undefined && Math.max(0, Number(body.points) || 0) !== (current.points ?? 0)) return true;
+  if (body.businessValue !== undefined && Math.max(0, Number(body.businessValue) || 0) !== (current.businessValue ?? 0)) return true;
+  if (body.priority !== undefined && body.priority !== current.priority) return true;
+  if (body.sprintId !== undefined) {
+    const next = body.sprintId ? String(body.sprintId) : null;
+    const prev = current.sprintId ? String(current.sprintId) : null;
+    if (next !== prev) return true;
+  }
+  return false;
+}
+
+module.exports = { TRANSITION_MIN_RANK, canTransitionTask, BACKLOG_MANAGED_FIELDS, requiresBacklogAuthority };

@@ -277,8 +277,9 @@ const assignTasksToSprint = async (req, res) => {
     if (!project) return;
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
-    if (!can(role, CAN.manageTasks)) {
-      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour planifier le sprint.' });
+    // Fix 12 : la planification (sortie du backlog) est une autorité backlog.
+    if (!can(role, CAN.manageBacklog)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Planification sprint réservée au rang ≥ 4 (Product Owner / Scrum Master et au-dessus).' });
       return;
     }
     const sprint = await Sprint.findOne({ _id: req.params.sprintId, tenantId: req.tenantId, projectId: project._id });

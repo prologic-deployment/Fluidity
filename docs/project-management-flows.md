@@ -132,8 +132,8 @@ Rangs projet (`project-access.util.js`) :
 |---|---|---|
 | 6 | `project_admin` (+ admins tenant/plateforme) | tout |
 | 5 | `project_manager` | cycle de vie, membres, workflow, santé |
-| 4 | `scrum_master`, `product_owner` | backlog, approbation des livrables |
-| 3 | `project_lead` | créer/affecter/planifier les tâches |
+| 4 | `scrum_master`, `product_owner` | backlog (estimation, priorité, planification sprint), approbation des livrables |
+| 3 | `project_lead` | créer/affecter les tâches, consigner du temps |
 | 2 | `developer`, `designer`, `qa` | mettre à jour, consigner du temps |
 | 1 | `project_member` | commenter |
 | 0 | `project_viewer` | consulter |
