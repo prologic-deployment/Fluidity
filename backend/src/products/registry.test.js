@@ -121,6 +121,12 @@ check('projet : QA peut clôturer review→completed (gate QA)', () =>
 check('projet : task.complete QA ne permet aucun raccourci (portée review)', () =>
   assert.strictEqual(canTransition('project_management', 'todo', 'completed', proj('qa')).ok, false)
 );
+// Fix 9 (A5.3) : report.read au lead (plus de visibilité que le stakeholder
+// n'est plus inversé) — mais PAS au développeur (décision révisable).
+check('projet : lead lit les rapports, développeur non', () => {
+  assert.ok(proj('project_lead').includes('project.report.read'));
+  assert.ok(!proj('developer').includes('project.report.read'));
+});
 check('projet : wildcard admin autorisé (permissions [*])', () =>
   assert.deepStrictEqual(canTransition('project_management', 'backlog', 'todo', ['*']), { ok: true, reason: 'OK' })
 );
