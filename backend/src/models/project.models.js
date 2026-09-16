@@ -361,6 +361,40 @@ ChangeRequestSchema.index({ tenantId: 1, projectId: 1, status: 1 });
 
 const ChangeRequest = mongoose.model('ProjectChangeRequest', ChangeRequestSchema);
 
+const TESTCASE_STATUSES = ['draft', 'ready', 'passed', 'failed', 'blocked'];
+const TESTCASE_SEVERITIES = ['low', 'medium', 'high', 'critical'];
+
+/** A5.3 Fix 18 : cas de test QA liés aux stories + bugs liés + verdicts. */
+const TestCaseSchema = new Schema(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    taskId: { type: Schema.Types.ObjectId, ref: 'Task', required: true },
+    title: { type: String, required: true, trim: true, maxlength: 160 },
+    steps: { type: String, default: '', maxlength: 3000 },
+    expectedResult: { type: String, default: '', maxlength: 2000 },
+    severity: { type: String, enum: TESTCASE_SEVERITIES, default: 'medium' },
+    status: { type: String, enum: TESTCASE_STATUSES, default: 'draft' },
+    bugTaskId: { type: Schema.Types.ObjectId, ref: 'Task', default: null },
+    testedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    testedAt: { type: Date, default: null },
+    testNote: { type: String, default: '', maxlength: 1000 },
+    runs: [
+      {
+        status: { type: String, enum: ['passed', 'failed', 'blocked'] },
+        note: { type: String, default: '' },
+        by: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+        at: { type: Date, default: Date.now },
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+TestCaseSchema.index({ tenantId: 1, projectId: 1, taskId: 1 });
+
+const TestCase = mongoose.model('ProjectTestCase', TestCaseSchema);
+
 /** Types d'événement projet (calendrier). */
 const EVENT_TYPES = ['meeting', 'decision', 'event', 'deadline'];
 
@@ -659,6 +693,7 @@ module.exports = {
   TimeEntry,
   Deliverable,
   ChangeRequest,
+  TestCase,
   ProjectEvent,
   NotificationPreference,
   METHODOLOGIES,
@@ -678,6 +713,8 @@ module.exports = {
   DELIVERABLE_STATUSES,
   CHANGE_REQUEST_TYPES,
   CHANGE_REQUEST_STATUSES,
+  TESTCASE_STATUSES,
+  TESTCASE_SEVERITIES,
   EVENT_TYPES,
   COMMENT_TARGETS,
   PROJECT_NOTIFICATION_EVENTS,

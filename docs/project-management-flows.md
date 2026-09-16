@@ -195,3 +195,24 @@ stateDiagram-v2
       (change_approved / change_rejected).
     end note
 ```
+
+---
+
+## 8. Cycle QA (cas de test → verdict → re-test)
+
+```mermaid
+stateDiagram-v2
+    [*] --> draft: Création (test.manage + rang ≥ 2, lié à la story)
+    draft --> ready: Préparation
+    ready --> passed: Verdict passé (historisé)
+    ready --> failed: Verdict échoué (historisé) + bug lié
+    ready --> blocked: Verdict bloqué (historisé)
+    failed --> ready: Re-test après correction
+    blocked --> ready: Re-test après déblocage
+
+    note right of failed
+      Le bug est une tâche de type `bug` liée
+      au cas (bugTaskId) et rattachable à la
+      story via parentTaskId.
+    end note
+```

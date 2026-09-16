@@ -272,6 +272,34 @@ export interface ChangeRequest {
   updatedAt: string;
 }
 
+export type TestCaseStatus = 'draft' | 'ready' | 'passed' | 'failed' | 'blocked';
+export type TestCaseSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface TestCaseRun {
+  status: 'passed' | 'failed' | 'blocked';
+  note: string;
+  by?: UserBrief | string | null;
+  at: string;
+}
+
+export interface TestCase {
+  _id: string;
+  projectId: string;
+  taskId: string | { _id: string; ref: string; title: string };
+  title: string;
+  steps: string;
+  expectedResult: string;
+  severity: TestCaseSeverity;
+  status: TestCaseStatus;
+  bugTaskId?: { _id: string; ref: string; title: string; status: string } | string | null;
+  testedBy?: UserBrief | string | null;
+  testedAt: string | null;
+  testNote: string;
+  runs: TestCaseRun[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DeliverableReview {
   version: number;
   decision: 'approved' | 'rejected';

@@ -9,6 +9,7 @@ import {
   BudgetSummary,
   CalendarData,
   ChangeRequest,
+  TestCase,
   Deliverable,
   GlobalDashboard,
   Issue,
@@ -382,6 +383,29 @@ export class ProjectService {
 
   decideChangeRequest(id: string, crId: string, decision: 'approve' | 'reject', reviewNote?: string): Observable<{ changeRequest: ChangeRequest }> {
     return this.http.post<{ changeRequest: ChangeRequest }>(`${this.base}/${id}/change-requests/${crId}/${decision}`, { reviewNote });
+  }
+
+  // --- Cas de test QA (Fix 18) ------------------------------------------------
+
+  testCases(id: string, taskId?: string): Observable<{ testCases: TestCase[] }> {
+    const params = taskId ? `?taskId=${encodeURIComponent(taskId)}` : '';
+    return this.http.get<{ testCases: TestCase[] }>(`${this.base}/${id}/test-cases${params}`);
+  }
+
+  createTestCase(id: string, payload: Partial<TestCase>): Observable<{ testCase: TestCase }> {
+    return this.http.post<{ testCase: TestCase }>(`${this.base}/${id}/test-cases`, payload);
+  }
+
+  updateTestCase(id: string, tcId: string, payload: Partial<TestCase>): Observable<{ testCase: TestCase }> {
+    return this.http.put<{ testCase: TestCase }>(`${this.base}/${id}/test-cases/${tcId}`, payload);
+  }
+
+  recordTestResult(id: string, tcId: string, result: string, note?: string): Observable<{ testCase: TestCase }> {
+    return this.http.post<{ testCase: TestCase }>(`${this.base}/${id}/test-cases/${tcId}/result`, { result, note });
+  }
+
+  deleteTestCase(id: string, tcId: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.base}/${id}/test-cases/${tcId}`);
   }
 
   // --- Événements projet (réunions, décisions) ------------------------------

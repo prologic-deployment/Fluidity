@@ -61,6 +61,11 @@ cd backend && npm run matrix:permissions
 | PUT | `/:id/change-requests/:crId` | changeRequestController.updateChangeRequest | `project.change.manage` | yes |
 | POST | `/:id/change-requests/:crId/approve` | changeRequestController.approveChangeRequest | `project.change.manage` | yes |
 | POST | `/:id/change-requests/:crId/reject` | changeRequestController.rejectChangeRequest | `project.change.manage` | yes |
+| GET | `/:id/test-cases` | testCaseController.listTestCases | `project.project.read` | — |
+| POST | `/:id/test-cases` | testCaseController.createTestCase | `project.test.manage` | yes |
+| PUT | `/:id/test-cases/:tcId` | testCaseController.updateTestCase | `project.test.manage` | yes |
+| POST | `/:id/test-cases/:tcId/result` | testCaseController.recordTestResult | `project.test.manage` | yes |
+| DELETE | `/:id/test-cases/:tcId` | testCaseController.deleteTestCase | `project.test.manage` | yes |
 | GET | `/:id/events` | eventController.listEvents | `project.project.read` | — |
 | POST | `/:id/events` | eventController.createEvent | `project.event.manage` | yes |
 | PUT | `/:id/events/:eventId` | eventController.updateEvent | `project.event.manage` | yes |
@@ -160,6 +165,10 @@ chaque symbole.
 | decideChangeRequest | project.changerequest.controller.js | CAN.manageProject, planChangeApproval | verdict rang ≥ 5 + re-baseline planifiée |
 | approveChangeRequest | project.changerequest.controller.js | decideChangeRequest | délègue à decideChangeRequest |
 | rejectChangeRequest | project.changerequest.controller.js | decideChangeRequest | délègue à decideChangeRequest |
+| createTestCase | project.testcase.controller.js | CAN.updateTasks | rang ≥ 2 |
+| updateTestCase | project.testcase.controller.js | CAN.updateTasks | rang ≥ 2 (verdicts via recordTestResult) |
+| recordTestResult | project.testcase.controller.js | CAN.updateTasks, planTestResult | rang ≥ 2 + verdict historisé |
+| deleteTestCase | project.testcase.controller.js | CAN.manageTasks | rang ≥ 3 |
 
 ## §3 — Lectures : appartenance exigée (vérifié automatiquement)
 

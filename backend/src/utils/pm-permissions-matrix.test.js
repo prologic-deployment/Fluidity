@@ -51,7 +51,7 @@ const REMOVED = ['project.admin', 'project.backlog.manage', 'project.approval.ma
 
 console.log('Matrice des permissions :');
 
-check('§1 : le tableau des gardes égale le routage réel (77 routes)', () => {
+check('§1 : le tableau des gardes égale le routage réel (82 routes)', () => {
   const { routes } = parseRoutes();
   const rows = section(1).split('\n')
     .map((l) => l.match(/^\| (GET|POST|PUT|PATCH|DELETE) \| `([^`]+)` \| (\S+) \| `([^`]+)` \| (yes|—) \|$/))

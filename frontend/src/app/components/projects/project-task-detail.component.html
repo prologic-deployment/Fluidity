@@ -143,6 +143,48 @@
           </div>
         </div>
 
+        <!-- Cas de test QA -->
+        <div class="card">
+          <div class="card-header py-3">{{ 'projects.task.tests' | t }}</div>
+          <div class="card-content p-4 space-y-2">
+            <div *ngFor="let tc of testCases" class="rounded-lg border border-border p-3 space-y-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-medium flex-1 min-w-0 truncate">{{ tc.title }}</span>
+                <span class="badge badge-outline text-[10px]">{{ 'projects.meta.testSeverity.' + tc.severity | t }}</span>
+                <span class="badge text-[10px]" [ngClass]="tcStatusBadge(tc.status)">{{ 'projects.meta.testStatus.' + tc.status | t }}</span>
+                <button *ngIf="canDeleteTC" type="button" class="text-muted-foreground hover:text-destructive text-xs" (click)="removeTestCase(tc)">×</button>
+              </div>
+              <p *ngIf="tc.testNote" class="text-xs text-muted-foreground">{{ tc.testNote }}</p>
+              <p *ngIf="tcBugRef(tc)" class="text-xs">
+                <span class="text-muted-foreground">{{ 'projects.task.tcBug' | t }} : </span>
+                <span class="font-mono">{{ tcBugRef(tc) }}</span>
+              </p>
+              <div class="flex gap-2 flex-wrap items-center" *ngIf="canTest">
+                <input type="text" [(ngModel)]="tcNote[tc._id]" class="input !py-1 text-xs flex-1 min-w-[140px]" placeholder="{{ 'projects.task.tcNotePh' | t }}" />
+                <button type="button" class="btn-secondary btn-xs" (click)="recordResult(tc, 'passed')">{{ 'projects.task.tcPass' | t }}</button>
+                <button type="button" class="btn-secondary btn-xs" (click)="recordResult(tc, 'failed')">{{ 'projects.task.tcFail' | t }}</button>
+                <button type="button" class="btn-ghost btn-xs" (click)="recordResult(tc, 'blocked')">{{ 'projects.task.tcBlocked' | t }}</button>
+                <button *ngIf="tc.status === 'failed' || tc.status === 'blocked'" type="button" class="btn-ghost btn-xs" (click)="retest(tc)">{{ 'projects.task.tcRetest' | t }}</button>
+              </div>
+              <div class="flex gap-2 items-center" *ngIf="canTest && bugCandidates.length">
+                <select [ngModel]="tc.bugTaskId && $any(tc.bugTaskId)._id ? $any(tc.bugTaskId)._id : ''" (ngModelChange)="linkBug(tc, $event)" class="input !py-1 text-xs flex-1">
+                  <option value="">{{ 'projects.task.tcNoBug' | t }}</option>
+                  <option *ngFor="let b of bugCandidates" [value]="b._id">{{ b.ref }} — {{ b.title }}</option>
+                </select>
+              </div>
+              <p *ngIf="tc.runs?.length" class="text-[11px] text-muted-foreground">{{ 'projects.task.tcRuns' | t }} : {{ tc.runs.length }}</p>
+            </div>
+            <p *ngIf="!testCases.length" class="text-sm text-muted-foreground py-2">{{ 'projects.task.tcEmpty' | t }}</p>
+            <div class="flex gap-2 pt-1" *ngIf="canTest">
+              <input type="text" [(ngModel)]="newTcTitle" (keyup.enter)="addTestCase()" class="input" placeholder="{{ 'projects.task.tcTitlePh' | t }}" />
+              <select [(ngModel)]="newTcSeverity" class="input !w-auto">
+                <option *ngFor="let s of ['low','medium','high','critical']" [value]="s">{{ 'projects.meta.testSeverity.' + s | t }}</option>
+              </select>
+              <button type="button" class="btn-secondary btn-sm" (click)="addTestCase()">+</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Commentaires -->
         <div class="card">
           <div class="card-header py-3">{{ 'projects.task.comments' | t }}</div>

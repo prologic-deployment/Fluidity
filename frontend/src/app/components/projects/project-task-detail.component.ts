@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
 import { UploadService, UploadedFile } from '../../services/upload.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities } from '../../models/project.model';
+import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities, TestCase } from '../../models/project.model';
 import { BreadcrumbService } from '../shared/breadcrumb.service';
 import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
@@ -60,6 +60,10 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   commentText = '';
   commentSubmitting = false;
   newDependency = '';
+  testCases: TestCase[] = [];
+  newTcTitle = '';
+  newTcSeverity: TestCase['severity'] = 'medium';
+  tcNote: Record<string, string> = {};
 
   readonly priorities = PRIORITIES;
   readonly priorityBadge = PRIORITY_BADGE;
@@ -151,7 +155,11 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       }),
       switchMap((t) => {
         this.projectTasks = t.tasks;
-        return of(t);
+        return this.api.testCases(this.projectId, this.taskId);
+      }),
+      switchMap((tc) => {
+        this.testCases = tc.testCases;
+        return of(tc);
       })
     );
   }
@@ -214,6 +222,87 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   /** Sous-tâche : `task.create` + rang ≥ 3, comme le serveur. */
   get canAddSubtask(): boolean {
     return hasProjectPermission(this.caps, 'project.task.create') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Cas de test (création, édition, verdicts) : `test.manage` + rang ≥ 2. */
+  get canTest(): boolean {
+    return hasProjectPermission(this.caps, 'project.test.manage') && !!this.caps?.can.updateTasks;
+  }
+
+  /** Suppression d'un cas de test : `test.manage` + rang ≥ 3. */
+  get canDeleteTC(): boolean {
+    return hasProjectPermission(this.caps, 'project.test.manage') && !!this.caps?.can.manageTasks;
+  }
+
+  /** Bugs du projet liables à un cas de test. */
+  get bugCandidates(): Task[] {
+    return this.projectTasks.filter((t) => t.type === 'bug' && t._id !== this.taskId);
+  }
+
+  tcStatusBadge(status: TestCase['status']): string {
+    return { draft: 'badge-outline', ready: 'badge-secondary', passed: 'badge-success', failed: 'badge-destructive', blocked: 'badge-warning' }[status] || 'badge-outline';
+  }
+
+  tcBugRef(tc: TestCase): string {
+    const b = tc.bugTaskId;
+    return b && typeof b === 'object' ? b.ref : '';
+  }
+
+  addTestCase(): void {
+    const title = this.newTcTitle.trim();
+    if (!title || !this.task) return;
+    this.api
+      .createTestCase(this.projectId, { taskId: this.taskId, title, severity: this.newTcSeverity })
+      .subscribe({
+        next: () => {
+          this.newTcTitle = '';
+          this.toast.success(this.i18n.t('projects.task.tcAdded'));
+          this.reloadTestCases();
+        },
+        error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+      });
+  }
+
+  recordResult(tc: TestCase, result: string): void {
+    this.api.recordTestResult(this.projectId, tc._id, result, this.tcNote[tc._id] || '').subscribe({
+      next: () => {
+        this.tcNote[tc._id] = '';
+        this.toast.success(this.i18n.t('projects.task.tcRecorded'));
+        this.reloadTestCases();
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  retest(tc: TestCase): void {
+    this.api.updateTestCase(this.projectId, tc._id, { status: 'ready' }).subscribe({
+      next: () => this.reloadTestCases(),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  linkBug(tc: TestCase, bugId: string): void {
+    this.api.updateTestCase(this.projectId, tc._id, { bugTaskId: bugId || null }).subscribe({
+      next: () => this.reloadTestCases(),
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  removeTestCase(tc: TestCase): void {
+    this.api.deleteTestCase(this.projectId, tc._id).subscribe({
+      next: () => {
+        this.toast.success(this.i18n.t('projects.task.tcDeleted'));
+        this.reloadTestCases();
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  private reloadTestCases(): void {
+    this.api.testCases(this.projectId, this.taskId).subscribe((r) => {
+      this.testCases = r.testCases;
+      this.cdr.markForCheck();
+    });
   }
 
   /** Commentaire : rang ≥ 1, comme le serveur. */

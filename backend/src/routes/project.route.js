@@ -14,6 +14,7 @@ const activityController = require('../controllers/project.activity.controller')
 const timeController = require('../controllers/project.time.controller');
 const deliverableController = require('../controllers/project.deliverable.controller');
 const changeRequestController = require('../controllers/project.changerequest.controller');
+const testCaseController = require('../controllers/project.testcase.controller');
 const eventController = require('../controllers/project.event.controller');
 const { rejectArchivedProject } = require('../middlewares/project-archive.middleware');
 
@@ -80,6 +81,11 @@ router.post('/:id/change-requests', access('project.change.manage'), rejectArchi
 router.put('/:id/change-requests/:crId', access('project.change.manage'), rejectArchivedProject, changeRequestController.updateChangeRequest);
 router.post('/:id/change-requests/:crId/approve', access('project.change.manage'), rejectArchivedProject, changeRequestController.approveChangeRequest);
 router.post('/:id/change-requests/:crId/reject', access('project.change.manage'), rejectArchivedProject, changeRequestController.rejectChangeRequest);
+router.get('/:id/test-cases', access(), testCaseController.listTestCases);
+router.post('/:id/test-cases', access('project.test.manage'), rejectArchivedProject, testCaseController.createTestCase);
+router.put('/:id/test-cases/:tcId', access('project.test.manage'), rejectArchivedProject, testCaseController.updateTestCase);
+router.post('/:id/test-cases/:tcId/result', access('project.test.manage'), rejectArchivedProject, testCaseController.recordTestResult);
+router.delete('/:id/test-cases/:tcId', access('project.test.manage'), rejectArchivedProject, testCaseController.deleteTestCase);
 
 // --- Événements projet (réunions, décisions — calendrier) ------------------
 router.get('/:id/events', access(), eventController.listEvents);
