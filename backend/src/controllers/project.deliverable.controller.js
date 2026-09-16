@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { Project, Deliverable, Milestone } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
-const { planDeliverableTransition } = require('../utils/deliverable-workflow.util');
+const { planDeliverableTransition, isDeliverableEditable } = require('../utils/deliverable-workflow.util');
 const { notifyUser, notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
 const logger = require('../utils/logger.util');
@@ -112,6 +112,16 @@ const updateDeliverable = async (req, res) => {
     const deliverable = await Deliverable.findOne({ _id: req.params.deliverableId, tenantId: req.tenantId, projectId: project._id });
     if (!deliverable) {
       res.status(404).json({ message: 'Livrable introuvable.' });
+      return;
+    }
+    // Fix 6 : même rang que la création/soumission (membres actifs).
+    if (!can(role, CAN.updateTasks)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour modifier un livrable.' });
+      return;
+    }
+    // Fix 6 : contenu gelé une fois soumis/approuvé — rejet + re-soumission.
+    if (!isDeliverableEditable(deliverable.status)) {
+      res.status(409).json({ code: 'DELIVERABLE_LOCKED', message: 'Un livrable soumis ou approuvé ne peut plus être modifié — rejetez-le puis re-soumettez une nouvelle version.' });
       return;
     }
     const { title, description, milestoneId, taskId, dueDate, files } = req.body;

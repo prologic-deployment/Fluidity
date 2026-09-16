@@ -690,6 +690,11 @@ const updateChecklist = async (req, res) => {
       res.status(404).json({ message: 'Tâche introuvable.' });
       return;
     }
+    // Fix 6 : la checklist suit la règle d'exécution (assigné ou rang ≥ 3).
+    if (!canTransitionTask(role.rank, task.assigneeId, req.userId)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Seul l’assigné de la tâche ou un membre de rang ≥ 3 (lead et au-dessus) peut modifier sa checklist.' });
+      return;
+    }
     const { items } = req.body;
     if (!Array.isArray(items) || items.length > 100) {
       res.status(400).json({ message: 'Checklist invalide.' });

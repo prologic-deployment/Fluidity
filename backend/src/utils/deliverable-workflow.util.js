@@ -74,4 +74,12 @@ function planDeliverableTransition(deliverable, to, opts = {}) {
   return fail('Transition invalide.');
 }
 
-module.exports = { planDeliverableTransition };
+/**
+ * Contenu modifiable ? Seuls le brouillon et le rejeté sont éditables —
+ * un livrable soumis ou approuvé est gelé (rejet + re-soumission requis).
+ */
+function isDeliverableEditable(status) {
+  return status === 'draft' || status === 'rejected';
+}
+
+module.exports = { planDeliverableTransition, isDeliverableEditable };

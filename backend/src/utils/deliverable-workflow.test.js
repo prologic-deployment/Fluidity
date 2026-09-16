@@ -6,7 +6,7 @@
  * (version +1, motif archivé) et les gardes des autres transitions.
  */
 const assert = require('node:assert');
-const { planDeliverableTransition } = require('./deliverable-workflow.util');
+const { planDeliverableTransition, isDeliverableEditable } = require('./deliverable-workflow.util');
 
 let failures = 0;
 const check = (name, fn) => {
@@ -65,6 +65,13 @@ check('submitted → rejected (motif conservé + archivé, tronqué à 1000)', (
   assert.strictEqual(r.historyEntry.decision, 'rejected');
   assert.strictEqual(r.historyEntry.note.length, 1000);
   assert.strictEqual(r.historyEntry.version, 1);
+});
+
+check('gel contenu : draft/rejeté éditables, soumis/approuvé gelés (Fix 6)', () => {
+  assert.strictEqual(isDeliverableEditable('draft'), true);
+  assert.strictEqual(isDeliverableEditable('rejected'), true);
+  assert.strictEqual(isDeliverableEditable('submitted'), false);
+  assert.strictEqual(isDeliverableEditable('approved'), false);
 });
 
 check('gardes : approved/rejeté direct, re-soumission depuis submitted', () => {
