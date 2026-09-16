@@ -12,7 +12,7 @@ import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { HealthStatus, Project, WorkflowState, ProjectCapabilities } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { METHODOLOGIES, PRIORITIES, PROJECT_LIFECYCLE, PROJECT_STATUSES } from './project.constants';
+import { BUDGET_CURRENCIES, METHODOLOGIES, PRIORITIES, PROJECT_LIFECYCLE, PROJECT_STATUSES } from './project.constants';
 import { apiErrorMessage } from '../../utils/api-error.util';
 
 /**
@@ -202,6 +202,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
 
   lessons = '';
   clients: Client[] = [];
+  readonly currencies = BUDGET_CURRENCIES;
 
   /** Leçons apprises (clôture, Fix 23). */
   saveLessons(): void {

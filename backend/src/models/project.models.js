@@ -16,6 +16,11 @@ const { Schema } = mongoose;
 
 /** Méthodologies supportées — extensibles via le registre produit. */
 const METHODOLOGIES = ['kanban', 'scrum', 'waterfall', 'hybrid'];
+/** Fix 30 : devises acceptées pour le budget (miroir UI BUDGET_CURRENCIES). */
+const BUDGET_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'TND', 'MAD', 'DZD'];
+/** Fix 30 : règle tags unifiée (miroir UI MAX_TAGS/TAG_MAX_LENGTH). */
+const MAX_TAGS = 10;
+const TAG_MAX_LENGTH = 30;
 
 /** Statuts de projet (cycle de vie métier complet). */
 const PROJECT_STATUSES = ['draft', 'planning', 'active', 'on_hold', 'at_risk', 'completed', 'cancelled', 'archived', 'paused'];
@@ -728,6 +733,9 @@ module.exports = {
   ProjectEvent,
   NotificationPreference,
   METHODOLOGIES,
+  BUDGET_CURRENCIES,
+  MAX_TAGS,
+  TAG_MAX_LENGTH,
   PROJECT_STATUSES,
   PROJECT_TRANSITIONS,
   TASK_PRIORITIES,

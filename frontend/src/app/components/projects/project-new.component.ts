@@ -13,7 +13,7 @@ import { AppUser } from '../../models/user.model';
 import { Methodology, Priority, ProjectRoleKey, ProjectStatus } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { I18nService } from '../../i18n/i18n.service';
-import { METHODOLOGIES, PRIORITIES, PROJECT_MEMBER_ROLES, PROJECT_STATUSES } from './project.constants';
+import { MAX_TAGS, METHODOLOGIES, PRIORITIES, PROJECT_MEMBER_ROLES, PROJECT_STATUSES, TAG_MAX_LENGTH } from './project.constants';
 import { apiErrorMessage } from '../../utils/api-error.util';
 
 interface TeamPick {
@@ -157,8 +157,8 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
   addTag(): void {
     const tag = this.tagsInput.trim();
-    if (tag && !this.tags.includes(tag)) {
-      this.tags.push(tag.slice(0, 30));
+    if (tag && !this.tags.includes(tag) && this.tags.length < MAX_TAGS) {
+      this.tags.push(tag.slice(0, TAG_MAX_LENGTH));
       this.tagsInput = '';
     }
   }

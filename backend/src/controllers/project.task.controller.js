@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const { Project, Task, ProjectComment, ProjectMember } = require('../models/project.models');
-const { TASK_PRIORITIES, TASK_TYPES, DEPENDENCY_TYPES } = require('../models/project.models');
+const { TASK_PRIORITIES, TASK_TYPES, DEPENDENCY_TYPES, MAX_TAGS, TAG_MAX_LENGTH } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { hasProductPermission } = require('../services/authorization.service');
@@ -118,6 +118,21 @@ async function wouldCreateCycle(tenantId, projectId, taskId, dependsOnId) {
     for (const nxt of edges.get(cur) || []) stack.push(nxt);
   }
   return false;
+}
+
+/** Fix 30 : règle tags unifiée (10 max × 30 car., comme projets + UI). */
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const raw of tags) {
+    const tag = String(raw || '').trim().slice(0, TAG_MAX_LENGTH);
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+    if (out.length >= MAX_TAGS) break;
+  }
+  return out;
 }
 
 const listTasks = async (req, res) => {
@@ -337,7 +352,7 @@ const createTask = async (req, res) => {
       points: Number(points) || 0,
       businessValue: Number(businessValue) || 0,
       acceptanceCriteria: acceptanceCriteria || '',
-      tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
+      tags: normalizeTags(tags),
       order: typeof order === 'number' ? order : 0,
       watchers: [req.userId],
     });
@@ -460,7 +475,7 @@ const updateTask = async (req, res) => {
         task.epicId = null;
       }
     }
-    if (tags !== undefined) task.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
+    if (tags !== undefined) task.tags = normalizeTags(tags);
     if (dependencies !== undefined) {
       if (!Array.isArray(dependencies) || dependencies.length > 50) {
         res.status(400).json({ message: 'Dépendances invalides.' });

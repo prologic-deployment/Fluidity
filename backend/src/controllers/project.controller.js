@@ -13,7 +13,7 @@ const {
 } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
 const { Client } = require('../models/client.model');
-const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROLES } = require('../models/project.models');
+const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROLES, BUDGET_CURRENCIES, MAX_TAGS, TAG_MAX_LENGTH } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN, RANKS } = require('../utils/project-access.util');
 const { literalRegex } = require('../utils/regex.util');
 const { effectiveWorkflow, taskStates } = require('../utils/project-workflow.util');
@@ -238,6 +238,27 @@ async function clientBrief(req, clientId) {
   return Client.findOne({ _id: clientId, tenantId: req.tenantId }).select('nom email').lean();
 }
 
+/** Fix 30 : devise normalisée (whitelist partagée avec l'UI). */
+function normalizeCurrency(currency) {
+  const code = String(currency || 'EUR').toUpperCase();
+  return BUDGET_CURRENCIES.includes(code) ? code : null;
+}
+
+/** Fix 30 : tags normalisés (10 max × 30 car., comme l'UI). */
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const raw of tags) {
+    const tag = String(raw || '').trim().slice(0, TAG_MAX_LENGTH);
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    out.push(tag);
+    if (out.length >= MAX_TAGS) break;
+  }
+  return out;
+}
+
 const createProject = async (req, res) => {
   try {
     const {
@@ -300,6 +321,11 @@ const createProject = async (req, res) => {
       res.status(linked.status).json({ message: linked.message });
       return;
     }
+    const createCurrency = budget && budget.enabled ? normalizeCurrency(budget.currency) : 'EUR';
+    if (createCurrency === null) {
+      res.status(400).json({ message: 'Devise du budget invalide.' });
+      return;
+    }
     const code = await nextProjectCode(req.tenantId);
     const project = await Project.create({
       tenantId: req.tenantId,
@@ -313,10 +339,10 @@ const createProject = async (req, res) => {
       status: PROJECT_STATUSES.includes(status) ? status : 'planning',
       priority: priority || 'medium',
       visibility: visibility || 'team',
-      tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
+      tags: normalizeTags(tags),
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
-      budget: budget && budget.enabled ? { enabled: true, amount: Number(budget.amount) || 0, currency: budget.currency || 'EUR' } : { enabled: false, amount: 0, currency: 'EUR' },
+      budget: budget && budget.enabled ? { enabled: true, amount: Number(budget.amount) || 0, currency: createCurrency } : { enabled: false, amount: 0, currency: 'EUR' },
       settings: settings || { sprintLengthDays: 14, wipLimit: 0 },
     });
     // Créateur = project_admin du projet ; membres initiaux déjà validés
@@ -523,13 +549,18 @@ const updateProject = async (req, res) => {
     }
     if (priority !== undefined) project.priority = priority;
     if (visibility !== undefined) project.visibility = visibility;
-    if (tags !== undefined) project.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
+    if (tags !== undefined) project.tags = normalizeTags(tags);
     if (lessonsLearned !== undefined) project.lessonsLearned = String(lessonsLearned || '').slice(0, 8000);
     if (startDate !== undefined) project.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) project.endDate = endDate ? new Date(endDate) : null;
     if (budget !== undefined) {
+      const updateCurrency = budget && budget.enabled ? normalizeCurrency(budget.currency) : 'EUR';
+      if (updateCurrency === null) {
+        res.status(400).json({ message: 'Devise du budget invalide.' });
+        return;
+      }
       project.budget = budget && budget.enabled
-        ? { enabled: true, amount: Number(budget.amount) || 0, currency: budget.currency || 'EUR' }
+        ? { enabled: true, amount: Number(budget.amount) || 0, currency: updateCurrency }
         : { enabled: false, amount: 0, currency: 'EUR' };
     }
     if (settings !== undefined) {

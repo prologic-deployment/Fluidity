@@ -8,7 +8,7 @@ import { DeliverableStatus, Methodology, Priority, ProjectEventType, ProjectRole
 
 export const METHODOLOGIES: Methodology[] = ['kanban', 'scrum', 'waterfall', 'hybrid'];
 
-export const PROJECT_STATUSES: ProjectStatus[] = ['draft', 'planning', 'active', 'on_hold', 'at_risk', 'completed', 'cancelled', 'archived'];
+export const PROJECT_STATUSES: ProjectStatus[] = ['draft', 'planning', 'active', 'on_hold', 'at_risk', 'completed', 'cancelled', 'archived', 'paused'];
 
 export const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'critical'];
 
@@ -27,6 +27,11 @@ export const PROJECT_MEMBER_ROLES: ProjectRoleKey[] = [
 ];
 
 export const TASK_TYPES: TaskType[] = ['task', 'subtask', 'bug', 'user_story', 'epic', 'deliverable', 'milestone_task'];
+
+/** Fix 30 : miroir serveur — devises budget + règle tags (voir terminology.test.js). */
+export const BUDGET_CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'TND', 'MAD', 'DZD'] as const;
+export const MAX_TAGS = 10;
+export const TAG_MAX_LENGTH = 30;
 export const DELIVERABLE_STATUSES: DeliverableStatus[] = ['draft', 'submitted', 'approved', 'rejected'];
 export const PROJECT_EVENT_TYPES: ProjectEventType[] = ['meeting', 'decision', 'event', 'deadline'];
 
