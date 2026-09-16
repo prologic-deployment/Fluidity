@@ -134,6 +134,12 @@ check('projet : lead consigne le temps, sans grant décoratif', () => {
   assert.ok(proj('project_lead').includes('project.time.log'));
   assert.ok(!proj('project_lead').includes('project.time.manage'));
 });
+// Fix 11 (A5.3) : le Scrum Master planifie les cérémonies et pilote les
+// impedimenta (son rang 4 satisfait déjà les barres contrôleur).
+check('projet : SM gère événements et problèmes', () => {
+  assert.ok(proj('scrum_master').includes('project.event.manage'));
+  assert.ok(proj('scrum_master').includes('project.issue.manage'));
+});
 check('projet : wildcard admin autorisé (permissions [*])', () =>
   assert.deepStrictEqual(canTransition('project_management', 'backlog', 'todo', ['*']), { ok: true, reason: 'OK' })
 );
