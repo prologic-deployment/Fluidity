@@ -216,3 +216,26 @@ stateDiagram-v2
       story via parentTaskId.
     end note
 ```
+
+## 9. Portes de phase & progression des jalons (dérivée)
+
+```plantuml
+@startuml
+[*] --> not_started : Création phase/jalon
+not_started --> in_progress : Démarrer [porte OK]
+in_progress --> completed : Terminer [porte OK]
+in_progress --> delayed : En retard
+delayed --> in_progress : Reprise
+delayed --> completed : Terminer [porte OK]
+in_progress --> in_progress : Tâches liées terminées\n(progression auto)
+
+note right of in_progress
+  Porte de phase (kind = phase + dependsOnId) :
+  démarrage/fin refusés (409 PHASE_GATE_BLOCKED)
+  tant que la phase précédente n'est pas completed.
+  Progression affichée = dérivée des tâches liées
+  (terminées / total) ; le champ manuel reste le
+  repli quand aucune tâche n'est liée.
+end note
+@enduml
+```

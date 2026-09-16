@@ -1836,6 +1836,9 @@ export const FR: Record<string, unknown> = {
       created: 'Jalon créé.',
       deleted: 'Jalon supprimé.',
       dependsOn: 'Dépend de',
+      after: 'Après :',
+      auto: '(auto)',
+      gateBlocked: 'Terminez d’abord la phase précédente.',
       empty: 'Aucun jalon. Ajoutez le premier jalon du projet.',
     },
     sprints: {

@@ -188,6 +188,20 @@ export class ProjectMilestonesComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Progression affichée : dérivée quand des tâches sont liées, manuelle sinon (Fix 22). */
+  displayProgress(m: Milestone): number {
+    return m.autoProgress ?? m.progress ?? 0;
+  }
+
+  isAuto(m: Milestone): boolean {
+    return m.autoProgress !== null && m.autoProgress !== undefined;
+  }
+
+  /** Porte de phase : démarrage/fin impossibles tant que la dépendance n'est pas terminée. */
+  gateBlocked(p: Milestone): boolean {
+    return p.kind === 'phase' && !!p.dependsOnId && (!p.dependsOn || p.dependsOn.status !== 'completed');
+  }
+
   setProgress(m: Milestone, progress: number): void {
     this.api.updateMilestone(this.projectId, m._id, { progress }).subscribe({
       next: () => this.refresh(),

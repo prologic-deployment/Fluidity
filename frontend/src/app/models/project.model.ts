@@ -187,6 +187,10 @@ export interface Milestone {
   ownerId: string | null;
   owner?: UserBrief | null;
   dependsOnId: string | null;
+  /** Fix 22 : dépendance résolue + progression dérivée des tâches liées (null = manuel). */
+  dependsOn?: { _id: string; name: string; status: string; kind: string } | null;
+  autoProgress?: number | null;
+  linkedTasks?: { total: number; completed: number };
   createdAt?: string;
 }
 

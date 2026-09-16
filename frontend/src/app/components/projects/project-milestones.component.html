@@ -23,12 +23,13 @@
               <p class="text-sm font-medium truncate">{{ p.name }}</p>
             </div>
             <p class="text-xs text-muted-foreground mt-1">{{ p.startDate | dateLocale:'short' }} → {{ p.dueDate | dateLocale:'short' }}</p>
+            <p *ngIf="p.dependsOn" class="text-[11px] mt-1" [class.text-amber-600]="gateBlocked(p)" [class.text-muted-foreground]="!gateBlocked(p)">{{ 'projects.milestones.after' | t }} {{ p.dependsOn.name }} ({{ 'projects.meta.milestoneStatus.' + p.dependsOn.status | t }})</p>
             <div class="flex items-center gap-2 mt-2">
-              <div class="flex-1 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="p.progress || 0"></div></div>
-              <span class="text-xs tabular-nums text-muted-foreground">{{ p.progress }}%</span>
+              <div class="flex-1 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="displayProgress(p)"></div></div>
+              <span class="text-xs tabular-nums text-muted-foreground">{{ displayProgress(p) }}%<span *ngIf="isAuto(p)"> {{ 'projects.milestones.auto' | t }}</span></span>
             </div>
             <div class="flex gap-1 mt-2 flex-wrap">
-              <ng-container *ngIf="canEditM"><button *ngFor="let s of phaseStatuses(p)" type="button" class="badge badge-outline text-[10px] cursor-pointer" (click)="setStatus(p, s)">{{ 'projects.meta.milestoneStatus.' + s | t }}</button></ng-container>
+              <ng-container *ngIf="canEditM"><button *ngFor="let s of phaseStatuses(p)" type="button" class="badge badge-outline text-[10px] cursor-pointer disabled:opacity-40" [disabled]="gateBlocked(p)" [title]="gateBlocked(p) ? ('projects.milestones.gateBlocked' | t) : ''" (click)="setStatus(p, s)">{{ 'projects.meta.milestoneStatus.' + s | t }}</button></ng-container>
             </div>
           </div>
         </div>
@@ -48,8 +49,8 @@
         </div>
         <p class="text-sm text-muted-foreground mt-1 line-clamp-2">{{ m.description }}</p>
         <div class="flex items-center gap-2 mt-2">
-          <div class="flex-1 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="m.progress || 0"></div></div>
-          <span class="text-xs tabular-nums text-muted-foreground">{{ m.progress }}%</span>
+          <div class="flex-1 h-1.5 rounded bg-muted/50 overflow-hidden"><div class="h-full bg-indigo-500" [style.width.%]="displayProgress(m)"></div></div>
+          <span class="text-xs tabular-nums text-muted-foreground">{{ displayProgress(m) }}%<span *ngIf="isAuto(m)"> {{ 'projects.milestones.auto' | t }}</span></span>
         </div>
         <div class="flex items-center gap-2 mt-2 text-xs text-muted-foreground flex-wrap">
           <span *ngIf="memberName(m.ownerId)">{{ 'projects.fields.owner' | t }} : {{ memberName(m.ownerId) }}</span>

@@ -1837,6 +1837,9 @@ export const EN: Record<string, unknown> = {
       created: 'Milestone created.',
       deleted: 'Milestone deleted.',
       dependsOn: 'Depends on',
+      after: 'After:',
+      auto: '(auto)',
+      gateBlocked: 'Finish the previous phase first.',
       empty: 'No milestones. Add the first milestone of this project.',
     },
     sprints: {
