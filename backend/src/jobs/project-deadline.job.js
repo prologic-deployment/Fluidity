@@ -42,8 +42,8 @@ async function runProjectDeadlineJob() {
       const approaching = !overdue && due <= in48h;
       if (!approaching && !overdue) continue;
       if (!notifiable(task, now)) continue;
-      const project = await Project.findById(task.projectId).select('name').lean();
-      if (!project) continue;
+      const project = await Project.findById(task.projectId).select('name status').lean();
+      if (!project || project.status === 'archived') continue;
       const event = overdue ? 'task_overdue' : 'task_deadline';
       const dateStr = due.toLocaleDateString('fr-FR');
       await notifyUser({
@@ -75,8 +75,8 @@ async function runProjectDeadlineJob() {
       const approaching = !overdue && due <= in72h;
       if (!approaching && !overdue) continue;
       if (!notifiable(m, now)) continue;
-      const project = await Project.findById(m.projectId).select('name').lean();
-      if (!project) continue;
+      const project = await Project.findById(m.projectId).select('name status').lean();
+      if (!project || project.status === 'archived') continue;
       const event = overdue ? 'milestone_overdue' : 'milestone_approaching';
       const dateStr = due.toLocaleDateString('fr-FR');
       await notifyUser({

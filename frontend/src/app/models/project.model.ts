@@ -70,7 +70,6 @@ export interface Project {
   estimatedEffortHours?: number;
   color?: string;
   attachments: { name: string; url: string; size?: number }[];
-  archived: boolean;
   createdAt: string;
   updatedAt?: string;
   /** Enrichissements des listes/dashboards. */

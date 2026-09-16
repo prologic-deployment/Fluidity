@@ -136,8 +136,8 @@ async function runSaaSLifecycleJob() {
       if (end > now && end <= in48h) {
         const last = sprint.lastEndingNotifiedAt ? new Date(sprint.lastEndingNotifiedAt).getTime() : 0;
         if (now.getTime() - last < 24 * 3600 * 1000) continue;
-        const project = await Project.findById(sprint.projectId).select('name').lean();
-        if (!project) continue;
+        const project = await Project.findById(sprint.projectId).select('name status').lean();
+        if (!project || project.status === 'archived') continue;
         const members = await ProjectMember.find({ tenantId: sprint.tenantId, projectId: sprint.projectId }).select('userId').lean();
         await notifyProjectMembers({
           tenantId: sprint.tenantId,

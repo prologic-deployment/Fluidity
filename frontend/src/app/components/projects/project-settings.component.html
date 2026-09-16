@@ -203,7 +203,7 @@
             class="btn-secondary btn-sm mt-3"
             [disabled]="!canManage"
             (click)="toggleArchive()"
-          >{{ (project.archived ? 'projects.settings.unarchive' : 'projects.settings.archive') | t }}</button>
+          >{{ (project.status === 'archived' ? 'projects.settings.unarchive' : 'projects.settings.archive') | t }}</button>
         </div>
       </div>
     </div>

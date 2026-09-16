@@ -124,7 +124,7 @@ const ProjectSchema = new Schema(
         uploadedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur' },
       },
     ],
-    archived: { type: Boolean, default: false },
+    /** A5.3 Fix 4 : statut `archived` = seul mécanisme (booléen supprimé). */
     archivedAt: { type: Date, default: null },
     archivedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
   },

@@ -270,7 +270,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
 
   async toggleArchive(): Promise<void> {
     if (!this.project) return;
-    const archiving = !this.project.archived;
+    const archiving = this.project.status !== 'archived';
     const ok = await this.confirm.confirm({
       title: this.i18n.t(archiving ? 'projects.settings.archiveTitle' : 'projects.settings.unarchiveTitle'),
       message: this.i18n.t('projects.settings.archiveBody'),

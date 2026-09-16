@@ -4,6 +4,7 @@
     <div class="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500"></div>
     <div class="max-w-[1600px] mx-auto px-4 lg:px-6 pt-4 pb-0">
       <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+      <p *ngIf="project?.status === 'archived'" class="alert-warning mb-4">{{ 'projects.detail.archivedReadonly' | t }}</p>
       <div *ngIf="loading" class="space-y-3 pb-4">
         <div class="skeleton h-6 w-64"></div>
         <div class="skeleton h-4 w-96"></div>

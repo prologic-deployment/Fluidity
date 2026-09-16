@@ -14,6 +14,7 @@ const activityController = require('../controllers/project.activity.controller')
 const timeController = require('../controllers/project.time.controller');
 const deliverableController = require('../controllers/project.deliverable.controller');
 const eventController = require('../controllers/project.event.controller');
+const { rejectArchivedProject } = require('../middlewares/project-archive.middleware');
 
 /**
  * API GESTION DE PROJET — produit 'project_management'.
@@ -37,92 +38,94 @@ router.get('/me', access(), projectController.personalDashboard);
 router.get('/search', access(), projectController.searchProjects);
 
 router.get('/:id', access(), projectController.getProject);
-router.put('/:id', access('project.project.update'), projectController.updateProject);
+router.put('/:id', access('project.project.update'), rejectArchivedProject, projectController.updateProject);
+// Archivage/restauration : volontairement sans rejectArchivedProject —
+// c'est l'unique mutation autorisée sur un projet archivé (restauration).
 router.delete('/:id', access('project.project.archive'), projectController.archiveProject);
 router.get('/:id/dashboard', access(), projectController.projectDashboard);
 router.get('/:id/reports', access('project.report.read'), projectController.projectReports);
 router.get('/:id/calendar', access(), projectController.projectCalendar);
 router.get('/:id/workflow', access(), projectController.getWorkflowConfig);
-router.put('/:id/workflow', access('project.workflow.manage'), projectController.updateWorkflowConfig);
+router.put('/:id/workflow', access('project.workflow.manage'), rejectArchivedProject, projectController.updateWorkflowConfig);
 router.get('/:id/activity', access(), activityController.listActivity);
 
 // --- Membres ---------------------------------------------------------------
 router.get('/:id/members', access(), memberController.listMembers);
 router.get('/:id/members/available', access('project.member.manage'), memberController.availableUsers);
-router.post('/:id/members', access('project.member.manage'), memberController.addMember);
-router.patch('/:id/members/:userId', access('project.member.manage'), memberController.updateMemberRole);
-router.delete('/:id/members/:userId', access('project.member.manage'), memberController.removeMember);
+router.post('/:id/members', access('project.member.manage'), rejectArchivedProject, memberController.addMember);
+router.patch('/:id/members/:userId', access('project.member.manage'), rejectArchivedProject, memberController.updateMemberRole);
+router.delete('/:id/members/:userId', access('project.member.manage'), rejectArchivedProject, memberController.removeMember);
 
 // --- Backlog Scrum (épopées + user stories non planifiées) ----------------
 router.get('/:id/backlog', access(), taskController.listBacklog);
 
 // --- Temps (time tracking) -------------------------------------------------
 router.get('/:id/time', access(), timeController.listTime);
-router.post('/:id/time', access('project.time.log'), timeController.createTimeEntry);
-router.patch('/:id/time/:entryId', access('project.time.log'), timeController.updateTimeEntry);
-router.delete('/:id/time/:entryId', access('project.time.log'), timeController.deleteTimeEntry);
+router.post('/:id/time', access('project.time.log'), rejectArchivedProject, timeController.createTimeEntry);
+router.patch('/:id/time/:entryId', access('project.time.log'), rejectArchivedProject, timeController.updateTimeEntry);
+router.delete('/:id/time/:entryId', access('project.time.log'), rejectArchivedProject, timeController.deleteTimeEntry);
 
 // --- Livrables (cycle d'approbation) ----------------------------------------
 router.get('/:id/deliverables', access(), deliverableController.listDeliverables);
-router.post('/:id/deliverables', access('project.task.update'), deliverableController.createDeliverable);
-router.put('/:id/deliverables/:deliverableId', access('project.task.update'), deliverableController.updateDeliverable);
-router.patch('/:id/deliverables/:deliverableId/status', access('project.task.update'), deliverableController.transitionDeliverable);
-router.delete('/:id/deliverables/:deliverableId', access('project.task.delete'), deliverableController.deleteDeliverable);
+router.post('/:id/deliverables', access('project.task.update'), rejectArchivedProject, deliverableController.createDeliverable);
+router.put('/:id/deliverables/:deliverableId', access('project.task.update'), rejectArchivedProject, deliverableController.updateDeliverable);
+router.patch('/:id/deliverables/:deliverableId/status', access('project.task.update'), rejectArchivedProject, deliverableController.transitionDeliverable);
+router.delete('/:id/deliverables/:deliverableId', access('project.task.delete'), rejectArchivedProject, deliverableController.deleteDeliverable);
 
 // --- Événements projet (réunions, décisions — calendrier) ------------------
 router.get('/:id/events', access(), eventController.listEvents);
-router.post('/:id/events', access('project.event.manage'), eventController.createEvent);
-router.put('/:id/events/:eventId', access('project.event.manage'), eventController.updateEvent);
-router.delete('/:id/events/:eventId', access('project.event.manage'), eventController.deleteEvent);
+router.post('/:id/events', access('project.event.manage'), rejectArchivedProject, eventController.createEvent);
+router.put('/:id/events/:eventId', access('project.event.manage'), rejectArchivedProject, eventController.updateEvent);
+router.delete('/:id/events/:eventId', access('project.event.manage'), rejectArchivedProject, eventController.deleteEvent);
 
 // --- Tâches ----------------------------------------------------------------
 router.get('/:id/tasks', access(), taskController.listTasks);
 router.get('/:id/tasks/board', access(), taskController.listBoard);
-router.post('/:id/tasks', access('project.task.create'), taskController.createTask);
+router.post('/:id/tasks', access('project.task.create'), rejectArchivedProject, taskController.createTask);
 router.get('/:id/tasks/:taskId', access(), taskController.getTask);
 router.get('/:id/tasks/:taskId/transitions', access(), taskController.getTaskTransitions);
-router.put('/:id/tasks/:taskId', access('project.task.update'), taskController.updateTask);
-router.patch('/:id/tasks/:taskId/status', access('project.task.update'), taskController.transitionTask);
-router.patch('/:id/tasks/:taskId/move', access('project.task.update'), taskController.moveTask);
-router.patch('/:id/tasks/:taskId/checklist', access('project.task.update'), taskController.updateChecklist);
-router.post('/:id/tasks/:taskId/watch', access(), taskController.toggleWatcher);
-router.delete('/:id/tasks/:taskId', access('project.task.delete'), taskController.deleteTask);
+router.put('/:id/tasks/:taskId', access('project.task.update'), rejectArchivedProject, taskController.updateTask);
+router.patch('/:id/tasks/:taskId/status', access('project.task.update'), rejectArchivedProject, taskController.transitionTask);
+router.patch('/:id/tasks/:taskId/move', access('project.task.update'), rejectArchivedProject, taskController.moveTask);
+router.patch('/:id/tasks/:taskId/checklist', access('project.task.update'), rejectArchivedProject, taskController.updateChecklist);
+router.post('/:id/tasks/:taskId/watch', access(), rejectArchivedProject, taskController.toggleWatcher);
+router.delete('/:id/tasks/:taskId', access('project.task.delete'), rejectArchivedProject, taskController.deleteTask);
 
 // --- Jalons & phases -------------------------------------------------------
 router.get('/:id/milestones', access(), milestoneController.listMilestones);
-router.post('/:id/milestones', access('project.milestone.create'), milestoneController.createMilestone);
-router.put('/:id/milestones/:milestoneId', access('project.milestone.update'), milestoneController.updateMilestone);
-router.delete('/:id/milestones/:milestoneId', access('project.milestone.delete'), milestoneController.deleteMilestone);
+router.post('/:id/milestones', access('project.milestone.create'), rejectArchivedProject, milestoneController.createMilestone);
+router.put('/:id/milestones/:milestoneId', access('project.milestone.update'), rejectArchivedProject, milestoneController.updateMilestone);
+router.delete('/:id/milestones/:milestoneId', access('project.milestone.delete'), rejectArchivedProject, milestoneController.deleteMilestone);
 
 // --- Sprints (Scrum / Hybride) ---------------------------------------------
 router.get('/:id/sprints', access(), sprintController.listSprints);
-router.post('/:id/sprints', access('project.sprint.manage'), sprintController.createSprint);
-router.patch('/:id/sprints/:sprintId/status', access('project.sprint.manage'), sprintController.changeSprintStatus);
-router.put('/:id/sprints/:sprintId', access('project.sprint.manage'), sprintController.updateSprint);
-router.post('/:id/sprints/:sprintId/tasks', access('project.sprint.manage'), sprintController.assignTasksToSprint);
-router.delete('/:id/sprints/:sprintId', access('project.sprint.manage'), sprintController.deleteSprint);
+router.post('/:id/sprints', access('project.sprint.manage'), rejectArchivedProject, sprintController.createSprint);
+router.patch('/:id/sprints/:sprintId/status', access('project.sprint.manage'), rejectArchivedProject, sprintController.changeSprintStatus);
+router.put('/:id/sprints/:sprintId', access('project.sprint.manage'), rejectArchivedProject, sprintController.updateSprint);
+router.post('/:id/sprints/:sprintId/tasks', access('project.sprint.manage'), rejectArchivedProject, sprintController.assignTasksToSprint);
+router.delete('/:id/sprints/:sprintId', access('project.sprint.manage'), rejectArchivedProject, sprintController.deleteSprint);
 
 // --- Risques ---------------------------------------------------------------
 router.get('/:id/risks', access(), riskController.listRisks);
-router.post('/:id/risks', access('project.risk.manage'), riskController.createRisk);
-router.put('/:id/risks/:riskId', access('project.risk.manage'), riskController.updateRisk);
-router.delete('/:id/risks/:riskId', access('project.risk.manage'), riskController.deleteRisk);
+router.post('/:id/risks', access('project.risk.manage'), rejectArchivedProject, riskController.createRisk);
+router.put('/:id/risks/:riskId', access('project.risk.manage'), rejectArchivedProject, riskController.updateRisk);
+router.delete('/:id/risks/:riskId', access('project.risk.manage'), rejectArchivedProject, riskController.deleteRisk);
 
 // --- Problèmes (issues) ----------------------------------------------------
 router.get('/:id/issues', access(), issueController.listIssues);
-router.post('/:id/issues', access('project.issue.manage'), issueController.createIssue);
-router.put('/:id/issues/:issueId', access('project.issue.manage'), issueController.updateIssue);
-router.delete('/:id/issues/:issueId', access('project.issue.manage'), issueController.deleteIssue);
+router.post('/:id/issues', access('project.issue.manage'), rejectArchivedProject, issueController.createIssue);
+router.put('/:id/issues/:issueId', access('project.issue.manage'), rejectArchivedProject, issueController.updateIssue);
+router.delete('/:id/issues/:issueId', access('project.issue.manage'), rejectArchivedProject, issueController.deleteIssue);
 
 // --- Commentaires ----------------------------------------------------------
 router.get('/:id/comments', access(), commentController.listComments);
-router.post('/:id/comments', access(), commentController.createComment);
-router.put('/:id/comments/:commentId', access(), commentController.updateComment);
-router.delete('/:id/comments/:commentId', access(), commentController.deleteComment);
+router.post('/:id/comments', access(), rejectArchivedProject, commentController.createComment);
+router.put('/:id/comments/:commentId', access(), rejectArchivedProject, commentController.updateComment);
+router.delete('/:id/comments/:commentId', access(), rejectArchivedProject, commentController.deleteComment);
 
 // --- Fichiers --------------------------------------------------------------
 router.get('/:id/files', access(), fileController.listFiles);
-router.post('/:id/files', access(), fileController.createFile);
-router.delete('/:id/files/:fileId', access(), fileController.deleteFile);
+router.post('/:id/files', access(), rejectArchivedProject, fileController.createFile);
+router.delete('/:id/files/:fileId', access(), rejectArchivedProject, fileController.deleteFile);
 
 module.exports = router;

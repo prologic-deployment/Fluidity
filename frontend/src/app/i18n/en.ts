@@ -1557,6 +1557,7 @@ export const EN: Record<string, unknown> = {
     detail: {
       breadcrumb: 'Project',
       task: 'Task',
+      archivedReadonly: 'Archived project — read-only. Restore it from settings to make changes.',
     },
     tabs: {
       label: 'Project navigation',

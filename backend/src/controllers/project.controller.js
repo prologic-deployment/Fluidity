@@ -16,6 +16,7 @@ const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROL
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { literalRegex } = require('../utils/regex.util');
 const { effectiveWorkflow } = require('../utils/project-workflow.util');
+const { ARCHIVED_STATUS, isProjectArchived } = require('../utils/project-archive.util');
 const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
@@ -53,7 +54,6 @@ function serializeProject(p, extra = {}) {
     estimatedEffortHours: p.estimatedEffortHours,
     color: p.color,
     attachments: p.attachments,
-    archived: p.archived,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
     ...extra,
@@ -73,7 +73,7 @@ async function nextProjectCode(tenantId) {
 
 /** Filtres de liste (recherche serveur — jamais « tout charger »). */
 function buildListFilter(req) {
-  const q = { archived: { $ne: true } };
+  const q = { status: { $ne: ARCHIVED_STATUS } };
   const { status, priority, methodology, manager, q: text, tag, from, to } = req.query;
   if (status) q.status = status;
   if (priority) q.priority = priority;
@@ -496,7 +496,13 @@ const updateProject = async (req, res) => {
   }
 };
 
-/** Archive un projet (réversible) — les données restent intactes. */
+/**
+ * Archive/restaure un projet (bascule réversible — les données restent
+ * intactes). Mécanisme unique : le statut (Fix 4). Archivage depuis
+ * n'importe quel statut (action privilégiée, hors table
+ * PROJECT_TRANSITIONS) ; restauration vers 'active', seule sortie prévue
+ * par la table de cycle de vie.
+ */
 const archiveProject = async (req, res) => {
   try {
     const project = await Project.findOne({ _id: req.params.id, tenantId: req.tenantId });
@@ -510,12 +516,13 @@ const archiveProject = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour archiver ce projet.' });
       return;
     }
-    project.archived = !project.archived;
-    project.archivedAt = project.archived ? new Date() : null;
-    project.archivedBy = project.archived ? req.userId : null;
+    const archiving = !isProjectArchived(project);
+    project.status = archiving ? ARCHIVED_STATUS : 'active';
+    project.archivedAt = archiving ? new Date() : null;
+    project.archivedBy = archiving ? req.userId : null;
     await project.save();
-    await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: project.archived ? 'projects.activity.project_archived' : 'projects.activity.project_unarchived', targetType: 'project', targetId: project._id });
-    await audit(req, { action: project.archived ? 'project.archived' : 'project.unarchived', productKey: 'project_management', resource: 'project', resourceId: project._id });
+    await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: archiving ? 'projects.activity.project_archived' : 'projects.activity.project_unarchived', targetType: 'project', targetId: project._id });
+    await audit(req, { action: archiving ? 'project.archived' : 'project.unarchived', productKey: 'project_management', resource: 'project', resourceId: project._id });
     res.json({ project: serializeProject(project) });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
