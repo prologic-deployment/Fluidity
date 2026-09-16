@@ -48,6 +48,10 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
   adding = false;
   candidates: AvailableUser[] = [];
   candidateQuery = '';
+  absOpen: string | null = null;
+  absStart = '';
+  absEnd = '';
+  absNote = '';
   candidateLoading = false;
 
   private readonly destroy$ = new Subject<void>();
@@ -185,6 +189,56 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
     });
   }
 
+  saveCapacity(m: ProjectMember, value: string): void {
+    const weeklyCapacityHours = Number(value);
+    if (!Number.isFinite(weeklyCapacityHours) || weeklyCapacityHours < 0 || weeklyCapacityHours > 168) {
+      this.toast.error(this.i18n.t('projects.team.invalidCapacity'));
+      this.refresh();
+      return;
+    }
+    this.api.updateMemberCapacity(this.projectId, this.memberId(m), { weeklyCapacityHours }).subscribe({
+      next: (r) => {
+        m.weeklyCapacityHours = r.member.weeklyCapacityHours;
+        this.cdr.markForCheck();
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  toggleAbs(m: ProjectMember): void {
+    const id = this.memberId(m);
+    this.absOpen = this.absOpen === id ? null : id;
+    this.absStart = '';
+    this.absEnd = '';
+    this.absNote = '';
+  }
+
+  addAbsence(m: ProjectMember): void {
+    if (!this.absStart || !this.absEnd) return;
+    const absences = [...(m.absences || []), { startDate: this.absStart, endDate: this.absEnd, note: this.absNote }];
+    this.api.updateMemberCapacity(this.projectId, this.memberId(m), { absences }).subscribe({
+      next: (r) => {
+        m.absences = r.member.absences;
+        this.absStart = '';
+        this.absEnd = '';
+        this.absNote = '';
+        this.cdr.markForCheck();
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
+  removeAbsence(m: ProjectMember, idx: number): void {
+    const absences = (m.absences || []).filter((_, i) => i !== idx);
+    this.api.updateMemberCapacity(this.projectId, this.memberId(m), { absences }).subscribe({
+      next: (r) => {
+        m.absences = r.member.absences;
+        this.cdr.markForCheck();
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
   remove(m: ProjectMember): void {
     this.api.removeMember(this.projectId, this.memberId(m)).subscribe({
       next: () => {
@@ -219,10 +273,18 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
     return this.workload.find((w) => w.userId === this.memberId(m)) || null;
   }
 
-  levelOf(w: WorkloadRow): 'low' | 'normal' | 'high' | 'over' {
-    if (w.overdue >= 3 || w.tasks >= 8) return 'over';
-    if (w.overdue >= 1 || w.tasks >= 5) return 'high';
-    if (w.tasks <= 1 && !w.overdue) return 'low';
+  /** Capacité hebdo (repli 35 h pour les anciens membres). */
+  capacityOf(m: ProjectMember): number {
+    return m.weeklyCapacityHours ?? 35;
+  }
+
+  /** Niveau de charge rapporté à la capacité hebdomadaire (Fix 21). */
+  levelOf(m: ProjectMember, w: WorkloadRow): 'low' | 'normal' | 'high' | 'over' {
+    const cap = this.capacityOf(m);
+    const ratio = cap > 0 ? (w.estimatedHours || 0) / cap : 0;
+    if (w.overdue >= 3 || w.tasks >= 8 || ratio >= 1) return 'over';
+    if (w.overdue >= 1 || w.tasks >= 5 || ratio >= 0.75) return 'high';
+    if (w.tasks <= 1 && !w.overdue && ratio < 0.25) return 'low';
     return 'normal';
   }
 

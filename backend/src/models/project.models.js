@@ -156,6 +156,15 @@ const ProjectMemberSchema = new Schema(
     joinedAt: { type: Date, default: Date.now },
     /** A5.3 Fix 17 : taux horaire (devise du budget projet) pour le coût réel. */
     hourlyRate: { type: Number, default: 0, min: 0 },
+    /** A5.3 Fix 21 : capacité hebdomadaire (h) + absences pour la planification. */
+    weeklyCapacityHours: { type: Number, default: 35, min: 0 },
+    absences: [
+      {
+        startDate: { type: Date, required: true },
+        endDate: { type: Date, required: true },
+        note: { type: String, default: '', maxlength: 200 },
+      },
+    ],
   },
   { timestamps: true }
 );

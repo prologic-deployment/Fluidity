@@ -59,6 +59,7 @@ router.get('/:id/members/available', access('project.member.manage'), memberCont
 router.post('/:id/members', access('project.member.manage'), rejectArchivedProject, memberController.addMember);
 router.patch('/:id/members/:userId', access('project.member.manage'), rejectArchivedProject, memberController.updateMemberRole);
 router.patch('/:id/members/:userId/rate', access('project.member.manage'), rejectArchivedProject, memberController.updateMemberRate);
+router.patch('/:id/members/:userId/capacity', access('project.member.manage'), rejectArchivedProject, memberController.updateMemberCapacity);
 router.delete('/:id/members/:userId', access('project.member.manage'), rejectArchivedProject, memberController.removeMember);
 
 // --- Backlog Scrum (épopées + user stories non planifiées) ----------------

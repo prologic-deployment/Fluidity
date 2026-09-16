@@ -236,8 +236,24 @@ export class ProjectService {
     return this.http.put<{ sprint: Sprint }>(`${this.base}/${id}/sprints/${sprintId}`, payload);
   }
 
-  assignTasksToSprint(id: string, sprintId: string, taskIds: string[], remove = false): Observable<{ ok: boolean }> {
-    return this.http.post<{ ok: boolean }>(`${this.base}/${id}/sprints/${sprintId}/tasks`, { taskIds, remove });
+  assignTasksToSprint(
+    id: string,
+    sprintId: string,
+    taskIds: string[],
+    remove = false
+  ): Observable<{ ok: boolean; capacityWarnings?: { userId: string; name: string; committed: number; capacity: number }[] }> {
+    return this.http.post<{ ok: boolean; capacityWarnings?: { userId: string; name: string; committed: number; capacity: number }[] }>(
+      `${this.base}/${id}/sprints/${sprintId}/tasks`,
+      { taskIds, remove }
+    );
+  }
+
+  updateMemberCapacity(
+    id: string,
+    userId: string,
+    payload: { weeklyCapacityHours?: number; absences?: { startDate: string; endDate: string; note?: string }[] }
+  ): Observable<{ member: ProjectMember }> {
+    return this.http.patch<{ member: ProjectMember }>(`${this.base}/${id}/members/${userId}/capacity`, payload);
   }
 
   deleteSprint(id: string, sprintId: string): Observable<{ ok: boolean }> {

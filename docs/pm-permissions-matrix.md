@@ -45,6 +45,7 @@ cd backend && npm run matrix:permissions
 | POST | `/:id/members` | memberController.addMember | `project.member.manage` | yes |
 | PATCH | `/:id/members/:userId` | memberController.updateMemberRole | `project.member.manage` | yes |
 | PATCH | `/:id/members/:userId/rate` | memberController.updateMemberRate | `project.member.manage` | yes |
+| PATCH | `/:id/members/:userId/capacity` | memberController.updateMemberCapacity | `project.member.manage` | yes |
 | DELETE | `/:id/members/:userId` | memberController.removeMember | `project.member.manage` | yes |
 | GET | `/:id/backlog` | taskController.listBacklog | `project.project.read` | — |
 | GET | `/:id/time` | timeController.listTime | `project.project.read` | — |
@@ -121,6 +122,7 @@ chaque symbole.
 | addMember | project.member.controller.js | CAN.manageMembers | rang ≥ 5 |
 | updateMemberRole | project.member.controller.js | CAN.manageMembers | rang ≥ 5 |
 | updateMemberRate | project.member.controller.js | CAN.manageMembers | rang ≥ 5 |
+| updateMemberCapacity | project.member.controller.js | CAN.manageMembers | rang ≥ 5 |
 | removeMember | project.member.controller.js | CAN.manageMembers | rang ≥ 5 |
 | availableUsers | project.member.controller.js | CAN.manageMembers | rang ≥ 5 (lecture filtrée) |
 | createTimeEntry | project.time.controller.js | CAN.updateTasks | rang ≥ 2 |

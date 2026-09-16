@@ -6,6 +6,7 @@ const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
 const { computeBurndown } = require('../utils/sprint-burndown.util');
+const { capacityWarnings } = require('../utils/capacity.util');
 const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
@@ -316,7 +317,28 @@ const assignTasksToSprint = async (req, res) => {
     const tasks = await Task.find({ _id: { $in: ids }, tenantId: req.tenantId, projectId: project._id, parentTaskId: null }).select('_id').lean();
     await Task.updateMany({ _id: { $in: tasks.map((t) => t._id) } }, { $set: { sprintId: sprint._id } });
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.sprint_tasks_planned', targetType: 'sprint', targetId: sprint._id, metadata: { name: sprint.name, count: tasks.length } });
-    res.json({ ok: true, assigned: tasks.length });
+    // Fix 21 : contrôle capacité (avertissement, jamais bloquant).
+    const [planned, members] = await Promise.all([
+      Task.find({ tenantId: req.tenantId, projectId: project._id, sprintId: sprint._id, parentTaskId: null, status: { $ne: 'completed' } })
+        .select('assigneeId estimatedHours')
+        .lean(),
+      ProjectMember.find({ projectId: project._id }).populate('userId', 'firstName lastName').lean(),
+    ]);
+    const committed = {};
+    for (const t of planned) {
+      if (!t.assigneeId) continue;
+      const uid = String(t.assigneeId);
+      committed[uid] = (committed[uid] || 0) + (Number(t.estimatedHours) || 0);
+    }
+    const memberCaps = members.map((m) => ({
+      userId: m.userId,
+      name: m.userId && m.userId._id ? `${m.userId.firstName || ''} ${m.userId.lastName || ''}`.trim() : '',
+      weeklyCapacityHours: m.weeklyCapacityHours ?? 35,
+      absences: m.absences || [],
+    }));
+    const fallbackWeeks = project.settings?.sprintLengthDays ? project.settings.sprintLengthDays / 7 : 2;
+    const warnings = capacityWarnings(committed, memberCaps, sprint.startDate, sprint.endDate, fallbackWeeks);
+    res.json({ ok: true, assigned: tasks.length, capacityWarnings: warnings });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });

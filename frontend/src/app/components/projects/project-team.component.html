@@ -42,6 +42,8 @@
           <th>{{ 'projects.fields.member' | t }}</th>
           <th class="hidden md:table-cell">{{ 'projects.fields.role' | t }}</th>
           <th class="hidden md:table-cell">{{ 'projects.team.rate' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.team.capacity' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.team.absences' | t }}</th>
           <th>{{ 'projects.team.workload' | t }}</th>
           <th class="hidden lg:table-cell">{{ 'projects.team.activity' | t }}</th>
           <th *ngIf="canManage"></th>
@@ -72,26 +74,50 @@
             <input *ngIf="canManage" type="number" min="0" [value]="m.hourlyRate || 0" (change)="saveRate(m, $any($event.target).value)" class="input !w-24 !py-1 text-xs" />
             <span *ngIf="!canManage" class="text-sm text-muted-foreground">{{ m.hourlyRate || 0 }}</span>
           </td>
+          <td class="hidden md:table-cell">
+            <input *ngIf="canManage" type="number" min="0" max="168" [value]="capacityOf(m)" (change)="saveCapacity(m, $any($event.target).value)" class="input !w-20 !py-1 text-xs" />
+            <span *ngIf="!canManage" class="text-sm text-muted-foreground">{{ capacityOf(m) }}h</span>
+          </td>
+          <td class="hidden lg:table-cell">
+            <button type="button" class="btn-ghost btn-xs" (click)="toggleAbs(m)">{{ (m.absences || []).length }} {{ 'projects.team.absences' | t }}</button>
+          </td>
           <td>
             <ng-container *ngIf="loadOf(m) as w">
               <div class="flex items-center gap-2">
                 <div class="flex-1 h-2 rounded bg-muted/50 overflow-hidden max-w-[120px]">
                   <div class="h-full rounded" [ngClass]="{
-                    'bg-emerald-500': levelOf(w) === 'normal',
-                    'bg-slate-400': levelOf(w) === 'low',
-                    'bg-amber-500': levelOf(w) === 'high',
-                    'bg-red-500': levelOf(w) === 'over'
+                    'bg-emerald-500': levelOf(m, w) === 'normal',
+                    'bg-slate-400': levelOf(m, w) === 'low',
+                    'bg-amber-500': levelOf(m, w) === 'high',
+                    'bg-red-500': levelOf(m, w) === 'over'
                   }" [style.width.%]="Math.min(100, w.tasks * 12.5)"></div>
                 </div>
-                <span class="badge text-[10px]" [ngClass]="levelBadge(levelOf(w))">{{ 'projects.meta.workload.' + levelOf(w) | t }}</span>
+                <span class="badge text-[10px]" [ngClass]="levelBadge(levelOf(m, w))">{{ 'projects.meta.workload.' + levelOf(m, w) | t }}</span>
               </div>
-              <p class="text-xs text-muted-foreground mt-1">{{ w.tasks }} {{ 'projects.overview.tasks' | t }} · {{ w.overdue }} {{ 'projects.team.overdue' | t }} · {{ w.estimatedHours }}h</p>
+              <p class="text-xs text-muted-foreground mt-1">{{ w.tasks }} {{ 'projects.overview.tasks' | t }} · {{ w.overdue }} {{ 'projects.team.overdue' | t }} · {{ w.estimatedHours }}h / {{ capacityOf(m) }}h</p>
             </ng-container>
             <span *ngIf="!loadOf(m)" class="text-sm text-muted-foreground">—</span>
           </td>
           <td class="hidden lg:table-cell text-sm text-muted-foreground">{{ 'products.roles.' + m.roleKey | t }}</td>
           <td *ngIf="canManage" class="text-right">
             <button type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(m)">{{ 'projects.team.remove' | t }}</button>
+          </td>
+        </tr>
+        <tr *ngIf="absOpen === memberId(m)">
+          <td colspan="8" class="!py-2 !bg-muted/30">
+            <div class="flex flex-wrap items-center gap-2">
+              <span *ngFor="let a of m.absences || []; let idx = index" class="badge badge-secondary text-[11px]">
+                {{ a.startDate | dateLocale:'short' }} → {{ a.endDate | dateLocale:'short' }}{{ a.note ? ' · ' + a.note : '' }}
+                <button *ngIf="canManage" type="button" class="ml-1 hover:text-destructive" (click)="removeAbsence(m, idx)">×</button>
+              </span>
+              <span *ngIf="!(m.absences || []).length" class="text-xs text-muted-foreground">{{ 'projects.team.noAbsences' | t }}</span>
+            </div>
+            <div *ngIf="canManage" class="flex flex-wrap items-center gap-2 mt-2">
+              <input type="date" [(ngModel)]="absStart" class="input !w-auto !py-1 text-xs" />
+              <input type="date" [(ngModel)]="absEnd" class="input !w-auto !py-1 text-xs" />
+              <input type="text" [(ngModel)]="absNote" class="input !w-40 !py-1 text-xs" placeholder="{{ 'projects.team.absNotePh' | t }}" maxlength="200" />
+              <button type="button" class="btn-secondary btn-xs" [disabled]="!absStart || !absEnd" (click)="addAbsence(m)">{{ 'common.add' | t }}</button>
+            </div>
           </td>
         </tr>
       </tbody>

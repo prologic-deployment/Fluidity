@@ -96,6 +96,8 @@ export interface ProjectMember {
   userId: UserBrief | string;
   roleKey: ProjectRoleKey;
   hourlyRate?: number;
+  weeklyCapacityHours?: number;
+  absences?: { startDate: string; endDate: string; note?: string }[];
   joinedAt?: string;
   invitedBy?: string | null;
   /** Enrichissement équipe (charge). */

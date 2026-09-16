@@ -195,10 +195,13 @@ export class ProjectSprintsComponent implements OnInit, OnDestroy {
   assignToSprint(sprintId: string, taskId: string): void {
     this.pendingAssign[taskId] = true;
     this.api.assignTasksToSprint(this.projectId, sprintId, [taskId]).subscribe({
-      next: () => {
+      next: (r) => {
         this.pendingAssign[taskId] = false;
         this.refresh();
         this.loadBacklog();
+        for (const w of r.capacityWarnings || []) {
+          this.toast.warn(this.i18n.t('projects.sprints.capacityOver', { name: w.name || w.userId, committed: w.committed, capacity: w.capacity }));
+        }
       },
       error: () => {
         this.pendingAssign[taskId] = false;

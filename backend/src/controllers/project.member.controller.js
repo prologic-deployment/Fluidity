@@ -49,6 +49,8 @@ const listMembers = async (req, res) => {
           userId: m.userId,
           roleKey: m.roleKey,
           hourlyRate: m.hourlyRate || 0,
+          weeklyCapacityHours: m.weeklyCapacityHours ?? 35,
+          absences: m.absences || [],
           joinedAt: m.joinedAt,
           invitedBy: m.invitedBy,
           hasLicense: admins.has(id) || licensed.has(id),
@@ -242,6 +244,56 @@ const updateMemberRate = async (req, res) => {
   }
 };
 
+/** Fix 21 : capacité hebdomadaire et absences d'un membre. */
+const updateMemberCapacity = async (req, res) => {
+  try {
+    const project = await loadProject(req, res);
+    if (!project) return;
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    if (!can(role, CAN.manageMembers)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour gérer les capacités.' });
+      return;
+    }
+    const member = await ProjectMember.findOne({ projectId: project._id, userId: req.params.userId });
+    if (!member) {
+      res.status(404).json({ message: 'Membre introuvable.' });
+      return;
+    }
+    const { weeklyCapacityHours, absences } = req.body || {};
+    if (weeklyCapacityHours !== undefined) {
+      const v = Number(weeklyCapacityHours);
+      if (!Number.isFinite(v) || v < 0 || v > 168) {
+        res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Capacité hebdomadaire invalide (0 à 168 h).' });
+        return;
+      }
+      member.weeklyCapacityHours = v;
+    }
+    if (absences !== undefined) {
+      if (!Array.isArray(absences)) {
+        res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Absences invalides (liste requise).' });
+        return;
+      }
+      const clean = [];
+      for (const a of absences.slice(0, 50)) {
+        const start = a?.startDate ? new Date(a.startDate) : null;
+        const end = a?.endDate ? new Date(a.endDate) : null;
+        if (!start || !end || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+          res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Absence invalide (dates requises, fin après début).' });
+          return;
+        }
+        clean.push({ startDate: start, endDate: end, note: String(a.note || '').slice(0, 200) });
+      }
+      member.absences = clean;
+    }
+    await member.save();
+    res.json({ member: { _id: member._id, userId: member.userId, weeklyCapacityHours: member.weeklyCapacityHours, absences: member.absences } });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
 const removeMember = async (req, res) => {
   try {
     const project = await loadProject(req, res);
@@ -324,4 +376,4 @@ const availableUsers = async (req, res) => {
   }
 };
 
-module.exports = { listMembers, addMember, updateMemberRole, updateMemberRate, removeMember, availableUsers, loadProject };
+module.exports = { listMembers, addMember, updateMemberRole, updateMemberRate, updateMemberCapacity, removeMember, availableUsers, loadProject };
