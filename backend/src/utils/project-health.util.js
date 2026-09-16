@@ -18,7 +18,7 @@ function daysBetween(a, b) {
 /**
  * Calcule la santé d'un projet.
  * @param project document projet (avec healthRules)
- * @param stats { overdueTasks, blockedTasks, delayedMilestones: [{name, daysLate}],
+ * @param stats { overdue, blocked, delayedMilestones: [{name, daysLate}],
  *                totalTasks, completedTasks }
  * @returns { status: 'on_track'|'at_risk'|'off_track', score, reasons: [{key, params}] }
  *
@@ -44,13 +44,13 @@ function computeProjectHealth(project, stats) {
   const reasons = [];
   let score = 0;
 
-  const overdue = stats.overdueTasks || 0;
+  const overdue = stats.overdue || 0;
   if (overdue > 0) {
     score += overdue * overdueWeight;
     reasons.push({ key: 'projects.health.reasonOverdue', params: { n: overdue } });
   }
 
-  const blocked = stats.blockedTasks || 0;
+  const blocked = stats.blocked || 0;
   if (blocked > 0) {
     score += blocked;
     reasons.push({ key: 'projects.health.reasonBlocked', params: { n: blocked } });
