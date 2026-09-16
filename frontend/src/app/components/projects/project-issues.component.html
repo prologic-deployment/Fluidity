@@ -18,6 +18,7 @@
           <th class="hidden md:table-cell">{{ 'projects.fields.status' | t }}</th>
           <th class="hidden lg:table-cell">{{ 'projects.fields.owner' | t }}</th>
           <th class="hidden md:table-cell">{{ 'projects.fields.dueDate' | t }}</th>
+          <th class="hidden lg:table-cell">{{ 'projects.issues.blockedTasks' | t }}</th>
           <th></th>
         </tr>
       </thead>
@@ -31,6 +32,10 @@
           <td class="hidden md:table-cell"><span class="badge" [ngClass]="statusBadge(i.status)">{{ 'projects.meta.issueStatus.' + i.status | t }}</span></td>
           <td class="hidden lg:table-cell text-sm">{{ ownerName(i) || '—' }}</td>
           <td class="hidden md:table-cell text-sm whitespace-nowrap">{{ i.dueDate | dateLocale:'short' }}</td>
+          <td class="hidden lg:table-cell text-xs">
+            <span *ngFor="let r of blockedRefs(i)" class="badge badge-outline font-mono mr-1">{{ r }}</span>
+            <span *ngIf="!blockedRefs(i).length" class="text-muted-foreground">—</span>
+          </td>
           <td class="text-right whitespace-nowrap">
             <button *ngIf="canEdit" type="button" class="btn-ghost btn-sm" (click)="openEdit(i)">{{ 'common.edit' | t }}</button>
             <button *ngIf="canDelete" type="button" class="btn-ghost btn-sm text-destructive" (click)="remove(i)">{{ 'common.delete' | t }}</button>
@@ -74,6 +79,16 @@
         <div class="col-span-2">
           <label class="field-label">{{ 'projects.issues.resolution' | t }}</label>
           <textarea [(ngModel)]="form.resolution" rows="2" class="input" [attr.placeholder]="'projects.issues.resolutionPh' | t"></textarea>
+        </div>
+        <div class="col-span-2" *ngIf="projectTasks.length">
+          <label class="field-label">{{ 'projects.issues.blockedTasks' | t }}</label>
+          <div class="max-h-40 overflow-y-auto rounded-lg border border-border p-2 space-y-1">
+            <label *ngFor="let t of projectTasks" class="flex items-center gap-2 text-sm py-0.5">
+              <input type="checkbox" class="checkbox" [checked]="form.blockedTaskIds.includes(t._id)" (change)="toggleBlocked(t._id, $any($event.target).checked)" />
+              <span class="font-mono text-xs text-muted-foreground">{{ t.ref }}</span>
+              <span class="truncate">{{ t.title }}</span>
+            </label>
+          </div>
         </div>
       </div>
       <div class="flex justify-end gap-2 pt-2">

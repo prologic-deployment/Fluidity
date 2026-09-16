@@ -1,4 +1,5 @@
-const { Issue } = require('../models/project.models');
+const mongoose = require('mongoose');
+const { Issue, Task } = require('../models/project.models');
 const { ISSUE_STATUSES, TASK_PRIORITIES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
@@ -12,9 +13,30 @@ function serializeIssue(r, extra = {}) {
   return {
     _id: r._id, projectId: r.projectId, title: r.title, description: r.description,
     priority: r.priority, status: r.status, ownerId: r.ownerId, dueDate: r.dueDate,
-    resolution: r.resolution, attachments: r.attachments, createdAt: r.createdAt, updatedAt: r.updatedAt,
+    resolution: r.resolution, attachments: r.attachments, blockedTaskIds: r.blockedTaskIds || [], createdAt: r.createdAt, updatedAt: r.updatedAt,
     ...extra,
   };
+}
+
+/**
+ * Valide les tâches bloquées (Fix 19) : ObjectIds bien formés et tâches
+ * du projet. Retourne `{ ids }` ou `{ status, message }` en cas d'erreur.
+ */
+async function resolveBlockedTasks(req, project, blockedTaskIds) {
+  if (blockedTaskIds === undefined) return { ids: undefined };
+  if (!Array.isArray(blockedTaskIds)) {
+    return { status: 400, message: 'Tâches bloquées invalides (liste requise).' };
+  }
+  const ids = [...new Set(blockedTaskIds.map(String).filter(Boolean))].slice(0, 100);
+  if (ids.some((id) => !mongoose.isValidObjectId(id))) {
+    return { status: 400, message: 'Tâches bloquées invalides (identifiant mal formé).' };
+  }
+  if (!ids.length) return { ids: [] };
+  const found = await Task.find({ _id: { $in: ids }, tenantId: req.tenantId, projectId: project._id }).distinct('_id');
+  if (found.length !== ids.length) {
+    return { status: 404, message: 'Tâche bloquée introuvable dans ce projet.' };
+  }
+  return { ids };
 }
 
 const listIssues = async (req, res) => {
@@ -26,6 +48,7 @@ const listIssues = async (req, res) => {
     const items = await Issue.find({ tenantId: req.tenantId, projectId: project._id })
       .sort({ createdAt: -1 })
       .populate('ownerId', USER_SELECT)
+      .populate('blockedTaskIds', 'ref title status')
       .lean();
     res.json({ issues: items.map((i) => serializeIssue(i, { owner: i.ownerId })) });
   } catch (err) {
@@ -44,9 +67,14 @@ const createIssue = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour signaler des problèmes.' });
       return;
     }
-    const { title, description, priority, ownerId, dueDate, attachments } = req.body;
+    const { title, description, priority, ownerId, dueDate, attachments, blockedTaskIds } = req.body;
     if (!title || !String(title).trim()) {
       res.status(400).json({ message: 'Le titre du problème est requis.' });
+      return;
+    }
+    const blocked = await resolveBlockedTasks(req, project, blockedTaskIds);
+    if (blocked.status) {
+      res.status(blocked.status).json({ message: blocked.message });
       return;
     }
     const issue = await Issue.create({
@@ -58,6 +86,7 @@ const createIssue = async (req, res) => {
       status: 'open',
       ownerId: ownerId || null,
       dueDate: dueDate ? new Date(dueDate) : null,
+      blockedTaskIds: blocked.ids || [],
       attachments: Array.isArray(attachments) ? attachments.slice(0, 20) : [],
     });
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.issue_created', targetType: 'issue', targetId: issue._id, metadata: { title: issue.title } });
@@ -91,7 +120,7 @@ const updateIssue = async (req, res) => {
       res.status(404).json({ message: 'Problème introuvable.' });
       return;
     }
-    const { title, description, priority, status, ownerId, dueDate, resolution, attachments } = req.body;
+    const { title, description, priority, status, ownerId, dueDate, resolution, attachments, blockedTaskIds } = req.body;
     if (title !== undefined) {
       if (!String(title).trim()) {
         res.status(400).json({ message: 'Le titre du problème est requis.' });
@@ -119,6 +148,14 @@ const updateIssue = async (req, res) => {
     if (dueDate !== undefined) issue.dueDate = dueDate ? new Date(dueDate) : null;
     if (resolution !== undefined) issue.resolution = resolution;
     if (attachments !== undefined) issue.attachments = Array.isArray(attachments) ? attachments.slice(0, 20) : [];
+    if (blockedTaskIds !== undefined) {
+      const blocked = await resolveBlockedTasks(req, project, blockedTaskIds);
+      if (blocked.status) {
+        res.status(blocked.status).json({ message: blocked.message });
+        return;
+      }
+      issue.blockedTaskIds = blocked.ids;
+    }
     await issue.save();
     res.json({ issue: serializeIssue(issue) });
   } catch (err) {

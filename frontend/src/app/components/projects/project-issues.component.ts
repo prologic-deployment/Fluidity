@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
-import { Issue, ProjectCapabilities } from '../../models/project.model';
+import { Issue, ProjectCapabilities, Task } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
@@ -31,7 +31,8 @@ export class ProjectIssuesComponent implements OnInit, OnDestroy {
   issues: Issue[] = [];
   creating = false;
   editing: Issue | null = null;
-  form = { title: '', description: '', priority: 'medium', ownerId: '', dueDate: '', resolution: '', status: 'open' };
+  form = { title: '', description: '', priority: 'medium', ownerId: '', dueDate: '', resolution: '', status: 'open', blockedTaskIds: [] as string[] };
+  projectTasks: Task[] = [];
   submitting = false;
 
   readonly priorities = PRIORITIES;
@@ -76,6 +77,10 @@ export class ProjectIssuesComponent implements OnInit, OnDestroy {
           this.issues = r.issues;
           this.loading = false;
           this.cdr.markForCheck();
+          this.api.tasks(this.projectId, { limit: 100, page: 1 }).subscribe((t) => {
+            this.projectTasks = t.tasks;
+            this.cdr.markForCheck();
+          });
         },
         error: () => {
           this.error = 'projects.errors.load';
@@ -99,7 +104,7 @@ export class ProjectIssuesComponent implements OnInit, OnDestroy {
 
   openCreate(): void {
     this.creating = true;
-    this.form = { title: '', description: '', priority: 'medium', ownerId: '', dueDate: '', resolution: '', status: 'open' };
+    this.form = { title: '', description: '', priority: 'medium', ownerId: '', dueDate: '', resolution: '', status: 'open', blockedTaskIds: [] };
   }
 
   openEdit(i: Issue): void {
@@ -112,6 +117,7 @@ export class ProjectIssuesComponent implements OnInit, OnDestroy {
       dueDate: i.dueDate ? i.dueDate.slice(0, 10) : '',
       resolution: i.resolution,
       status: i.status,
+      blockedTaskIds: (i.blockedTaskIds || []).map((t) => (typeof t === 'string' ? t : t._id)),
     };
   }
 
@@ -126,6 +132,7 @@ export class ProjectIssuesComponent implements OnInit, OnDestroy {
       dueDate: this.form.dueDate || null,
       resolution: this.form.resolution,
       status: this.form.status as Issue['status'],
+      blockedTaskIds: this.form.blockedTaskIds,
     };
     const call = this.editing
       ? this.api.updateIssue(this.projectId, this.editing._id, payload)
@@ -174,6 +181,18 @@ export class ProjectIssuesComponent implements OnInit, OnDestroy {
   ownerName(i: Issue): string {
     const o = i.owner as { firstName?: string; lastName?: string } | undefined;
     return o ? `${o.firstName || ''} ${o.lastName || ''}`.trim() : '';
+  }
+
+  /** Références des tâches bloquées (populées serveur). */
+  blockedRefs(i: Issue): string[] {
+    return (i.blockedTaskIds || []).map((t) => (typeof t === 'string' ? '' : t.ref)).filter(Boolean);
+  }
+
+  toggleBlocked(taskId: string, checked: boolean): void {
+    const set = new Set(this.form.blockedTaskIds);
+    if (checked) set.add(taskId);
+    else set.delete(taskId);
+    this.form.blockedTaskIds = [...set];
   }
 
   trackI(_i: number, i: Issue): string {

@@ -528,6 +528,8 @@ const IssueSchema = new Schema(
     ownerId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
     dueDate: { type: Date, default: null },
     resolution: { type: String, default: '', maxlength: 3000 },
+    /** A5.3 Fix 19 : tâches bloquées par ce problème. */
+    blockedTaskIds: [{ type: Schema.Types.ObjectId, ref: 'Task' }],
     attachments: [
       {
         name: String,

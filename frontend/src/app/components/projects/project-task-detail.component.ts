@@ -10,7 +10,7 @@ import { ToastService } from '../../services/toast.service';
 import { UploadService, UploadedFile } from '../../services/upload.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities, TestCase } from '../../models/project.model';
+import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief, ProjectCapabilities, TestCase, Issue } from '../../models/project.model';
 import { BreadcrumbService } from '../shared/breadcrumb.service';
 import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
@@ -61,6 +61,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   commentSubmitting = false;
   newDependency = '';
   testCases: TestCase[] = [];
+  issues: Issue[] = [];
   newTcTitle = '';
   newTcSeverity: TestCase['severity'] = 'medium';
   tcNote: Record<string, string> = {};
@@ -159,7 +160,11 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       }),
       switchMap((tc) => {
         this.testCases = tc.testCases;
-        return of(tc);
+        return this.api.issues(this.projectId);
+      }),
+      switchMap((il) => {
+        this.issues = il.issues;
+        return of(il);
       })
     );
   }
@@ -296,6 +301,16 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
     });
+  }
+
+  /** Problèmes ouverts bloquant la tâche courante (Fix 19). */
+  blockingIssues(): Issue[] {
+    return this.issues.filter(
+      (i) =>
+        i.status !== 'resolved' &&
+        i.status !== 'closed' &&
+        (i.blockedTaskIds || []).some((t) => (typeof t === 'string' ? t : t._id) === this.taskId)
+    );
   }
 
   private reloadTestCases(): void {

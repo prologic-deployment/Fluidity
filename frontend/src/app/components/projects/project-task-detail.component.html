@@ -143,6 +143,22 @@
           </div>
         </div>
 
+        <!-- Bloqueurs -->
+        <div class="card" *ngIf="blockingIssues().length">
+          <div class="card-header py-3">{{ 'projects.task.blockers' | t }}</div>
+          <div class="card-content p-4 space-y-2">
+            <a
+              *ngFor="let i of blockingIssues()"
+              [routerLink]="['/projets', projectId, 'problemes']"
+              class="flex items-center gap-2 text-sm py-1 hover:underline"
+            >
+              <span class="text-muted-foreground">⛔</span>
+              <span class="truncate flex-1 min-w-0">{{ i.title }}</span>
+              <span class="badge badge-outline text-[10px]">{{ 'projects.meta.issueStatus.' + i.status | t }}</span>
+            </a>
+          </div>
+        </div>
+
         <!-- Cas de test QA -->
         <div class="card">
           <div class="card-header py-3">{{ 'projects.task.tests' | t }}</div>

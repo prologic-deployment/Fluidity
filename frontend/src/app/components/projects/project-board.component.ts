@@ -40,6 +40,7 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
   columns: BoardColumn[] = [];
   tasks: Task[] = [];
   dragTaskId: string | null = null;
+  blockerMap: Record<string, number> = {};
   sprintFilter = 'all';
   sprints: { _id: string; name: string }[] = [];
   isScrum = false;
@@ -72,6 +73,21 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
         next: (r) => {
           this.isScrum = r.project.methodology === 'scrum' || r.project.methodology === 'hybrid';
           if (this.isScrum) this.loadSprints();
+          this.api
+            .issues(this.projectId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((il) => {
+              const map: Record<string, number> = {};
+              for (const i of il.issues) {
+                if (i.status === 'resolved' || i.status === 'closed') continue;
+                for (const t of i.blockedTaskIds || []) {
+                  const id = typeof t === 'string' ? t : t._id;
+                  map[id] = (map[id] || 0) + 1;
+                }
+              }
+              this.blockerMap = map;
+              this.cdr.markForCheck();
+            });
           this.capsApi
             .forProject(this.projectId)
             .pipe(takeUntil(this.destroy$))
@@ -135,6 +151,11 @@ export class ProjectBoardComponent implements OnInit, OnDestroy {
     if (this.caps?.can.manageTasks) return true;
     const me = this.auth.getUser()?.userId || '';
     return !!me && t.assigneeId === me;
+  }
+
+  /** Nombre de problèmes ouverts bloquant la tâche (Fix 19). */
+  blockerCount(t: Task): number {
+    return this.blockerMap[t._id] || 0;
   }
 
   onDragStart(event: DragEvent, task: Task): void {

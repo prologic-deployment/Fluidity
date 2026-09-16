@@ -48,6 +48,7 @@
               <span class="font-mono text-[10px] text-muted-foreground">{{ t.ref }}</span>
               <span class="badge shrink-0 text-[10px]" [ngClass]="priorityBadge[t.priority]">{{ 'projects.meta.priority.' + t.priority | t }}</span>
               <span *ngIf="t.dependencies?.length" class="text-[10px] text-muted-foreground" [title]="'projects.board.hasDeps' | t">⛓ {{ t.dependencies.length }}</span>
+              <span *ngIf="blockerCount(t)" class="badge badge-destructive text-[10px]" [title]="'projects.board.blocked' | t">⛔ {{ blockerCount(t) }}</span>
             </div>
             <p class="text-sm font-medium line-clamp-2">{{ t.title }}</p>
             <div class="flex flex-wrap gap-1 mt-1.5" *ngIf="t.tags?.length">

@@ -1675,6 +1675,7 @@ export const FR: Record<string, unknown> = {
       allSprints: 'Tous les sprints',
       dropHere: 'Déposer ici',
       hasDeps: 'Dépendances bloquantes',
+      blocked: 'Bloquée par un problème ouvert',
       moveDenied: 'Déplacement refusé par le serveur.',
       moved: 'Tâche déplacée.',
       empty: 'Aucune colonne configurée.',
@@ -1783,6 +1784,7 @@ export const FR: Record<string, unknown> = {
     task: {
       titlePh: 'ex : corriger l’export CSV',
       tests: 'Cas de test',
+      blockers: 'Bloquée par',
       tcEmpty: 'Aucun cas de test pour cette tâche.',
       tcTitlePh: 'ex : vérifier l’export CSV paginé',
       tcNotePh: 'ex : constat du verdict…',
@@ -1964,6 +1966,7 @@ export const FR: Record<string, unknown> = {
     },
     issues: {
       titlePh: 'ex : lenteurs du tableau de bord',
+      blockedTasks: 'Tâches bloquées',
       descPh: 'ex : contexte, reproduction, impact…',
       resolutionPh: 'ex : index ajouté, cache invalidé…',
       title: 'Problèmes',

@@ -1676,6 +1676,7 @@ export const EN: Record<string, unknown> = {
       allSprints: 'All sprints',
       dropHere: 'Drop here',
       hasDeps: 'Blocking dependencies',
+      blocked: 'Blocked by an open issue',
       moveDenied: 'Move refused by the server.',
       moved: 'Task moved.',
       empty: 'No columns configured.',
@@ -1784,6 +1785,7 @@ export const EN: Record<string, unknown> = {
     task: {
       titlePh: 'e.g. fix the CSV export',
       tests: 'Test cases',
+      blockers: 'Blocked by',
       tcEmpty: 'No test cases for this task.',
       tcTitlePh: 'e.g. verify paginated CSV export',
       tcNotePh: 'e.g. verdict observation…',
@@ -1965,6 +1967,7 @@ export const EN: Record<string, unknown> = {
     },
     issues: {
       titlePh: 'e.g. dashboard slowness',
+      blockedTasks: 'Blocked tasks',
       descPh: 'e.g. context, reproduction, impact…',
       resolutionPh: 'e.g. index added, cache invalidated…',
       title: 'Issues',

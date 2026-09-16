@@ -351,6 +351,7 @@ export interface Issue {
   dueDate: string | null;
   resolution: string;
   attachments: TaskAttachment[];
+  blockedTaskIds?: ({ _id: string; ref: string; title: string; status: string } | string)[];
 }
 
 export interface ProjectComment {
