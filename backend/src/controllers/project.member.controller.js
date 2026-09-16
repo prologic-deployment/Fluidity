@@ -3,7 +3,7 @@ const { Project, ProjectMember } = require('../models/project.models');
 const { LicenseAssignment } = require('../models/saas.models');
 const { Utilisateur } = require('../models/user.model');
 const { PROJECT_MEMBER_ROLES } = require('../models/project.models');
-const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
+const { resolveProjectRole, guardProjectRole, can, CAN, RANKS } = require('../utils/project-access.util');
 const { literalRegex } = require('../utils/regex.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
@@ -61,6 +61,18 @@ const listMembers = async (req, res) => {
   }
 };
 
+/**
+ * Garde dernier-admin (Fix 14) : true si retirer ou rétrograder ce membre
+ * laisserait le projet sans `project_admin`. (Deux retraits concurrents des
+ * deux derniers admins passeraient ensemble — course acceptée : ces actions
+ * sont rares et coordonnées, et le code n'utilise pas de transactions.)
+ */
+async function wouldLeaveZeroAdmins(tenantId, projectId, targetRoleKey) {
+  if (targetRoleKey !== 'project_admin') return false;
+  const n = await ProjectMember.countDocuments({ tenantId, projectId, roleKey: 'project_admin' });
+  return n <= 1;
+}
+
 const addMember = async (req, res) => {
   try {
     const project = await loadProject(req, res);
@@ -78,6 +90,12 @@ const addMember = async (req, res) => {
     }
     if (!PROJECT_MEMBER_ROLES.includes(roleKey || '')) {
       res.status(400).json({ message: 'Rôle projet invalide.' });
+      return;
+    }
+    // Fix 14 : plafond de rang — on ne concède pas un rôle supérieur au sien
+    // (un manager ne peut donc pas promouvoir au rang project_admin).
+    if ((RANKS[roleKey] ?? 0) > role.rank) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Vous ne pouvez pas attribuer un rôle supérieur au vôtre.' });
       return;
     }
     const user = await Utilisateur.findOne({ _id: userId, tenantId: req.tenantId }).lean();
@@ -105,6 +123,13 @@ const addMember = async (req, res) => {
       }
     }
     const existing = await ProjectMember.findOne({ projectId: project._id, userId });
+    // Fix 14 : l'écrasement du rôle d'un membre existant peut rétrograder —
+    // le garde dernier-admin s'applique ici aussi.
+    if (existing && existing.roleKey === 'project_admin' && roleKey !== 'project_admin'
+        && await wouldLeaveZeroAdmins(req.tenantId, project._id, existing.roleKey)) {
+      res.status(403).json({ code: 'LAST_PROJECT_ADMIN', message: 'Impossible : le projet doit conserver au moins un administrateur.' });
+      return;
+    }
     let member;
     if (existing) {
       existing.roleKey = roleKey;
@@ -150,9 +175,20 @@ const updateMemberRole = async (req, res) => {
       res.status(400).json({ message: 'Rôle projet invalide.' });
       return;
     }
+    // Fix 14 : plafond de rang (même règle qu'à l'ajout).
+    if ((RANKS[roleKey] ?? 0) > role.rank) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Vous ne pouvez pas attribuer un rôle supérieur au vôtre.' });
+      return;
+    }
     const member = await ProjectMember.findOne({ projectId: project._id, userId: req.params.userId });
     if (!member) {
       res.status(404).json({ message: 'Membre introuvable.' });
+      return;
+    }
+    // Fix 14 : garde dernier-admin sur rétrogradation.
+    if (member.roleKey === 'project_admin' && roleKey !== 'project_admin'
+        && await wouldLeaveZeroAdmins(req.tenantId, project._id, member.roleKey)) {
+      res.status(403).json({ code: 'LAST_PROJECT_ADMIN', message: 'Impossible : le projet doit conserver au moins un administrateur.' });
       return;
     }
     member.roleKey = roleKey;
@@ -185,11 +221,17 @@ const removeMember = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour retirer des membres.' });
       return;
     }
-    const member = await ProjectMember.findOneAndDelete({ projectId: project._id, userId: req.params.userId });
+    // Fix 14 : lecture avant suppression pour appliquer le garde dernier-admin.
+    const member = await ProjectMember.findOne({ projectId: project._id, userId: req.params.userId });
     if (!member) {
       res.status(404).json({ message: 'Membre introuvable.' });
       return;
     }
+    if (await wouldLeaveZeroAdmins(req.tenantId, project._id, member.roleKey)) {
+      res.status(403).json({ code: 'LAST_PROJECT_ADMIN', message: 'Impossible : le projet doit conserver au moins un administrateur.' });
+      return;
+    }
+    await ProjectMember.deleteOne({ _id: member._id });
     // L'utilisateur retiré perd l'accès au projet ; ses données restent.
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.member_removed', targetType: 'user', targetId: member.userId });
     await audit(req, { action: 'project.member_removed', productKey: 'project_management', resource: 'project', resourceId: project._id, metadata: { userId: member.userId } });
