@@ -7,6 +7,7 @@ const { hasProductPermission } = require('../services/authorization.service');
 const { ensureLicense } = require('../services/license.service');
 const { literalRegex } = require('../utils/regex.util');
 const { validateTransition, effectiveWorkflow, availableTransitions } = require('../utils/project-workflow.util');
+const { canTransitionTask } = require('../utils/project-task-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit, auditWorkflow } = require('../utils/saas-log.util');
 const { notifyUser, notifyProjectEvent } = require('../services/project-notify.service');
@@ -544,6 +545,12 @@ const transitionTask = async (req, res) => {
       res.status(404).json({ message: 'Tâche introuvable.' });
       return;
     }
+    // Fix 5 : transitions réservées à l'assigné ou au rang ≥ 3 (lead et
+    // au-dessus) — l'annulation suit la même règle (DECISION Fix 3).
+    if (!canTransitionTask(role.rank, task.assigneeId, req.userId)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Seul l’assigné de la tâche ou un membre de rang ≥ 3 (lead et au-dessus) peut modifier son statut.' });
+      return;
+    }
     const { to } = req.body;
     const perms = req.entitlements?.permissions || [];
     const check = validateTransition(project, task.status, to, perms);
@@ -595,6 +602,12 @@ const moveTask = async (req, res) => {
     const task = await Task.findOne({ _id: req.params.taskId, tenantId: req.tenantId, projectId: project._id });
     if (!task) {
       res.status(404).json({ message: 'Tâche introuvable.' });
+      return;
+    }
+    // Fix 5 : même règle que les transitions (assigné ou rang ≥ 3), y
+    // compris pour un simple réordonnancement dans la colonne.
+    if (!canTransitionTask(role.rank, task.assigneeId, req.userId)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Seul l’assigné de la tâche ou un membre de rang ≥ 3 (lead et au-dessus) peut la déplacer.' });
       return;
     }
     const { toStatus, toIndex } = req.body;
