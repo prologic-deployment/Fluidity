@@ -159,7 +159,7 @@ sprints (démarrage, fin, fin imminente), projet terminé, livrables
 
 ---
 
-## 6. Rapports & indicateurs (vélocité, cycle time, débit, temps)
+## 6. Rapports & indicateurs (vélocité, cycle time, débit, temps, budget)
 
 ```mermaid
 flowchart TD
@@ -167,10 +167,12 @@ flowchart TD
     T --> C[Cycle time : moy/min/max jours<br/>entre démarrage effectif et complétion]
     T --> TP[Débit hebdomadaire : tâches terminées / semaine]
     T --> TM[Synthèse temps : estimé / consigné / restant / écart]
+    T --> B[Budget vs réel : saisies valorisées<br/>aux taux horaires des membres]
     V --> R[Rapports du projet + export]
     C --> R
     TP --> R
     TM --> R
+    B --> R
 ```
 
 ---

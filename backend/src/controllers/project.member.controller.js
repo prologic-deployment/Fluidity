@@ -48,6 +48,7 @@ const listMembers = async (req, res) => {
           _id: m._id,
           userId: m.userId,
           roleKey: m.roleKey,
+          hourlyRate: m.hourlyRate || 0,
           joinedAt: m.joinedAt,
           invitedBy: m.invitedBy,
           hasLicense: admins.has(id) || licensed.has(id),
@@ -211,6 +212,36 @@ const updateMemberRole = async (req, res) => {
   }
 };
 
+/** Fix 17 : taux horaire d'un membre (valorisation du coût réel). */
+const updateMemberRate = async (req, res) => {
+  try {
+    const project = await loadProject(req, res);
+    if (!project) return;
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    if (!can(role, CAN.manageMembers)) {
+      res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour gérer les taux horaires.' });
+      return;
+    }
+    const hourlyRate = Number(req.body?.hourlyRate);
+    if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
+      res.status(400).json({ code: 'VALIDATION_ERROR', message: 'Taux horaire invalide (nombre positif ou nul).' });
+      return;
+    }
+    const member = await ProjectMember.findOne({ projectId: project._id, userId: req.params.userId });
+    if (!member) {
+      res.status(404).json({ message: 'Membre introuvable.' });
+      return;
+    }
+    member.hourlyRate = hourlyRate;
+    await member.save();
+    res.json({ member: { _id: member._id, userId: member.userId, roleKey: member.roleKey, hourlyRate: member.hourlyRate } });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
 const removeMember = async (req, res) => {
   try {
     const project = await loadProject(req, res);
@@ -293,4 +324,4 @@ const availableUsers = async (req, res) => {
   }
 };
 
-module.exports = { listMembers, addMember, updateMemberRole, removeMember, availableUsers, loadProject };
+module.exports = { listMembers, addMember, updateMemberRole, updateMemberRate, removeMember, availableUsers, loadProject };

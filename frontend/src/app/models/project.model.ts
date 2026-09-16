@@ -95,6 +95,7 @@ export interface ProjectMember {
   _id: string;
   userId: UserBrief | string;
   roleKey: ProjectRoleKey;
+  hourlyRate?: number;
   joinedAt?: string;
   invitedBy?: string | null;
   /** Enrichissement équipe (charge). */
@@ -508,4 +509,21 @@ export interface ProjectCapabilities {
   permissions: string[];
   ranks: Record<string, number>;
   can: ProjectCapabilityFlags;
+}
+
+/** Budget vs réel renvoyé par GET /:id/budget (Fix 17). */
+export interface BudgetByMember {
+  userId: string;
+  name: string;
+  minutes: number;
+  cost: number;
+  rate: number;
+}
+
+export interface BudgetSummary {
+  budget: { enabled: boolean; amount: number; currency: string };
+  totalMinutes: number;
+  actualCost: number;
+  remaining: number;
+  byMember: BudgetByMember[];
 }

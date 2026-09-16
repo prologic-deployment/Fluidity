@@ -18,6 +18,7 @@ const { literalRegex } = require('../utils/regex.util');
 const { effectiveWorkflow } = require('../utils/project-workflow.util');
 const { ARCHIVED_STATUS, isProjectArchived } = require('../utils/project-archive.util');
 const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
+const { computeBudgetActuals } = require('../utils/budget.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers, notifyProjectManager, notifyUser } = require('../services/project-notify.service');
@@ -988,6 +989,52 @@ const getCapabilities = async (req, res) => {
   }
 };
 
+/**
+ * Budget vs réel (Fix 17) : enveloppe budgétaire + coût réel valorisé
+ * depuis les saisies de temps (taux horaire des membres). Lecture
+ * ouverte aux membres.
+ */
+const getBudget = async (req, res) => {
+  try {
+    const project = await Project.findOne({ _id: req.params.id, tenantId: req.tenantId });
+    if (!project) {
+      res.status(404).json({ message: 'Projet introuvable.' });
+      return;
+    }
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    const [entries, members] = await Promise.all([
+      TimeEntry.find({ tenantId: req.tenantId, projectId: project._id }).select('userId minutes').lean(),
+      ProjectMember.find({ projectId: project._id }).populate('userId', 'firstName lastName').lean(),
+    ]);
+    const rates = {};
+    const names = {};
+    for (const m of members) {
+      const uid = String(m.userId && m.userId._id ? m.userId._id : m.userId);
+      rates[uid] = m.hourlyRate || 0;
+      names[uid] = m.userId && m.userId._id ? `${m.userId.firstName || ''} ${m.userId.lastName || ''}`.trim() : '';
+    }
+    const actuals = computeBudgetActuals(entries.map((e) => ({ userId: String(e.userId), minutes: e.minutes })), rates);
+    const budget = project.budget || { enabled: false, amount: 0, currency: 'EUR' };
+    res.json({
+      budget: { enabled: !!budget.enabled, amount: budget.amount || 0, currency: budget.currency || 'EUR' },
+      totalMinutes: actuals.totalMinutes,
+      actualCost: actuals.actualCost,
+      remaining: Math.round(((budget.amount || 0) - actuals.actualCost) * 100) / 100,
+      byMember: Object.entries(actuals.byUser).map(([userId, v]) => ({
+        userId,
+        name: names[userId] || '',
+        minutes: v.minutes,
+        cost: v.cost,
+        rate: rates[userId] || 0,
+      })),
+    });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
 module.exports = {
   listProjects,
   searchProjects,
@@ -1002,6 +1049,7 @@ module.exports = {
   projectCalendar,
   getWorkflowConfig,
   getCapabilities,
+  getBudget,
   updateWorkflowConfig,
   serializeProject,
 };

@@ -41,6 +41,7 @@
         <tr>
           <th>{{ 'projects.fields.member' | t }}</th>
           <th class="hidden md:table-cell">{{ 'projects.fields.role' | t }}</th>
+          <th class="hidden md:table-cell">{{ 'projects.team.rate' | t }}</th>
           <th>{{ 'projects.team.workload' | t }}</th>
           <th class="hidden lg:table-cell">{{ 'projects.team.activity' | t }}</th>
           <th *ngIf="canManage"></th>
@@ -66,6 +67,10 @@
               <option *ngFor="let r of grantableRoles()" [value]="r">{{ 'products.roles.' + r | t }}</option>
             </select>
             <span *ngIf="!canManage" class="badge badge-secondary">{{ 'products.roles.' + m.roleKey | t }}</span>
+          </td>
+          <td class="hidden md:table-cell">
+            <input *ngIf="canManage" type="number" min="0" [value]="m.hourlyRate || 0" (change)="saveRate(m, $any($event.target).value)" class="input !w-24 !py-1 text-xs" />
+            <span *ngIf="!canManage" class="text-sm text-muted-foreground">{{ m.hourlyRate || 0 }}</span>
           </td>
           <td>
             <ng-container *ngIf="loadOf(m) as w">

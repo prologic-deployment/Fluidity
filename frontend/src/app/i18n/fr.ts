@@ -1854,6 +1854,8 @@ export const FR: Record<string, unknown> = {
     },
     team: {
       title: 'Équipe & charge',
+      rate: 'Taux horaire',
+      invalidRate: 'Taux horaire invalide (nombre positif ou nul).',
       searchPh: 'Rechercher un utilisateur…',
       add: 'Ajouter un membre',
       added: 'Membre ajouté.',
@@ -1958,6 +1960,11 @@ export const FR: Record<string, unknown> = {
     },
     reports: {
       title: 'Rapports',
+      budgetTitle: 'Budget vs réel',
+      budgetPlanned: 'Budgété',
+      budgetActual: 'Réel',
+      budgetRemaining: 'Restant',
+      budgetHours: 'Heures valorisées',
       progress: 'Progression',
       completedTasks: 'Tâches terminées',
       statuses: 'Répartition par statut',
@@ -1989,6 +1996,11 @@ export const FR: Record<string, unknown> = {
     },
     settings: {
       namePh: 'ex : Refonte portail client',
+      budget: 'Budget',
+      budgetHint: 'Enveloppe budgétaire du projet ; le coût réel est valorisé depuis les temps saisis (taux horaires de l’équipe).',
+      budgetEnabled: 'Budget activé',
+      budgetAmount: 'Montant',
+      budgetCurrency: 'Devise',
       descPh: 'Objectifs, périmètre, contraintes…',
       stakeholderPh: 'ex : Direction métier',
       objectivesPh: 'ex : réduire les délais de traitement de 30 %',

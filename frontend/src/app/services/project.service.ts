@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 import {
   ActivityEntry,
   BacklogData,
+  BudgetSummary,
   CalendarData,
   ChangeRequest,
   Deliverable,
@@ -126,6 +127,14 @@ export class ProjectService {
 
   updateMemberRole(id: string, userId: string, roleKey: string): Observable<{ ok: boolean }> {
     return this.http.patch<{ ok: boolean }>(`${this.base}/${id}/members/${userId}`, { roleKey });
+  }
+
+  updateMemberRate(id: string, userId: string, hourlyRate: number): Observable<{ member: ProjectMember }> {
+    return this.http.patch<{ member: ProjectMember }>(`${this.base}/${id}/members/${userId}/rate`, { hourlyRate });
+  }
+
+  budget(id: string): Observable<BudgetSummary> {
+    return this.http.get<BudgetSummary>(`${this.base}/${id}/budget`);
   }
 
   removeMember(id: string, userId: string): Observable<{ ok: boolean }> {

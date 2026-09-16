@@ -1855,6 +1855,8 @@ export const EN: Record<string, unknown> = {
     },
     team: {
       title: 'Team & workload',
+      rate: 'Hourly rate',
+      invalidRate: 'Invalid hourly rate (positive number or zero).',
       searchPh: 'Search a user…',
       add: 'Add a member',
       added: 'Member added.',
@@ -1959,6 +1961,11 @@ export const EN: Record<string, unknown> = {
     },
     reports: {
       title: 'Reports',
+      budgetTitle: 'Budget vs actual',
+      budgetPlanned: 'Budgeted',
+      budgetActual: 'Actual',
+      budgetRemaining: 'Remaining',
+      budgetHours: 'Valued hours',
       progress: 'Progress',
       completedTasks: 'Completed tasks',
       statuses: 'Breakdown by status',
@@ -1990,6 +1997,11 @@ export const EN: Record<string, unknown> = {
     },
     settings: {
       namePh: 'e.g. Client portal revamp',
+      budget: 'Budget',
+      budgetHint: 'Project budget envelope; actual cost is valued from logged time (team hourly rates).',
+      budgetEnabled: 'Budget enabled',
+      budgetAmount: 'Amount',
+      budgetCurrency: 'Currency',
       descPh: 'Goals, scope, constraints…',
       stakeholderPh: 'e.g. Business owner',
       objectivesPh: 'e.g. cut processing time by 30%',

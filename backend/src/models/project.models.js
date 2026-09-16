@@ -154,6 +154,8 @@ const ProjectMemberSchema = new Schema(
     roleKey: { type: String, enum: PROJECT_MEMBER_ROLES, default: 'project_member' },
     invitedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur' },
     joinedAt: { type: Date, default: Date.now },
+    /** A5.3 Fix 17 : taux horaire (devise du budget projet) pour le coût réel. */
+    hourlyRate: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

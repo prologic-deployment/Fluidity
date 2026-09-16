@@ -47,6 +47,9 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
     successCriteria: '',
     businessValue: 0,
     estimatedEffortHours: 0,
+    budgetEnabled: false,
+    budgetAmount: 0,
+    budgetCurrency: 'EUR',
   };
   // Santé forcée (override manuel avec justification)
   override = { status: '', reason: '' };
@@ -107,6 +110,9 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
             successCriteria: r.project.successCriteria || '',
             businessValue: r.project.businessValue || 0,
             estimatedEffortHours: r.project.estimatedEffortHours || 0,
+            budgetEnabled: !!r.project.budget?.enabled,
+            budgetAmount: r.project.budget?.amount || 0,
+            budgetCurrency: r.project.budget?.currency || 'EUR',
           };
           this.override = { status: r.project.healthOverride?.status || '', reason: r.project.healthOverride?.reason || '' };
           this.wfStates = (r.workflow.states || []).map((s) => ({ key: s.key, label: s.label || '', color: s.color || '', terminal: !!s.terminal, wipLimit: s.wipLimit || 0 }));
@@ -158,6 +164,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
         successCriteria: this.form.successCriteria,
         businessValue: Number(this.form.businessValue) || 0,
         estimatedEffortHours: Number(this.form.estimatedEffortHours) || 0,
+        budget: { enabled: this.form.budgetEnabled, amount: Number(this.form.budgetAmount) || 0, currency: this.form.budgetCurrency || 'EUR' },
       })
       .subscribe({
         next: (r) => {

@@ -88,6 +88,31 @@
         </div>
       </div>
 
+      <!-- Budget -->
+      <div class="card">
+        <div class="card-header py-3">{{ 'projects.settings.budget' | t }}</div>
+        <div class="card-content p-4">
+          <p class="text-xs text-muted-foreground mb-3">{{ 'projects.settings.budgetHint' | t }}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <label class="flex items-center gap-2 text-sm pb-2">
+              <input type="checkbox" [(ngModel)]="form.budgetEnabled" [disabled]="!canManage" class="checkbox" />
+              {{ 'projects.settings.budgetEnabled' | t }}
+            </label>
+            <div>
+              <label class="field-label">{{ 'projects.settings.budgetAmount' | t }}</label>
+              <input type="number" min="0" [(ngModel)]="form.budgetAmount" class="input" [disabled]="!canManage" />
+            </div>
+            <div>
+              <label class="field-label">{{ 'projects.settings.budgetCurrency' | t }}</label>
+              <input type="text" [(ngModel)]="form.budgetCurrency" class="input" maxlength="3" [disabled]="!canManage" />
+            </div>
+          </div>
+          <div class="flex justify-end mt-3" *ngIf="canManage">
+            <button type="button" class="btn-primary btn-sm" [disabled]="saving" (click)="saveFields()">{{ 'common.save' | t }}</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Cycle de vie -->
       <div class="card">
         <div class="card-header py-3">{{ 'projects.settings.lifecycle' | t }}</div>

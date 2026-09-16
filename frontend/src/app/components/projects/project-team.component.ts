@@ -169,6 +169,22 @@ export class ProjectTeamComponent implements OnInit, OnDestroy {
     });
   }
 
+  saveRate(m: ProjectMember, value: string): void {
+    const hourlyRate = Number(value);
+    if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
+      this.toast.error(this.i18n.t('projects.team.invalidRate'));
+      this.refresh();
+      return;
+    }
+    this.api.updateMemberRate(this.projectId, this.memberId(m), hourlyRate).subscribe({
+      next: (r) => {
+        m.hourlyRate = r.member.hourlyRate;
+        this.cdr.markForCheck();
+      },
+      error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.errors.save')),
+    });
+  }
+
   remove(m: ProjectMember): void {
     this.api.removeMember(this.projectId, this.memberId(m)).subscribe({
       next: () => {

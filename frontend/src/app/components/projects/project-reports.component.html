@@ -170,6 +170,49 @@
         </div>
       </div>
 
+      <!-- Budget vs réel -->
+      <div class="card" *ngIf="budget?.budget?.enabled">
+        <div class="card-header py-3">{{ 'projects.reports.budgetTitle' | t }}</div>
+        <div class="card-content p-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ budget!.budget.amount }} {{ budget!.budget.currency }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.budgetPlanned' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ budget!.actualCost }} {{ budget!.budget.currency }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.budgetActual' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums" [class.text-red-600]="budget!.remaining < 0">{{ budget!.remaining }} {{ budget!.budget.currency }}</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.budgetRemaining' | t }}</p>
+          </div>
+          <div class="rounded-lg border border-border p-3 text-center">
+            <p class="text-xl font-semibold tabular-nums">{{ (budget!.totalMinutes / 60).toFixed(1) }}h</p>
+            <p class="text-xs text-muted-foreground">{{ 'projects.reports.budgetHours' | t }}</p>
+          </div>
+        </div>
+        <div class="card-content px-4 pb-4" *ngIf="budget!.byMember.length">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>{{ 'projects.fields.member' | t }}</th>
+                <th>{{ 'projects.reports.budgetHours' | t }}</th>
+                <th>{{ 'projects.team.rate' | t }}</th>
+                <th>{{ 'projects.reports.budgetActual' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let b of budget!.byMember">
+                <td class="text-sm">{{ b.name }}</td>
+                <td class="text-sm tabular-nums">{{ (b.minutes / 60).toFixed(1) }}h</td>
+                <td class="text-sm tabular-nums">{{ b.rate }}</td>
+                <td class="text-sm tabular-nums">{{ b.cost }} {{ budget!.budget.currency }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Matrice de risques -->
       <div class="card">
         <div class="card-header py-3">{{ 'projects.reports.riskMatrix' | t }}</div>

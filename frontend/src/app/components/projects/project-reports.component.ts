@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { ReportsData } from '../../models/project.model';
+import { ReportsData, BudgetSummary } from '../../models/project.model';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ProjectStatePipe } from './project.pipes';
 import { HEALTH_BADGE, SEVERITY_BADGE } from './project.constants';
@@ -24,6 +24,7 @@ export class ProjectReportsComponent implements OnInit, OnDestroy {
   error = '';
   projectId = '';
   data: ReportsData | null = null;
+  budget: BudgetSummary | null = null;
   healthBadge = HEALTH_BADGE;
   severityBadge = SEVERITY_BADGE;
 
@@ -45,6 +46,12 @@ export class ProjectReportsComponent implements OnInit, OnDestroy {
           this.data = d;
           this.loading = false;
           this.cdr.markForCheck();
+          this.api.budget(this.projectId).subscribe({
+            next: (b) => {
+              this.budget = b;
+              this.cdr.markForCheck();
+            },
+          });
         },
         error: () => {
           this.error = 'projects.errors.load';

@@ -48,6 +48,7 @@ router.get('/:id/reports', access('project.report.read'), projectController.proj
 router.get('/:id/calendar', access(), projectController.projectCalendar);
 router.get('/:id/workflow', access(), projectController.getWorkflowConfig);
 router.get('/:id/capabilities', access(), projectController.getCapabilities);
+router.get('/:id/budget', access(), projectController.getBudget);
 router.put('/:id/workflow', access('project.workflow.manage'), rejectArchivedProject, projectController.updateWorkflowConfig);
 router.get('/:id/activity', access(), activityController.listActivity);
 
@@ -56,6 +57,7 @@ router.get('/:id/members', access(), memberController.listMembers);
 router.get('/:id/members/available', access('project.member.manage'), memberController.availableUsers);
 router.post('/:id/members', access('project.member.manage'), rejectArchivedProject, memberController.addMember);
 router.patch('/:id/members/:userId', access('project.member.manage'), rejectArchivedProject, memberController.updateMemberRole);
+router.patch('/:id/members/:userId/rate', access('project.member.manage'), rejectArchivedProject, memberController.updateMemberRate);
 router.delete('/:id/members/:userId', access('project.member.manage'), rejectArchivedProject, memberController.removeMember);
 
 // --- Backlog Scrum (épopées + user stories non planifiées) ----------------
