@@ -62,7 +62,9 @@
           <span *ngIf="ownerName(r)">{{ 'projects.fields.owner' | t }} : {{ ownerName(r) }}</span>
           <span *ngIf="r.dueDate">{{ 'projects.fields.dueDate' | t }} : {{ r.dueDate | dateLocale:'short' }}</span>
         </div>
-        <p *ngIf="r.mitigation" class="text-sm mt-2 rounded-lg bg-muted/40 p-2">{{ 'projects.risks.mitigation' | t }} : {{ r.mitigation }}</p>
+        <p *ngIf="r.mitigation" class="text-sm mt-2 rounded-lg bg-muted/40 p-2">{{ 'projects.risks.strategy.' + (r.strategy || 'mitigate') | t }} — {{ r.mitigation }}
+          <span *ngIf="r.responseCost" class="text-muted-foreground">({{ r.responseCost }} €)</span>
+        </p>
         <div class="flex gap-1 mt-2 flex-wrap">
           <button *ngIf="r.status === 'open' && canManage" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'mitigating')">{{ 'projects.risks.mitigate' | t }}</button>
           <button *ngIf="r.status === 'mitigating' && canManage" type="button" class="btn-ghost btn-sm" (click)="setStatus(r, 'resolved')">{{ 'projects.risks.resolve' | t }}</button>
@@ -101,9 +103,29 @@
             <option *ngFor="let l of levels" [value]="l">{{ 'projects.meta.impact.' + l | t }}</option>
           </select>
         </div>
+        <div class="col-span-2 pt-1">
+          <p class="text-sm font-semibold">{{ 'projects.risks.responsePlan' | t }}</p>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.risks.strategyLabel' | t }}</label>
+          <select [(ngModel)]="form.strategy" class="input">
+            <option *ngFor="let s of strategies" [value]="s">{{ 'projects.risks.strategy.' + s | t }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.fields.owner' | t }}</label>
+          <select [(ngModel)]="form.ownerId" class="input">
+            <option value="">—</option>
+            <option *ngFor="let m of members" [value]="memberIdOf(m)">{{ memberNameOf(m) }}</option>
+          </select>
+        </div>
         <div class="col-span-2">
           <label class="field-label">{{ 'projects.risks.mitigation' | t }}</label>
           <textarea [(ngModel)]="form.mitigation" rows="2" class="input" [attr.placeholder]="'projects.risks.mitigationPh' | t"></textarea>
+        </div>
+        <div>
+          <label class="field-label">{{ 'projects.risks.responseCost' | t }} (€)</label>
+          <input type="number" [(ngModel)]="form.responseCost" class="input" min="0" step="1" />
         </div>
         <div>
           <label class="field-label">{{ 'projects.fields.dueDate' | t }}</label>

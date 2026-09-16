@@ -1,5 +1,5 @@
 const { Risk } = require('../models/project.models');
-const { RISK_LEVELS, RISK_STATUSES } = require('../models/project.models');
+const { RISK_LEVELS, RISK_STATUSES, RISK_STRATEGIES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/project-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { notifyUser } = require('../services/project-notify.service');
@@ -22,7 +22,7 @@ function serializeRisk(r, extra = {}) {
   return {
     _id: r._id, projectId: r.projectId, title: r.title, description: r.description,
     probability: r.probability, impact: r.impact, severity: r.severity,
-    ownerId: r.ownerId, mitigation: r.mitigation, status: r.status, dueDate: r.dueDate,
+    ownerId: r.ownerId, mitigation: r.mitigation, strategy: r.strategy, responseCost: r.responseCost, status: r.status, dueDate: r.dueDate,
     createdAt: r.createdAt, updatedAt: r.updatedAt, ...extra,
   };
 }
@@ -54,7 +54,7 @@ const createRisk = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour gérer les risques.' });
       return;
     }
-    const { title, description, probability, impact, ownerId, mitigation, dueDate } = req.body;
+    const { title, description, probability, impact, ownerId, mitigation, strategy, responseCost, dueDate } = req.body;
     if (!title || !String(title).trim()) {
       res.status(400).json({ message: 'Le titre du risque est requis.' });
       return;
@@ -71,6 +71,8 @@ const createRisk = async (req, res) => {
       severity: computeSeverity(p, i),
       ownerId: ownerId || null,
       mitigation: mitigation || '',
+      strategy: RISK_STRATEGIES.includes(strategy) ? strategy : 'mitigate',
+      responseCost: Math.max(0, Number(responseCost) || 0),
       status: 'open',
       dueDate: dueDate ? new Date(dueDate) : null,
     });
@@ -105,7 +107,7 @@ const updateRisk = async (req, res) => {
       res.status(404).json({ message: 'Risque introuvable.' });
       return;
     }
-    const { title, description, probability, impact, ownerId, mitigation, status, dueDate } = req.body;
+    const { title, description, probability, impact, ownerId, mitigation, strategy, responseCost, status, dueDate } = req.body;
     if (title !== undefined) {
       if (!String(title).trim()) {
         res.status(400).json({ message: 'Le titre du risque est requis.' });
@@ -129,6 +131,21 @@ const updateRisk = async (req, res) => {
       }
     }
     if (mitigation !== undefined) risk.mitigation = mitigation;
+    if (strategy !== undefined) {
+      if (!RISK_STRATEGIES.includes(strategy)) {
+        res.status(400).json({ message: 'Stratégie de réponse invalide.' });
+        return;
+      }
+      risk.strategy = strategy;
+    }
+    if (responseCost !== undefined) {
+      const cost = Number(responseCost);
+      if (!Number.isFinite(cost) || cost < 0) {
+        res.status(400).json({ message: 'Coût de réponse invalide (montant positif requis).' });
+        return;
+      }
+      risk.responseCost = cost;
+    }
     if (status !== undefined && RISK_STATUSES.includes(status) && status !== risk.status) {
       risk.status = status;
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.risk_status_changed', targetType: 'risk', targetId: risk._id, metadata: { title: risk.title, status } });

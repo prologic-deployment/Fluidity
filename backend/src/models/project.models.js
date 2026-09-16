@@ -510,6 +510,8 @@ const Sprint = mongoose.model('Sprint', SprintSchema);
 const RISK_LEVELS = ['low', 'medium', 'high'];
 const RISK_SEVERITIES = ['low', 'medium', 'high', 'critical'];
 const RISK_STATUSES = ['open', 'mitigating', 'resolved', 'closed'];
+/** Fix 29 : taxonomie PMBOK du plan de réponse (4 menaces + exploit opportunité). */
+const RISK_STRATEGIES = ['avoid', 'mitigate', 'transfer', 'accept', 'exploit'];
 
 const RiskSchema = new Schema(
   {
@@ -525,6 +527,9 @@ const RiskSchema = new Schema(
     severity: { type: String, enum: RISK_SEVERITIES, default: 'medium' },
     ownerId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
     mitigation: { type: String, default: '', maxlength: 3000 },
+    /** Fix 29 : plan de réponse structuré (stratégie + coût estimé). */
+    strategy: { type: String, enum: RISK_STRATEGIES, default: 'mitigate' },
+    responseCost: { type: Number, default: 0, min: 0 },
     status: { type: String, enum: RISK_STATUSES, default: 'open' },
     dueDate: { type: Date, default: null },
   },
@@ -735,6 +740,7 @@ module.exports = {
   RISK_LEVELS,
   RISK_SEVERITIES,
   RISK_STATUSES,
+  RISK_STRATEGIES,
   ISSUE_STATUSES,
   DELIVERABLE_STATUSES,
   CHANGE_REQUEST_TYPES,

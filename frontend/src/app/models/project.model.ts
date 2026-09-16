@@ -353,6 +353,8 @@ export interface Risk {
   ownerId: string | null;
   owner?: UserBrief | null;
   mitigation: string;
+  strategy?: 'avoid' | 'mitigate' | 'transfer' | 'accept' | 'exploit';
+  responseCost?: number;
   status: 'open' | 'mitigating' | 'resolved' | 'closed';
   dueDate: string | null;
 }

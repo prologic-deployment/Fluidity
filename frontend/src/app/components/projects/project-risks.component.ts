@@ -5,12 +5,12 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
-import { Risk, ProjectCapabilities } from '../../models/project.model';
+import { Risk, ProjectCapabilities, ProjectMember } from '../../models/project.model';
 import { ToastService } from '../../services/toast.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
 import { ModalComponent } from '../shared/modal.component';
-import { RISK_LEVELS, RISK_STATUSES, SEVERITY_BADGE } from './project.constants';
+import { RISK_LEVELS, RISK_STATUSES, RISK_STRATEGIES, SEVERITY_BADGE } from './project.constants';
 import { apiErrorMessage } from '../../utils/api-error.util';
 
 const CELLS: [string, string][] = [
@@ -37,11 +37,13 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
   risks: Risk[] = [];
   creating = false;
   editing: Risk | null = null;
-  form = { title: '', description: '', probability: 'medium', impact: 'medium', ownerId: '', mitigation: '', dueDate: '' };
+  form = { title: '', description: '', probability: 'medium', impact: 'medium', ownerId: '', mitigation: '', strategy: 'mitigate', responseCost: 0, dueDate: '' };
+  members: ProjectMember[] = [];
   submitting = false;
 
   readonly levels = RISK_LEVELS;
   readonly statuses = RISK_STATUSES;
+  readonly strategies = RISK_STRATEGIES;
   readonly severityBadge = SEVERITY_BADGE;
 
   caps: ProjectCapabilities | null = null;
@@ -74,6 +76,10 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         switchMap((p) => {
           this.projectId = p['id'];
+          this.api.members(p['id']).subscribe((m) => {
+            this.members = m.members;
+            this.cdr.markForCheck();
+          });
           return this.api.risks(p['id']);
         })
       )
@@ -102,7 +108,7 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
 
   openCreate(): void {
     this.creating = true;
-    this.form = { title: '', description: '', probability: 'medium', impact: 'medium', ownerId: '', mitigation: '', dueDate: '' };
+    this.form = { title: '', description: '', probability: 'medium', impact: 'medium', ownerId: '', mitigation: '', strategy: 'mitigate', responseCost: 0, dueDate: '' };
   }
 
   openEdit(r: Risk): void {
@@ -112,8 +118,10 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
       description: r.description,
       probability: r.probability,
       impact: r.impact,
-      ownerId: r.ownerId || '',
+      ownerId: typeof r.ownerId === 'object' ? (r.ownerId as unknown as { _id: string })?._id || '' : r.ownerId || '',
       mitigation: r.mitigation,
+      strategy: r.strategy || 'mitigate',
+      responseCost: r.responseCost || 0,
       dueDate: r.dueDate ? r.dueDate.slice(0, 10) : '',
     };
   }
@@ -128,6 +136,8 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
       impact: this.form.impact as Risk['impact'],
       ownerId: this.form.ownerId || null,
       mitigation: this.form.mitigation,
+      strategy: this.form.strategy as Risk['strategy'],
+      responseCost: Math.max(0, Number(this.form.responseCost) || 0),
       dueDate: this.form.dueDate || null,
     };
     const call = this.editing
@@ -186,6 +196,15 @@ export class ProjectRisksComponent implements OnInit, OnDestroy {
       high: 'border-orange-500',
       critical: 'border-red-500',
     }[r.severity] || 'border-border';
+  }
+
+  memberIdOf(m: ProjectMember): string {
+    return typeof m.userId === 'object' ? m.userId?._id || '' : m.userId;
+  }
+
+  memberNameOf(m: ProjectMember): string {
+    const u = typeof m.userId === 'object' ? m.userId : null;
+    return u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '';
   }
 
   ownerName(r: Risk): string {

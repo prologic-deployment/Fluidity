@@ -50,6 +50,7 @@ export const MILESTONE_STATUSES = ['not_started', 'in_progress', 'completed', 'd
 
 export const RISK_LEVELS = ['low', 'medium', 'high'] as const;
 export const RISK_STATUSES = ['open', 'mitigating', 'resolved', 'closed'] as const;
+export const RISK_STRATEGIES = ['avoid', 'mitigate', 'transfer', 'accept', 'exploit'] as const;
 
 export const ISSUE_STATUSES = ['open', 'investigating', 'blocked', 'resolved', 'closed'] as const;
 
