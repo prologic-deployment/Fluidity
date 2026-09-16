@@ -80,16 +80,16 @@
       <div class="grid grid-cols-2 gap-3">
         <label class="block text-sm">
           <span class="text-muted-foreground">{{ 'projects.fields.points' | t }}</span>
-          <input type="number" min="0" [(ngModel)]="form.points" class="input mt-1" [disabled]="!!editing && !caps?.can.manageBacklog" />
+          <input type="number" min="0" [(ngModel)]="form.points" class="input mt-1" [disabled]="!!editing && !caps?.can?.manageBacklog" />
         </label>
         <label class="block text-sm">
           <span class="text-muted-foreground">{{ 'projects.backlog.businessValue' | t }}</span>
-          <input type="number" min="0" [(ngModel)]="form.businessValue" class="input mt-1" [disabled]="!!editing && !caps?.can.manageBacklog" />
+          <input type="number" min="0" [(ngModel)]="form.businessValue" class="input mt-1" [disabled]="!!editing && !caps?.can?.manageBacklog" />
         </label>
       </div>
       <label class="block text-sm">
         <span class="text-muted-foreground">{{ 'projects.fields.priority' | t }}</span>
-        <select [(ngModel)]="form.priority" class="select mt-1" [disabled]="!!editing && !caps?.can.manageBacklog">
+        <select [(ngModel)]="form.priority" class="select mt-1" [disabled]="!!editing && !caps?.can?.manageBacklog">
           <option *ngFor="let p of ['low','medium','high','critical']" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
         </select>
       </label>

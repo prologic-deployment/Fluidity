@@ -50,7 +50,8 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let m of members; trackBy: trackM">
+        <ng-container *ngFor="let m of members; trackBy: trackM">
+        <tr>
           <td>
             <div class="flex items-center gap-2 min-w-0">
               <span class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium border border-border overflow-hidden shrink-0">
@@ -120,6 +121,7 @@
             </div>
           </td>
         </tr>
+        </ng-container>
       </tbody>
     </table>
   </div>

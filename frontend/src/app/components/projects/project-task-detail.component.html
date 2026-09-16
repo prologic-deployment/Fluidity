@@ -50,7 +50,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="field-label">{{ 'projects.fields.priority' | t }}</label>
-                <select [(ngModel)]="editPriority" class="input" [disabled]="!caps?.can.manageBacklog">
+                <select [(ngModel)]="editPriority" class="input" [disabled]="!caps?.can?.manageBacklog">
                   <option *ngFor="let p of priorities" [value]="p">{{ 'projects.meta.priority.' + p | t }}</option>
                 </select>
               </div>
@@ -83,7 +83,7 @@
               </div>
               <div>
                 <label class="field-label">{{ 'projects.fields.points' | t }}</label>
-                <input type="number" min="0" step="1" [(ngModel)]="editPoints" class="input" [disabled]="!caps?.can.manageBacklog" />
+                <input type="number" min="0" step="1" [(ngModel)]="editPoints" class="input" [disabled]="!caps?.can?.manageBacklog" />
               </div>
               <div>
                 <label class="field-label">{{ 'projects.fields.type' | t }}</label>
@@ -100,7 +100,7 @@
               </div>
               <div>
                 <label class="field-label">{{ 'projects.tabs.sprints' | t }}</label>
-                <select [(ngModel)]="editSprint" class="input" [disabled]="!caps?.can.manageBacklog">
+                <select [(ngModel)]="editSprint" class="input" [disabled]="!caps?.can?.manageBacklog">
                   <option value="">—</option>
                   <option *ngFor="let sp of sprintsList" [value]="sp._id">{{ sp.name }}</option>
                 </select>
