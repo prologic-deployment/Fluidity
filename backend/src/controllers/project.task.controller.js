@@ -6,7 +6,7 @@ const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/pro
 const { hasProductPermission } = require('../services/authorization.service');
 const { ensureLicense } = require('../services/license.service');
 const { literalRegex } = require('../utils/regex.util');
-const { validateTransition, effectiveWorkflow } = require('../utils/project-workflow.util');
+const { validateTransition, effectiveWorkflow, availableTransitions } = require('../utils/project-workflow.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit, auditWorkflow } = require('../utils/saas-log.util');
 const { notifyUser, notifyProjectEvent } = require('../services/project-notify.service');
@@ -505,6 +505,31 @@ const updateTask = async (req, res) => {
 };
 
 /**
+ * Transitions autorisées depuis le statut courant de la tâche — calculées
+ * côté serveur avec les permissions réelles de l'appelant (registre ou
+ * workflow personnalisé). Le frontend en dérive ses boutons au lieu de
+ * dupliquer le graphe et la table des permissions (Fix 3).
+ */
+const getTaskTransitions = async (req, res) => {
+  try {
+    const project = await loadProject(req, res);
+    if (!project) return;
+    const role = guardProjectRole(res, await resolveProjectRole(req, project));
+    if (!role) return;
+    const task = await Task.findOne({ _id: req.params.taskId, tenantId: req.tenantId, projectId: project._id }).select('status').lean();
+    if (!task) {
+      res.status(404).json({ message: 'Tâche introuvable.' });
+      return;
+    }
+    const perms = req.entitlements?.permissions || [];
+    res.json({ transitions: availableTransitions(project, task.status, perms) });
+  } catch (err) {
+    logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
+    res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });
+  }
+};
+
+/**
  * Transition de statut — validée par le moteur de workflow (registre ou
  * workflow personnalisé du projet). Jamais de changement d'état « libre ».
  */
@@ -751,6 +776,7 @@ module.exports = {
   getTask,
   createTask,
   updateTask,
+  getTaskTransitions,
   transitionTask,
   moveTask,
   deleteTask,

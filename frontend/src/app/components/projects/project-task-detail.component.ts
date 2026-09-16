@@ -4,13 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, of, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
-import { PlatformService } from '../../services/platform.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import { UploadService, UploadedFile } from '../../services/upload.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { I18N_IMPORTS } from '../../i18n/i18n.pipe';
-import { ProjectComment, ProjectMember, Task, TaskDetailResponse, WorkflowState, UserBrief } from '../../models/project.model';
+import { ProjectComment, ProjectMember, Task, TaskDetailResponse, TaskTransition, WorkflowState, UserBrief } from '../../models/project.model';
 import { BreadcrumbService } from '../shared/breadcrumb.service';
 import { ProjectStatePipe } from './project.pipes';
 import { PRIORITIES, PRIORITY_BADGE } from './project.constants';
@@ -37,6 +36,8 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
   data: TaskDetailResponse | null = null;
   task: Task | null = null;
   workflow: WorkflowState[] = [];
+  transitions: TaskTransition[] = [];
+  myRoleKey = '';
   members: ProjectMember[] = [];
   comments: ProjectComment[] = [];
   watching = false;
@@ -68,7 +69,6 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private api: ProjectService,
-    private platform: PlatformService,
     private auth: AuthService,
     private toast: ToastService,
     private i18n: I18nService,
@@ -112,6 +112,7 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     return this.api.get(this.projectId).pipe(
       switchMap((proj) => {
         this.projectCode = proj.project?.code || '';
+        this.myRoleKey = proj.myRole?.roleKey || '';
         return this.api.task(this.projectId, this.taskId);
       }),
       switchMap((r) => {
@@ -128,6 +129,10 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       }),
       switchMap((m) => {
         this.members = m.members;
+        return this.api.taskTransitions(this.projectId, this.taskId);
+      }),
+      switchMap((tr) => {
+        this.transitions = tr.transitions;
         return this.api.comments(this.projectId, 'task', this.taskId);
       }),
       switchMap((c) => {
@@ -153,45 +158,23 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
     this.editTags = (t.tags || []).join(', ');
   }
 
-  /** États atteignables depuis le statut courant (registre + permissions). */
+  /** États atteignables depuis le statut courant (calculés par le serveur). */
   availableTargets(): WorkflowState[] {
     if (!this.task) return [];
-    const current = this.task.status;
-    const states = this.workflow;
-    const custom = this.data?.workflow.custom;
-    if (custom) {
-      const cur = states.find((s) => s.key === current);
-      if (cur?.terminal) return states.filter((s) => !s.terminal);
-      return states.filter((s) => s.key !== current);
-    }
-    // Workflow par défaut : transitions du registre filtrées par permissions.
-    const perms = this.platformPermissions();
-    const transitions = this.defaultTransitions;
-    return states.filter((s) =>
-      transitions.some(
-        (t) => (t.from === current || t.from === '*') && t.to === s.key && (!t.permission || perms.includes('*') || perms.includes(t.permission))
-      )
-    );
+    const allowed = new Set(this.transitions.filter((t) => t.allowed).map((t) => t.to));
+    return this.workflow.filter((s) => allowed.has(s.key) && (s.key !== 'cancelled' || this.canCancel()));
   }
 
-  private platformPermissions(): string[] {
-    const e = this.platform.entitlementsValue();
-    if (!e) return [];
-    const entry = e.products.find((p) => p.productKey === 'project_management');
-    return entry?.permissions || [];
+  /**
+   * Annulation = transition (task.update, tranché serveur) + règle
+   * assigné-ou-rang≥3 (DECISION Fix 3, appliquée serveur en Fix 5).
+   */
+  private canCancel(): boolean {
+    if (!this.task) return false;
+    const me = this.auth.getUser()?.userId || '';
+    if (me && this.task.assigneeId === me) return true;
+    return ['project_lead', 'scrum_master', 'product_owner', 'project_manager', 'project_admin'].includes(this.myRoleKey);
   }
-
-  private defaultTransitions: { from: string; to: string; permission?: string }[] = [
-    { from: 'backlog', to: 'todo', permission: 'project.task.update' },
-    { from: 'todo', to: 'in_progress', permission: 'project.task.update' },
-    { from: 'in_progress', to: 'blocked', permission: 'project.task.update' },
-    { from: 'blocked', to: 'in_progress', permission: 'project.task.update' },
-    { from: 'in_progress', to: 'review', permission: 'project.task.update' },
-    { from: 'review', to: 'completed', permission: 'project.task.complete' },
-    { from: 'review', to: 'in_progress', permission: 'project.task.update' },
-    { from: 'completed', to: 'in_progress', permission: 'project.task.update' },
-    { from: '*', to: 'cancelled', permission: 'project.task.delete' },
-  ];
 
   transition(to: string): void {
     if (!this.task) return;
@@ -199,6 +182,11 @@ export class ProjectTaskDetailComponent implements OnInit, OnDestroy {
       next: (r) => {
         this.task = { ...this.task!, ...r.task };
         this.toast.success(this.i18n.t('projects.task.statusChanged', { to }));
+        // Les cibles dépendent du nouveau statut : re-dériver du serveur.
+        this.api.taskTransitions(this.projectId, this.taskId).subscribe((tr) => {
+          this.transitions = tr.transitions;
+          this.cdr.markForCheck();
+        });
         this.cdr.markForCheck();
       },
       error: (err) => this.toast.error(apiErrorMessage(this.i18n, err, 'projects.board.moveDenied')),

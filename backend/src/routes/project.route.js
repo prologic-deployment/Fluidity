@@ -80,6 +80,7 @@ router.get('/:id/tasks', access(), taskController.listTasks);
 router.get('/:id/tasks/board', access(), taskController.listBoard);
 router.post('/:id/tasks', access('project.task.create'), taskController.createTask);
 router.get('/:id/tasks/:taskId', access(), taskController.getTask);
+router.get('/:id/tasks/:taskId/transitions', access(), taskController.getTaskTransitions);
 router.put('/:id/tasks/:taskId', access('project.task.update'), taskController.updateTask);
 router.patch('/:id/tasks/:taskId/status', access('project.task.update'), taskController.transitionTask);
 router.patch('/:id/tasks/:taskId/move', access('project.task.update'), taskController.moveTask);

@@ -37,6 +37,13 @@ export interface WorkflowState {
   wipLimit?: number;
 }
 
+/** Transition calculée serveur (permissions réelles de l'appelant). */
+export interface TaskTransition {
+  to: string;
+  action: string;
+  allowed: boolean;
+}
+
 export interface Project {
   _id: string;
   code: string;

@@ -24,6 +24,7 @@ import {
   Sprint,
   Task,
   TaskDetailResponse,
+  TaskTransition,
   TimeEntry,
   WorkflowState,
 } from '../models/project.model';
@@ -161,6 +162,10 @@ export class ProjectService {
 
   transition(id: string, taskId: string, to: string): Observable<{ task: Task }> {
     return this.http.patch<{ task: Task }>(`${this.base}/${id}/tasks/${taskId}/status`, { to });
+  }
+
+  taskTransitions(id: string, taskId: string): Observable<{ transitions: TaskTransition[] }> {
+    return this.http.get<{ transitions: TaskTransition[] }>(`${this.base}/${id}/tasks/${taskId}/transitions`);
   }
 
   move(id: string, taskId: string, toStatus: string, toIndex: number): Observable<{ task: Task }> {
