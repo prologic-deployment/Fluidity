@@ -127,6 +127,13 @@ check('projet : lead lit les rapports, développeur non', () => {
   assert.ok(proj('project_lead').includes('project.report.read'));
   assert.ok(!proj('developer').includes('project.report.read'));
 });
+// Fix 10 (A5.3) : le lead consigne son temps (time.log) ; time.manage
+// décoratif retiré de ses grants (la gestion des saisies d'autrui reste
+// acquise via son rang ≥ 3 côté contrôleur).
+check('projet : lead consigne le temps, sans grant décoratif', () => {
+  assert.ok(proj('project_lead').includes('project.time.log'));
+  assert.ok(!proj('project_lead').includes('project.time.manage'));
+});
 check('projet : wildcard admin autorisé (permissions [*])', () =>
   assert.deepStrictEqual(canTransition('project_management', 'backlog', 'todo', ['*']), { ok: true, reason: 'OK' })
 );
