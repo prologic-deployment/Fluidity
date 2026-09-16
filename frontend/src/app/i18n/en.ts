@@ -2314,6 +2314,10 @@ export const EN: Record<string, unknown> = {
         over: 'Overloaded',
       },
     },
+    analytics: {
+      unmapped: 'This project workflow defines no done state: progress metrics are degraded (mark a state as terminal).',
+      unmappedShort: 'Workflow has no done state: degraded figures.',
+    },
     health: {
       healthy: 'Healthy',
       on_track: 'On track',

@@ -1,4 +1,5 @@
 const { getWorkflow, canTransition } = require('../products/registry');
+const { splitTaskStates } = require('./task-status.util');
 
 /**
  * Moteur de workflow GESTION DE PROJET.
@@ -104,4 +105,9 @@ function stateLabel(state) {
   return { custom: false, key: `products.workflows.project_management.states.${state.key}` };
 }
 
-module.exports = { effectiveWorkflow, availableTransitions, validateTransition, stateLabel };
+/** Open/done/cancelled dérivés du workflow effectif (Fix 25). */
+function taskStates(project) {
+  return splitTaskStates(effectiveWorkflow(project).states);
+}
+
+module.exports = { effectiveWorkflow, availableTransitions, validateTransition, stateLabel, taskStates };

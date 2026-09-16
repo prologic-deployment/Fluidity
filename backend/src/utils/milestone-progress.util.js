@@ -9,10 +9,11 @@
  * Retourne null quand aucune tâche n'est liée (le champ manuel reste
  * la source de vérité dans ce cas).
  */
-const milestoneProgressFromTasks = (tasks) => {
+const milestoneProgressFromTasks = (tasks, doneStatuses = ['completed']) => {
   const list = tasks || [];
   if (!list.length) return { progress: null, total: 0, completed: 0 };
-  const completed = list.filter((t) => t?.status === 'completed').length;
+  const done = new Set(doneStatuses && doneStatuses.length ? doneStatuses : ['completed']);
+  const completed = list.filter((t) => done.has(t?.status)).length;
   return { progress: Math.round((completed / list.length) * 100), total: list.length, completed };
 };
 

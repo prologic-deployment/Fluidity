@@ -5,6 +5,7 @@ const { logActivity } = require('../utils/project-activity.util');
 const { audit } = require('../utils/saas-log.util');
 const { notifyProjectMembers } = require('../services/project-notify.service');
 const { milestoneProgressFromTasks, phaseGateCheck } = require('../utils/milestone-progress.util');
+const { taskStates } = require('../utils/project-workflow.util');
 const { loadProject } = require('./project.member.controller');
 const logger = require('../utils/logger.util');
 
@@ -55,7 +56,7 @@ const listMilestones = async (req, res) => {
     }
     res.json({
       milestones: items.map((m) => {
-        const derived = milestoneProgressFromTasks(byMilestone.get(String(m._id)) || []);
+        const derived = milestoneProgressFromTasks(byMilestone.get(String(m._id)) || [], taskStates(project).done);
         return serializeMilestone(m, {
           owner: m.ownerId,
           dependsOnId: m.dependsOnId && m.dependsOnId._id ? String(m.dependsOnId._id) : m.dependsOnId,

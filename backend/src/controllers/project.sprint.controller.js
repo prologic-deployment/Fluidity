@@ -7,6 +7,7 @@ const { notifyProjectMembers } = require('../services/project-notify.service');
 const { loadProject } = require('./project.member.controller');
 const { computeBurndown } = require('../utils/sprint-burndown.util');
 const { capacityWarnings } = require('../utils/capacity.util');
+const { taskStates } = require('../utils/project-workflow.util');
 const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
@@ -27,24 +28,26 @@ function serializeSprint(s, extra = {}) {
   };
 }
 
-/** Progression d'un sprint (tâches du sprint). */
-async function sprintStats(tenantId, projectId, sprintId) {
+/** Progression d'un sprint (tâches du sprint, done dérivé du workflow, Fix 25). */
+async function sprintStats(tenantId, projectId, sprintId, project = null) {
+  const states = taskStates(project);
   const agg = await Task.aggregate([
     { $match: { tenantId, projectId, sprintId: new mongoose.Types.ObjectId(sprintId), parentTaskId: null } },
     {
       $group: {
         _id: null,
         total: { $sum: 1 },
-        completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+        completed: { $sum: { $cond: [{ $in: ['$status', states.done] }, 1, 0] } },
+        cancelled: { $sum: { $cond: [{ $in: ['$status', states.cancelled] }, 1, 0] } },
         blocked: { $sum: { $cond: [{ $eq: ['$status', 'blocked'] }, 1, 0] } },
         committed: { $sum: '$estimatedHours' },
-        delivered: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$estimatedHours', 0] } },
+        delivered: { $sum: { $cond: [{ $in: ['$status', states.done] }, '$estimatedHours', 0] } },
         pointsCommitted: { $sum: '$points' },
-        pointsDelivered: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$points', 0] } },
+        pointsDelivered: { $sum: { $cond: [{ $in: ['$status', states.done] }, '$points', 0] } },
       },
     },
   ]);
-  const row = agg[0] || { total: 0, completed: 0, blocked: 0, committed: 0, delivered: 0, pointsCommitted: 0, pointsDelivered: 0 };
+  const row = agg[0] || { total: 0, completed: 0, cancelled: 0, blocked: 0, committed: 0, delivered: 0, pointsCommitted: 0, pointsDelivered: 0 };
 
   // BURNDOWN / BURNUP (story points) : cumul des complétions par jour du sprint
   // comparé à la ligne idéale (linéaire du total engagé vers zéro).
@@ -54,12 +57,14 @@ async function sprintStats(tenantId, projectId, sprintId) {
     .lean();
   // Fix 20 : repli sur les heures estimées quand aucun story point n'est renseigné.
   const totalPoints = tasks.reduce((a, t) => a + (t.points || 0), 0);
-  const series = computeBurndown(tasks, sprint?.startDate, sprint?.endDate, totalPoints > 0 ? 'points' : 'hours');
+  const series = computeBurndown(tasks, sprint?.startDate, sprint?.endDate, totalPoints > 0 ? 'points' : 'hours', states.done);
 
+  const open = row.total - row.completed - row.cancelled;
   return {
     ...row,
-    remaining: row.total - row.completed,
-    progress: row.total ? Math.round((row.completed / row.total) * 100) : 0,
+    remaining: open,
+    progress: row.total - row.cancelled > 0 ? Math.round((row.completed / Math.max(row.total - row.cancelled, 1)) * 100) : 0,
+    workflowMapped: states.mapped,
     velocityPoints: row.pointsDelivered,
     burndownUnit: series.unit,
     burndownTotal: series.total,
@@ -80,7 +85,7 @@ const listSprints = async (req, res) => {
     const enriched = await Promise.all(
       sprints.map(async (s) => ({
         ...serializeSprint(s),
-        stats: await sprintStats(req.tenantId, project._id, s._id),
+        stats: await sprintStats(req.tenantId, project._id, s._id, project),
       }))
     );
     res.json({ sprints: enriched, settings: project.settings || { sprintLengthDays: 14 } });
@@ -182,7 +187,7 @@ const changeSprintStatus = async (req, res) => {
           }
         }
         const moved = await Task.updateMany(
-          { tenantId: req.tenantId, projectId: project._id, sprintId: sprint._id, parentTaskId: null, status: { $ne: 'completed' } },
+          { tenantId: req.tenantId, projectId: project._id, sprintId: sprint._id, parentTaskId: null, status: { $in: taskStates(project).open } },
           { $set: { sprintId: targetId } }
         );
         rolledOver = moved.modifiedCount || 0;
@@ -319,7 +324,7 @@ const assignTasksToSprint = async (req, res) => {
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.sprint_tasks_planned', targetType: 'sprint', targetId: sprint._id, metadata: { name: sprint.name, count: tasks.length } });
     // Fix 21 : contrôle capacité (avertissement, jamais bloquant).
     const [planned, members] = await Promise.all([
-      Task.find({ tenantId: req.tenantId, projectId: project._id, sprintId: sprint._id, parentTaskId: null, status: { $ne: 'completed' } })
+      Task.find({ tenantId: req.tenantId, projectId: project._id, sprintId: sprint._id, parentTaskId: null, status: { $in: taskStates(project).open } })
         .select('assigneeId estimatedHours')
         .lean(),
       ProjectMember.find({ projectId: project._id }).populate('userId', 'firstName lastName').lean(),

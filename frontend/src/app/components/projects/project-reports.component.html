@@ -7,6 +7,7 @@
   </div>
 
   <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <p *ngIf="data?.taskStats?.workflowMapped === false" class="alert-warning mb-4">{{ 'projects.analytics.unmapped' | t }}</p>
   <div *ngIf="loading" class="grid grid-cols-1 lg:grid-cols-2 gap-3">
     <div class="skeleton h-48"></div>
     <div class="skeleton h-48"></div>

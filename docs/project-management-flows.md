@@ -261,3 +261,11 @@ note right of completed
 end note
 @enduml
 ```
+
+## 11. Analytique pilotée par le workflow (open/done dérivés)
+
+```plantuml
+@startuml
+note "Plus aucune liste de statuts codée en dur :\nopen/done/cancelled sont dérivés du workflow\neffectif de chaque projet (taskStates) —\ndone = états terminaux hors cancelled +\ncompleted si présent. Tableaux de bord,\nvélocité, burndown/burnup, backlog, garde\nde clôture, WIP et rappels d'échéances\nutilisent ce découpage. Sans état done,\nles indicateurs sont marqués dégradés\n(workflowMapped: false) au lieu de chiffres\nsilencieusement faux." as N1
+@enduml
+```

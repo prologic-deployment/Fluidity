@@ -1,5 +1,6 @@
 const { Task, Milestone } = require('../models/project.models');
 const { computeProjectHealth } = require('./project-health.util');
+const { taskStates } = require('./project-workflow.util');
 
 /**
  * Agrégats GESTION DE PROJET (tableaux de bord) — requêtes tenant-scopées
@@ -7,17 +8,16 @@ const { computeProjectHealth } = require('./project-health.util');
  * est une requête MongoDB ciblée (index tenantId+projectId+…).
  */
 
-const OPEN_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'review'];
-
-/** Compteurs de tâches d'un projet. */
-async function taskCounts(tenantId, projectId) {
+/** Compteurs de tâches d'un projet (open/done dérivés du workflow, Fix 25). */
+async function taskCounts(tenantId, projectId, project = null) {
+  const states = taskStates(project);
   const agg = await Task.aggregate([
     { $match: { tenantId, projectId } },
     {
       $group: {
         _id: '$status',
         count: { $sum: 1 },
-        overdue: { $sum: { $cond: [{ $and: [{ $in: ['$status', OPEN_STATUSES] }, { $lt: ['$dueDate', new Date()] }] }, 1, 0] } },
+        overdue: { $sum: { $cond: [{ $and: [{ $in: ['$status', states.open] }, { $lt: ['$dueDate', new Date()] }] }, 1, 0] } },
         estimated: { $sum: '$estimatedHours' },
         logged: { $sum: '$loggedHours' },
       },
@@ -33,8 +33,8 @@ async function taskCounts(tenantId, projectId) {
   for (const row of agg) {
     byStatus[row._id] = row.count;
     total += row.count;
-    if (row._id === 'completed') completed = row.count;
-    if (row._id === 'cancelled') cancelled = row.count;
+    if (states.done.includes(row._id)) completed += row.count;
+    if (states.cancelled.includes(row._id)) cancelled += row.count;
     overdueTotal += row.overdue;
     estimatedTotal += row.estimated;
     loggedTotal += row.logged;
@@ -47,8 +47,11 @@ async function taskCounts(tenantId, projectId) {
     cancelled,
     overdue: overdueTotal,
     blocked: byStatus.blocked || 0,
-    open: (byStatus.backlog || 0) + (byStatus.todo || 0) + (byStatus.in_progress || 0) + (byStatus.blocked || 0) + (byStatus.review || 0),
+    open: states.open.reduce((a, k) => a + (byStatus[k] || 0), 0),
     progress: completedNow,
+    workflowMapped: states.mapped,
+    openStates: states.open,
+    doneStates: states.done,
     estimatedHours: estimatedTotal,
     loggedHours: loggedTotal,
   };
@@ -76,13 +79,14 @@ async function delayedMilestones(tenantId, projectId) {
 
 /** Santé calculée d'un projet. */
 async function projectHealth(project) {
-  const counts = await taskCounts(project.tenantId, project._id);
+  const counts = await taskCounts(project.tenantId, project._id, project);
   const delayed = await delayedMilestones(project.tenantId, project._id);
   return computeProjectHealth(project, { ...counts, delayedMilestones: delayed });
 }
 
 /** Échéances à venir (tâches + jalons) dans les N prochains jours. */
-async function upcomingDeadlines(tenantId, projectId, days = 14, limit = 20) {
+async function upcomingDeadlines(tenantId, projectId, days = 14, limit = 20, project = null) {
+  const states = taskStates(project);
   const now = new Date();
   const until = new Date(now.getTime() + days * 24 * 3600 * 1000);
   const [tasks, milestones] = await Promise.all([
@@ -90,7 +94,7 @@ async function upcomingDeadlines(tenantId, projectId, days = 14, limit = 20) {
       tenantId,
       projectId,
       dueDate: { $gte: now, $lte: until },
-      status: { $in: OPEN_STATUSES },
+      status: { $in: states.open },
     })
       .sort({ dueDate: 1 })
       .limit(limit)
@@ -111,11 +115,12 @@ async function upcomingDeadlines(tenantId, projectId, days = 14, limit = 20) {
 }
 
 /** Charge de travail par membre (tâches ouvertes + heures estimées). */
-async function workload(tenantId, projectId, memberIds = null) {
+async function workload(tenantId, projectId, memberIds = null, project = null) {
+  const states = taskStates(project);
   const match = {
     tenantId,
     projectId,
-    status: { $in: OPEN_STATUSES },
+    status: { $in: states.open },
     assigneeId: { $ne: null },
   };
   if (memberIds) match.assigneeId = { $in: memberIds };
@@ -134,10 +139,11 @@ async function workload(tenantId, projectId, memberIds = null) {
 }
 
 /** Contribution récente (activité par utilisateur, N derniers jours). */
-async function recentContribution(tenantId, projectId, days = 30) {
+async function recentContribution(tenantId, projectId, days = 30, project = null) {
+  const states = taskStates(project);
   const since = new Date(Date.now() - days * 24 * 3600 * 1000);
   const rows = await Task.aggregate([
-    { $match: { tenantId, projectId, status: 'completed', completedAt: { $gte: since } } },
+    { $match: { tenantId, projectId, status: { $in: states.done }, completedAt: { $gte: since } } },
     { $group: { _id: '$assigneeId', done: { $sum: 1 } } },
   ]);
   return rows.map((r) => ({ userId: r._id, done: r.done }));
@@ -150,5 +156,4 @@ module.exports = {
   upcomingDeadlines,
   workload,
   recentContribution,
-  OPEN_STATUSES,
 };

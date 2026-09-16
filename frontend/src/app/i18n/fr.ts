@@ -2313,6 +2313,10 @@ export const FR: Record<string, unknown> = {
         over: 'Surchargé',
       },
     },
+    analytics: {
+      unmapped: 'Le workflow de ce projet ne définit aucun état terminé : les indicateurs de progression sont dégradés (marquez un état comme terminal).',
+      unmappedShort: 'Workflow sans état terminé : chiffres dégradés.',
+    },
     health: {
       healthy: 'Saine',
       on_track: 'Saine',

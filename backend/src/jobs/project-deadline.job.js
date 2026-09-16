@@ -1,5 +1,6 @@
 const { Task, Milestone, Project } = require('../models/project.models');
 const { notifyUser } = require('../services/project-notify.service');
+const { taskStates } = require('../utils/project-workflow.util');
 
 /**
  * Job d'échéances GESTION DE PROJET — notifications in-app + emails :
@@ -25,12 +26,13 @@ async function runProjectDeadlineJob() {
   const now = new Date();
   const in48h = new Date(now.getTime() + 48 * 3600 * 1000);
   const in72h = new Date(now.getTime() + 72 * 3600 * 1000);
-  const OPEN = ['backlog', 'todo', 'in_progress', 'blocked', 'review'];
+  // Fix 25 : pas de filtre statut en requête (les clés varient par workflow) ;
+  // classification open/done par projet via cache des workflows.
+  const openByProject = new Map();
 
   // --- Tâches : échéance proche / en retard --------------------------------
   const tasks = await Task.find({
     dueDate: { $ne: null },
-    status: { $in: OPEN },
     assigneeId: { $ne: null },
     parentTaskId: null,
   }).lean();
@@ -42,8 +44,11 @@ async function runProjectDeadlineJob() {
       const approaching = !overdue && due <= in48h;
       if (!approaching && !overdue) continue;
       if (!notifiable(task, now)) continue;
-      const project = await Project.findById(task.projectId).select('name status').lean();
+      const project = await Project.findById(task.projectId).select('name status workflow').lean();
       if (!project || project.status === 'archived') continue;
+      const pkey = String(project._id);
+      if (!openByProject.has(pkey)) openByProject.set(pkey, taskStates(project).open);
+      if (!openByProject.get(pkey).includes(task.status)) continue;
       const event = overdue ? 'task_overdue' : 'task_deadline';
       const dateStr = due.toLocaleDateString('fr-FR');
       await notifyUser({

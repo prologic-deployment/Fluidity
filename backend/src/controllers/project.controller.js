@@ -15,9 +15,10 @@ const { Utilisateur } = require('../models/user.model');
 const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROLES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN, RANKS } = require('../utils/project-access.util');
 const { literalRegex } = require('../utils/regex.util');
-const { effectiveWorkflow } = require('../utils/project-workflow.util');
+const { effectiveWorkflow, taskStates } = require('../utils/project-workflow.util');
 const { ARCHIVED_STATUS, isProjectArchived } = require('../utils/project-archive.util');
-const { taskCounts, projectHealth, upcomingDeadlines, workload } = require('../utils/project-stats.util');
+const { taskCounts, projectHealth, upcomingDeadlines, workload, delayedMilestones } = require('../utils/project-stats.util');
+const { computeProjectHealth } = require('../utils/project-health.util');
 const { computeBudgetActuals } = require('../utils/budget.util');
 const { closureGuard, buildClosureSummary } = require('../utils/closure.util');
 const { logActivity } = require('../utils/project-activity.util');
@@ -159,7 +160,7 @@ const listProjects = async (req, res) => {
       items.map(async (p) => {
         const [health, counts, memberCount] = await Promise.all([
           projectHealth(p),
-          taskCounts(req.tenantId, p._id),
+          taskCounts(req.tenantId, p._id, p),
           ProjectMember.countDocuments({ projectId: p._id }),
         ]);
         return {
@@ -369,7 +370,7 @@ const getProject = async (req, res) => {
     const [members, health, counts] = await Promise.all([
       ProjectMember.find({ projectId: project._id }).populate('userId', USER_SELECT).lean(),
       projectHealth(project),
-      taskCounts(req.tenantId, project._id),
+      taskCounts(req.tenantId, project._id, project),
     ]);
     res.json({
       project: serializeProject(project, { manager }),
@@ -443,7 +444,7 @@ const updateProject = async (req, res) => {
       // Fix 23 : garde de complétion (blocage dur, pas de contournement silencieux).
       if (canonical === 'completed') {
         const [openTasks, openMilestones, openIssues] = await Promise.all([
-          Task.countDocuments({ tenantId: req.tenantId, projectId: project._id, parentTaskId: null, status: { $nin: ['completed', 'cancelled'] } }),
+          Task.countDocuments({ tenantId: req.tenantId, projectId: project._id, parentTaskId: null, status: { $in: taskStates(project).open } }),
           Milestone.countDocuments({ tenantId: req.tenantId, projectId: project._id, status: { $ne: 'completed' } }),
           Issue.countDocuments({ tenantId: req.tenantId, projectId: project._id, status: { $nin: ['resolved', 'closed'] } }),
         ]);
@@ -458,7 +459,7 @@ const updateProject = async (req, res) => {
         }
         // Rapport final figé (prévu vs livré).
         const [counts, ms, iss, sp] = await Promise.all([
-          taskCounts(req.tenantId, project._id),
+          taskCounts(req.tenantId, project._id, project),
           Milestone.aggregate([{ $match: { tenantId: req.tenantId, projectId: project._id } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
           Issue.aggregate([{ $match: { tenantId: req.tenantId, projectId: project._id } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
           Sprint.aggregate([{ $match: { tenantId: req.tenantId, projectId: project._id } }, { $group: { _id: '$status', n: { $sum: 1 } } }]),
@@ -591,10 +592,10 @@ const projectDashboard = async (req, res) => {
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
     const [counts, health, upcoming, load, activity, risks, members] = await Promise.all([
-      taskCounts(req.tenantId, project._id),
+      taskCounts(req.tenantId, project._id, project),
       projectHealth(project),
-      upcomingDeadlines(req.tenantId, project._id, 14, 12),
-      workload(req.tenantId, project._id),
+      upcomingDeadlines(req.tenantId, project._id, 14, 12, project),
+      workload(req.tenantId, project._id, null, project),
       ProjectActivity.find({ tenantId: req.tenantId, projectId: project._id })
         .sort({ createdAt: -1 })
         .limit(12)
@@ -633,26 +634,31 @@ const globalDashboard = async (req, res) => {
     const overdueProjects = projects.filter((p) => p.endDate && p.endDate < now && p.status !== 'completed');
     const projectIds = projects.map((p) => p._id);
 
-    const taskAgg = await Task.aggregate([
-      { $match: { tenantId: new mongoose.Types.ObjectId(req.tenantId), projectId: { $in: projectIds } } },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
-          overdue: { $sum: { $cond: [{ $and: [{ $in: ['$status', ['backlog', 'todo', 'in_progress', 'blocked', 'review']] }, { $lt: ['$dueDate', now] }] }, 1, 0] } },
-        },
-      },
-    ]);
-    const taskTotals = taskAgg[0] || { total: 0, completed: 0, overdue: 0 };
-
-    const healths = await Promise.all(projects.map((p) => projectHealth(p)));
+    // Fix 25 : compteurs par projet (chaque projet a son workflow effectif),
+    // puis somme — un agrégat unique ne peut pas classer les statuts.
+    const perProject = await Promise.all(
+      projects.map(async (p) => {
+        const [counts, delayed] = await Promise.all([
+          taskCounts(req.tenantId, p._id, p),
+          delayedMilestones(req.tenantId, p._id),
+        ]);
+        return { project: p, counts, health: computeProjectHealth(p, { ...counts, delayedMilestones: delayed }) };
+      })
+    );
+    const taskTotals = perProject.reduce(
+      (a, r) => ({ total: a.total + r.counts.total, completed: a.completed + r.counts.completed, overdue: a.overdue + r.counts.overdue }),
+      { total: 0, completed: 0, overdue: 0 }
+    );
     const healthCounts = { on_track: 0, at_risk: 0, off_track: 0 };
-    let healthByProject = [];
-    projects.forEach((p, i) => {
-      healthCounts[healths[i].status] += 1;
-      healthByProject.push({ _id: p._id, code: p.code, name: p.name, status: p.status, methodology: p.methodology, health: healths[i].status });
-    });
+    const healthByProject = [];
+    const openUnion = new Set();
+    const doneUnion = new Set();
+    for (const r of perProject) {
+      healthCounts[r.health.status] = (healthCounts[r.health.status] || 0) + 1;
+      healthByProject.push({ _id: r.project._id, code: r.project.code, name: r.project.name, status: r.project.status, methodology: r.project.methodology, health: r.health.status });
+      for (const k of taskStates(r.project).open) openUnion.add(k);
+      for (const k of taskStates(r.project).done) doneUnion.add(k);
+    }
 
     const methodologyDist = {};
     for (const p of projects) methodologyDist[p.methodology] = (methodologyDist[p.methodology] || 0) + 1;
@@ -660,7 +666,7 @@ const globalDashboard = async (req, res) => {
     // Tendance de complétion sur 6 mois (tâches complétées par mois).
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const trend = await Task.aggregate([
-      { $match: { tenantId: new mongoose.Types.ObjectId(req.tenantId), projectId: { $in: projectIds }, status: 'completed', completedAt: { $gte: sixMonthsAgo } } },
+      { $match: { tenantId: new mongoose.Types.ObjectId(req.tenantId), projectId: { $in: projectIds }, status: { $in: [...doneUnion] }, completedAt: { $gte: sixMonthsAgo } } },
       {
         $group: {
           _id: { y: { $year: '$completedAt' }, m: { $month: '$completedAt' } },
@@ -681,7 +687,7 @@ const globalDashboard = async (req, res) => {
       tenantId: req.tenantId,
       projectId: { $in: projectIds },
       dueDate: { $gte: now, $lte: new Date(now.getTime() + 14 * 24 * 3600 * 1000) },
-      status: { $in: ['backlog', 'todo', 'in_progress', 'blocked', 'review'] },
+      status: { $in: [...openUnion] },
     })
       .sort({ dueDate: 1 })
       .limit(12)
@@ -728,14 +734,17 @@ const personalDashboard = async (req, res) => {
   try {
     const now = new Date();
     const scope = await visibleProjects(req, {});
-    const projectIds = (await Project.find(scope).select('_id').lean()).map((p) => p._id);
+    const visible = await Project.find(scope).select('_id workflow').lean();
+    const projectIds = visible.map((p) => p._id);
+    // Fix 25 : union des états ouverts des workflows effectifs.
+    const openUnion = [...new Set(visible.flatMap((p) => taskStates(p).open))];
     const managed = await Project.find({ ...scope, managerId: req.userId }).select('_id code name status endDate').lean();
 
     const myTasks = Task.find({
       tenantId: req.tenantId,
       projectId: { $in: projectIds },
       assigneeId: req.userId,
-      status: { $in: ['backlog', 'todo', 'in_progress', 'blocked', 'review'] },
+      status: { $in: openUnion },
     })
       .sort({ dueDate: 1 })
       .populate('projectId', 'code name')
@@ -745,7 +754,7 @@ const personalDashboard = async (req, res) => {
       tenantId: req.tenantId,
       projectId: { $in: projectIds },
       assigneeId: req.userId,
-      status: { $in: ['backlog', 'todo', 'in_progress', 'blocked', 'review'] },
+      status: { $in: openUnion },
       dueDate: { $gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()), $lt: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1) },
     }).populate('projectId', 'code name').lean();
 
@@ -753,7 +762,7 @@ const personalDashboard = async (req, res) => {
       tenantId: req.tenantId,
       projectId: { $in: projectIds },
       assigneeId: req.userId,
-      status: { $in: ['backlog', 'todo', 'in_progress', 'blocked', 'review'] },
+      status: { $in: openUnion },
       dueDate: { $lt: now },
     }).populate('projectId', 'code name').lean();
 
@@ -794,15 +803,15 @@ const projectReports = async (req, res) => {
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
     const [counts, health, load, milestones, sprints, risks] = await Promise.all([
-      taskCounts(req.tenantId, project._id),
+      taskCounts(req.tenantId, project._id, project),
       projectHealth(project),
-      workload(req.tenantId, project._id),
+      workload(req.tenantId, project._id, null, project),
       Milestone.find({ tenantId: req.tenantId, projectId: project._id }).sort({ order: 1, dueDate: 1 }).lean(),
       Sprint.find({ tenantId: req.tenantId, projectId: project._id }).sort({ startDate: -1 }).lean(),
       Risk.find({ tenantId: req.tenantId, projectId: project._id }).lean(),
     ]);
     // Vélocité Scrum : story POINTS livrés par sprint (repli : heures estimées).
-    const completed = await Task.find({ tenantId: req.tenantId, projectId: project._id, status: 'completed' }).select('sprintId estimatedHours points startedAt completedAt').lean();
+    const completed = await Task.find({ tenantId: req.tenantId, projectId: project._id, status: { $in: taskStates(project).done } }).select('sprintId estimatedHours points startedAt completedAt').lean();
     const sprintVelocity = {};
     for (const t of completed) {
       if (!t.sprintId) continue;
@@ -813,7 +822,7 @@ const projectReports = async (req, res) => {
     }
     const sprintsWithVelocity = await Promise.all(
       sprints.map(async (s) => {
-        const stats = await sprintStats(req.tenantId, project._id, s._id).catch(() => null);
+        const stats = await sprintStats(req.tenantId, project._id, s._id, project).catch(() => null);
         return {
           _id: s._id,
           name: s.name,

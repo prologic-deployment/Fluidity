@@ -8,9 +8,11 @@
  * @param {unknown} startDate
  * @param {unknown} endDate
  * @param {'points'|'hours'} unit
+ * @param {string[]} doneStatuses — états « done » du workflow (Fix 25, défaut ['completed'])
  * @returns {{ unit: string, total: number, burndown: Array<{day:number,remaining:number,ideal:number}>, burnup: Array<{day:number,completed:number,total:number}> }}
  */
-const computeBurndown = (tasks, startDate, endDate, unit) => {
+const computeBurndown = (tasks, startDate, endDate, unit, doneStatuses = ['completed']) => {
+  const done = new Set(doneStatuses && doneStatuses.length ? doneStatuses : ['completed']);
   const valueOf = (t) => (unit === 'hours' ? Number(t.estimatedHours) || 0 : Number(t.points) || 0);
   const total = (tasks || []).reduce((a, t) => a + valueOf(t), 0);
   const empty = { unit, total, burndown: [], burnup: [] };
@@ -27,7 +29,7 @@ const computeBurndown = (tasks, startDate, endDate, unit) => {
     const dayStart = new Date(start.getTime() + d * 86400000);
     const dayEnd = new Date(dayStart.getTime() + 86400000);
     completedSoFar += (tasks || [])
-      .filter((t) => t.status === 'completed' && t.completedAt && new Date(t.completedAt) >= dayStart && new Date(t.completedAt) < dayEnd)
+      .filter((t) => done.has(t.status) && t.completedAt && new Date(t.completedAt) >= dayStart && new Date(t.completedAt) < dayEnd)
       .reduce((a, t) => a + valueOf(t), 0);
     const ideal = Math.round(total * (1 - d / days) * 10) / 10;
     const remaining = Math.round(Math.max(0, total - completedSoFar) * 10) / 10;

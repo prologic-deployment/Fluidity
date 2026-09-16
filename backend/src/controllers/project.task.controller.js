@@ -6,7 +6,7 @@ const { resolveProjectRole, guardProjectRole, can, CAN } = require('../utils/pro
 const { hasProductPermission } = require('../services/authorization.service');
 const { ensureLicense } = require('../services/license.service');
 const { literalRegex } = require('../utils/regex.util');
-const { validateTransition, effectiveWorkflow, availableTransitions } = require('../utils/project-workflow.util');
+const { validateTransition, effectiveWorkflow, availableTransitions, taskStates } = require('../utils/project-workflow.util');
 const { canTransitionTask, requiresBacklogAuthority } = require('../utils/project-task-access.util');
 const { logActivity } = require('../utils/project-activity.util');
 const { audit, auditWorkflow } = require('../utils/saas-log.util');
@@ -15,7 +15,6 @@ const { loadProject } = require('./project.member.controller');
 const logger = require('../utils/logger.util');
 
 const USER_SELECT = 'email firstName lastName avatarUrl jobTitle status';
-const OPEN_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'review'];
 
 /**
  * Limite de travaux en cours (WIP) par colonne — configurable par projet
@@ -23,7 +22,9 @@ const OPEN_STATUSES = ['backlog', 'todo', 'in_progress', 'blocked', 'review'];
  * Les colonnes terminales (completed/cancelled) ne sont pas limitées.
  */
 async function enforceWipLimit(tenantId, project, toStatus) {
-  if (['completed', 'cancelled'].includes(toStatus)) return null;
+  // Fix 25 : colonnes done/annulées (workflow effectif) non limitées.
+  const st = taskStates(project);
+  if (st.done.includes(toStatus) || st.cancelled.includes(toStatus)) return null;
   const state = effectiveWorkflow(project).states.find((st) => st.key === toStatus);
   if (!state?.wipLimit || state.wipLimit <= 0) return null;
   const inColumn = await Task.countDocuments({ tenantId, projectId: project._id, parentTaskId: null, status: toStatus });
@@ -573,8 +574,10 @@ const transitionTask = async (req, res) => {
     task.status = to;
     // Cycle time : début effectif à la première entrée en exécution.
     if (['in_progress', 'review'].includes(to) && !task.startedAt) task.startedAt = new Date();
-    if (to === 'completed') task.completedAt = new Date();
-    else if (from === 'completed') task.completedAt = null;
+    // Fix 25 : horodatage à l'entrée dans tout état done du workflow.
+    const doneStates = taskStates(project).done;
+    if (doneStates.includes(to)) task.completedAt = new Date();
+    else if (doneStates.includes(from)) task.completedAt = null;
     await task.save();
     await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.task_status_changed', targetType: 'task', targetId: task._id, metadata: { ref: task.ref, from, to } });
     await auditWorkflow(req, 'project_management', 'task', task._id, from, to, req.userId);
@@ -632,8 +635,9 @@ const moveTask = async (req, res) => {
       }
       const from = task.status;
       task.status = toStatus;
-      if (toStatus === 'completed') task.completedAt = new Date();
-      else if (from === 'completed') task.completedAt = null;
+      const moveDoneStates = taskStates(project).done;
+      if (moveDoneStates.includes(toStatus)) task.completedAt = new Date();
+      else if (moveDoneStates.includes(from)) task.completedAt = null;
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.task_status_changed', targetType: 'task', targetId: task._id, metadata: { ref: task.ref, from, to: toStatus } });
       await auditWorkflow(req, 'project_management', 'task', task._id, from, toStatus, req.userId);
     }
@@ -755,7 +759,8 @@ const listBacklog = async (req, res) => {
     if (!project) return;
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
-    const unplannedStatuses = ['backlog', 'todo'];
+    // Fix 25 : backlog = tâches ouvertes (workflow effectif) sans sprint.
+    const unplannedStatuses = taskStates(project).open;
     const epics = await Task.find({ tenantId: req.tenantId, projectId: project._id, type: 'epic' })
       .populate('assigneeId', 'email firstName lastName')
       .sort({ createdAt: 1 })

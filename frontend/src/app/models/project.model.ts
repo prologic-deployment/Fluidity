@@ -220,7 +220,7 @@ export interface Sprint {
   burndown?: { day: string; remaining: number; ideal: number }[];
   burnup?: { day: string; completed: number; total: number }[];
   stats?: {
-    total: number; completed: number; blocked: number; committed: number; delivered: number; remaining: number; progress: number;
+    total: number; completed: number; cancelled?: number; blocked: number; committed: number; delivered: number; remaining: number; progress: number; workflowMapped?: boolean;
     pointsCommitted?: number; pointsDelivered?: number; velocityPoints?: number;
     burndownUnit?: 'points' | 'hours'; burndownTotal?: number;
     burndown?: { day: string; remaining: number; ideal: number }[];
@@ -453,7 +453,7 @@ export interface PersonalDashboard {
 
 export interface ProjectDashboard {
   project: Project;
-  taskStats: { byStatus: Record<string, number>; total: number; completed: number; cancelled: number; overdue: number; blocked: number; open: number; progress: number; estimatedHours: number; loggedHours: number };
+  taskStats: { byStatus: Record<string, number>; total: number; completed: number; cancelled: number; overdue: number; blocked: number; open: number; progress: number; estimatedHours: number; loggedHours: number; workflowMapped?: boolean; openStates?: string[]; doneStates?: string[] };
   health: { status: HealthStatus; score: number; reasons: HealthReason[] };
   upcoming: { tasks: Task[]; milestones: Milestone[] };
   workload: WorkloadRow[];
