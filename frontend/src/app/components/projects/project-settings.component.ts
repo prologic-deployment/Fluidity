@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, switchMap, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { ClientService } from '../../services/client.service';
+import { Client } from '../../models/client.model';
 import { ProjectCapabilitiesService, hasProjectPermission } from '../../services/project-capabilities.service';
 import { ConfirmDialogService } from '../../services/confirm-dialog.service';
 import { ToastService } from '../../services/toast.service';
@@ -38,6 +40,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
     name: '',
     description: '',
     stakeholder: '',
+    clientId: '',
     status: 'planning',
     priority: 'medium',
     visibility: 'team',
@@ -69,6 +72,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private api: ProjectService,
+    private clientsApi: ClientService,
     private confirm: ConfirmDialogService,
     private toast: ToastService,
     private i18n: I18nService,
@@ -77,6 +81,13 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.clientsApi.getPage({ limit: 100 }).subscribe({
+      next: (pg) => {
+        this.clients = pg.items || [];
+        this.cdr.markForCheck();
+      },
+      error: () => undefined,
+    });
     this.route.parent?.params
       .pipe(
         takeUntil(this.destroy$),
@@ -101,6 +112,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
             name: r.project.name,
             description: r.project.description,
             stakeholder: r.project.stakeholder,
+            clientId: r.project.clientId || '',
             status: r.project.status,
             priority: r.project.priority,
             visibility: r.project.visibility,
@@ -156,6 +168,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
         name: this.form.name,
         description: this.form.description,
         stakeholder: this.form.stakeholder,
+        clientId: this.form.clientId || null,
         status: this.form.status as Project['status'],
         priority: this.form.priority as Project['priority'],
         visibility: this.form.visibility as Project['visibility'],
@@ -188,6 +201,7 @@ export class ProjectSettingsComponent implements OnInit, OnDestroy {
   }
 
   lessons = '';
+  clients: Client[] = [];
 
   /** Leçons apprises (clôture, Fix 23). */
   saveLessons(): void {

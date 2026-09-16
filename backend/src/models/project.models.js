@@ -65,6 +65,8 @@ const ProjectSchema = new Schema(
     description: { type: String, default: '', maxlength: 4000 },
     /** Partie prenante / client (texte libre — non lié au module Clients). */
     stakeholder: { type: String, default: '', trim: true },
+    /** A5.3 Fix 28 : client lié (le texte libre reste le repli). */
+    clientId: { type: Schema.Types.ObjectId, ref: 'Client', default: null },
     managerId: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
     methodology: { type: String, enum: METHODOLOGIES, default: 'kanban' },
     status: { type: String, enum: PROJECT_STATUSES, default: 'planning' },

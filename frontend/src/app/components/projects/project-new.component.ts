@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ProjectService } from '../../services/project.service';
+import { ClientService } from '../../services/client.service';
+import { Client } from '../../models/client.model';
 import { PlatformService } from '../../services/platform.service';
 import { ToastService } from '../../services/toast.service';
 import { UserService } from '../../services/user.service';
@@ -37,6 +39,8 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   name = '';
   description = '';
   stakeholder = '';
+  clientId = '';
+  clients: Client[] = [];
   tagsInput = '';
   tags: string[] = [];
 
@@ -69,6 +73,7 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
   constructor(
     private api: ProjectService,
+    private clientsApi: ClientService,
     private usersApi: UserService,
     private toast: ToastService,
     private i18n: I18nService,
@@ -83,6 +88,13 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.clientsApi.getPage({ limit: 100 }).subscribe({
+      next: (pg) => {
+        this.clients = pg.items || [];
+        this.cdr.markForCheck();
+      },
+      error: () => undefined,
+    });
     this.loadUsers('');
   }
 
@@ -172,6 +184,7 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
         name: this.name,
         description: this.description,
         stakeholder: this.stakeholder,
+        clientId: this.clientId || null,
         tags: this.tags,
         managerId: this.managerId || null,
         methodology: this.methodology,

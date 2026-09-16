@@ -12,6 +12,7 @@ const {
   ProjectEvent,
 } = require('../models/project.models');
 const { Utilisateur } = require('../models/user.model');
+const { Client } = require('../models/client.model');
 const { METHODOLOGIES, PROJECT_STATUSES, PROJECT_TRANSITIONS, PROJECT_MEMBER_ROLES } = require('../models/project.models');
 const { resolveProjectRole, guardProjectRole, can, CAN, RANKS } = require('../utils/project-access.util');
 const { literalRegex } = require('../utils/regex.util');
@@ -38,6 +39,7 @@ function serializeProject(p, extra = {}) {
     name: p.name,
     description: p.description,
     stakeholder: p.stakeholder,
+    clientId: p.clientId,
     managerId: p.managerId,
     methodology: p.methodology,
     status: p.status,
@@ -221,10 +223,25 @@ const searchProjects = async (req, res) => {
 // CRUD PROJET
 // ---------------------------------------------------------------------------
 
+/** Fix 28 : résout le client lié (même tenant), null = aucun. */
+async function resolveClientId(req, clientId) {
+  if (clientId === undefined) return { set: false };
+  if (!clientId) return { set: true, id: null };
+  if (!mongoose.isValidObjectId(clientId)) return { set: false, status: 400, message: 'Client invalide.' };
+  const client = await Client.findOne({ _id: clientId, tenantId: req.tenantId }).select('_id').lean();
+  if (!client) return { set: false, status: 404, message: 'Client introuvable dans ce tenant.' };
+  return { set: true, id: client._id };
+}
+
+async function clientBrief(req, clientId) {
+  if (!clientId) return null;
+  return Client.findOne({ _id: clientId, tenantId: req.tenantId }).select('nom email').lean();
+}
+
 const createProject = async (req, res) => {
   try {
     const {
-      name, description, stakeholder, managerId, methodology, status, priority,
+      name, description, stakeholder, clientId, managerId, methodology, status, priority,
       visibility, tags, startDate, endDate, budget, settings, teamMembers,
     } = req.body;
     if (!name || !String(name).trim()) {
@@ -277,6 +294,12 @@ const createProject = async (req, res) => {
       }
       for (const m of teamMembers) membresInitiaux.push({ userId: m.userId, roleKey: m.roleKey || 'project_member' });
     }
+    // Fix 28 : client lié (optionnel, même tenant).
+    const linked = await resolveClientId(req, clientId);
+    if (linked.status) {
+      res.status(linked.status).json({ message: linked.message });
+      return;
+    }
     const code = await nextProjectCode(req.tenantId);
     const project = await Project.create({
       tenantId: req.tenantId,
@@ -284,6 +307,7 @@ const createProject = async (req, res) => {
       name: String(name).trim(),
       description: description || '',
       stakeholder: stakeholder || '',
+      clientId: linked.set ? linked.id : null,
       managerId: managerId && mongoose.isValidObjectId(managerId) ? managerId : null,
       methodology: methodology || 'kanban',
       status: PROJECT_STATUSES.includes(status) ? status : 'planning',
@@ -367,13 +391,14 @@ const getProject = async (req, res) => {
     const role = guardProjectRole(res, await resolveProjectRole(req, project));
     if (!role) return;
     const manager = project.managerId ? await Utilisateur.findById(project.managerId).select(USER_SELECT).lean() : null;
+    const client = await clientBrief(req, project.clientId);
     const [members, health, counts] = await Promise.all([
       ProjectMember.find({ projectId: project._id }).populate('userId', USER_SELECT).lean(),
       projectHealth(project),
       taskCounts(req.tenantId, project._id, project),
     ]);
     res.json({
-      project: serializeProject(project, { manager }),
+      project: serializeProject(project, { manager, client }),
       myRole: { roleKey: role.roleKey, isMember: role.isMember },
       members: members.map((m) => ({ _id: m._id, userId: m.userId, roleKey: m.roleKey, joinedAt: m.joinedAt })),
       health,
@@ -401,7 +426,7 @@ const updateProject = async (req, res) => {
       res.status(403).json({ code: 'PERMISSION_DENIED', message: 'Permissions insuffisantes pour modifier ce projet.' });
       return;
     }
-    const { name, description, stakeholder, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules, objectives, successCriteria, businessValue, estimatedEffortHours, color, healthOverride, lessonsLearned } = req.body;
+    const { name, description, stakeholder, clientId, managerId, methodology, status, priority, visibility, tags, startDate, endDate, budget, settings, healthRules, objectives, successCriteria, businessValue, estimatedEffortHours, color, healthOverride, lessonsLearned } = req.body;
     if (name !== undefined && !String(name).trim()) {
       res.status(400).json({ message: 'Le nom du projet est requis.' });
       return;
@@ -410,6 +435,14 @@ const updateProject = async (req, res) => {
     if (name !== undefined) project.name = String(name).trim();
     if (description !== undefined) project.description = description;
     if (stakeholder !== undefined) project.stakeholder = stakeholder;
+    if (clientId !== undefined) {
+      const linked = await resolveClientId(req, clientId);
+      if (linked.status) {
+        res.status(linked.status).json({ message: linked.message });
+        return;
+      }
+      if (linked.set) project.clientId = linked.id;
+    }
     if (managerId !== undefined) {
       if (managerId && !mongoose.isValidObjectId(managerId)) {
         res.status(400).json({ message: 'Manager invalide.' });
@@ -537,7 +570,8 @@ const updateProject = async (req, res) => {
     if (previousEnd && project.endDate && previousEnd.getTime() !== project.endDate.getTime()) {
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.deadline_changed', targetType: 'project', targetId: project._id, metadata: { from: previousEnd.toISOString(), to: project.endDate.toISOString() } });
     }
-    res.json({ project: serializeProject(project) });
+    const client = await clientBrief(req, project.clientId);
+    res.json({ project: serializeProject(project, { client }) });
   } catch (err) {
     logger.error('erreur serveur', { requestId: req.requestId, erreur: err.message, pile: err.stack });
     res.status(500).json({ message: 'Erreur serveur', requestId: req.requestId });

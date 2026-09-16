@@ -30,6 +30,9 @@
             <span *ngIf="project.manager">{{ 'projects.fields.manager' | t }} :
               <span class="font-medium text-foreground">{{ project.manager.firstName }} {{ project.manager.lastName }}</span>
             </span>
+            <span *ngIf="project.client">{{ 'projects.fields.client' | t }} :
+              <span class="font-medium text-foreground">{{ project.client.nom }}</span>
+            </span>
             <span class="flex items-center gap-1">
               <span *ngFor="let m of teamList" class="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium border border-border overflow-hidden shrink-0" [title]="m.name">
                 <img *ngIf="m.avatarUrl" [src]="m.avatarUrl | urlUpload" class="w-full h-full object-cover" alt="" />

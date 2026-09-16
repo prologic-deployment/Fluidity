@@ -50,6 +50,8 @@ export interface Project {
   name: string;
   description: string;
   stakeholder: string;
+  clientId?: string | null;
+  client?: { _id: string; nom: string; email?: string } | null;
   managerId: string | null;
   manager?: UserBrief | null;
   methodology: Methodology;
