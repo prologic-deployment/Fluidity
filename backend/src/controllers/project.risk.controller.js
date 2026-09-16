@@ -129,9 +129,18 @@ const updateRisk = async (req, res) => {
       }
     }
     if (mitigation !== undefined) risk.mitigation = mitigation;
-    if (status !== undefined && RISK_STATUSES.includes(status)) {
+    if (status !== undefined && RISK_STATUSES.includes(status) && status !== risk.status) {
       risk.status = status;
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.risk_status_changed', targetType: 'risk', targetId: risk._id, metadata: { title: risk.title, status } });
+      // Fix 26 : notification de changement de statut (pas seulement assignation).
+      if (risk.ownerId && String(risk.ownerId) !== String(req.userId)) {
+        await notifyUser({
+          tenantId: req.tenantId, projectId: project._id, userId: risk.ownerId, event: 'risk_status_changed',
+          params: { riskTitle: risk.title, projectName: project.name, status },
+          link: `/projets/${project._id}/risques`,
+          emailParams: { riskTitle: risk.title, projectName: project.name, status, link: `/projets/${project._id}/risques` },
+        });
+      }
     }
     if (dueDate !== undefined) risk.dueDate = dueDate ? new Date(dueDate) : null;
     await risk.save();

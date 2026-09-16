@@ -130,9 +130,18 @@ const updateIssue = async (req, res) => {
     }
     if (description !== undefined) issue.description = description;
     if (priority !== undefined && TASK_PRIORITIES.includes(priority)) issue.priority = priority;
-    if (status !== undefined && ISSUE_STATUSES.includes(status)) {
+    if (status !== undefined && ISSUE_STATUSES.includes(status) && status !== issue.status) {
       issue.status = status;
       await logActivity({ tenantId: req.tenantId, projectId: project._id, actorId: req.userId, action: 'projects.activity.issue_status_changed', targetType: 'issue', targetId: issue._id, metadata: { title: issue.title, status } });
+      // Fix 26 : notification de changement de statut (pas seulement assignation).
+      if (issue.ownerId && String(issue.ownerId) !== String(req.userId)) {
+        await notifyUser({
+          tenantId: req.tenantId, projectId: project._id, userId: issue.ownerId, event: 'issue_status_changed',
+          params: { issueTitle: issue.title, projectName: project.name, status },
+          link: `/projets/${project._id}/problemes`,
+          emailParams: { issueTitle: issue.title, projectName: project.name, status, link: `/projets/${project._id}/problemes` },
+        });
+      }
     }
     if (ownerId !== undefined) {
       issue.ownerId = ownerId || null;

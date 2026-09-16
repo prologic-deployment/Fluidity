@@ -1,0 +1,33 @@
+<main class="max-w-[900px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'profile.notif.title' | t }}</h2>
+    <a routerLink="/profile" class="btn-ghost btn-sm">{{ 'common.back' | t }}</a>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="card"><div class="card-content py-16 text-center"><div class="skeleton h-6 w-64 mx-auto"></div></div></div>
+
+  <div class="card" *ngIf="!loading">
+    <div class="card-header py-3">{{ 'profile.notif.card' | t }}</div>
+    <div class="card-content py-2">
+      <p class="text-sm text-muted-foreground mb-2">{{ 'profile.notif.sub' | t }}</p>
+      <div class="grid grid-cols-3 border-b border-border py-1.5 text-xs font-medium text-muted-foreground">
+        <span>{{ 'profile.notif.event' | t }}</span>
+        <span class="text-center">{{ 'profile.notif.email' | t }}</span>
+        <span class="text-center">{{ 'profile.notif.inapp' | t }}</span>
+      </div>
+      <div *ngFor="let e of events" class="grid grid-cols-3 items-center border-b border-border/60 py-1.5 text-sm">
+        <span>{{ 'projects.notifyEvents.' + e | t }}</span>
+        <label class="flex items-center justify-center gap-2 cursor-pointer">
+          <input type="checkbox" [checked]="emailOf(e)" (change)="togglePref(e, 'email')" class="checkbox" />
+        </label>
+        <label class="flex items-center justify-center gap-2 cursor-pointer">
+          <input type="checkbox" [checked]="inappOf(e)" (change)="togglePref(e, 'inapp')" class="checkbox" />
+        </label>
+      </div>
+      <div class="pt-3 flex justify-end">
+        <button type="button" class="btn-primary btn-sm" (click)="savePrefs()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </div>
+</main>

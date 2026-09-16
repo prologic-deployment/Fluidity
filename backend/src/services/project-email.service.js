@@ -209,6 +209,34 @@ const TEMPLATES = {
       cta: 'View the risk',
     },
   },
+  risk_status_changed: {
+    fr: {
+      subject: 'Risque {{status}} : {{riskTitle}}',
+      heading: 'Statut de risque mis à jour',
+      body: `Le risque <strong>{{riskTitle}}</strong> (projet {{projectName}}) est passé au statut {{status}}.`,
+      cta: 'Voir le risque',
+    },
+    en: {
+      subject: 'Risk {{status}}: {{riskTitle}}',
+      heading: 'Risk status updated',
+      body: `Risk <strong>{{riskTitle}}</strong> (project {{projectName}}) moved to {{status}}.`,
+      cta: 'View the risk',
+    },
+  },
+  issue_status_changed: {
+    fr: {
+      subject: 'Problème {{status}} : {{issueTitle}}',
+      heading: 'Statut de problème mis à jour',
+      body: `Le problème <strong>{{issueTitle}}</strong> (projet {{projectName}}) est passé au statut {{status}}.`,
+      cta: 'Voir le problème',
+    },
+    en: {
+      subject: 'Issue {{status}}: {{issueTitle}}',
+      heading: 'Issue status updated',
+      body: `Issue <strong>{{issueTitle}}</strong> (project {{projectName}}) moved to {{status}}.`,
+      cta: 'View the issue',
+    },
+  },
   issue_assigned: {
     fr: {
       subject: 'Problème assigné : {{issueTitle}}',

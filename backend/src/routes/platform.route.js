@@ -901,6 +901,8 @@ const DEFAULT_PREFS = () => ({
   project_completed: { email: true, inapp: true },
   risk_assigned: { email: true, inapp: true },
   issue_assigned: { email: true, inapp: true },
+  risk_status_changed: { email: true, inapp: true },
+  issue_status_changed: { email: true, inapp: true },
   subscription_purchase: { email: true, inapp: true },
   subscription_requested: { email: true, inapp: true },
   subscription_approved: { email: true, inapp: true },

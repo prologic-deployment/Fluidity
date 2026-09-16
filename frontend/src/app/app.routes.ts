@@ -39,6 +39,7 @@ import { PlatformRolesComponent } from './components/platform/platform-roles.com
 import { PlatformSettingsComponent } from './components/platform/platform-settings.component';
 import { UsersDashboardComponent } from './components/users-dashboard/users-dashboard.component';
 import { ProfilComponent } from './components/profil/profil.component';
+import { NotificationsPreferencesComponent } from './components/profil/notifications-preferences.component';
 import { SecurityPageComponent } from './components/security/security-page.component';
 import { SaasAdminComponent } from './components/saas-admin/saas-admin.component';
 
@@ -174,6 +175,7 @@ export const routes: Routes = [
         children: [
           { path: '', component: ProfilComponent },
           { path: 'security', component: SecurityPageComponent, data: { breadcrumb: 'nav.security' } },
+          { path: 'notifications', component: NotificationsPreferencesComponent, data: { breadcrumb: 'profile.notif.title' } },
         ],
       },
       { path: 'profil', redirectTo: 'profile' },

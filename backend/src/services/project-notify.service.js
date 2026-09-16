@@ -31,6 +31,8 @@ const EVENT_I18N = {
   sprint_completed: { titleKey: 'projects.notify.sprint_completed.title', bodyKey: 'projects.notify.sprint_completed.body' },
   risk_assigned: { titleKey: 'projects.notify.risk_assigned.title', bodyKey: 'projects.notify.risk_assigned.body' },
   issue_assigned: { titleKey: 'projects.notify.issue_assigned.title', bodyKey: 'projects.notify.issue_assigned.body' },
+  risk_status_changed: { titleKey: 'projects.notify.risk_status_changed.title', bodyKey: 'projects.notify.risk_status_changed.body' },
+  issue_status_changed: { titleKey: 'projects.notify.issue_status_changed.title', bodyKey: 'projects.notify.issue_status_changed.body' },
   sprint_ending: { titleKey: 'projects.notify.sprint_ending.title', bodyKey: 'projects.notify.sprint_ending.body' },
   project_completed: { titleKey: 'projects.notify.project_completed.title', bodyKey: 'projects.notify.project_completed.body' },
   subscription_purchase: { titleKey: 'projects.notify.subscription_purchase.title', bodyKey: 'projects.notify.subscription_purchase.body' },

@@ -14,11 +14,12 @@ import { ModalComponent } from '../shared/modal.component';
 import { apiErrorMessage } from '../../utils/api-error.util';
 
 /** Événements de notification du produit (miroir backend, clés i18n). */
-const PROJECT_EVENTS = [
+export const PROJECT_EVENTS = [
   'task_assigned', 'task_reassigned', 'task_mention', 'task_comment', 'task_deadline',
   'task_overdue', 'task_status_changed', 'milestone_approaching', 'milestone_overdue',
   'project_invitation', 'project_role_changed', 'sprint_started', 'sprint_completed',
   'sprint_ending', 'project_completed', 'risk_assigned', 'issue_assigned',
+  'risk_status_changed', 'issue_status_changed',
   'subscription_purchase', 'subscription_requested', 'subscription_approved', 'subscription_rejected',
   'subscription_renewal', 'subscription_expiring', 'license_assigned', 'license_removed',
   'license_limit_reached', 'deliverable_submitted', 'deliverable_approved', 'deliverable_rejected',

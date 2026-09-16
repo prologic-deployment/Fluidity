@@ -203,6 +203,17 @@ export const FR: Record<string, unknown> = {
   profile: {
     title: 'Mon profil',
     subtitle: 'Votre identité, vos coordonnées et vos préférences.',
+    notif: {
+      link: 'Notifications',
+      title: 'Préférences de notification',
+      card: 'Canaux par événement',
+      sub: 'Choisissez les événements projet qui vous alertent, par e-mail et/ou dans l’application.',
+      event: 'Événement',
+      email: 'E-mail',
+      inapp: 'In-app',
+      saved: 'Préférences enregistrées.',
+      loadError: 'Chargement des préférences impossible.',
+    },
     personal: 'Informations personnelles',
     personalHint: 'Ces informations identifient votre compte dans l’espace de travail.',
     firstName: 'Prénom',
@@ -2393,6 +2404,14 @@ export const FR: Record<string, unknown> = {
         title: 'Problème assigné',
         body: 'Le problème « {{taskTitle}} » vous est assigné ({{priority}}).',
       },
+      risk_status_changed: {
+        title: 'Statut de risque mis à jour',
+        body: 'Le risque « {{riskTitle}} » est passé au statut {{status}}.',
+      },
+      issue_status_changed: {
+        title: 'Statut de problème mis à jour',
+        body: 'Le problème « {{issueTitle}} » est passé au statut {{status}}.',
+      },
       sprint_ending: {
         title: 'Fin de sprint proche',
         body: 'Le sprint « {{goal}} » se termine bientôt dans {{projectName}}.',
@@ -2470,6 +2489,8 @@ export const FR: Record<string, unknown> = {
       sprint_completed: 'Fin de sprint',
       risk_assigned: 'Risques assignés',
       issue_assigned: 'Problèmes assignés',
+      risk_status_changed: 'Statuts de risque',
+      issue_status_changed: 'Statuts de problème',
       subscription_purchase: 'Souscription achetée',
       subscription_renewal: 'Renouvellements',
       subscription_requested: 'Demandes d’achat',

@@ -203,6 +203,17 @@ export const EN: Record<string, unknown> = {
   profile: {
     title: 'My profile',
     subtitle: 'Your identity, contact details and preferences.',
+    notif: {
+      link: 'Notifications',
+      title: 'Notification preferences',
+      card: 'Channels per event',
+      sub: 'Choose which project events alert you, by email and/or in-app.',
+      event: 'Event',
+      email: 'Email',
+      inapp: 'In-app',
+      saved: 'Preferences saved.',
+      loadError: 'Could not load preferences.',
+    },
     personal: 'Personal information',
     personalHint: 'This information identifies your account in the workspace.',
     firstName: 'First name',
@@ -2394,6 +2405,14 @@ export const EN: Record<string, unknown> = {
         title: 'Issue assigned',
         body: 'Issue « {{taskTitle}} » assigned to you ({{priority}}).',
       },
+      risk_status_changed: {
+        title: 'Risk status updated',
+        body: 'Risk « {{riskTitle}} » moved to {{status}}.',
+      },
+      issue_status_changed: {
+        title: 'Issue status updated',
+        body: 'Issue « {{issueTitle}} » moved to {{status}}.',
+      },
       sprint_ending: {
         title: 'Sprint ending soon',
         body: 'Sprint « {{goal}} » ends soon in {{projectName}}.',
@@ -2471,6 +2490,8 @@ export const EN: Record<string, unknown> = {
       sprint_completed: 'Sprint completion',
       risk_assigned: 'Assigned risks',
       issue_assigned: 'Assigned issues',
+      risk_status_changed: 'Risk statuses',
+      issue_status_changed: 'Issue statuses',
       subscription_purchase: 'Subscription purchased',
       subscription_renewal: 'Renewals',
       subscription_requested: 'Purchase requests',

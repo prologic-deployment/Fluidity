@@ -5,12 +5,17 @@
         <h1 class="text-xl font-semibold tracking-tight">{{ 'profile.title' | t }}</h1>
         <p class="text-sm text-muted-foreground mt-0.5">{{ 'profile.subtitle' | t }}</p>
       </div>
+      <div class="flex items-center gap-2">
+      <a routerLink="/profile/notifications" class="btn-outline btn-sm">
+        {{ 'profile.notif.link' | t }}
+      </a>
       <a routerLink="/profile/security" class="btn-outline btn-sm">
         <svg class="h-3.5 w-3.5 mr-1.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
         {{ 'nav.security' | t }}
       </a>
+      </div>
     </div>
   </header>
 

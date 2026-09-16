@@ -44,7 +44,7 @@ async function runProjectDeadlineJob() {
       const approaching = !overdue && due <= in48h;
       if (!approaching && !overdue) continue;
       if (!notifiable(task, now)) continue;
-      const project = await Project.findById(task.projectId).select('name status workflow').lean();
+      const project = await Project.findById(task.projectId).select('name status workflow managerId').lean();
       if (!project || project.status === 'archived') continue;
       const pkey = String(project._id);
       if (!openByProject.has(pkey)) openByProject.set(pkey, taskStates(project).open);
@@ -60,6 +60,22 @@ async function runProjectDeadlineJob() {
         link: `/projets/${task.projectId}/taches/${task._id}`,
         emailParams: { ref: task.ref, taskTitle: task.title, projectName: project.name, dueDate: dateStr, link: `/projets/${task.projectId}/taches/${task._id}` },
       });
+      // Fix 26 : le manager est alerté des retards, en plus de l'assigné.
+      if (overdue && project.managerId && String(project.managerId) !== String(task.assigneeId)) {
+        try {
+          await notifyUser({
+            tenantId: task.tenantId,
+            projectId: task.projectId,
+            userId: project.managerId,
+            event: 'task_overdue',
+            params: { ref: task.ref, taskTitle: task.title, projectName: project.name, dueDate: dateStr },
+            link: `/projets/${task.projectId}/taches/${task._id}`,
+            emailParams: { ref: task.ref, taskTitle: task.title, projectName: project.name, dueDate: dateStr, link: `/projets/${task.projectId}/taches/${task._id}` },
+          });
+        } catch {
+          /* best-effort */
+        }
+      }
       await Task.updateOne({ _id: task._id }, { $set: { lastDeadlineNotifiedAt: now } });
     } catch {
       /* best-effort */
