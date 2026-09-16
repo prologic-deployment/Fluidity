@@ -245,6 +245,32 @@ export interface Deliverable {
   createdAt?: string;
 }
 
+export interface ChangeRequestPayload {
+  newEndDate?: string;
+  newBudgetAmount?: number;
+  newObjectives?: string;
+}
+
+export type ChangeRequestType = 'scope' | 'budget' | 'timeline' | 'other';
+export type ChangeRequestStatus = 'proposed' | 'approved' | 'rejected';
+
+export interface ChangeRequest {
+  _id: string;
+  projectId: string;
+  type: ChangeRequestType;
+  title: string;
+  description: string;
+  payload: ChangeRequestPayload;
+  status: ChangeRequestStatus;
+  proposedBy?: UserBrief | string | null;
+  reviewedBy?: UserBrief | string | null;
+  reviewedAt: string | null;
+  reviewNote: string;
+  appliedChanges?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DeliverableReview {
   version: number;
   decision: 'approved' | 'rejected';

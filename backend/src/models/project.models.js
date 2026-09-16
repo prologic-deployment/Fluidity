@@ -331,6 +331,34 @@ DeliverableSchema.index({ tenantId: 1, projectId: 1, milestoneId: 1 });
 
 const Deliverable = mongoose.model('Deliverable', DeliverableSchema);
 
+const CHANGE_REQUEST_TYPES = ['scope', 'budget', 'timeline', 'other'];
+const CHANGE_REQUEST_STATUSES = ['proposed', 'approved', 'rejected'];
+
+/** A5.3 Fix 16 : demandes de changement (périmètre/budget/délais) + re-baseline à l'approbation. */
+const ChangeRequestSchema = new Schema(
+  {
+    tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
+    projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
+    type: { type: String, enum: CHANGE_REQUEST_TYPES, required: true },
+    title: { type: String, required: true, trim: true, maxlength: 160 },
+    description: { type: String, default: '', maxlength: 3000 },
+    /** Changement demandé : newEndDate (timeline), newBudgetAmount (budget), newObjectives (scope). */
+    payload: { type: Schema.Types.Mixed, default: {} },
+    status: { type: String, enum: CHANGE_REQUEST_STATUSES, default: 'proposed' },
+    proposedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    reviewedBy: { type: Schema.Types.ObjectId, ref: 'Utilisateur', default: null },
+    reviewedAt: { type: Date, default: null },
+    reviewNote: { type: String, default: '', maxlength: 1000 },
+    /** Re-baseline appliquée à l'approbation (constat d'audit). */
+    appliedChanges: { type: Schema.Types.Mixed, default: null },
+  },
+  { timestamps: true }
+);
+
+ChangeRequestSchema.index({ tenantId: 1, projectId: 1, status: 1 });
+
+const ChangeRequest = mongoose.model('ProjectChangeRequest', ChangeRequestSchema);
+
 /** Types d'événement projet (calendrier). */
 const EVENT_TYPES = ['meeting', 'decision', 'event', 'deadline'];
 
@@ -628,6 +656,7 @@ module.exports = {
   ProjectFile,
   TimeEntry,
   Deliverable,
+  ChangeRequest,
   ProjectEvent,
   NotificationPreference,
   METHODOLOGIES,
@@ -645,6 +674,8 @@ module.exports = {
   RISK_STATUSES,
   ISSUE_STATUSES,
   DELIVERABLE_STATUSES,
+  CHANGE_REQUEST_TYPES,
+  CHANGE_REQUEST_STATUSES,
   EVENT_TYPES,
   COMMENT_TARGETS,
   PROJECT_NOTIFICATION_EVENTS,

@@ -7,6 +7,7 @@ import {
   ActivityEntry,
   BacklogData,
   CalendarData,
+  ChangeRequest,
   Deliverable,
   GlobalDashboard,
   Issue,
@@ -354,6 +355,24 @@ export class ProjectService {
 
   deleteDeliverable(id: string, deliverableId: string): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.base}/${id}/deliverables/${deliverableId}`);
+  }
+
+  // --- Demandes de changement (Fix 16) --------------------------------------
+
+  changeRequests(id: string): Observable<{ changeRequests: ChangeRequest[] }> {
+    return this.http.get<{ changeRequests: ChangeRequest[] }>(`${this.base}/${id}/change-requests`);
+  }
+
+  createChangeRequest(id: string, payload: Partial<ChangeRequest>): Observable<{ changeRequest: ChangeRequest }> {
+    return this.http.post<{ changeRequest: ChangeRequest }>(`${this.base}/${id}/change-requests`, payload);
+  }
+
+  updateChangeRequest(id: string, crId: string, payload: Partial<ChangeRequest>): Observable<{ changeRequest: ChangeRequest }> {
+    return this.http.put<{ changeRequest: ChangeRequest }>(`${this.base}/${id}/change-requests/${crId}`, payload);
+  }
+
+  decideChangeRequest(id: string, crId: string, decision: 'approve' | 'reject', reviewNote?: string): Observable<{ changeRequest: ChangeRequest }> {
+    return this.http.post<{ changeRequest: ChangeRequest }>(`${this.base}/${id}/change-requests/${crId}/${decision}`, { reviewNote });
   }
 
   // --- Événements projet (réunions, décisions) ------------------------------

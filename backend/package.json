@@ -10,7 +10,7 @@
     "seed:reset": "node src/seed/reset.js",
     "migrate": "node src/seed/migrate-multitenancy.js",
     "migrate:uploads": "node src/seed/migrate-uploads-structure.js",
-    "test": "node src/utils/ticket-priority.test.js && node src/utils/ticket-sla.test.js && node src/products/registry.test.js && node src/utils/project-health.test.js && node src/utils/deliverable-workflow.test.js && node src/utils/project-transitions.test.js && node src/utils/project-archive.test.js && node src/utils/project-task-access.test.js && node src/utils/pm-permissions-matrix.test.js",
+    "test": "node src/utils/ticket-priority.test.js && node src/utils/ticket-sla.test.js && node src/products/registry.test.js && node src/utils/project-health.test.js && node src/utils/deliverable-workflow.test.js && node src/utils/project-transitions.test.js && node src/utils/project-archive.test.js && node src/utils/project-task-access.test.js && node src/utils/pm-permissions-matrix.test.js && node src/utils/change-request.test.js",
     "qa:service-scenes": "xvfb-run -a node qa/service-scene-lifecycle.js",
     "migrate:archive-status": "node src/seed/migrate-archive-status.js",
     "matrix:permissions": "node scripts/generate-permission-matrix.js"

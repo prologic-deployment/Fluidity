@@ -54,6 +54,11 @@ cd backend && npm run matrix:permissions
 | PUT | `/:id/deliverables/:deliverableId` | deliverableController.updateDeliverable | `project.task.update` | yes |
 | PATCH | `/:id/deliverables/:deliverableId/status` | deliverableController.transitionDeliverable | `project.task.update` | yes |
 | DELETE | `/:id/deliverables/:deliverableId` | deliverableController.deleteDeliverable | `project.task.delete` | yes |
+| GET | `/:id/change-requests` | changeRequestController.listChangeRequests | `project.project.read` | — |
+| POST | `/:id/change-requests` | changeRequestController.createChangeRequest | `project.change.manage` | yes |
+| PUT | `/:id/change-requests/:crId` | changeRequestController.updateChangeRequest | `project.change.manage` | yes |
+| POST | `/:id/change-requests/:crId/approve` | changeRequestController.approveChangeRequest | `project.change.manage` | yes |
+| POST | `/:id/change-requests/:crId/reject` | changeRequestController.rejectChangeRequest | `project.change.manage` | yes |
 | GET | `/:id/events` | eventController.listEvents | `project.project.read` | — |
 | POST | `/:id/events` | eventController.createEvent | `project.event.manage` | yes |
 | PUT | `/:id/events/:eventId` | eventController.updateEvent | `project.event.manage` | yes |
@@ -147,6 +152,11 @@ chaque symbole.
 | createFile | project.file.controller.js | CAN.comment | rang ≥ 1 |
 | deleteFile | project.file.controller.js | CAN.manageTasks | propriétaire ou rang ≥ 3 |
 | createProject | — | — | permission produit seule (pas de projet, donc pas de rang) |
+| createChangeRequest | project.changerequest.controller.js | CAN.manageTasks | proposition rang ≥ 3 |
+| updateChangeRequest | project.changerequest.controller.js | isChangeEditable, CAN.manageProject | proposée seulement ; auteur ou rang 5 |
+| decideChangeRequest | project.changerequest.controller.js | CAN.manageProject, planChangeApproval | verdict rang ≥ 5 + re-baseline planifiée |
+| approveChangeRequest | project.changerequest.controller.js | decideChangeRequest | délègue à decideChangeRequest |
+| rejectChangeRequest | project.changerequest.controller.js | decideChangeRequest | délègue à decideChangeRequest |
 
 ## §3 — Lectures : appartenance exigée (vérifié automatiquement)
 

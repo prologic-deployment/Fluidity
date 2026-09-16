@@ -13,6 +13,7 @@ const fileController = require('../controllers/project.file.controller');
 const activityController = require('../controllers/project.activity.controller');
 const timeController = require('../controllers/project.time.controller');
 const deliverableController = require('../controllers/project.deliverable.controller');
+const changeRequestController = require('../controllers/project.changerequest.controller');
 const eventController = require('../controllers/project.event.controller');
 const { rejectArchivedProject } = require('../middlewares/project-archive.middleware');
 
@@ -72,6 +73,11 @@ router.post('/:id/deliverables', access('project.task.update'), rejectArchivedPr
 router.put('/:id/deliverables/:deliverableId', access('project.task.update'), rejectArchivedProject, deliverableController.updateDeliverable);
 router.patch('/:id/deliverables/:deliverableId/status', access('project.task.update'), rejectArchivedProject, deliverableController.transitionDeliverable);
 router.delete('/:id/deliverables/:deliverableId', access('project.task.delete'), rejectArchivedProject, deliverableController.deleteDeliverable);
+router.get('/:id/change-requests', access(), changeRequestController.listChangeRequests);
+router.post('/:id/change-requests', access('project.change.manage'), rejectArchivedProject, changeRequestController.createChangeRequest);
+router.put('/:id/change-requests/:crId', access('project.change.manage'), rejectArchivedProject, changeRequestController.updateChangeRequest);
+router.post('/:id/change-requests/:crId/approve', access('project.change.manage'), rejectArchivedProject, changeRequestController.approveChangeRequest);
+router.post('/:id/change-requests/:crId/reject', access('project.change.manage'), rejectArchivedProject, changeRequestController.rejectChangeRequest);
 
 // --- Événements projet (réunions, décisions — calendrier) ------------------
 router.get('/:id/events', access(), eventController.listEvents);

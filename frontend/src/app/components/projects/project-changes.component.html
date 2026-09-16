@@ -1,0 +1,104 @@
+<main class="max-w-[1600px] mx-auto px-4 lg:px-6 py-6">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <h2 class="text-base font-semibold mr-auto">{{ 'projects.changes.title' | t }}</h2>
+    <button *ngIf="canPropose" type="button" class="btn-primary btn-sm" (click)="openCreate()">{{ 'projects.changes.new' | t }}</button>
+  </div>
+
+  <p *ngIf="error" class="alert-destructive mb-4">{{ error | t }}</p>
+  <div *ngIf="loading" class="table-wrap p-4 space-y-3">
+    <div class="skeleton h-5 w-2/3"></div>
+    <div class="skeleton h-5 w-1/2"></div>
+  </div>
+  <div *ngIf="!loading && !items.length" class="card">
+    <div class="card-content p-6 text-sm text-muted-foreground">{{ 'projects.changes.empty' | t }}</div>
+  </div>
+  <div *ngIf="!loading && items.length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>{{ 'projects.changes.type' | t }}</th>
+          <th>{{ 'projects.fields.title' | t }}</th>
+          <th>{{ 'projects.changes.requested' | t }}</th>
+          <th>{{ 'projects.changes.status' | t }}</th>
+          <th>{{ 'projects.changes.proposedBy' | t }}</th>
+          <th>{{ 'projects.changes.verdict' | t }}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of items; trackBy: trackC">
+          <td class="text-sm whitespace-nowrap">{{ 'projects.meta.changeType.' + c.type | t }}</td>
+          <td class="text-sm">
+            <span class="font-medium">{{ c.title }}</span>
+            <span *ngIf="c.description" class="block text-xs text-muted-foreground line-clamp-1">{{ c.description }}</span>
+          </td>
+          <td class="text-xs text-muted-foreground max-w-[280px] truncate">{{ payloadSummary(c) }}</td>
+          <td><span class="badge" [ngClass]="statusBadge(c.status)">{{ 'projects.meta.changeStatus.' + c.status | t }}</span></td>
+          <td class="text-xs">{{ nameOf(c.proposedBy) }}</td>
+          <td class="text-xs">
+            <span *ngIf="c.reviewedBy">{{ nameOf(c.reviewedBy) }}</span>
+            <span *ngIf="c.reviewNote" class="block text-muted-foreground line-clamp-1">{{ c.reviewNote }}</span>
+            <span *ngIf="!c.reviewedBy" class="text-muted-foreground">—</span>
+          </td>
+          <td class="whitespace-nowrap text-right">
+            <button *ngIf="c.status === 'proposed' && canDecide" type="button" class="btn-primary btn-xs mr-1" (click)="openDecide(c, 'approve')">{{ 'projects.changes.approve' | t }}</button>
+            <button *ngIf="c.status === 'proposed' && canDecide" type="button" class="btn-outline btn-xs mr-1 text-destructive" (click)="openDecide(c, 'reject')">{{ 'projects.changes.reject' | t }}</button>
+            <button *ngIf="canEditItem(c)" type="button" class="btn-ghost btn-xs mr-1" (click)="openEdit(c)">{{ 'common.edit' | t }}</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <app-modal [open]="creating || !!editing" [title]="(editing ? 'common.edit' : 'projects.changes.new') | t" (closed)="creating = false; editing = null">
+    <div class="space-y-3 p-4" *ngIf="creating || editing">
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.changes.type' | t }}</span>
+        <select [(ngModel)]="form.type" class="select mt-1" [disabled]="!!editing">
+          <option *ngFor="let t of types" [value]="t">{{ 'projects.meta.changeType.' + t | t }}</option>
+        </select>
+      </label>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.title' | t }}</span>
+        <input type="text" [(ngModel)]="form.title" class="input mt-1" maxlength="160" />
+      </label>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.fields.description' | t }}</span>
+        <textarea [(ngModel)]="form.description" rows="3" class="input mt-1"></textarea>
+      </label>
+      <label class="block text-sm" *ngIf="form.type === 'timeline'">
+        <span class="text-muted-foreground">{{ 'projects.changes.newEndDate' | t }}</span>
+        <input type="date" [(ngModel)]="form.newEndDate" class="input mt-1" />
+      </label>
+      <label class="block text-sm" *ngIf="form.type === 'budget'">
+        <span class="text-muted-foreground">{{ 'projects.changes.newBudget' | t }}</span>
+        <input type="number" min="0" [(ngModel)]="form.newBudgetAmount" class="input mt-1" />
+      </label>
+      <label class="block text-sm" *ngIf="form.type === 'scope'">
+        <span class="text-muted-foreground">{{ 'projects.changes.newObjectives' | t }}</span>
+        <textarea [(ngModel)]="form.newObjectives" rows="3" class="input mt-1"></textarea>
+      </label>
+      <p class="text-xs text-muted-foreground">{{ 'projects.changes.baselineHint' | t }}</p>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="creating = false; editing = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="submitting || !form.title.trim()" (click)="submit()">{{ 'common.save' | t }}</button>
+      </div>
+    </div>
+  </app-modal>
+
+  <app-modal [open]="!!deciding" [title]="'projects.changes.verdict' | t" (closed)="deciding = null">
+    <div class="space-y-3 p-4" *ngIf="deciding">
+      <p class="text-sm font-medium">{{ deciding.title }}</p>
+      <label class="block text-sm">
+        <span class="text-muted-foreground">{{ 'projects.changes.reviewNote' | t }}</span>
+        <textarea [(ngModel)]="decisionNote" rows="3" class="input mt-1"></textarea>
+      </label>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="btn-ghost btn-sm" (click)="deciding = null">{{ 'common.cancel' | t }}</button>
+        <button type="button" class="btn-primary btn-sm" [disabled]="submitting" (click)="confirmDecide()">
+          {{ (decision === 'approve' ? 'projects.changes.approve' : 'projects.changes.reject') | t }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+</main>

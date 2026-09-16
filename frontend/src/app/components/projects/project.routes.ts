@@ -15,6 +15,7 @@ import { ProjectFilesComponent } from './project-files.component';
 import { ProjectActivityComponent } from './project-activity.component';
 import { ProjectRisksComponent } from './project-risks.component';
 import { ProjectIssuesComponent } from './project-issues.component';
+import { ProjectChangesComponent } from './project-changes.component';
 import { ProjectReportsComponent } from './project-reports.component';
 import { ProjectSettingsComponent } from './project-settings.component';
 import { ProjectCalendarComponent } from './project-calendar.component';
@@ -56,6 +57,7 @@ export const PROJECT_ROUTES: Routes = [
       { path: 'activite', component: ProjectActivityComponent, data: { breadcrumb: 'projects.tabs.activity' } },
       { path: 'risques', component: ProjectRisksComponent, data: { breadcrumb: 'projects.tabs.risks' } },
       { path: 'problemes', component: ProjectIssuesComponent, data: { breadcrumb: 'projects.tabs.issues' } },
+      { path: 'changements', component: ProjectChangesComponent, data: { breadcrumb: 'projects.tabs.changes' } },
       { path: 'rapports', component: ProjectReportsComponent, data: { breadcrumb: 'projects.tabs.reports' } },
       { path: 'calendrier', component: ProjectCalendarComponent, data: { breadcrumb: 'projects.tabs.calendar' } },
       { path: 'parametres', component: ProjectSettingsComponent, data: { breadcrumb: 'projects.tabs.settings' } },

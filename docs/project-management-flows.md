@@ -172,3 +172,24 @@ flowchart TD
     TP --> R
     TM --> R
 ```
+
+---
+
+## 7. Demandes de changement (proposition → verdict → re-baseline)
+
+```mermaid
+stateDiagram-v2
+    [*] --> proposed: Proposition (change.manage + rang ≥ 3)
+    proposed --> approved: Approbation (rang 5) + re-baseline + audit
+    proposed --> rejected: Rejet (rang 5) + motif + audit
+    approved --> [*]
+    rejected --> [*]
+
+    note right of approved
+      Re-baseline appliquée au projet :
+      timeline → endDate, budget → budget.amount,
+      scope → objectives, other → constat seul.
+      L'auteur est notifié du verdict
+      (change_approved / change_rejected).
+    end note
+```

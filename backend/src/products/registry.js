@@ -904,6 +904,7 @@ const PERMISSIONS_BY_PRODUCT = {
     'project.event.manage',
     'project.report.read',
     'project.workflow.manage',
+    'project.change.manage',
   ],
   fleet_management: [
     'fleet.asset.create', 'fleet.asset.read', 'fleet.asset.update', 'fleet.asset.assign',
@@ -999,10 +1000,10 @@ function rolePermissions(roleKey, productKey) {
     requester: ['servicedesk.ticket.create', 'servicedesk.ticket.read', 'servicedesk.ticket.reopen'],
     // Project
     project_admin: [...PERMISSIONS_BY_PRODUCT.project_management],
-    project_manager: ['project.project.create', 'project.project.read', 'project.project.update', 'project.project.archive', 'project.member.manage', 'project.task.create', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.delete', 'project.milestone.create', 'project.milestone.update', 'project.milestone.delete', 'project.sprint.manage', 'project.risk.manage', 'project.issue.manage', 'project.time.log', 'project.event.manage', 'project.report.read', 'project.workflow.manage'],
-    product_owner: ['project.project.read', 'project.task.create', 'project.task.update', 'project.report.read'],
-    scrum_master: ['project.project.read', 'project.task.update', 'project.sprint.manage', 'project.event.manage', 'project.issue.manage', 'project.report.read'],
-    project_lead: ['project.project.read', 'project.task.create', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.time.log', 'project.report.read'],
+    project_manager: ['project.project.create', 'project.project.read', 'project.project.update', 'project.project.archive', 'project.member.manage', 'project.task.create', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.task.delete', 'project.milestone.create', 'project.milestone.update', 'project.milestone.delete', 'project.sprint.manage', 'project.risk.manage', 'project.issue.manage', 'project.time.log', 'project.event.manage', 'project.report.read', 'project.workflow.manage', 'project.change.manage'],
+    product_owner: ['project.project.read', 'project.task.create', 'project.task.update', 'project.report.read', 'project.change.manage'],
+    scrum_master: ['project.project.read', 'project.task.update', 'project.sprint.manage', 'project.event.manage', 'project.issue.manage', 'project.report.read', 'project.change.manage'],
+    project_lead: ['project.project.read', 'project.task.create', 'project.task.update', 'project.task.assign', 'project.task.complete', 'project.time.log', 'project.report.read', 'project.change.manage'],
     developer: ['project.project.read', 'project.task.update', 'project.time.log'],
     designer: ['project.project.read', 'project.task.update', 'project.time.log'],
     qa: ['project.project.read', 'project.task.update', 'project.task.complete', 'project.issue.manage', 'project.time.log'],

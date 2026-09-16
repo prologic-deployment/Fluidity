@@ -112,6 +112,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
       { path: `${base}/activite`, labelKey: 'projects.tabs.activity', exact: false, show: true },
       { path: `${base}/risques`, labelKey: 'projects.tabs.risks', exact: false, show: true },
       { path: `${base}/problemes`, labelKey: 'projects.tabs.issues', exact: false, show: true },
+      { path: `${base}/changements`, labelKey: 'projects.tabs.changes', exact: false, show: true },
       { path: `${base}/calendrier`, labelKey: 'projects.tabs.calendar', exact: false, show: true },
       { path: `${base}/rapports`, labelKey: 'projects.tabs.reports', exact: false, show: this.reportReadable },
       { path: `${base}/parametres`, labelKey: 'projects.tabs.settings', exact: false, show: true },
